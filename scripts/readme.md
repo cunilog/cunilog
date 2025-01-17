@@ -10,7 +10,7 @@ The scripts have identical functionality. They read the file __SingleFiles.txt__
 and use it as the basis to create the files __cunilog_combined.c__ and
 __cunilog_combined.h__ in folder __src/c/combined__.
 
-These files can then either be added to your project(s), or serve as the basis
-for the static library __libcunilog__.
+These two files (__cunilog_combined.c__ and
+__cunilog_combined.h__) can then either be added to your project(s), or serve as the basis for the static library __libcunilog__. If you link to Cunilog statically, include __cunilog_combined.h__ in any code file that requires access to Cunilog.
 
 See [Building Cunilog](../building.md) for details on how to build Cunilog as a static library or directly add the combined files to your project(s).
