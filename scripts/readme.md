@@ -13,4 +13,4 @@ __cunilog_combined.h__ in folder __src/c/combined__.
 These files can then either be added to your project(s), or serve as the basis
 for the static library __libcunilog__.
 
-See [Building Cunilog](/cunilog/blob/master/building.md) for details on how to build Cunilog as a static library or directly add the combined files to your project(s).
+See [Building Cunilog](../blob/master/building.md) for details on how to build Cunilog as a static library or directly add the combined files to your project(s).
