@@ -1,0 +1,944 @@
+/****************************************************************************************
+
+	File:		cunilogstructs.h
+	Why:		Structures for cunilog.
+	OS:			C99.
+	Author:		Thomas
+	Created:	2022-10-05
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2022-10-05	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef CUNILOGSTRUCTS_H
+#define CUNILOGSTRUCTS_H
+
+#include <stdint.h>
+#include <stdio.h>
+#include <stddef.h>
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./SingleBits.h"
+		#include "./ubf_times.h"
+		#include "./membuf.h"
+		#include "./bulkmalloc.h"
+		#include "./VectorC.h"
+		#include "./platform.h"
+		#include "./strnewline.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/SingleBits.h"
+		#include "./../datetime/ubf_times.h"
+		#include "./../mem/membuf.h"
+		#include "./../mem/bulkmalloc.h"
+		#include "./../mem/VectorC.h"
+		#include "./../pre/platform.h"
+		#include "./../string/strnewline.h"
+	#endif
+
+#endif
+
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+//#define CUNILOG_BUILD_SINGLE_THREADED_ONLY
+#endif
+
+#ifdef OS_IS_WINDOWS
+	#include <Windows.h>
+#else
+	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+		#include <semaphore.h>
+		#include <pthread.h>
+	#endif
+#endif
+
+/*
+	Build options.
+
+	CUNILOG_BUILD_SINGLE_THREADED_ONLY			Builds for a single-threaded application only.
+												Code for other types than unilogSingleThreaded
+												won't be built.
+*/
+#ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#ifdef CUNILOG_BUILD_MULTI_THREADED
+	#error Either CUNILOG_BUILD_SINGLE_THREADED_ONLY or CUNILOG_BUILD_MULTI_THREADED can be defined but not both.
+	#endif
+	#ifdef CUNILOG_BUILD_MULTI_PROCESSES
+	#error Only CUNILOG_BUILD_SINGLE_THREADED_ONLY or UNILOG_BUILD_MULTI_PROCESSES can be defined but not both.
+	#endif
+#endif
+/*
+	Currently not planned.
+
+#ifdef CUNILOG_BUILD_MULTI_THREADED
+	#ifdef CUNILOG_BUILD_MULTI_PROCESSES
+	#error Only CUNILOG_BUILD_MULTI_THREADED or CUNILOG_BUILD_MULTI_PROCESSES can be defined but not both.
+	#endif
+#endif
+#ifdef CUNILOG_BUILD_MULTI_PROCESSES
+#endif
+*/
+
+BEGIN_C_DECLS
+
+/*
+	The constants for the log file extension. We got this in UTF-8
+	(szCunilogLogFileNameExtension) and Windows UTF-16 (wcCunilogLogFileNameExtension).
+	The constant lenCunilogLogFileNameExtension is the length in characters (not octets!).
+*/
+extern const char		*szCunilogLogFileNameExtension;			// ".log"
+extern const wchar_t	*wcCunilogLogFileNameExtension;			// ".log"
+extern const size_t		lenCunilogLogFileNameExtension;			// ".log"
+extern const size_t		sizCunilogLogFileNameExtension;
+
+/*
+	enum unilogtype
+
+	Specifies the application type of a cunilog target and how processing events is
+	protected. These values are valid for a single target.
+	Applications however can in theory work with an arbitrary number of targets, even if
+	the targets are configured differently.
+
+
+	cunilogSingleThreaded
+
+	Only a single thread from one instance of the current application can safely write out
+	logging information. Cunilog does not apply any concurrency protection.
+	Writing logging information from more than a single thread, another instance of the
+	same application, or from a different application is not supported and resulta in data
+	corruption and application crashes. In a best case it may only lead to unusable
+	logging information.
+
+	Every logging function blocks as it executes the list of processors before returning.
+
+
+	cunilogSingleThreadedSeparateLoggingThread
+
+	Identical to cunilogSingleThreaded but the application must be built with multi-threading
+	support. The process of writing out logging information (i.e. executing the list of
+	processors) takes place in a separate thread.
+	Calling logging functions from more than a single thread, another instance of the
+	same application, or from a different application is not supported and results in
+	data corruption and application crashes. In a best case it may only lead to unusable
+	logging information.
+	
+	However, due to how this is currently implemented, some of these restrictions do not apply
+	right now because cunilogSingleThreadedSeparateLoggingThread is actually identical to
+	unilogMultiThreadedSeparateLoggingThread. Since this might and most likely will change in
+	future versions of the software, use cunilogMultiThreadedSeparateLoggingThread to be safe.
+
+
+	cunilogMultiThreaded
+
+	Multiple threads from a single instance of the current application can safely write out
+	logging information. Cunilog provides necessary concurrency protection for this case but
+	does not protect logging information from being overwritten/destroyed by other processes.
+	Any logging function called from any thread blocks as it works its way through the list of
+	processors before releasing its lock and returning.
+
+
+	cunilogMultiThreadedSeparateLoggingThread
+
+	Identical to cunilogMultiThreaded but the process of writing out logging information (i.e.
+	executing the list of processors) takes place in its own thread. Logging functions do
+	not block. This is the preferred mode for most multi-threaded applications.
+
+
+	cunilogMultiProcesses
+
+	Logging information is fully protected and can be written from different threads as well
+	as from different processes.
+*/
+enum cunilogtype
+{
+		cunilogSingleThreaded
+	,	cunilogSingleThreadedSeparateLoggingThread
+	,	cunilogMultiThreaded
+	,	cunilogMultiThreadedSeparateLoggingThread
+	,	cunilogMultiProcesses
+	// Do not add anything below this line.
+	,	cunilogTypeAmountEnumValues								// Used for table sizes.
+	// Do not add anything below unilogTypeAmountEnumValues.
+};
+
+enum cunilogpostfix
+{
+		cunilogPostfixNone
+	,	cunilogPostfixMinute
+	,	cunilogPostfixMinuteT
+	,	cunilogPostfixHour
+	,	cunilogPostfixHourT
+	,	cunilogPostfixDay
+	,	cunilogPostfixDefault = cunilogPostfixDay
+	,	cunilogPostfixWeek
+	,	cunilogPostfixMonth
+	,	cunilogPostfixYear
+	// Do not add anything below this line.
+	,	cunilogPostfixAmountEnumValues						// Used for table sizes.
+	// Do not add anything below unilogRotationAmountEnumValues.
+};
+
+/*
+	The possible processors.
+*/
+enum cunilogprocesstask
+{
+		cunilogProcessNoOperation							// Does nothing.
+	,	cunilogProcessEchoToConsole							// Echoes to console.
+	,	cunilogProcessUpdateLogFileName						// Updates full path to logfile.
+	,	cunilogProcessWriteToLogFile						// Writes to logfile.
+	,	cunilogProcessFlushLogFile							// Flushes the logfile.
+	,	cunilogProcessRotateLogfiles						// Rotates logfiles.
+	,	cunilogProcessCustomProcessor						// An external/custom processor.
+	// Do not add anything below this line.
+	,	cunilogProcessAmountEnumValues						// Used for table sizes.
+	// Do not add anything below unilogRotationAmountEnumValues.
+};
+
+enum cunilogprocessfrequency
+{
+		cunilogProcessAppliesTo_nEvents						// Threshold is incremented for
+															//	each event.
+	,	cunilogProcessAppliesTo_nOctets						// Threshold counts the amount of
+															//	octets logged.
+	,	cunilogProcessAppliesTo_nAlways						// Threshold does not apply; always
+															//	processed.
+	,	cunilogProcessAppliesTo_SecondChanged				// Processed whenever the second
+															//	changes.
+	,	cunilogProcessAppliesTo_MinuteChanged				// Processed whenever the minute
+															//	changes.
+	,	cunilogProcessAppliesTo_HourChanged					// Processed whenever the hour
+															//	changes.
+	,	cunilogProcessAppliesTo_DayChanged					// Processed whenever the day
+															//	changes.
+	,	cunilogProcessAppliesTo_WeekChanged					// Processed whenever the week
+															//	changes.
+	,	cunilogProcessAppliesTo_MonthChanged				// Processed whenever the month
+															//	changes.
+	,	cunilogProcessAppliesTo_YearChanged					// Processed whenever the year
+															//	changes.
+	,	cunilogProcessAppliesTo_Auto						// Picks frequency automatically.
+};
+
+typedef struct scunilogtarget SCUNILOGTARGET;
+typedef struct cunilog_processor
+{
+	/*
+	SCUNILOGTARGET				*pSCUNILOGTARGET;			// Pointer to the target the
+															//	processor belongs to.
+	*/
+	enum cunilogprocesstask			task;					// What to apply.
+	enum cunilogprocessfrequency	freq;					// When to apply
+															//	(frequency/theshold type).
+
+	// Trigger threshold and its current value.
+	uint64_t						thr;					// Required value of cur before this
+															//	processor is applied/run.
+	uint64_t						cur;					// The current counter value.
+
+	void							*pData;					// Pointer to processor-specific data.
+	uint64_t						uiOpts;					// Option flags. See OPT_CUNPROC_
+															//	definitions below.
+} CUNILOG_PROCESSOR;
+
+/*
+	Option flags for the uiOpts member of a CUNILOG_PROCESSOR structure.
+*/
+#define OPT_CUNPROC_NONE				(0)
+#define OPT_CUNPROC_FORCE_NEXT			SINGLEBIT64 (0)		// Carry on with the next processor
+															//	even if this one has not been
+															//	processed.
+#define OPT_CUNPROC_AT_STARTUP			SINGLEBIT64 (1)		// Executes the processor on startup
+															//	by ignoring cunilogprocesstype.
+															//	The flag is then cleared.
+#define OPT_CUNPROC_ALLOCATED			SINGLEBIT64 (2)		// This processor has been allocated
+															//	on the heap and needs to be freed.
+#define OPT_CUNPROC_DATA_ALLOCATED		SINGLEBIT64	(3)		// The pData member has been allocated
+															//	on the heap and needs to be freed.
+
+/*
+	Macros for some flags.
+*/
+#define optCunProcHasOPT_CUNPROC_AT_STARTUP(v)			\
+	((v) & OPT_CUNPROC_AT_STARTUP)
+#define optCunProcClrOPT_CUNPROC_AT_STARTUP(v)			\
+	((v) &= ~ OPT_CUNPROC_AT_STARTUP)
+
+/*
+	A pData structure for a unilogProcessWriteToLogFile or a unilogProcessFlushLogFile processor.
+*/
+typedef struct cunilog_logfile
+{
+	#ifdef OS_IS_WINDOWS
+		HANDLE			hLogFile;
+	#else
+		FILE			*fLogFile;
+	#endif
+} CUNILOG_LOGFILE;
+
+enum cunilogrotationtask
+{
+		cunilogrotationtask_None							// Ignored. No operation.
+	,	cunilogrotationtask_FScompressLogfiles				// Compress logfiles with the help
+															//	of the file system.
+	,	cunilogrotationtask_MoveToRecycleBinLogfiles
+	,	cunilogrotationtask_DeleteLogfiles
+};
+
+/*
+	A pData structure for a unilogProcessRotateLogfiles processor.
+*/
+typedef struct cunilog_rotation_data
+{
+	enum cunilogrotationtask	tsk;						// The task to carry out.
+	uint64_t					nIgnore;					// Amount of files/objects/artefacts
+															//	to ignore.
+	uint64_t					nCnt;						// Counter for nIgnore.
+	uint64_t					nMaxToRotate;				// Don't rotate more than this.
+															//	Ignored when 0.
+
+	// Source and destiantion path names. Probably not required, at least with NTFS compression.
+	SMEMBUF						mbSrcMask;					// Search mask. Only used when
+															//	CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK
+															//	set. See option flags below.
+	SMEMBUF						mbDstFile;					// Name of file to rotate (destination
+															//	file name). Only used when
+															//	CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE
+															//	set. See option flags below.
+	uint64_t					uiFlgs;						// Option flags. See below.
+} CUNILOG_ROTATION_DATA;
+
+/*
+	CUNILOG_ROTATION_DATA option flags.
+*/
+#define CUNILOG_ROTATOR_FLAG_NONE							(0)
+
+// Used by some rotators to distinguish if they need further initialisation.
+#define CUNILOG_ROTATOR_FLAG_INITIALISED		SINGLEBIT64 (0)
+
+// The rotator makes use of the mbSrcMask member. Without this flag, the rotator uses the
+//	member mbLogFileMask of the SCUNILOGTARGET structure.
+#define CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK		SINGLEBIT64 (1)
+
+// The rotator makes use of the mbDstFile member. Without this flag, the rotator uses the
+//	member mbFilToRotate of the SCUNILOGTARGET structure
+#define CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE		SINGLEBIT64 (2)
+
+/*
+	Macros for some checking, setting, and clearing some of the flags above.
+*/
+#define cunilogHasRotatorFlag_USE_MBSRCMASK(pt)			\
+	((pt)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
+#define cunilogSetRotatorFlag_USE_MBSRCMASK(pt)			\
+	((pt)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
+#define cunilogClrRotatorFlag_USE_MBSRCMASK(pt)			\
+	((pt)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
+
+#define cunilogHasRotatorFlag_USE_MBDSTFILE(pt)			\
+	((pt)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
+#define cunilogSetRotatorFlag_USE_MBDSTFILE(pt)			\
+	((pt)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
+#define cunilogClrRotatorFlag_USE_MBDSTFILE(pt)			\
+	((pt)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
+
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	typedef struct cunilog_locker
+	{
+		#ifdef OS_IS_WINDOWS
+			CRITICAL_SECTION	cs;
+		#else
+			pthread_mutex_t		mt;
+		#endif
+		#ifdef DEBUG
+			bool				bInitialised;
+		#endif
+	} CUNILOG_LOCKER;
+
+	typedef struct cunilog_semaphore
+	{
+		#ifdef OS_IS_WINDOWS
+			HANDLE				hSemaphore;
+		#else
+			sem_t				tSemaphore;
+		#endif
+	} CUNILOG_SEMAPHORE;
+
+	typedef struct cunilog_thread
+	{
+		#ifdef OS_IS_WINDOWS
+			HANDLE				hThread;
+		#else
+			pthread_t			tThread;
+		#endif
+	} CUNILOG_THREAD;
+
+	typedef struct scunilogevent SCUNILOGEVENT;
+	typedef struct cunilog_queue_base
+	{
+		SCUNILOGEVENT			*first;						// A *SCUNILOGEVENT.
+		SCUNILOGEVENT			*last;						// A *SCUNILOGEVENT.
+		size_t					num;						// Current amount of queue
+															//	elements.
+	} CUNILOG_QUEUE_BASE;
+#endif
+
+/*
+	Textual representations of date/timestamp formats for an event/event line.
+	The default is ""YYYY-MM-DD HH:MI:SS.000+01:00", followed by a space character.
+	The value unilogEvtTS_ISO8601T follows the ISO 8601 specification by separating
+	date and time with a 'T'.
+
+	The value cunilogEvtTS_ISO8601_3spc adds 3 spaces instead of one, and so does the
+	value cunilogEvtTS_ISO8601T_3spc but with a 'T' between date and time.
+*/
+enum cunilogeventTSformat
+{
+		cunilogEvtTS_ISO8601								// "YYYY-MM-DD HH:MI:SS.000+01:00 "
+	,	cunilogEvtTS_Default		= cunilogEvtTS_ISO8601
+	,	cunilogEvtTS_ISO8601T								// "YYYY-MM-DDTHH:MI:SS.000+01:00 "
+	,	cunilogEvtTS_ISO8601_3spc							// "YYYY-MM-DD HH:MI:SS.000+01:00   "
+	,	cunilogEvtTS_ISO8601T_3spc							// "YYYY-MM-DDTHH:MI:SS.000+01:00   "
+	// Do not add anything below this line.
+	,	cunilogEvtTS_AmountEnumValues						// Used for table sizes.
+	// Do not add anything below unilogRotationAmountEnumValues.
+};
+
+enum cunilogRunProcessorsOnStartup
+{
+	cunilogRunProcessorsOnStartup,
+	cunilogDontRunProcessorsOnStartup
+};
+typedef enum cunilogRunProcessorsOnStartup runProcessorsOnStartup;
+
+/*
+	SCUNILOGDUMP
+
+	Holds the parameter structures for binary/octal/decimal/hex dumps.
+*/
+typedef struct scunilogdump
+{
+	void		*dump_prs;									// Pointer to a SHEX_DUMP_SAN structure.
+	void		*dump_sns;									// Pointer to a SHEX_DUMP_SAN structure.
+	SMEMBUF		mbDumpHeader;
+	size_t		lnDumpHeader;
+} SCUNILOGDUMP;
+
+/*
+	Structure for the vector that holds the filenames.
+	A single char * would probably do if no length information is required.
+*/
+typedef struct cunilog_fls
+{
+	char	*chFilename;
+	size_t	stFilename;
+} CUNILOG_FLS;
+typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
+
+/*
+	Base folder for a relative path or path if no log path at all is given.
+
+	These are the possible enumeration values of the parameter relLogPath of the
+	SCUNILOGTARGET initialisation functions.
+
+
+	cunilogLogPath_relativeToExecutable
+	
+	If szLogPath is a relative path, the path is assumed to be relative to the path of
+	the executable file. If szLogPath is NULL, the path of the executable file is used.
+
+
+	cunilogLogPath_relativeToCurrentDir
+
+	If szLogPath is a relative path, the path is assumed to be relative to the current
+	working directory. If szLogPath is NULL, the current working directory is used.
+	The current working directory is obtained by the SCUNILOGTARGET initialisation functions
+	and stays constant during the lifetime of this SCUNILOGTARGET. It is therefore safe for
+	the application to change this directory any time after the initialisation function
+	returned. Or, an application could set the current working directory to the desired
+	szLogPath, call an SCUNILOGTARGET initialisation function with szLogPath set to NULL.
+
+
+	cunilogLogPath_relativeToHomeDir
+
+	If szLogPath is a relative path, the path is assumed to be relative to the current user's
+	home folder. If szPath is NULL, the user's home directory is used.
+*/
+enum cunilogRelLogPath
+{
+	cunilogLogPath_relativeToExecutable,
+	cunilogLogPath_relativeToCurrentDir,
+	cunilogLogPath_relativeToHomeDir
+};
+typedef enum cunilogRelLogPath enCunilogRelLogPath;
+
+/*
+	Structure to leave some information for the next processor.
+*/
+typedef struct scunilognpi
+{
+	SMEMBUF							smbRotMask;				// File search mask/glob pattern the
+															//	next processor should use to
+															//	enumerate files. Only required for
+															//	rotators.
+	size_t							lenRotMask;				// The length, excluding NUL, of
+															//	smbRotMask; If this is 0,
+															//	smbRotMask is unused/uninitialised.
+	uint64_t						nIgnoredTotal;			// Ignored so far. Only if lenRotMask
+															//	is 0.
+	vec_cunilog_fls					*pNextVecCunilogFls;	// The next file to process. If this
+															//	is NULL, the next rotator
+															//	needs to start from scratch.
+} SCUNILOGNPI;
+
+/*
+	SUNILOGTARGET
+
+	The base config structure for using cunilog. Do not alter any of its members directly.
+	Always use the provided functions to alter its members.
+*/
+typedef struct scunilogtarget
+{
+	enum cunilogtype				culogType;
+	enum cunilogpostfix				culogPostfix;
+	uint64_t						uiOpts;
+	SMEMBUF							mbLogPath;				// The logging folder/path to logfiles.
+															//	On Windows, its last character is a
+															//	backslash. On POSIX, its last character
+															//	is a forward slash. It is not NUL-
+															//	terminated.
+	size_t							lnLogPath;				// Its length excl. NUL terminator.
+	SMEMBUF							mbAppName;				// Plain application name. Not NUL-terminated.
+	size_t							lnAppName;				// Its length.
+	#ifdef PLATFORM_IS_POSIX
+		SMEMBUF						mbLogFold;				// The logging folder/path to logfiles.
+															//	Same as mbLogPath but NUL-terminated
+															//	and without slash at the end.
+		size_t						lnLogFold;				// Its length exl. NUL terminator.
+	#endif
+	SMEMBUF							mbLogfileName;			// Path and name of current log file.
+	char							*szDateTimeStamp;		// Points inside mbLogfileName.buf.pch.
+	char							cPrevDateTimeStamp [LEN_ISO8601DATEHOURANDMINUTE];
+	SMEMBUF							mbLogFileMask;			// The search mask for log files.
+	#ifdef PLATFORM_IS_POSIX
+		// Required for platforms that cannot return a directory listing with a search mask
+		//	but return every file instead. The callback function then compares each returned
+		//	filename with this mask/glob pattern.
+		char						*szLogFileMask;			// Points inside mbLogFileMask to the
+															//	application name plus stamp plus ".log".
+		size_t						lnsLogFileMask;			// Its length.
+	#endif
+	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
+	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.
+	size_t							lnLogEventLine;			// The current length of the event line.
+	SCUNILOGNPI						scuNPI;					// Information for the next processor.
+	CUNILOG_PROCESSOR				**cprocessors;
+	unsigned int					nprocessors;
+
+	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+		CUNILOG_LOCKER				cl;						// Locker for functions and event queue.
+		CUNILOG_SEMAPHORE			sm;						// Semaphore for event queue.
+		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.
+		CUNILOG_THREAD				th;						// The separate logging thread.
+
+		size_t						nPendingNoRotEvts;		// Amount of currently pending non-
+															//	rotation events.
+
+		size_t						nPausedEvents;			// Amount of events queued because
+															//	the logging thread is/was paused.
+	#endif
+	enum cunilogeventTSformat		unilogEvtTSformat;		// The format of an event timestamp.
+	enum enLineEndings				unilogNewLine;
+	SBULKMEM						sbm;					// Bulk memory block.
+	vec_cunilog_fls					fls;					// The vector with str pointers to
+															//	the files to rotate within sbm.
+	SCUNILOGDUMP					*psdump;				// Holds the dump parameters.
+} SCUNILOGTARGET;
+
+/*
+	The default initial size of an event line. Note that this is not the space for the text
+	but rather the entire line, including timestamp etc. If you know in advance that your
+	texts (including stamp etc) are going to be longer you may override this with a higher
+	value to possibly save some initial heap reallocations.
+*/
+#ifndef CUNILOG_INITIAL_EVENTLINE_SIZE
+#define CUNILOG_INITIAL_EVENTLINE_SIZE			(256)
+#endif
+
+/*
+	Option flags for the uiOpts member of a SCUNILOGTARGET structure.
+*/
+
+// The initialiser.
+#define CUNILOGTARGET_NO_FLAGS					(0)
+
+// Event queue is shutting down or has shut down already.
+//	This flags prevents further logging.
+#define CUNILOGTARGET_SHUTDOWN					SINGLEBIT64 (0)
+
+// Separate logging thread has shut down.
+#define CUNILOGTARGET_HAS_SHUT_DOWN				SINGLEBIT64 (1)
+
+// The structure has been allocated on the heap. This is for DoneSUNILOGTARGET ()
+//	to deallocate it.
+#define CUNILOGTARGET_ALLOCATED					SINGLEBIT64 (2)
+
+// The filename of the log file has been allocated on the heap.
+#define CUNILOGTARGET_LOGPATH_ALLOCATED			SINGLEBIT64 (3)
+
+// The application name has been allocated on the heap.
+#define CUNILOGTARGET_APPNAME_ALLOCATED			SINGLEBIT64 (4)
+
+// The entire path plus name of the logfile has been allocated on the heap.
+#define CUNILOGTARGET_LOGFILE_ALLOCATED			SINGLEBIT64 (5)
+
+// The file mask.
+#define CUNILOGTARGET_LOGF_MASK_ALLOCATED		SINGLEBIT64 (6)
+
+// The (complete) filename of the file to rotate.
+#define CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED	SINGLEBIT64 (7)
+
+// The single event line.
+#define CUNILOGTARGET_EVTLINE_ALLOCATED			SINGLEBIT64 (8)
+
+// The array of pointers to processors.
+#define CUNILOGTARGET_PROCESSORS_ALLOCATED		SINGLEBIT64 (9)
+
+// Run all processors on startup, independent of their individual flags.
+#define CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP	SINGLEBIT64 (10)
+
+// The filesystem that holds the log files doesn't return filenames in
+//	descending alphabetic order.
+#define CUNILOGTARGET_FS_NEEDS_SORTING			SINGLEBIT64 (11)
+
+// The separate logging thread, if one exists, is paused.
+#define CUNILOGTARGET_PAUSED					SINGLEBIT64 (12)
+
+// Debug versions ensure that one of the initialisation function has been called.
+#ifdef DEBUG
+	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (13)
+	#define cunilogSetTargetInitialised(pt)				\
+			((pt)->uiOpts |= CUNILOGTARGET_INITIALISED)
+	#define cunilogIsTargetInitialised(pt)				\
+			((pt)->uiOpts & CUNILOGTARGET_INITIALISED)
+#else
+	#define cunilogSetTargetInitialised(pt)
+	#define cunilogIsTargetInitialised(pt)
+#endif
+
+/*
+	Macros for some flags.
+*/
+#define cunilogSetShutdownTarget(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_SHUTDOWN)
+#define cunilogIsShutdownTarget(pt)						\
+	((pt)->uiOpts & CUNILOGTARGET_SHUTDOWN)
+
+#define cunilogSetTargetHasShutdown(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_HAS_SHUT_DOWN)
+#define cunilogIsTargetHasShutdown(pt)					\
+	((pt)->uiOpts & CUNILOGTARGET_HAS_SHUT_DOWN)
+
+#define cunilogSetTargetAllocated(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_ALLOCATED)
+#define cunilogIsTargetAllocated(pt)					\
+	((pt)->uiOpts & CUNILOGTARGET_ALLOCATED)
+
+#define cunilogSetLogPathAllocated(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_LOGPATH_ALLOCATED)
+#define cunilogIsLogPathAllocated(pt)					\
+	((pt)->uiOpts & CUNILOGTARGET_LOGPATH_ALLOCATED)
+
+#define cunilogSetAppNameAllocated(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_APPNAME_ALLOCATED)
+#define cunilogIsAppNameAllocated(pt)					\
+	((pt)->uiOpts & CUNILOGTARGET_APPNAME_ALLOCATED)
+
+#define cunilogSetLogFileAllocated(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_LOGFILE_ALLOCATED)
+#define cunilogIsLogFileAllocated(pt)					\
+	((pt)->uiOpts & CUNILOGTARGET_LOGFILE_ALLOCATED)
+
+#define cunilogSetLogFileMaskAllocated(pt)				\
+	((pt)->uiOpts |= CUNILOGTARGET_LOGF_MASK_ALLOCATED)
+#define cunilogIsLogFileMaskAllocated(pt)				\
+	((pt)->uiOpts & CUNILOGTARGET_LOGF_MASK_ALLOCATED)
+
+#define cunilogSetFileToRotateAllocated(pt)				\
+	((pt)->uiOpts |= CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
+#define cunilogIsFileToRotateAllocated(pt)				\
+	((pt)->uiOpts & CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
+
+#define cunilogSetEvtLineAllocated(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_EVTLINE_ALLOCATED)
+#define cunilogIsEvtLineAllocated(pt)					\
+	((pt)->uiOpts & CUNILOGTARGET_EVTLINE_ALLOCATED)
+
+#define cunilogSetProcessorsAllocated(pt)				\
+	((pt)->uiOpts |= CUNILOGTARGET_PROCESSORS_ALLOCATED)
+#define cunilogClrProcessorsAllocated(pt)				\
+	((pt)->uiOpts &= ~ CUNILOGTARGET_PROCESSORS_ALLOCATED)
+#define cunilogIsProcessorsAllocated(pt)				\
+	((pt)->uiOpts & CUNILOGTARGET_PROCESSORS_ALLOCATED)
+
+#define cunilogHasRunAllProcessorsOnStartup(pt)			\
+	((pt)->uiOpts & CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
+#define cunilogClrRunAllProcessorsOnStartup(pt)			\
+	((pt)->uiOpts &= ~ CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
+#define cunilogSetRunAllProcessorsOnStartup(pt)			\
+	((pt)->uiOpts |= CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
+
+#define cunilogIsFSneedsSorting(pt)						\
+	((pt)->uiOpts & CUNILOGTARGET_FS_NEEDS_SORTING)
+#define cunilogClrFSneedsSorting(pt)					\
+	((pt)->uiOpts &= ~ CUNILOGTARGET_FS_NEEDS_SORTING)
+#define cunilogSetFSneedsSorting(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_FS_NEEDS_SORTING)
+
+#define cunilogIsPaused(pt)								\
+	((pt)->uiOpts & CUNILOGTARGET_PAUSED)
+#define cunilogClrPaused(pt)							\
+	((pt)->uiOpts &= ~ CUNILOGTARGET_PAUSED)
+#define cunilogSetPaused(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_PAUSED)
+
+
+
+/*
+	Event severities.
+
+	If changed, please update the copy in the comments of cunilog.c too.
+*/
+enum cunilogeventseverity
+{
+		cunilogEvtSeverityNone									//  0
+	,	cunilogEvtSeverityBlanks								//  1
+	,	cunilogEvtSeverityEmergency								//	2
+	,	cunilogEvtSeverityNotice								//	3
+	,	cunilogEvtSeverityInfo									//  4
+	,	cunilogEvtSeverityMessage								//  5
+	,	cunilogEvtSeverityWarning								//  6
+	,	cunilogEvtSeverityError									//  7
+	,	cunilogEvtSeverityFail									//  8
+	,	cunilogEvtSeverityCritical								//  9
+	,	cunilogEvtSeverityFatal									// 10
+	,	cunilogEvtSeverityDebug									// 11
+	,	cunilogEvtSeverityTrace									// 12
+	,	cunilogEvtSeverityDetail								// 13
+	,	cunilogEvtSeverityVerbose = cunilogEvtSeverityDetail	// 13
+	,	cunilogEvtSeverityIllegal								// 14
+};
+typedef enum cunilogeventseverity cueventseverity;
+
+/*
+	SCUNILOGEVENT
+
+	A logging event structure.
+*/
+typedef struct scunilogevent
+{
+	SCUNILOGTARGET				*pSCUNILOGTARGET;			// The event's target/destination.
+	uint64_t					uiOpts;						// Option flags.
+	UBF_TIMESTAMP				stamp;						// Its date/timestamp.
+	unsigned char				*szDataToLog;				// Data to log.
+	size_t						lenDataToLog;				// Its length, not NUL-terminated.
+
+	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+		struct scunilogevent	*next;
+	#endif
+	cueventseverity				evSeverity;
+} SCUNILOGEVENT;
+
+/*
+	FillSCUNILOGEVENT
+
+	Macro to fill a SCUNILOGEVENT structure. Note that the structure doesn't have a
+	->next member if CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined.
+*/
+#ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#define FillSCUNILOGEVENT(pev, pt,					\
+				opts, dts, sev, dat, len)				\
+		(pev)->pSCUNILOGTARGET			= pt;			\
+		(pev)->uiOpts					= opts;			\
+		(pev)->stamp					= dts;			\
+		(pev)->evSeverity				= sev;			\
+		(pev)->szDataToLog				= dat;			\
+		(pev)->lenDataToLog				= len
+#else
+	#define FillSCUNILOGEVENT(pev, pt,					\
+				opts, dts, sev, dat, len)				\
+		(pev)->pSCUNILOGTARGET			= pt;			\
+		(pev)->uiOpts					= opts;			\
+		(pev)->stamp					= dts;			\
+		(pev)->evSeverity				= sev;			\
+		(pev)->szDataToLog				= dat;			\
+		(pev)->lenDataToLog				= len;			\
+		(pev)->next						= NULL
+#endif
+
+/*
+	Member uiOpts of a SCUNILOGEVENT structure.
+*/
+
+#define CUNILOGEVENT_NO_FLAGS			(0)
+
+// The structure has been allocated on the heap. This is for DoneSUNILOGEVENT ()
+//	to deallocate it.
+#define CUNILOGEVENT_ALLOCATED			SINGLEBIT64 (0)
+
+// The data has been allocated. This is also for DoneSUNILOGEVENT ().
+#define CUNILOGEVENT_DATA_ALLOCATED		SINGLEBIT64 (1)
+
+// Shuts down logging.
+#define CUNILOGEVENT_SHUTDOWN			SINGLEBIT64 (2)
+
+// Cancels outstanding events and shuts down logging.
+// Unused/obsolete.
+//#define CUNILOGEVENT_CANCEL				SINGLEBIT64 (3)
+
+// The data is to be written out as a binary dump.
+#define CUNILOGEVENT_AS_HEXDUMP			SINGLEBIT64 (4)
+
+// Add fullstop automatically.
+#define CUNILOGEVENT_AUTO_FULLSTOP		SINGLEBIT64 (5)
+
+// No rotation for this event. This is very fast/quick logging.
+//	It is also used for internal logging.
+#define CUNILOGEVENT_NOROTATION			SINGLEBIT64 (6)
+
+// Macros to set and check flags.
+#define cunilogSetEventAllocated(pue)					\
+	((pue)->uiOpts |= CUNILOGEVENT_ALLOCATED)
+#define cunilogIsEventAllocated(pue)					\
+	((pue)->uiOpts & CUNILOGEVENT_ALLOCATED)
+#define cunilogIsEventDataAllocated(pue)				\
+	((pue)->uiOpts & CUNILOGEVENT_DATA_ALLOCATED)
+#define cunilogSetEventShutdown(pue)					\
+	((pue)->uiOpts |= CUNILOGEVENT_SHUTDOWN)
+#define cunilogIsEventShutdown(pue)						\
+	((pue)->uiOpts & CUNILOGEVENT_SHUTDOWN)
+#define cunilogIsEventCancel(pue)						\
+	((pue)->uiOpts & CUNILOGEVENT_CANCEL)
+
+#define cunilogSetEventHexdump(pue)						\
+	((pue)->uiOpts |= CUNILOGEVENT_AS_HEXDUMP)
+#define cunilogIsEventHexdump(pue)						\
+	((pue)->uiOpts & CUNILOGEVENT_AS_HEXDUMP)
+#define cunilogSetEventAutoFullstop(pue)				\
+	((pue)->uiOpts |= CUNILOGEVENT_AUTO_FULLSTOP)
+#define cunilogIsEventAutoFullstop(pue)					\
+	((pue)->uiOpts & CUNILOGEVENT_AUTO_FULLSTOP)
+
+#define cunilogHasEventNoRotation(pue)					\
+	((pue)->uiOpts & CUNILOGEVENT_NOROTATION)
+#define cunilogSetEventNoRotation(pue)					\
+	((pue)->uiOpts |= CUNILOGEVENT_NOROTATION)
+
+/*
+	Return type of the separate logging thread.
+*/
+#ifdef OS_IS_WINDOWS
+	#define SEPARATE_LOGGING_THREAD_RETURN_TYPE			\
+			DWORD WINAPI
+#else
+	#define SEPARATE_LOGGING_THREAD_RETURN_TYPE			\
+			void *
+#endif
+
+/*
+	Return values of the separate logging thread.
+*/
+#ifdef OS_IS_WINDOWS
+	#define SEPARATE_LOGGING_THREAD_RETURN_SUCCESS		\
+			(EXIT_SUCCESS)
+	#define SEPARATE_LOGGING_THREAD_RETURN_FAILURE		\
+			(EXIT_FAILURE)
+#else
+	#define SEPARATE_LOGGING_THREAD_RETURN_SUCCESS		\
+			((void *) EXIT_SUCCESS)
+	#define SEPARATE_LOGGING_THREAD_RETURN_FAILURE		\
+			((void *) EXIT_FAILURE)
+#endif
+
+/*
+	Parameter structure for rotator processor.
+*/
+typedef struct cunilog_rotator_args
+{
+	CUNILOG_PROCESSOR		*cup;
+	SCUNILOGEVENT			*pev;
+	char					*nam;							// Name of file to rotate.
+	size_t					siz;							// Its size, incl. NUL.
+} CUNILOG_ROTATOR_ARGS;
+
+/*
+	A callback function of a custom processor.
+*/
+typedef void		(*pfCustProc) (CUNILOG_PROCESSOR *, SCUNILOGEVENT *);
+
+/*
+	A pData structure for a unilogProcessCustomProcessor (custom/external) processor.
+*/
+typedef struct cunilog_custprocess
+{
+	void			*pData;
+	pfCustProc		procFnc;
+} CUNILOG_CUSTPROCESS;
+
+/*
+	The priority levels of the separate logging thread.
+
+	When changing this enum, please also update the comment in cunilog.c.
+*/
+enum enCunilogLogPriority
+{
+	cunilogPrioNormal,
+	cunilogPrioBelowNormal,
+	cunilogPrioLow,
+	cunilogPrioIdle,
+	// Do not insert enum values below this line.
+	cunilogPrioInvalid
+};
+typedef enum enCunilogLogPriority	cunilogprio;
+
+/*
+	An element of the array with the files.
+*/
+typedef struct cunilogfilename
+{
+	const char	*szFilename;
+	size_t		stLen;
+} CUNILOGFILENAME;
+
+END_C_DECLS
+
+#endif														// Of #ifndef CUNILOGSTRUCTS_H.
