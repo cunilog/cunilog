@@ -82,3 +82,8 @@ Android.
 ## How to build Cunilog
 
 To find out how to build Cunilog, see [Building Cunilog](building.md).
+
+## Using Cunilog
+
+To use Cunilog in your own projects, see [Using Cunilog](using.md).
+
