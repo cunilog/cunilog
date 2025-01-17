@@ -2,9 +2,9 @@
 
 To create the combined source code files the following scripts are provided:
 
-- CreateCombinedCunilog.cmd
-- CreateCombinedCunilog.pl
-- CreateCombinedCunilog.sh
+- CreateCombinedCunilog.cmd (Windows command-line script/batch file)
+- CreateCombinedCunilog.pl	(Perl script)
+- CreateCombinedCunilog.sh	(Bash shell script)
 
 The scripts have identical functionality. They read the file __SingleFiles.txt__
 and use it as the basis to create the files __cunilog_combined.c__ and
