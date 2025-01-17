@@ -140,8 +140,8 @@ Here's the signature of the InitSUNILOGTARGETstatic () function:
 						A value of unilogNewLineSystem picks a default representation for the
 						operating system.
 
-	rp					Can be either unilogRunProcessorsOnStartup or
-						unilogDontRunProcessorsOnStartup to run or not run all processors the
+	rp					Can be either cunilogRunProcessorsOnStartup or
+						cunilogDontRunProcessorsOnStartup to run or not run all processors the
 						first time a logging function is called.
 
 	The function returns a pointer to the internal SCUNILOGTARGET cunilognewlinestructure upon success,
