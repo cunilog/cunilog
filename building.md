@@ -10,7 +10,7 @@ It is recommended that Cunilog is compiled and built together with your applicat
 To build the software as part of your application, you got two choices:
 
 - Add the two combined source code files __cunilog_combined.h__ and
-	__cunilog_combined.c__ in folder __src/c/combined__ to your project and compile them as 	part of it. This is the recommended option if you do not intend to change the code, 		neither for yourself nor to contribute to Cunilog. If your application is for Windows, another condition is that is built with the Unicode character set. Cunilog can only be built with __Character Set__ set to __Use Unicode Character Set__. In Visual Studio, this can be found under __Project__, __Properties__, __Configuration Properties__, then __Advanced__. If your application needs to be built differently, include Cunilog as a static library.
+	__cunilog_combined.c__ in folder __src/c/combined__ to your project and compile them as 	part of it. This is the recommended option if you do not intend to change the code, neither for yourself nor to contribute to Cunilog. If your application is for Windows, another condition is that it is built with the Unicode character set. Cunilog can only be built with __Character Set__ set to __Use Unicode Character Set__. In Visual Studio, this can be found under __Project__, __Properties__, __Configuration Properties__, then __Advanced__. If your application needs to be built differently, include Cunilog as a static library.
 	
 - Do not add the two combined source code files to your project but add every
 	single file that belongs to Cunilog instead. This is the preferred option
