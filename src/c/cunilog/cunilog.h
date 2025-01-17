@@ -157,6 +157,17 @@ extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 */
 
 /*
+	cunilog_puts
+
+	Our puts () that resolves to putsU8 () on Windows.
+*/
+#ifdef PLATFORM_IS_WINDOWS
+	#define cunilog_puts(t)	putsU8 (t);
+#else
+	#define cunilog_puts(t)	puts (t);
+#endif
+
+/*
 	InitCUNILOG_PROCESSOR
 
 	Function/macro to initialise a CUNILOG_PROCESSOR structure. The data (pData) member

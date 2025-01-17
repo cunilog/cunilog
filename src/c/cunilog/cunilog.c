@@ -2004,11 +2004,7 @@ static void cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	//		- It only consists of printable characters.
 	//		- The length of the event line has been stored correctly.
 	//		- If we require a lock, we have it already.
-	#ifdef PLATFORM_IS_WINDOWS
-		putsU8 (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch);
-	#else
-		puts (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch);
-	#endif
+	cunilog_puts (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch);
 }
 
 static void unilogProcessUpdateLogPathFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
