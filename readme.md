@@ -79,3 +79,6 @@ has been done for MacOS but it won't build and certainly won't work either.
 Once it builds and works on Linux it will most likely also build and work on
 Android.
 
+## How to build Cunilog
+
+To find out how to build Cunilog, see [building.md].
