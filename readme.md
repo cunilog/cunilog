@@ -34,6 +34,7 @@ characteristics:
 - Bindings for other programming languages. Right now only C is supported, though.
 - Command-line utility to capture the output of executables and scripts.
 	This is planned but doesn't exist yet.
+- Hex dumps are not implemented yet.
 
 ## History
 
