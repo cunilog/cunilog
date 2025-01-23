@@ -328,23 +328,23 @@ EXTERN_C_BEGIN
 	#endif
 	#ifndef UBF_DEBUG_ASSERT
 	#define UBF_DEBUG_ASSERT(b)							\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert
 	#define ubf_assert(b)								\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert_msg
 	#define ubf_assert_msg(b,m)							\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert_message
 	#define ubf_assert_message(b,m)						\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert_pass
 	#define ubf_assert_pass(b)							\
-				ubf_debug_assert_pass (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert_pass ((b), #b, __FILE__, __LINE__)
 	#endif
 	/*
 		ubf_assert_Android
@@ -354,9 +354,9 @@ EXTERN_C_BEGIN
 	*/
 	#ifdef OS_IS_ANDROID
 		#define ubf_assert_Android(b)					\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 		#define ubf_assert_Android_msg(b,m)				\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#else
 		#define ubf_assert_Android(b)					\
 				_ASSERT (b)
@@ -370,13 +370,13 @@ EXTERN_C_BEGIN
 	*/
 	#ifdef OS_IS_LINUX
 		#define ubf_assert_Linux(b)						\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 		#define ubf_assert_Linux_msg(b,m)				\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#else
 		#define ubf_assert_Linux(b)						\
 				_ASSERT (b)
-		#define ubf_assert_Linux_msg(b,m)				\
+		#define ubf_assert_Linux_msg(b, m)				\
 				_ASSERT (b)
 	#endif
 #else

@@ -118,7 +118,14 @@ int main (int argc, char *argv [])
 	logTextU8_static ("----------");
 	logTextU8_static (STR_HELLO_FROM_EXE);
 	logTextU8_static ("A simple line to go in the logfile.");
-
+	char *cData = "ABCDEFGasdfuiolnaoelasdfuaelhaerodclleahcoelandielacsserooot";
+	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, "Caption", USE_STRLEN, cData, 15);
+	logHexDumpU8sevl_static (cunilogEvtSeverityNone, "Caption", USE_STRLEN, cData, 4);
+	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, "Caption", USE_STRLEN, cData, 4);
+	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, "Caption", USE_STRLEN, cData, 15);
+	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, "Caption", USE_STRLEN, cData, 16);
+	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, "Caption", USE_STRLEN, cData, 17);
+	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, "Caption", USE_STRLEN, cData, strlen (cData));
 	uint64_t	n = 1000;
 	while (n --)
 	{

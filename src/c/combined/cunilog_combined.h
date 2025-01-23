@@ -5954,23 +5954,23 @@ EXTERN_C_BEGIN
 	#endif
 	#ifndef UBF_DEBUG_ASSERT
 	#define UBF_DEBUG_ASSERT(b)							\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert
 	#define ubf_assert(b)								\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert_msg
 	#define ubf_assert_msg(b,m)							\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert_message
 	#define ubf_assert_message(b,m)						\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert_pass
 	#define ubf_assert_pass(b)							\
-				ubf_debug_assert_pass (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert_pass ((b), #b, __FILE__, __LINE__)
 	#endif
 	/*
 		ubf_assert_Android
@@ -5980,9 +5980,9 @@ EXTERN_C_BEGIN
 	*/
 	#ifdef OS_IS_ANDROID
 		#define ubf_assert_Android(b)					\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 		#define ubf_assert_Android_msg(b,m)				\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#else
 		#define ubf_assert_Android(b)					\
 				_ASSERT (b)
@@ -5996,13 +5996,13 @@ EXTERN_C_BEGIN
 	*/
 	#ifdef OS_IS_LINUX
 		#define ubf_assert_Linux(b)						\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 		#define ubf_assert_Linux_msg(b,m)				\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#else
 		#define ubf_assert_Linux(b)						\
 				_ASSERT (b)
-		#define ubf_assert_Linux_msg(b,m)				\
+		#define ubf_assert_Linux_msg(b, m)				\
 				_ASSERT (b)
 	#endif
 #else
@@ -6244,6 +6244,272 @@ EXTERN_C_BEGIN
 EXTERN_C_END
 
 #endif															// Of U_UBF_DEBUG_DEB_H_INCLUDED.
+/****************************************************************************************
+
+	File:		dbgcountandtrack.h
+	Why:		Simple counter debug module
+	OS:			-
+	Author:		Thomas
+	Created:	2025-01-22
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-01-22	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This is a simple module to track a counter.
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef U_DBGCOUNTANDTRACK_H
+#define U_DBGCOUNTANDTRACK_H
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./platform.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/platform.h"
+	#endif
+
+#endif
+
+#ifdef	__cplusplus
+	extern "C"	{
+#endif
+
+#ifndef DBGCOUNTANDRACK_MAX_STRING
+#define DBGCOUNTANDRACK_MAX_STRING		(128)
+#endif
+
+#ifndef DBGCOUNTANDTRACK_RESERVE_NUM
+#define DBGCOUNTANDTRACK_RESERVE_NUM	(32)
+#endif
+
+#ifdef DEBUG
+	typedef struct sdbgcountandtrack
+	{
+		size_t				value;
+		char				cSourceFileName	[DBGCOUNTANDRACK_MAX_STRING];
+		char				cFunctionName	[DBGCOUNTANDRACK_MAX_STRING];
+		unsigned int		uiLine;
+	} SDBGCOUNTANDTRACK;
+#endif
+
+#ifdef DEBUG
+	typedef struct sdbgtracker
+	{
+		SDBGCOUNTANDTRACK	*trackers;
+		size_t				n;								// Next index to write to.
+		size_t				t;								// Next index to check/test/track.
+		size_t				size;
+		size_t				value;							// Current value. Probably not
+															//	required. This is the value
+															//	as obtained by the last change.
+		char				cSourceFileName	[DBGCOUNTANDRACK_MAX_STRING];
+		char				cFunctionName	[DBGCOUNTANDRACK_MAX_STRING];
+		unsigned int		uiLine;
+	} SDBGTRACKER;
+#endif
+
+/*
+	SDBGTRACKER_INITIALISER
+
+	Static/automatic initialiser.
+*/
+#define SDBGTRACKER_INITIALISER							\
+			{											\
+				{NULL}, 0, 0, {NULL}, {NULL}, 0			\
+			}
+
+/*
+	DBG_DEFINE_CNTTRACKER
+
+	Defines the counter cntname. Does nothing in release builds.
+
+	Example:
+	DBG_DEFINE_CNTTRACKER (myCounter)
+
+	Note: Do NOT place a semicolon at the end.
+*/
+#ifdef DEBUG
+	#define DBG_DEFINE_CNTTRACKER(cntname)				\
+				SDBGTRACKER	cntname;
+#else
+	#define DBG_DEFINE_CNTTRACKER(cntname)
+#endif
+
+/*
+	DBG_DEFINE_AND_INIT_COUNTER
+
+	Defines and initialises the counter cntname to 0 in debug versions. Does nothing
+	in release builds.
+
+	Example:
+	DBG_DEFINE_AND_INIT_COUNTER (myCounter);
+*/
+#ifdef DEBUG
+	#define DBG_DEFINE_AND_INIT_CNTTRACKER(cntname)		\
+				SDBGTRACKER	cntname = SDBGTRACKER_INITIALISER
+#else
+	#define DBG_DEFINE_AND_INIT_CNTTRACKER(cntname)
+#endif
+
+/*
+	DBG_INIT_CNTTRACKER
+	DBG_INIT_pCNTTRACKER
+
+	Initialises the tracking counter.
+
+	Example:
+
+	SDBGTRACKER ourTracker;
+
+	DBG_INIT_CNTTRACKER (ourTracker);
+	or
+	DBG_INIT_pCNTTRACKER (&ourTracker);
+*/
+#ifdef DEBUG
+	#define DBG_INIT_CNTTRACKER(cntname)				\
+				(cntname).trackers	= NULL;				\
+				(cntname).n			= 0;				\
+				(cntname).t			= 0;				\
+				(cntname).size		= 0;				\
+				(cntname).value		= 0
+	#define DBG_INIT_pCNTTRACKER(cntname)				\
+				(cntname)->trackers	= NULL;				\
+				(cntname)->n		= 0;				\
+				(cntname)->t		= 0;				\
+				(cntname)->size		= 0;				\
+				(cntname)->value	= 0
+#else
+	#define DBG_INIT_CNTTRACKER(cntname)
+	#define DBG_INIT_pCNTTRACKER(cntname)
+#endif
+
+#ifdef DEBUG
+	void resetDBGcountandtrack	(
+			SDBGTRACKER *pt, const char *szFile, const char *szFunc, unsigned int line
+								)
+	;
+#endif
+
+/*
+	DBG_RESET_CNTTRACKER
+	DBG_RESET_pCNTTRACKER
+
+	Prepares the tracking counter and resets it to 0.
+*/
+#ifdef DEBUG
+	#define DBG_RESET_CNTTRACKER(cntname)				\
+		resetDBGcountandtrack (&cntname, __FILE__, __FUNCTION__, __LINE__)
+	#define DBG_RESET_pCNTTRACKER(cntname)				\
+		resetDBGcountandtrack (cntname, __FILE__, __FUNCTION__, __LINE__)
+#else
+	#define DBG_RESET_CNTTRACKER(cntname)
+	#define DBG_RESET_pCNTTRACKER(cntname)
+#endif
+
+#ifdef DEBUG
+	void trackDBGcountandtrack	(
+			SDBGTRACKER *pt, size_t value, const char *szFile, const char *szFunc,
+			unsigned int line
+								)
+	;
+#endif
+
+/*
+	DBG_TRACK_CNTTRACKER
+	DBG_TRACK_pCNTTRACKER
+
+	Tracks the counter.
+*/
+#ifdef DEBUG
+	#define DBG_TRACK_CNTTRACKER(cntname, value)		\
+		trackDBGcountandtrack (&cntname, (value), __FILE__, __FUNCTION__, __LINE__)
+	#define DBG_TRACK_pCNTTRACKER(cntname)				\
+		trackDBGcountandtrack (cntname, (value), __FILE__, __FUNCTION__, __LINE__)
+#else
+	#define DBG_TRACK_CNTTRACKER(cntname, value)
+	#define DBG_TRACK_pCNTTRACKER(cntname, value)
+#endif
+
+/*
+	DBG_RESET_CHECK_CNTTRACKER
+	DBG_RESET_CHECK_pCNTTRACKER
+
+	Prepares/resets checking the tracking counter.
+*/
+#ifdef DEBUG
+	#define DBG_RESET_CHECK_CNTTRACKER(cntname)			\
+		(cntname).t = 0
+	#define DBG_RESET_CHECK_pCNTTRACKER(cntname)		\
+		(cntname)->t = 0
+#else
+	#define DBG_RESET_CHECK_CNTTRACKER(cntname)
+	#define DBG_RESET_CHECK_pCNTTRACKER(cntname)
+#endif
+
+
+#ifdef DEBUG
+	void trackcheckDBGcountandtrack	(
+			SDBGTRACKER *pt, size_t value, const char *szFile, const char *szFunc,
+			unsigned int line
+									)
+	;
+#endif
+
+/*
+	DBG_TRACK_CHECK_CNTTRACKER
+	DBG_TRACK_CHECK_pCNTTRACKER
+
+	Tracks the counter.
+*/
+#ifdef DEBUG
+	#define DBG_TRACK_CHECK_CNTTRACKER(cntname, value)	\
+		trackcheckDBGcountandtrack (&cntname, (value), __FILE__, __FUNCTION__, __LINE__)
+	#define DBG_TRACK_CHECK_pCNTTRACKER(cntname)		\
+		trackcheckDBGcountandtrack (cntname, (value), __FILE__, __FUNCTION__, __LINE__)
+#else
+	#define DBG_TRACK_CHECK_CNTTRACKER(cntname, value)
+	#define DBG_TRACK_CHECK_pCNTTRACKER(cntname, value)
+#endif
+
+
+#ifdef	__cplusplus
+				}
+#endif
+
+#endif														// Of #ifdef U_DBGCOUNTANDTRACK_H.
 /****************************************************************************************
 
 	File:		ubfmem.h
@@ -10452,23 +10718,23 @@ EXTERN_C_BEGIN
 	#endif
 	#ifndef UBF_DEBUG_ASSERT
 	#define UBF_DEBUG_ASSERT(b)							\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert
 	#define ubf_assert(b)								\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert_msg
 	#define ubf_assert_msg(b,m)							\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert_message
 	#define ubf_assert_message(b,m)						\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#endif
 	#ifndef ubf_assert_pass
 	#define ubf_assert_pass(b)							\
-				ubf_debug_assert_pass (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert_pass ((b), #b, __FILE__, __LINE__)
 	#endif
 	/*
 		ubf_assert_Android
@@ -10478,9 +10744,9 @@ EXTERN_C_BEGIN
 	*/
 	#ifdef OS_IS_ANDROID
 		#define ubf_assert_Android(b)					\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 		#define ubf_assert_Android_msg(b,m)				\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#else
 		#define ubf_assert_Android(b)					\
 				_ASSERT (b)
@@ -10494,13 +10760,13 @@ EXTERN_C_BEGIN
 	*/
 	#ifdef OS_IS_LINUX
 		#define ubf_assert_Linux(b)						\
-				ubf_debug_assert (b, #b, __FILE__, __LINE__)
+				ubf_debug_assert ((b), #b, __FILE__, __LINE__)
 		#define ubf_assert_Linux_msg(b,m)				\
-				ubf_debug_assert (b, m, __FILE__, __LINE__)
+				ubf_debug_assert ((b), m, __FILE__, __LINE__)
 	#else
 		#define ubf_assert_Linux(b)						\
 				_ASSERT (b)
-		#define ubf_assert_Linux_msg(b,m)				\
+		#define ubf_assert_Linux_msg(b, m)				\
 				_ASSERT (b)
 	#endif
 #else
@@ -12150,14 +12416,6 @@ size_t lnLineEnding (newline_t nl);
 const char *szLineEnding (newline_t, size_t *pln)
 ;
 
-/*
-	lnLineEnding
-
-	Returns the length of the string that represents the line ending nl.
-	The returned value is the length of the string excluding a NUL terminator.
-*/
-size_t lnLineEnding (newline_t nl);
-
 #ifdef DEBUG
 	#ifndef STRNEWLINE_BUILD_TEST
 	#define STRNEWLINE_BUILD_TEST
@@ -12532,15 +12790,12 @@ When		Who				What
 
 #endif
 
-/*
-#include "./../fncts/msvcdbgmemdef.h"
-#include "./../OS/ubf_type_definitions.h"
-#include "./../ubfstring/ubfstringstruct.h"
-*/
+EXTERN_C_BEGIN
 
-#ifdef __cplusplus
-	extern "C" {
-#endif
+/*
+	Advanced hex dump. As of Jan 2025 the advanced hex dump is considered incomplete/abandoned.
+	Use the simple hex dump instead. See further down.
+*/
 
 /*
 	A default SUBF_DUMP_PARS structure for general use.
@@ -12672,7 +12927,45 @@ bool ubf_data_dump_puts	(
 #define ubf_data_dump_puts_default(d,l)			\
 			ubf_data_dump_puts ((const char *) d, l, NULL)
 
-#endif // Of #ifdef 0.
+#endif														// Of #ifdef nix.
+
+/*
+	Simple hex dump. This is what you need/want.
+*/
+
+enum enDataDmpWidth
+{
+	enDataDumpWidth16,
+	enDataDumpWidth32
+};
+typedef enum enDataDmpWidth ddumpWidth;
+
+/*
+	requiredOutputSizeHexDump
+
+	Returns the required buffer size for a hex dump. The return value
+*/
+size_t hxdmpRequiredSize		(
+		size_t				lenDumpData,					// The length of the data to dump.
+		ddumpWidth			width,							// Output width.
+		newline_t			nl
+								)
+;
+
+/*
+	hxdmpWriteHexDump
+
+	Stores a hex dump in szOutput. The buffer szOutput points to must be sufficiently large.
+	It should have been obtained via a call to hxdmpRequiredSize ().
+*/
+size_t hxdmpWriteHexDump		(
+		char				*szOutput,						// The output.
+		const unsigned char	*ccDumpData,					// The data to dump.
+		size_t				lenDumpData,					// The length of the data to dump.
+		ddumpWidth			width,
+		newline_t			nl
+								)
+;
 
 /*
 	test_strhexdump
@@ -12690,9 +12983,7 @@ bool ubf_data_dump_puts	(
 	#define test_strhexdump()
 #endif
 
-#ifdef __cplusplus
-	}
-#endif
+EXTERN_C_END
 
 #endif															// Of #ifndef STRHEXDUMP_H.
 /****************************************************************************************
@@ -13060,6 +13351,16 @@ size_t ubf_str_from_uint64 (char *result, uint64_t ui64);
 	character.
 */
 size_t ubf_str0_from_uint64 (char *result, size_t digits, uint64_t ui64);
+
+/*
+	ubf_str__from_uint64
+
+	The function is identical to ubf_str0_from_uint64 () with the exception
+	that it returns an ASCII representation with leading spaces of the value of ui64,
+	in decimal (base 10).
+*/
+size_t ubf_str__from_uint64 (char *result, size_t digits, uint64_t ui64)
+;
 
 /*
 	ubf_uint64_from_str
@@ -14111,7 +14412,10 @@ When		Who				What
 		#include "./bulkmalloc.h"
 		#include "./VectorC.h"
 		#include "./platform.h"
+		#include "./strintuint.h"
 		#include "./strnewline.h"
+		#include "./strhexdump.h"
+		#include "./dbgcountandtrack.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/SingleBits.h"
@@ -14120,7 +14424,10 @@ When		Who				What
 		#include "./../mem/bulkmalloc.h"
 		#include "./../mem/VectorC.h"
 		#include "./../pre/platform.h"
+		#include "./../string/strintuint.h"
 		#include "./../string/strnewline.h"
+		#include "./../string/strhexdump.h"
+		#include "./../dbg/dbgcountandtrack.h"
 	#endif
 
 #endif
@@ -14616,6 +14923,9 @@ typedef struct scunilogtarget
 	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
 	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.
 	size_t							lnLogEventLine;			// The current length of the event line.
+	DBG_DEFINE_CNTTRACKER(evtLineTracker)					// Tracker for the size of the event
+															//	line.
+
 	SCUNILOGNPI						scuNPI;					// Information for the next processor.
 	CUNILOG_PROCESSOR				**cprocessors;
 	unsigned int					nprocessors;
@@ -14637,7 +14947,9 @@ typedef struct scunilogtarget
 	SBULKMEM						sbm;					// Bulk memory block.
 	vec_cunilog_fls					fls;					// The vector with str pointers to
 															//	the files to rotate within sbm.
-	SCUNILOGDUMP					*psdump;				// Holds the dump parameters.
+	// We're not using the configurable dump anymore.
+	//SCUNILOGDUMP					*psdump;				// Holds the dump parameters.
+	ddumpWidth						dumpWidth;
 } SCUNILOGTARGET;
 
 /*
@@ -14815,10 +15127,32 @@ enum cunilogeventseverity
 };
 typedef enum cunilogeventseverity cueventseverity;
 
+enum cunilogeventtype
+{
+		cunilogEvtTypeNormalText							// Normal UTF-8 text.
+
+		/*
+			Caption + hex dump.The number specifies the bit width of the caption's length.
+			The caption text follows its length. The caption is not NUL-terminated.
+			Member lenDataToLog only counts the amount of data to dump out, excluding
+			caption and its length.
+		*/
+	,	cunilogEvtTypeHexDumpWithCaption8					// Caption length is 8 bit.
+	,	cunilogEvtTypeHexDumpWithCaption16					// Caption length is 16 bit.
+	,	cunilogEvtTypeHexDumpWithCaption32					// Caption length is 32 bit.
+	,	cunilogEvtTypeHexDumpWithCaption64					// Caption length is 64 bit.
+};
+typedef enum cunilogeventtype cueventtype;
+
 /*
 	SCUNILOGEVENT
 
 	A logging event structure.
+
+	Note that if the data is dump data, szDataToLog points to a length field of between 1
+	and 8 octets, followed by a caption text without NUL, and this again followed by the
+	actual dump data. The member lenDataToLog contains the length of the actual dump data
+	*only*,. i.e. neither length field nor caption text count towards lenDataToLog.
 */
 typedef struct scunilogevent
 {
@@ -14832,6 +15166,7 @@ typedef struct scunilogevent
 		struct scunilogevent	*next;
 	#endif
 	cueventseverity				evSeverity;
+	cueventtype					evType;
 } SCUNILOGEVENT;
 
 /*
@@ -14842,23 +15177,25 @@ typedef struct scunilogevent
 */
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	#define FillSCUNILOGEVENT(pev, pt,					\
-				opts, dts, sev, dat, len)				\
+				opts, dts, sev, tpy, dat, len)			\
 		(pev)->pSCUNILOGTARGET			= pt;			\
 		(pev)->uiOpts					= opts;			\
 		(pev)->stamp					= dts;			\
-		(pev)->evSeverity				= sev;			\
-		(pev)->szDataToLog				= dat;			\
-		(pev)->lenDataToLog				= len
-#else
-	#define FillSCUNILOGEVENT(pev, pt,					\
-				opts, dts, sev, dat, len)				\
-		(pev)->pSCUNILOGTARGET			= pt;			\
-		(pev)->uiOpts					= opts;			\
-		(pev)->stamp					= dts;			\
-		(pev)->evSeverity				= sev;			\
 		(pev)->szDataToLog				= dat;			\
 		(pev)->lenDataToLog				= len;			\
-		(pev)->next						= NULL
+		(pev)->evSeverity				= sev;			\
+		(pev)->evType					= tpy
+#else
+	#define FillSCUNILOGEVENT(pev, pt,					\
+				opts, dts, sev, tpy, dat, len)			\
+		(pev)->pSCUNILOGTARGET			= pt;			\
+		(pev)->uiOpts					= opts;			\
+		(pev)->stamp					= dts;			\
+		(pev)->szDataToLog				= dat;			\
+		(pev)->lenDataToLog				= len;			\
+		(pev)->next						= NULL;			\
+		(pev)->evSeverity				= sev;			\
+		(pev)->evType					= tpy
 #endif
 
 /*
@@ -14882,7 +15219,8 @@ typedef struct scunilogevent
 //#define CUNILOGEVENT_CANCEL				SINGLEBIT64 (3)
 
 // The data is to be written out as a binary dump.
-#define CUNILOGEVENT_AS_HEXDUMP			SINGLEBIT64 (4)
+//	Replaced by cueventtype.
+//#define CUNILOGEVENT_AS_HEXDUMP			SINGLEBIT64 (4)
 
 // Add fullstop automatically.
 #define CUNILOGEVENT_AUTO_FULLSTOP		SINGLEBIT64 (5)
@@ -14905,10 +15243,13 @@ typedef struct scunilogevent
 #define cunilogIsEventCancel(pue)						\
 	((pue)->uiOpts & CUNILOGEVENT_CANCEL)
 
+/* Replaced by cueventtype.
 #define cunilogSetEventHexdump(pue)						\
 	((pue)->uiOpts |= CUNILOGEVENT_AS_HEXDUMP)
 #define cunilogIsEventHexdump(pue)						\
 	((pue)->uiOpts & CUNILOGEVENT_AS_HEXDUMP)
+*/
+
 #define cunilogSetEventAutoFullstop(pue)				\
 	((pue)->uiOpts |= CUNILOGEVENT_AUTO_FULLSTOP)
 #define cunilogIsEventAutoFullstop(pue)					\
@@ -15125,6 +15466,12 @@ When		Who				What
 #define CUNILOG_DEFAULT_SFMT_SIZE		(256)
 #endif
 
+// Literally an arbitray character. This is used to find buffer overruns in debug
+//	versions.
+#ifndef CUNILOG_DEFAULT_DBG_CHAR
+#define CUNILOG_DEFAULT_DBG_CHAR		'\x17'
+#endif
+
 // This seems to make sense.
 #define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
 
@@ -15155,6 +15502,17 @@ extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 /*
 	Funcitons
 */
+
+/*
+	cunilog_puts
+
+	Our puts () that resolves to putsU8 () on Windows.
+*/
+#ifdef PLATFORM_IS_WINDOWS
+	#define cunilog_puts(t)	putsU8 (t);
+#else
+	#define cunilog_puts(t)	puts (t);
+#endif
 
 /*
 	InitCUNILOG_PROCESSOR
@@ -15762,7 +16120,7 @@ void CancelSCUNILOGTARGETstatic (void);
 #endif
 
 /*
-	CreateSCUNILOGEVENTwithData
+	CreateSCUNILOGEVENT_Data
 
 	Allocates a buffer that points to a new event structure SCUNILOGEVENT plus data, initialises
 	it with the function parameters, and returns a pointer to the newly created and initialised
@@ -15772,21 +16130,23 @@ void CancelSCUNILOGTARGETstatic (void);
 
 	The function returns false if it fails.
 */
-SCUNILOGEVENT *CreateSCUNILOGEVENTwithData	(
+SCUNILOGEVENT *CreateSCUNILOGEVENT_Data	(
 					SCUNILOGTARGET				*put,
 					cueventseverity				sev,
+					const char					*ccCapt,
+					size_t						lenCapt,
 					const char					*ccData,
 					size_t						siz
 											)
 ;
 
 /*
-	CreateSCUNILOGEVENTwithText
+	CreateSCUNILOGEVENT_Text
 
 	This is the text version of CreateSCUNILOGEVENTwithData (). If the string ccText is
 	NUL-terminated a value of USE_STRLEN for len can be used.
 */
-SCUNILOGEVENT *CreateSCUNILOGEVENTwithText	(
+SCUNILOGEVENT *CreateSCUNILOGEVENT_Text		(
 					SCUNILOGTARGET				*put,
 					cueventseverity				sev,
 					const char					*ccText,
@@ -15881,45 +16241,49 @@ bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 	They also fail after ShutdownSCUNILOGTARGET () or CancelSCUNILOGTARGET () have been called
 	on the SCUNILOGTARGET structure put points to.
 */
-bool logTextU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len);
-bool logTextWsevl		(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len);
-bool logTextU8sev		(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText);
-bool logTextWsev		(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText);
-bool logTextU8l			(SCUNILOGTARGET *put, const char *ccText, size_t len);
-bool logTextU8ql		(SCUNILOGTARGET *put, const char *ccText, size_t len);
-bool logTextWl			(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len);
-bool logTextU8			(SCUNILOGTARGET *put, const char *ccText);
-bool logTextU8q			(SCUNILOGTARGET *put, const char *ccText);
-bool logTextW			(SCUNILOGTARGET *put, const wchar_t *cwText);
-bool logTextU8fmt		(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8qfmt		(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8sfmt		(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8sqfmt		(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8sfmtsev	(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, ...);
-bool logTextU8smbfmtsev	(SCUNILOGTARGET *put, cueventseverity sev, SMEMBUF *smb, const char *fmt, ...);
-bool logTextU8smbfmt	(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
-bool logHexDumpU8sevl	(SCUNILOGTARGET *put, cueventseverity sev, const char ccText, size_t len, const void *pBlob, size_t size);
-bool logHexDumpU8l		(SCUNILOGTARGET *put, const char ccText, size_t len, const void *pBlob, size_t size);
-bool logBinary			(SCUNILOGTARGET *put, const void *pBlob, size_t size);
-bool logBinOrTextU8		(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t size);
+bool logTextU8sevl			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len);
+bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len);
+bool logTextU8sev			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText);
+bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText);
+bool logTextU8l				(SCUNILOGTARGET *put, const char *ccText, size_t len);
+bool logTextU8ql			(SCUNILOGTARGET *put, const char *ccText, size_t len);
+bool logTextWl				(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len);
+bool logTextU8				(SCUNILOGTARGET *put, const char *ccText);
+bool logTextU8q				(SCUNILOGTARGET *put, const char *ccText);
+bool logTextW				(SCUNILOGTARGET *put, const wchar_t *cwText);
+bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...);
+bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
+bool logTextU8sfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
+bool logTextU8sqfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
+bool logTextU8sfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, ...);
+bool logTextU8smbfmtsev		(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, ...);
+bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
+bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const char *ccCaption, size_t lenCaption, const void *pBlob, size_t size);
+bool logHexDumpU8l			(SCUNILOGTARGET *put, const char *ccCaption, size_t lenCaption, const void *pBlob, size_t size);
+bool logBinary				(SCUNILOGTARGET *put, const void *pBlob, size_t size);
+bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t size);
 
-#define logTextU8tsevl_static(v, t, l)			logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
-#define logTextWsevl_static(v, t, l)			logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
-#define logTextU8sev_static(v, t)				logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
-#define logTextWsev_static(v, t)				logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
-#define logTextU8l_static(t, l)					logTextU8l			(pSCUNILOGTARGETstatic, (t), (l))
-#define logTextU8ql_static(t, l)				logTextU8ql			(pSCUNILOGTARGETstatic, (t), (l))
-#define logTextWl_static(t, l)					logTextWl			(pSCUNILOGTARGETstatic, (t), (l))
-#define logTextU8_static(t)						logTextU8l			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
-#define logTextU8q_static(t)					logTextU8ql			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
-#define logTextW_static(t)						logTextW			(pSCUNILOGTARGETstatic, (t));
-#define logTextU8fmt_static(...)				logTextU8fmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
-#define logTextU8sfmt_static(...)				logTextU8sfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
-#define logTextU8sfmtsev_static(s, ...)			logTextU8sfmtsev	(pSCUNILOGTARGETstatic, (s), __VA_ARGS__)
-#define logTextU8smbfmtsev_static(s, m, ...)	logTextU8smbfmtsev	(pSCUNILOGTARGETstatic, (s), (m), __VA_ARGS__)
-#define logTextU8smbfmt_static(m, ...)			logTextU8smbfmt		(pSCUNILOGTARGETstatic, (m), __VA_ARGS__)
-#define logBinary_static(d, s)					logBinary			(pSCUNILOGTARGETstatic, (d), (s))
-#define logBinOrTextU8_static(d, s)				logBinOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
+#define logTextU8tsevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
+#define logTextWsevl_static(v, t, l)	logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
+#define logTextU8sev_static(v, t)		logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
+#define logTextWsev_static(v, t)		logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
+#define logTextU8l_static(t, l)			logTextU8l			(pSCUNILOGTARGETstatic, (t), (l))
+#define logTextU8ql_static(t, l)		logTextU8ql			(pSCUNILOGTARGETstatic, (t), (l))
+#define logTextWl_static(t, l)			logTextWl			(pSCUNILOGTARGETstatic, (t), (l))
+#define logTextU8_static(t)				logTextU8l			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
+#define logTextU8q_static(t)			logTextU8ql			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
+#define logTextW_static(t)				logTextW			(pSCUNILOGTARGETstatic, (t));
+#define logTextU8fmt_static(...)		logTextU8fmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
+#define logTextU8sfmt_static(...)		logTextU8sfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
+#define logTextU8sfmtsev_static(s, ...)	logTextU8sfmtsev	(pSCUNILOGTARGETstatic, (s), __VA_ARGS__)
+#define logTextU8smbfmtsev_static(s, m, ...)			\
+										logTextU8smbfmtsev	(pSCUNILOGTARGETstatic, (s), (m), __VA_ARGS__)
+#define logTextU8smbfmt_static(m, ...)	logTextU8smbfmt		(pSCUNILOGTARGETstatic, (m), __VA_ARGS__)
+#define logHexDumpU8sevl_static(s, t,					\
+			l, d, n)									\
+										logHexDumpU8sevl	(pSCUNILOGTARGETstatic, (s), (t), (l), (d), (n))
+#define logBinary_static(d, s)			logBinary			(pSCUNILOGTARGETstatic, (d), (s))
+#define logBinOrTextU8_static(d, s)		logBinOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
 
 /*
 	The version as text, its year, and as a 64 bit number.

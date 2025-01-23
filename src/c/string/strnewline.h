@@ -277,14 +277,6 @@ size_t lnLineEnding (newline_t nl);
 const char *szLineEnding (newline_t, size_t *pln)
 ;
 
-/*
-	lnLineEnding
-
-	Returns the length of the string that represents the line ending nl.
-	The returned value is the length of the string excluding a NUL terminator.
-*/
-size_t lnLineEnding (newline_t nl);
-
 #ifdef DEBUG
 	#ifndef STRNEWLINE_BUILD_TEST
 	#define STRNEWLINE_BUILD_TEST

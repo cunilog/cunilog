@@ -53,6 +53,7 @@ When		Who				What
 		#include "./membuf.h"
 		#include "./ubfcharscountsandchecks.h"
 		#include "./strfilesys.h"
+		#include "./strintuint.h"
 		#include "./strhexdump.h"
 		#include "./strmembuf.h"
 		#include "./strisabsolutepath.h"
@@ -80,6 +81,7 @@ When		Who				What
 		#include "./../mem/membuf.h"
 		#include "./../string/ubfcharscountsandchecks.h"
 		#include "./../string/strfilesys.h"
+		#include "./../string/strintuint.h"
 		#include "./../string/strhexdump.h"
 		#include "./../string/strmembuf.h"
 		#include "./../string/strisabsolutepath.h"
@@ -1158,11 +1160,17 @@ static bool StartSeparateLoggingThread_ifNeeded (SCUNILOGTARGET *put)
 				(type)
 #endif
 
+/*
+	This function is not used anymore. The configurable hex dump is not supported
+	anymore.
+*/
 static inline void InitSCUNILOGTARGETdumpstructs (SCUNILOGTARGET *put)
 {
+	UNUSED (put);
+
 	ubf_assert_non_NULL (put);
 
-	put->psdump = NULL;
+	//put->psdump = NULL;
 }
 
 static inline void initSCUNILOGTARGEToptionFlags (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
@@ -1237,8 +1245,10 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 
 	str_remove_path_navigators (put->mbLogPath.buf.pch, &put->lnLogPath);
 	InitSCUNILOGNPI							(&put->scuNPI);
+	DBG_INIT_CNTTRACKER						(put->evtLineTracker);
 	put->nPendingNoRotEvts					= 0;
 	put->nPausedEvents						= 0;
+	put->dumpWidth							= enDataDumpWidth16;
 	initPrevTimestamp						(put);
 	InitSCUNILOGTARGETmbLogFold				(put);
 	InitSCUNILOGTARGETdumpstructs			(put);
@@ -1503,10 +1513,16 @@ static void DoneSCUNILOGTARGETprocessors (SCUNILOGTARGET *psu)
 	}
 }
 
+/*
+	This function is a no-op.
+*/
 static void DoneSCUNILOGTARGETpsdump (SCUNILOGTARGET *psu)
 {
+	UNUSED (psu);
+
 	ubf_assert_non_NULL (psu);
 
+	/*
 	SCUNILOGDUMP *pd = psu->psdump;
 	if (pd)
 	{
@@ -1515,6 +1531,7 @@ static void DoneSCUNILOGTARGETpsdump (SCUNILOGTARGET *psu)
 		if (pd->dump_sns)
 			ubf_free (pd->dump_sns);
 	}
+	*/
 }
 
 static void DoneSCUNILOGTARGETmembers (SCUNILOGTARGET *put)
@@ -1589,7 +1606,7 @@ enum cunilogeventseverity
 const char *EventSeverityTexts []	=
 {
 	/*	 0	*/	"",
-	/*	 1	*/	"   "
+	/*	 1	*/	"   ",
 	/*	 2	*/	"EMG",
 	/*	 3	*/	"NTC",
 	/*	 4	*/	"INF",
@@ -1687,12 +1704,20 @@ static inline size_t writeFullStop (char *szOut, SCUNILOGEVENT *pev)
 	return 0;
 }
 
-static inline size_t requiredNewlineChars (SCUNILOGEVENT *pev)
+static inline size_t eventLenNewline (SCUNILOGEVENT *pev)
 {
-	UNREFERENCED_PARAMETER (pev);
+	ubf_assert_non_NULL (pev);
+	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
 
-	// CR + LF max.
-	return 2;
+	return lnLineEnding (pev->pSCUNILOGTARGET->unilogNewLine);
+}
+
+static inline enum enLineEndings eventLineEnding (SCUNILOGEVENT *pev)
+{
+	ubf_assert_non_NULL (pev);
+	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
+
+	return pev->pSCUNILOGTARGET->unilogNewLine;
 }
 
 static inline void evtTSFormats_unilogEvtTS_ISO8601 (char *chISO, UBF_TIMESTAMP ts)
@@ -1754,9 +1779,9 @@ SeventTSformats evtTSFormats [cunilogEvtTS_AmountEnumValues] =
 		}
 };
 
-static inline size_t requiredEventLineTSandTypeLen (SCUNILOGEVENT *pev)
+static inline size_t requiredEvtLineTimestampAndSeverityLength (SCUNILOGEVENT *pev)
 {
-	ubf_assert (!cunilogIsEventHexdump (pev));
+	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
 
 	size_t	r;
@@ -1772,19 +1797,31 @@ static inline size_t requiredEventLineTSandTypeLen (SCUNILOGEVENT *pev)
 static inline size_t requiredEventLineSizeU8 (SCUNILOGEVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
-	ubf_assert (!cunilogIsEventHexdump (pev));
+	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
+	ubf_assert (cunilogEvtTypeNormalText == pev->evType);
 
 	size_t	r;
 
 	// "YYYY-MM-DD HH:MI:SS.000+01:00" + " " + "WRN" + " ".
-	r = requiredEventLineTSandTypeLen (pev);
+	r = requiredEvtLineTimestampAndSeverityLength (pev);
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
+
+	// Actual data.
+	r += pev->lenDataToLog;
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
+
 	// "."
 	r += requiredFullstopChars (pev);
-	// CR + LF max.
-	r += requiredNewlineChars (pev);
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
 
-	// Actual data + terminating NUL.
-	r += pev->lenDataToLog + 1;
+	// CR + LF max.
+	r += eventLenNewline (pev);
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
+
+	// Terminating NUL.
+	r += 1;
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
+
 	return r;
 }
 
@@ -1798,11 +1835,13 @@ static size_t writeEventLineFromSUNILOGEVENTU8 (char *szEventLine, SCUNILOGEVENT
 {
 	ubf_assert_non_NULL (szEventLine);
 	ubf_assert_non_NULL (pev);
-	ubf_assert (!cunilogIsEventHexdump (pev));
+	ubf_assert (cunilogEvtTypeNormalText == pev->evType);
 	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
 	ubf_assert (cunilogIsTargetInitialised (pev->pSCUNILOGTARGET));
 
 	char	*szOrg = szEventLine;
+
+	DBG_RESET_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker);
 
 	// "YYYY-MM-DD HH:MI:SS.000+01:00" + " " (see table above).
 	evtTSFormats [pev->pSCUNILOGTARGET->unilogEvtTSformat].fnc (szEventLine, pev->stamp);
@@ -1810,13 +1849,26 @@ static size_t writeEventLineFromSUNILOGEVENTU8 (char *szEventLine, SCUNILOGEVENT
 
 	szEventLine += evtTSFormats [pev->pSCUNILOGTARGET->unilogEvtTSformat].len;
 	szEventLine += writeEventSeverity (szEventLine, pev->evSeverity);
+	DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, szEventLine - szOrg);
+
 	memcpy (szEventLine, pev->szDataToLog, pev->lenDataToLog);
 	szEventLine += pev->lenDataToLog;
+	DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, szEventLine - szOrg);
+
+	szEventLine += writeFullStop (szEventLine, pev);
+	DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, szEventLine - szOrg);
+
+	// We've reserved space for a new line character sequence in requiredEventLineSizeU8 ()
+	//	but we're not going to add this here yet. Instead, we NUL-terminate. This simply lets
+	//	us call puts (). We'll add the new line sequence later in the processor that writes
+	//	to the logfile.
+
 	// The NUL byte is useful for OS API functions.
 	szEventLine [0] = ASCII_NUL;
 	return szEventLine - szOrg;
 }
 
+/*
 static bool obtainValidSCUNILOGDUMPinSCUNILOGTARGET (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
@@ -1849,21 +1901,223 @@ static bool obtainValidSCUNILOGDUMPinSCUNILOGTARGET (SCUNILOGTARGET *put)
 	} else
 		return true;
 }
+*/
+
+static inline size_t widthOfCaptionLengthFromCunilogEventType (cueventtype type)
+{
+	switch (type)
+	{
+		case cunilogEvtTypeNormalText:				return 0;
+		case cunilogEvtTypeHexDumpWithCaption8:		return 1;
+		case cunilogEvtTypeHexDumpWithCaption16:	return 2;
+		case cunilogEvtTypeHexDumpWithCaption32:	return 4;
+		case cunilogEvtTypeHexDumpWithCaption64:	return 8;
+		default:									return 0;
+	}
+}
+
+static size_t readCaptionLengthFromData (unsigned char *pData, size_t ui)
+{
+	uint8_t			ui8;
+	uint16_t		ui16;
+	uint32_t		ui32;
+	uint64_t		ui64;
+	size_t			lnRet;
+
+	switch (ui)
+	{
+		case 0:	lnRet = 0;									break;
+		case 1:	memcpy (&ui8, pData, ui);	lnRet = ui8;	break;
+		case 2:	memcpy (&ui16, pData, ui);	lnRet = ui16;	break;
+		case 4:	memcpy (&ui32, pData, ui);	lnRet = ui32;	break;
+		case 8:	
+				ubf_assert_msg (false, "Really??? A caption length of more than 4 GiB??");
+				memcpy (&ui64, pData, ui);
+				lnRet = (size_t) ui64;						break;
+		default:
+				ubf_assert_msg (false, "Bug");
+				lnRet = 0;									break;
+	}
+	return lnRet;
+}
+
+static char		scSummaryOctets []	= " octets/bytes.";
+static size_t	lnSummaryOctets		= sizeof (scSummaryOctets) - 1;
+
+static inline size_t requiredEventLineSizeHexDump	(
+						unsigned char		**pDumpData,
+						size_t				*width,
+						size_t				*len,
+						SCUNILOGEVENT		*pev
+													)
+{
+	ubf_assert_non_NULL (pev);
+	ubf_assert	(
+						cunilogEvtTypeHexDumpWithCaption8	== pev->evType
+					||	cunilogEvtTypeHexDumpWithCaption16	== pev->evType
+					||	cunilogEvtTypeHexDumpWithCaption32	== pev->evType
+					||	cunilogEvtTypeHexDumpWithCaption64	== pev->evType
+				);
+	ubf_assert_non_NULL (pDumpData);
+	ubf_assert_non_NULL (width);
+	ubf_assert_non_NULL (len);
+
+	SCUNILOGTARGET *put = pev->pSCUNILOGTARGET;
+	ubf_assert_non_NULL (put);
+
+	size_t	r;
+
+	/*
+		Timestamp + Type + caption, etc.
+	*/
+
+	// "YYYY-MM-DD HH:MI:SS.000+01:00" + " " + "WRN" + " ".
+	r = requiredEvtLineTimestampAndSeverityLength (pev);
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
+
+	// The width of the caption length.
+	size_t ui			= widthOfCaptionLengthFromCunilogEventType (pev->evType);
+	// Its actual length. This needs to be added to our return value.
+	size_t lenCaption	= readCaptionLengthFromData (pev->szDataToLog, ui);
+	*pDumpData			= pev->szDataToLog + ui + lenCaption;
+	*width				= ui;
+	*len				= lenCaption;
+	r += lenCaption;
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
+
+	// "."
+	r += requiredFullstopChars (pev);
+	// New line.
+	r += eventLenNewline (pev);
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
+
+	// Actual dump data size. Includes NUL terminator.
+	size_t sizHexDmp = hxdmpRequiredSize (pev->lenDataToLog, put->dumpWidth, eventLineEnding (pev));
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, sizHexDmp);
+	r += sizHexDmp;
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
+
+	// ASCII TAB.
+	++ r;
+
+	// To be considered in the future:
+	//	It would be faster to just always reserve UBF_UINT64_LEN octets instead of
+	//	performing the uint -> ASCII transformation.
+	char cDmpOctets [UBF_UINT64_SIZE];
+	//r += ubf_str_from_uint64 (cDmpOctets, pev->lenDataToLog);
+	ubf_str__from_uint64 (cDmpOctets, 10, pev->lenDataToLog);
+	r += 10;
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
+
+	r += lnSummaryOctets;
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
+
+	// New line.
+	r += eventLenNewline (pev);
+	DBG_TRACK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, r);
+
+	#ifdef DEBUG
+		++ r;												// Space for a debug marker.
+	#endif
+
+	return r;
+}
 
 static size_t createDumpEventLineFromSUNILOGEVENT (SCUNILOGEVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
 	ubf_assert (isInitialisedSMEMBUF (&pev->pSCUNILOGTARGET->mbLogEventLine));
+	ubf_assert	(
+						cunilogEvtTypeHexDumpWithCaption8	== pev->evType
+					||	cunilogEvtTypeHexDumpWithCaption16	== pev->evType
+					||	cunilogEvtTypeHexDumpWithCaption32	== pev->evType
+					||	cunilogEvtTypeHexDumpWithCaption64	== pev->evType
+				);
 
-	size_t sPreamble = requiredEventLineTSandTypeLen (pev);
-	if (obtainValidSCUNILOGDUMPinSCUNILOGTARGET (pev->pSCUNILOGTARGET))
+	SCUNILOGTARGET *put = pev->pSCUNILOGTARGET;
+	ubf_assert_non_NULL (put);
+
+	unsigned char	*pDumpData;
+	size_t			captionWidth;
+	size_t			captionLen;
+	size_t lenTotal = requiredEventLineSizeHexDump (&pDumpData, &captionWidth, &captionLen, pev);
+	// pDumpData				Points to the data to dump.
+	// pev->lenDataToLog		Its length.
+
+	growToSizeSMEMBUF64aligned (&put->mbLogEventLine, lenTotal);
+	if (isUsableSMEMBUF (&put->mbLogEventLine))
 	{
-		SCUNILOGDUMP *pd = pev->pSCUNILOGTARGET->psdump;
-		growToSizeSMEMBUF64aligned (&pd->mbDumpHeader, sPreamble);
-		if (isUsableSMEMBUF (&pd->mbDumpHeader))
-		{
-		}
+		#ifdef DEBUG
+			put->mbLogEventLine.buf.pch [lenTotal] = CUNILOG_DEFAULT_DBG_CHAR;
+		#endif
+		char *szOut = put->mbLogEventLine.buf.pch;
+		char *szOrg = szOut;
+
+		// Timestamp + severity.
+		evtTSFormats [put->unilogEvtTSformat].fnc (szOut, pev->stamp);
+		szOut += evtTSFormats [put->unilogEvtTSformat].len;
+		szOut += writeEventSeverity (szOut, pev->evSeverity);
+		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, szOut - szOrg);
+
+		// Caption.
+		memcpy (szOut, pev->szDataToLog + captionWidth, captionLen);
+		szOut += captionLen;
+		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, szOut - szOrg);
+
+		// "." + new line.
+		size_t lenNewLine = eventLenNewline (pev);
+		szOut += writeFullStop (szOut, pev);
+		memcpy (szOut, ccLineEnding (eventLineEnding (pev)), lenNewLine);
+		szOut += lenNewLine;
+		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, szOut - szOrg);
+
+		put->lnLogEventLine = szOut - szOrg;
+		char *szHexDmpOut = szOut;
+		size_t sizHx = hxdmpWriteHexDump (szHexDmpOut, pDumpData, pev->lenDataToLog, put->dumpWidth, put->unilogNewLine);
+		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, sizHx + 1);
+		ubf_assert (CUNILOG_DEFAULT_DBG_CHAR == put->mbLogEventLine.buf.pch [lenTotal]);
+		put->lnLogEventLine += sizHx;
+		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, put->lnLogEventLine + 1);
+
+		szOut = szHexDmpOut + sizHx;
+		szOut [0] = ASCII_TAB;
+		++ szOut;
+		++ put->lnLogEventLine;
+
+		//size_t lnOctets = ubf_str_from_uint64 (szOut, pev->lenDataToLog);
+		size_t lnOctets = 10;
+		ubf_str__from_uint64 (szOut, 10, pev->lenDataToLog);
+		put->lnLogEventLine += lnOctets;
+		ubf_assert (CUNILOG_DEFAULT_DBG_CHAR == put->mbLogEventLine.buf.pch [lenTotal]);
+		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, put->lnLogEventLine + 1);
+
+		szOut += lnOctets;
+		memcpy (szOut, scSummaryOctets, lnSummaryOctets);
+		put->lnLogEventLine += lnSummaryOctets;
+		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, put->lnLogEventLine + 1);
+
+		return put->lnLogEventLine;
+	}
+	return CUNILOG_SIZE_ERROR;
+}
+
+static size_t createU8EventLineFromSUNILOGEVENT (SCUNILOGEVENT *pev)
+{
+	ubf_assert_non_NULL (pev);
+	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
+	ubf_assert (isInitialisedSMEMBUF (&pev->pSCUNILOGTARGET->mbLogEventLine));
+	ubf_assert (cunilogEvtTypeNormalText == pev->evType);
+
+	size_t requiredEvtLineSize;
+
+	requiredEvtLineSize = requiredEventLineSizeU8 (pev);
+	growToSizeSMEMBUF64aligned (&pev->pSCUNILOGTARGET->mbLogEventLine, requiredEvtLineSize);
+	if (isUsableSMEMBUF (&pev->pSCUNILOGTARGET->mbLogEventLine))
+	{
+		pev->pSCUNILOGTARGET->lnLogEventLine =
+			writeEventLineFromSUNILOGEVENTU8 (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch, pev);
+		return pev->pSCUNILOGTARGET->lnLogEventLine;
 	}
 	return CUNILOG_SIZE_ERROR;
 }
@@ -1874,70 +2128,139 @@ static size_t createEventLineFromSUNILOGEVENT (SCUNILOGEVENT *pev)
 	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
 	ubf_assert (isInitialisedSMEMBUF (&pev->pSCUNILOGTARGET->mbLogEventLine));
 
-	size_t requiredEvtLineSize;
+	DBG_RESET_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker);
 
-	if (cunilogIsEventHexdump (pev))
+	switch (pev->evType)
 	{
-		return createDumpEventLineFromSUNILOGEVENT (pev);
-	} else
-	{
-		requiredEvtLineSize = requiredEventLineSizeU8 (pev);
-		growToSizeSMEMBUF64aligned (&pev->pSCUNILOGTARGET->mbLogEventLine, requiredEvtLineSize);
-		if (isUsableSMEMBUF (&pev->pSCUNILOGTARGET->mbLogEventLine))
-		{
-			pev->pSCUNILOGTARGET->lnLogEventLine =
-				writeEventLineFromSUNILOGEVENTU8 (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch, pev);
-			return pev->pSCUNILOGTARGET->lnLogEventLine;
-		}
+		case cunilogEvtTypeHexDumpWithCaption8:
+		case cunilogEvtTypeHexDumpWithCaption16:
+		case cunilogEvtTypeHexDumpWithCaption32:
+		case cunilogEvtTypeHexDumpWithCaption64:
+			return createDumpEventLineFromSUNILOGEVENT	(pev);
+		case cunilogEvtTypeNormalText:
+			return createU8EventLineFromSUNILOGEVENT	(pev);
+		default:
+			break;
 	}
 	return CUNILOG_SIZE_ERROR;
 }
 
-static SCUNILOGEVENT *CreateSCUNILOGEVENTfromData	(
-							SCUNILOGTARGET				*put,
-							cueventseverity				sev,
-							const char					*ccData,
-							size_t						siz
+static inline void storeCaptionLengthInData (unsigned char **pData, size_t ui, size_t lenCapt)
+{
+	uint8_t			ui8;
+	uint16_t		ui16;
+	uint32_t		ui32;
+	uint64_t		ui64;
+
+	switch (ui)
+	{
+		case 0:
+			return;
+		case 1:
+			ui8 = (uint8_t) (lenCapt & 0xFF);
+			memcpy (*pData, &ui8, ui);
+			break;
+		case 2:
+			ui16 = (uint16_t) (lenCapt & 0xFFFF);
+			memcpy (*pData, &ui16, ui);
+			break;
+		case 4:
+			ui32 = (uint32_t) (lenCapt & 0xFFFFFFFF);
+			memcpy (*pData, &ui32, ui);
+			break;
+		case 8:
+			ubf_assert_msg (false, "Really??? A caption length of more than 4 GiB??");
+			ui64 = (uint64_t) lenCapt;
+			memcpy (*pData, &ui64, ui);
+			break;
+		default:
+			ubf_assert_msg (false, "Must be a bug!");
+			break;
+	}
+	*pData += ui;
+}
+
+static SCUNILOGEVENT *CreateSCUNILOGEVENTandData	(
+					SCUNILOGTARGET				*put,
+					cueventseverity				sev,
+					const char					*ccCapt,
+					size_t						lenCapt,
+					cueventtype					type,
+					const char					*ccData,
+					size_t						siz
 													)
 {
 	ubf_assert_non_NULL (put);
 	ubf_assert_non_NULL (ccData);
+	ubf_assert (USE_STRLEN != siz);
 
+	size_t			ui		= widthOfCaptionLengthFromCunilogEventType (type);
 	size_t			aln		= ALIGNED_SIZE (sizeof (SCUNILOGEVENT), CUNILOG_DEFAULT_ALIGNMENT);
-	size_t			ln		= aln + siz;
+	size_t			ln		= aln + ui + lenCapt + siz;
 	SCUNILOGEVENT	*pev	= ubf_malloc (ln);
 
 	if (pev)
 	{
 		unsigned char *pData = (unsigned char *) pev + aln;
 		FillSCUNILOGEVENT	(
-			pev, put, CUNILOGEVENT_ALLOCATED, LocalTime_UBF_TIMESTAMP (), sev, pData, siz
+			pev, put,
+			CUNILOGEVENT_ALLOCATED,
+			LocalTime_UBF_TIMESTAMP (),
+			sev, type,
+			pData, siz
 							);
+		storeCaptionLengthInData (&pData, ui, lenCapt);
+		if (ui)
+		{
+			memcpy (pData, ccCapt, lenCapt);
+			pData += lenCapt;
+		}
 		memcpy (pData, ccData, siz);
 	}
 	return pev;
 }
 
- SCUNILOGEVENT *CreateSCUNILOGEVENTwithData	(
+static inline cueventtype cunilogEventTypeFromLength (size_t len)
+{
+	ubf_assert (USE_STRLEN != len);
+
+	if (len < UINT8_MAX)
+		return cunilogEvtTypeHexDumpWithCaption8;
+	if (len < UINT16_MAX)
+		return cunilogEvtTypeHexDumpWithCaption16;
+	if (len < UINT32_MAX)
+		return cunilogEvtTypeHexDumpWithCaption32;
+	ubf_assert_msg (false, "Really??? A caption length of more than 4 GiB??");
+	return cunilogEvtTypeHexDumpWithCaption64;
+}
+
+SCUNILOGEVENT *CreateSCUNILOGEVENT_Data		(
 					SCUNILOGTARGET				*put,
 					cueventseverity				sev,
+					const char					*ccCapt,
+					size_t						lenCapt,
 					const char					*ccData,
 					size_t						siz
 											)
 {
-	ubf_assert_non_NULL (put);
-	ubf_assert_non_NULL (ccData);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL	(ccData);
 	ubf_assert (USE_STRLEN != siz);
 
-	SCUNILOGEVENT *pev = CreateSCUNILOGEVENTfromData (put, sev, ccData, siz);
-	if (pev)
-	{
-		pev->uiOpts |= CUNILOGEVENT_AS_HEXDUMP;
-	}
+	if (ccCapt)
+		lenCapt = USE_STRLEN == lenCapt ? strlen (ccCapt) : lenCapt;
+	else
+		lenCapt = 0;
+
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENTandData	(
+							put, sev, ccCapt, lenCapt,
+							cunilogEventTypeFromLength (lenCapt),
+							ccData, siz
+													);
 	return pev;
 }
 
-SCUNILOGEVENT *CreateSCUNILOGEVENTwithText	(
+SCUNILOGEVENT *CreateSCUNILOGEVENT_Text		(
 					SCUNILOGTARGET				*put,
 					cueventseverity				sev,
 					const char					*ccText,
@@ -1952,7 +2275,7 @@ SCUNILOGEVENT *CreateSCUNILOGEVENTwithText	(
 	while (len && ('\n' == ccText [len - 1] || '\r' == ccText [len - 1]))
 		-- len;
 
-	SCUNILOGEVENT *pev = CreateSCUNILOGEVENTfromData (put, sev, ccText, len);
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENTandData (put, sev, NULL, 0, cunilogEvtTypeNormalText, ccText, len);
 	return pev;
 }
 
@@ -2082,10 +2405,11 @@ static inline bool requiresNewLogFile (SCUNILOGTARGET *put)
 }
 
 static inline size_t addNewLineToLogEventLine (char *pData, size_t lnData, enum enLineEndings nl)
-{	// At least two octets (bytes) have been reserved for newline characters, and one
-	//	for NUL, hence we're definitely safe to write 3 more octets.
+{	// At least one octet has been reserved for a newline character, and one
+	//	for NUL, hence we're definitely safe to write 2 more octets.
 	size_t len;
 	const char *cc = szLineEnding (nl, &len);
+	ubf_assert (len <= 2);
 	memcpy (pData + lnData, cc, len + 1);
 	return lnData + len;
 }
@@ -2206,7 +2530,7 @@ static void logNoRotationTextU8fmt (SCUNILOGTARGET *put, const char *fmt, ...)
 		vsnprintf (szTxtToLog, len + 1, fmt, ap);
 		va_end (ap);
 
-		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTwithText (put, cunilogEvtSeverityNone, szTxtToLog, len);
+		SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Text (put, cunilogEvtSeverityNone, szTxtToLog, len);
 		ubf_assert_non_NULL (pev);
 		if (pev)
 		{
@@ -3262,7 +3586,8 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 		if (hasSCUNILOGTARGETqueue (put))
 		{
 			FillSCUNILOGEVENT	(
-				&scueShutdown, put, CUNILOGEVENT_SHUTDOWN, 0, cunilogEvtSeverityNone, NULL, 0
+				&scueShutdown, put, CUNILOGEVENT_SHUTDOWN, 0,
+				cunilogEvtSeverityNone, cunilogEvtTypeNormalText, NULL, 0
 								);
 			cunilogProcessOrQueueEvent (&scueShutdown);
 			WaitForEndOfSeparateLoggingThread (put);
@@ -3306,7 +3631,8 @@ void ShutdownSCUNILOGTARGETstatic (void)
 			// Queue the shutdown command for the separate logging thread and wait
 			//	for it to end.
 			FillSCUNILOGEVENT	(
-				&scueShutdown, put, CUNILOGEVENT_SHUTDOWN, 0, cunilogEvtSeverityNone, NULL, 0
+				&scueShutdown, put, CUNILOGEVENT_SHUTDOWN, 0,
+				cunilogEvtSeverityNone, cunilogEvtTypeNormalText, NULL, 0
 								);
 			cunilogProcessOrQueueEvent (&scueShutdown);
 			WaitForEndOfSeparateLoggingThread (put);
@@ -3469,18 +3795,18 @@ bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev)
 	return cunilogProcessOrQueueEvent (pev);
 }
 
-bool logTextU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len)
+bool logTextU8sevl			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len)
 {
 	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	SCUNILOGEVENT *pl = CreateSCUNILOGEVENTwithText (put, sev, ccText, len);
+	SCUNILOGEVENT *pl = CreateSCUNILOGEVENT_Text (put, sev, ccText, len);
 	return cunilogProcessOrQueueEvent (pl);
 }
 
-bool logTextWsevl		(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len)
+bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len)
 {
 	UNREFERENCED_PARAMETER (sev);
 	UNREFERENCED_PARAMETER (cwText);
@@ -3495,12 +3821,12 @@ bool logTextWsevl		(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwT
 	return false;
 }
 
-bool logTextU8sev		(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText)
+bool logTextU8sev			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText)
 {
 	return logTextU8sevl (put, sev, ccText, USE_STRLEN);
 }
 
-bool logTextWsev		(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText)
+bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText)
 {
 	UNREFERENCED_PARAMETER (sev);
 	UNREFERENCED_PARAMETER (cwText);
@@ -3514,25 +3840,25 @@ bool logTextWsev		(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwTe
 	return false;
 }
 
-bool logTextU8l			(SCUNILOGTARGET *put, const char *ccText, size_t len)
+bool logTextU8l				(SCUNILOGTARGET *put, const char *ccText, size_t len)
 {
 	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	SCUNILOGEVENT *pev = CreateSCUNILOGEVENTwithText (put, cunilogEvtSeverityNone, ccText, len);
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Text (put, cunilogEvtSeverityNone, ccText, len);
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
-bool logTextU8ql		(SCUNILOGTARGET *put, const char *ccText, size_t len)
+bool logTextU8ql			(SCUNILOGTARGET *put, const char *ccText, size_t len)
 {
 	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	SCUNILOGEVENT *pev = CreateSCUNILOGEVENTwithText (put, cunilogEvtSeverityNone, ccText, len);
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Text (put, cunilogEvtSeverityNone, ccText, len);
 	if (pev)
 	{
 		cunilogSetEventNoRotation (pev);
@@ -3541,7 +3867,7 @@ bool logTextU8ql		(SCUNILOGTARGET *put, const char *ccText, size_t len)
 	return false;
 }
 
-bool logTextWl			(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len)
+bool logTextWl				(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len)
 {
 	UNREFERENCED_PARAMETER (cwText);
 	UNREFERENCED_PARAMETER (len);
@@ -3555,17 +3881,17 @@ bool logTextWl			(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len)
 	return false;
 }
 
-bool logTextU8			(SCUNILOGTARGET *put, const char *ccText)
+bool logTextU8				(SCUNILOGTARGET *put, const char *ccText)
 {
 	return logTextU8l (put, ccText, USE_STRLEN);
 }
 
-bool logTextU8q			(SCUNILOGTARGET *put, const char *ccText)
+bool logTextU8q				(SCUNILOGTARGET *put, const char *ccText)
 {
 	return logTextU8ql (put, ccText, USE_STRLEN);
 }
 
-bool logTextW			(SCUNILOGTARGET *put, const wchar_t *cwText)
+bool logTextW				(SCUNILOGTARGET *put, const wchar_t *cwText)
 {
 	UNREFERENCED_PARAMETER (cwText);
 
@@ -3578,15 +3904,15 @@ bool logTextW			(SCUNILOGTARGET *put, const wchar_t *cwText)
 	return false;
 }
 
-bool logTextU8fmt		(SCUNILOGTARGET *put, const char *fmt, ...)
+bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 {
-	va_list		ap;
-	size_t		l;
-
 	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
+
+	va_list		ap;
+	size_t		l;
 
 	va_start (ap, fmt);
 	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
@@ -3606,15 +3932,15 @@ bool logTextU8fmt		(SCUNILOGTARGET *put, const char *fmt, ...)
 	return false;
 }
 
-bool logTextU8qfmt		(SCUNILOGTARGET *put, const char *fmt, ...)
+bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 {
-	va_list		ap;
-	size_t		l;
-
 	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
+
+	va_list		ap;
+	size_t		l;
 
 	va_start (ap, fmt);
 	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
@@ -3634,15 +3960,15 @@ bool logTextU8qfmt		(SCUNILOGTARGET *put, const char *fmt, ...)
 	return false;
 }
 
-bool logTextU8sfmt		(SCUNILOGTARGET *put, const char *fmt, ...)
+bool logTextU8sfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 {
-	va_list		ap;
-	size_t		l;
-
 	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
+
+	va_list		ap;
+	size_t		l;
 
 	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
 	char		*ob;
@@ -3665,15 +3991,15 @@ bool logTextU8sfmt		(SCUNILOGTARGET *put, const char *fmt, ...)
 	return false;
 }
 
-bool logTextU8sqfmt		(SCUNILOGTARGET *put, const char *fmt, ...)
+bool logTextU8sqfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 {
-	va_list		ap;
-	size_t		l;
-
 	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
+
+	va_list		ap;
+	size_t		l;
 
 	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
 	char		*ob;
@@ -3696,15 +4022,15 @@ bool logTextU8sqfmt		(SCUNILOGTARGET *put, const char *fmt, ...)
 	return false;
 }
 
-bool logTextU8sfmtsev	(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, ...)
+bool logTextU8sfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, ...)
 {
-	va_list		ap;
-	size_t		l;
-
 	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
+
+	va_list		ap;
+	size_t		l;
 
 	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
 	char		*ob;
@@ -3727,16 +4053,16 @@ bool logTextU8sfmtsev	(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt
 	return false;
 }
 
-bool logTextU8smbfmtsev	(SCUNILOGTARGET *put, cueventseverity sev, SMEMBUF *smb, const char *fmt, ...)
+bool logTextU8smbfmtsev		(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, ...)
 {
-	va_list		ap;
-	size_t		l;
-
 	ubf_assert_non_NULL (put);
 	ubf_assert (isInitialisedSMEMBUF (smb));
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
+
+	va_list		ap;
+	size_t		l;
 
 	va_start (ap, fmt);
 	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
@@ -3758,16 +4084,16 @@ bool logTextU8smbfmtsev	(SCUNILOGTARGET *put, cueventseverity sev, SMEMBUF *smb,
 	return false;
 }
 
-bool logTextU8smbfmt	(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...)
+bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...)
 {
-	va_list		ap;
-	size_t		l;
-
 	ubf_assert_non_NULL (put);
 	ubf_assert (isInitialisedSMEMBUF (smb));
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
+
+	va_list		ap;
+	size_t		l;
 
 	va_start (ap, fmt);
 	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
@@ -3789,38 +4115,29 @@ bool logTextU8smbfmt	(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...)
 	return false;
 }
 
-bool logHexDumpU8sevl	(SCUNILOGTARGET *put, cueventseverity sev, const char ccText, size_t len, const void *pBlob, size_t size)
-{
-	UNUSED (sev);
-	UNUSED (ccText);
-	UNUSED (len);
-	UNUSED (pBlob);
-	UNUSED (size);
-
-	if (cunilogIsShutdownTarget (put))
-		return false;
-	
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
-}
-
-bool logHexDumpU8l		(SCUNILOGTARGET *put, const char ccText, size_t len, const void *pBlob, size_t size)
+bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const char *ccCaption, size_t lenCaption, const void *pBlob, size_t size)
 {
 	ubf_assert_non_NULL (put);
 
-	UNUSED (ccText);
-	UNUSED (len);
-	UNUSED (pBlob);
-	UNUSED (size);
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data (put, sev, ccCaption, lenCaption, pBlob, size);
+	return pev && cunilogProcessOrQueueEvent (pev);
+}
+
+bool logHexDumpU8l			(SCUNILOGTARGET *put, const char *ccCaption, size_t lenCaption, const void *pBlob, size_t size)
+{
+	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
-	
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
+
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data (put, cunilogEvtSeverityNone, ccCaption, lenCaption, pBlob, size);
+	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
-bool logBinary			(SCUNILOGTARGET *put, const void *pBlob, size_t size)
+bool logBinary				(SCUNILOGTARGET *put, const void *pBlob, size_t size)
 {
 	UNUSED (pBlob);
 	UNUSED (size);
@@ -3832,7 +4149,7 @@ bool logBinary			(SCUNILOGTARGET *put, const void *pBlob, size_t size)
 	return false;
 }
 
-bool logBinOrTextU8		(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t size)
+bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t size)
 {
 	UNUSED (szU8TextOrBin);
 	UNUSED (size);

@@ -365,6 +365,16 @@ size_t ubf_str_from_uint64 (char *result, uint64_t ui64);
 size_t ubf_str0_from_uint64 (char *result, size_t digits, uint64_t ui64);
 
 /*
+	ubf_str__from_uint64
+
+	The function is identical to ubf_str0_from_uint64 () with the exception
+	that it returns an ASCII representation with leading spaces of the value of ui64,
+	in decimal (base 10).
+*/
+size_t ubf_str__from_uint64 (char *result, size_t digits, uint64_t ui64)
+;
+
+/*
 	ubf_uint64_from_str
 
 	Obtains an unsigned 64 bit integer of the ASCII string chStr in ui. The conversion

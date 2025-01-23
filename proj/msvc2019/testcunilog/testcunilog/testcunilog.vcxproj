@@ -164,6 +164,7 @@
     <ClCompile Include="..\..\..\..\src\c\datetime\timespecfncts.c" />
     <ClCompile Include="..\..\..\..\src\c\datetime\ubf_date_and_time.c" />
     <ClCompile Include="..\..\..\..\src\c\datetime\ubf_times.c" />
+    <ClCompile Include="..\..\..\..\src\c\dbg\dbgcountandtrack.c" />
     <ClCompile Include="..\..\..\..\src\c\dbg\ubfdebug.c" />
     <ClCompile Include="..\..\..\..\src\c\extern\ExtCompressors.c" />
     <ClCompile Include="..\..\..\..\src\c\mem\bulkmalloc.c" />
@@ -208,6 +209,7 @@
     <ClInclude Include="..\..\..\..\src\c\datetime\timespecfncts.h" />
     <ClInclude Include="..\..\..\..\src\c\datetime\ubf_date_and_time.h" />
     <ClInclude Include="..\..\..\..\src\c\datetime\ubf_times.h" />
+    <ClInclude Include="..\..\..\..\src\c\dbg\dbgcountandtrack.h" />
     <ClInclude Include="..\..\..\..\src\c\dbg\ubfdebug.h" />
     <ClInclude Include="..\..\..\..\src\c\extern\ExtCompressors.h" />
     <ClInclude Include="..\..\..\..\src\c\mem\bulkmalloc.h" />

@@ -404,6 +404,32 @@ size_t ubf_str0_from_uint64 (char *result, size_t digits, uint64_t ui64)
 	return st;
 }
 
+size_t ubf_str__from_uint64 (char *result, size_t digits, uint64_t ui64)
+{
+	ubf_assert_non_0 (digits);
+
+	char	cResult [UBF_UINT64_SIZE];
+	size_t	st;
+	
+	st = ubf_str_from_uint64 (cResult, ui64);
+	if (st < digits)
+	{
+		memset (result, ' ', digits - st);
+		memcpy (result + digits - st, cResult, st);
+	} else
+	if (st == digits)
+	{	// No leading zeroes due to st == digits.
+		memcpy (result, cResult, st);
+	} else
+	//if (st > digits)										// Only this option left.
+	{
+		memcpy (result, cResult + st - digits, digits);
+		st = STR0_NOT_ENOUGH_DIGITS;
+	}
+	result [digits] = ASCII_NUL;
+	return st;
+}
+
 #ifdef UBF_BUILD_STR0_FROM_UINT64_TEST
 	void ubf_test_str0_from_uint64 (void)
 	{

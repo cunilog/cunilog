@@ -55,15 +55,12 @@ When		Who				What
 
 #endif
 
-/*
-#include "./../fncts/msvcdbgmemdef.h"
-#include "./../OS/ubf_type_definitions.h"
-#include "./../ubfstring/ubfstringstruct.h"
-*/
+EXTERN_C_BEGIN
 
-#ifdef __cplusplus
-	extern "C" {
-#endif
+/*
+	Advanced hex dump. As of Jan 2025 the advanced hex dump is considered incomplete/abandoned.
+	Use the simple hex dump instead. See further down.
+*/
 
 /*
 	A default SUBF_DUMP_PARS structure for general use.
@@ -195,7 +192,45 @@ bool ubf_data_dump_puts	(
 #define ubf_data_dump_puts_default(d,l)			\
 			ubf_data_dump_puts ((const char *) d, l, NULL)
 
-#endif // Of #ifdef 0.
+#endif														// Of #ifdef nix.
+
+/*
+	Simple hex dump. This is what you need/want.
+*/
+
+enum enDataDmpWidth
+{
+	enDataDumpWidth16,
+	enDataDumpWidth32
+};
+typedef enum enDataDmpWidth ddumpWidth;
+
+/*
+	requiredOutputSizeHexDump
+
+	Returns the required buffer size for a hex dump. The return value
+*/
+size_t hxdmpRequiredSize		(
+		size_t				lenDumpData,					// The length of the data to dump.
+		ddumpWidth			width,							// Output width.
+		newline_t			nl
+								)
+;
+
+/*
+	hxdmpWriteHexDump
+
+	Stores a hex dump in szOutput. The buffer szOutput points to must be sufficiently large.
+	It should have been obtained via a call to hxdmpRequiredSize ().
+*/
+size_t hxdmpWriteHexDump		(
+		char				*szOutput,						// The output.
+		const unsigned char	*ccDumpData,					// The data to dump.
+		size_t				lenDumpData,					// The length of the data to dump.
+		ddumpWidth			width,
+		newline_t			nl
+								)
+;
 
 /*
 	test_strhexdump
@@ -213,8 +248,6 @@ bool ubf_data_dump_puts	(
 	#define test_strhexdump()
 #endif
 
-#ifdef __cplusplus
-	}
-#endif
+EXTERN_C_END
 
 #endif															// Of #ifndef STRHEXDUMP_H.

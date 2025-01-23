@@ -61,6 +61,11 @@ When		Who				What
 	#include <stdio.h>
 #endif
 
+/*
+	Advanced hex dump. As of Jan 2025 the advanced hex dump is considered incomplete/abandoned.
+	Use the simple hex dump instead. See further down.
+*/
+
 // The standard SUBF_DUMP_PARS structure. It is used if the parameter sDumpPars is NULL.
 #ifdef DEBUG
 SHEX_DUMP_PARS		sdp_default	=	{
@@ -200,7 +205,7 @@ static size_t widthOfDisplay (SHEX_DUMP_PARS *pdp)
 	return pdp->uinValues;
 }
 
-static size_t obtainCorrectedLength (const char *ccStr, size_t stLen)
+static size_t obtainCorrectedStringLength (const char *ccStr, size_t stLen)
 {
 	size_t stRet = 0;
 
@@ -242,14 +247,14 @@ size_t required_data_dump_size	(
 		ubf_assert (0 == pob->lenHeader || lnLineEndingFromSHEX_DUMP_PARS (pdp) <= pob->lenHeader);
 
 		pob->lenOffset			= pdp->uiOffsetWidth;
-		pob->lenLineStart		= obtainCorrectedLength (pdp->ccLineStart,		pdp->lenLineStart);
-		pob->lenOffsetSep		= obtainCorrectedLength (pdp->ccOffsetSep,		pdp->lenOffsetSep);
-		pob->lenValSeparator	= obtainCorrectedLength (pdp->ccValSeparator,	pdp->lenValSeparator);
-		pob->lenHalfLineSep		= obtainCorrectedLength (pdp->ccHalfLineSep,	pdp->lenHalfLineSep);
-		pob->lenNoMoreDataVal	= obtainCorrectedLength (pdp->ccHalfLineSep,	pdp->lenHalfLineSep);
-		pob->lenUnprintable		= obtainCorrectedLength (pdp->ccHalfLineSep,	pdp->lenHalfLineSep);
-		pob->lenNoMoreDataDisp	= obtainCorrectedLength (pdp->ccHalfLineSep,	pdp->lenHalfLineSep);
-		pob->lenDispSeparator	= obtainCorrectedLength (pdp->ccDisplaySep,		pdp->lenDispSep);
+		pob->lenLineStart		= obtainCorrectedStringLength (pdp->ccLineStart,	pdp->lenLineStart);
+		pob->lenOffsetSep		= obtainCorrectedStringLength (pdp->ccOffsetSep,	pdp->lenOffsetSep);
+		pob->lenValSeparator	= obtainCorrectedStringLength (pdp->ccValSeparator,	pdp->lenValSeparator);
+		pob->lenHalfLineSep		= obtainCorrectedStringLength (pdp->ccHalfLineSep,	pdp->lenHalfLineSep);
+		pob->lenNoMoreDataVal	= obtainCorrectedStringLength (pdp->ccHalfLineSep,	pdp->lenHalfLineSep);
+		pob->lenUnprintable		= obtainCorrectedStringLength (pdp->ccHalfLineSep,	pdp->lenHalfLineSep);
+		pob->lenNoMoreDataDisp	= obtainCorrectedStringLength (pdp->ccHalfLineSep,	pdp->lenHalfLineSep);
+		pob->lenDispSeparator	= obtainCorrectedStringLength (pdp->ccDisplaySep,	pdp->lenDispSep);
 		pob->lenValuesWidth		= widthOfValues (pdp, pob);
 		pob->lenOneLine			=	pdp->lenLineStart			+
 									pdp->uiOffsetWidth			+
@@ -451,12 +456,186 @@ bool ubf_data_dump_puts	(
 #endif
 
 /*
+	Simple hex dump. This is what you need/want.
+*/
+
+typedef struct sEnDataDmpW
+{
+	ddumpWidth		en;
+	size_t			width;
+} SENDATADMPW;
+
+static SENDATADMPW sEw [] =
+{
+		{enDataDumpWidth16,	16}
+	,	{enDataDumpWidth32,	32}
+};
+
+static inline size_t nValuesFromEnum (ddumpWidth width)
+{
+	return sEw [width].width;
+}
+
+static inline size_t hexValuesWidth (size_t nValues)
+{
+	// "00 00 00 00 00 00 00 00 - 00 00 00 00 00 00 00 00 "
+	return 3 * nValues + 2;									// "- " = + 2.
+}
+
+static size_t valuesWidthOneLine (ddumpWidth width, newline_t nl)
+{
+	// "\t00000000: "
+	size_t lenTot = 1 + 8 + 1 + 1;							// TAB, 8 chars, colon, SPC.
+
+	// "00 00 00 00 00 00 00 00 - 00 00 00 00 00 00 00 00 "
+	size_t nVals	= nValuesFromEnum (width);
+	size_t lenHex	= hexValuesWidth (nVals);
+
+	// "........ ........" + <line ending>
+	lenTot += lenHex + nVals + 1 + lnLineEnding (nl);
+	return lenTot;
+}
+
+/*
+	"\t00000000: 00 00 00 00 00 00 00 00 - 00 00 00 00 00 00 00 00 ........ - ........" + <line ending>
+
+*/
+size_t hxdmpRequiredSize		(
+		size_t				lenDumpData,					// The length of the data to dump.
+		ddumpWidth			width,							// Output width.
+		newline_t			nl
+								)
+{
+	size_t nOcts = nValuesFromEnum (width);
+	size_t wLine = valuesWidthOneLine (width, nl);
+	size_t lines = lenDumpData / nOcts;
+	lines += lenDumpData % nOcts ? 1 : 0;
+	size_t total = lines * wLine;
+	++ total;												// NUL terminator.
+	return total;
+}
+
+/*
+	Writes one line to szOut and returns the amount of octets consumed from ccData.
+*/
+static size_t write_out_one_line	(
+				char				**pszOut,				// Output buffer.
+				size_t				offset,					// Offset start.
+				const unsigned char	*ccData,				// Data to dump.
+				size_t				lnData,					// Length of data to dump.
+				ddumpWidth			width,					// n Values per line.
+				newline_t			nl						// New line sequence to add.
+									)
+{
+	ubf_assert_non_NULL (pszOut);
+	ubf_assert_non_NULL (*pszOut);
+
+	char	*szOut		= *pszOut;
+
+	#ifdef DEBUG
+	size_t	dbgWidth1	= valuesWidthOneLine (width, nl);
+	char	*szOrg		= szOut;
+	#endif
+
+	// "\t"
+	*szOut ++ = ASCII_TAB;
+
+	// Offset "\t00000000: ".
+	uint32_t uiOffs = offset & UINT32_MAX;
+	asc_hex_from_dword (szOut, uiOffs);
+	szOut += 8;
+	memcpy (szOut, ": ", 2);
+	szOut += 2;
+
+	size_t	lenConsumed	= 0;
+	size_t	nValues		= nValuesFromEnum (width);
+	size_t	widthValues	= hexValuesWidth (nValues);
+	char	*szAsc		= szOut + widthValues;				// ASCII output.
+	size_t	pos			= 1;
+	size_t	lidx;
+
+	for (lidx = 0; lidx < nValues; ++ lidx)
+	{
+		if (lnData)
+		{
+			// Hex output.
+			asc_hex_from_octet (szOut, ccData [lidx]);
+			szOut += 2;
+			szOut [0] = ' ';
+			++ szOut;
+
+			// ASCII output.
+			if (ubf_is_printable_ASCII (ccData [lidx]))
+				szAsc [0] = ccData [lidx];
+			else
+				szAsc [0] = '.';
+			-- lnData;
+			++ lenConsumed;
+		} else
+		{
+			memcpy (szOut, "   ", 3);
+			szOut += 3;
+			szAsc [0] = ' ';
+		}
+
+		if (pos == nValues / 2)
+		{
+			memcpy (szOut, "- ", 2);
+			szOut += 2;
+			++ szAsc;
+			szAsc [0] = ' ';
+		}
+		++ pos;
+		++ szAsc;
+	}
+	memcpy (szAsc, ccLineEnding (nl), lnLineEnding (nl) + 1);
+	szAsc += lnLineEnding (nl);
+	
+	#ifdef DEBUG
+	size_t dbgWidth2 = szAsc - szOrg;
+	ubf_assert (dbgWidth1 == dbgWidth2);
+	#endif
+
+	*pszOut = szAsc;
+	return lenConsumed;
+}
+
+size_t hxdmpWriteHexDump		(
+		char				*szOutput,						// The output.
+		const unsigned char	*ccDumpData,					// The data to dump.
+		size_t				lenDumpData,					// The length of the data to dump.
+		ddumpWidth			width,
+		newline_t			nl
+								)
+{
+	ubf_assert_non_NULL (ccDumpData);
+	ubf_assert_non_0 (lenDumpData);
+
+	char	*szDumpOut	= szOutput;
+	size_t	lnDumpData	= lenDumpData;
+	size_t	startOffst	= 0;
+	size_t	lnConsumed;
+	do
+	{
+		lnConsumed = write_out_one_line (&szDumpOut, startOffst, ccDumpData, lnDumpData, width, nl);
+		startOffst += lnConsumed;
+		ccDumpData += lnConsumed;
+		lnDumpData -= lnConsumed;
+	} while (lnDumpData);
+
+	size_t lnRet = szDumpOut - szOutput;
+	return lnRet;
+}
+
+/*
 	Some tests.
 */
 #ifdef BUILD_STRHEXDUMP_TEST_FNCT
 	bool test_strhexdump (void)
 	{
 		bool	bRet = false;
+		
+		/*
 		size_t	st1, st2;
 
 		SMEMBUF	buf = SMEMBUF_INITIALISER;
@@ -470,6 +649,8 @@ bool ubf_data_dump_puts	(
 		st2 = ubf_data_dump_SMEMBUF (&buf, ccDump, lnDump, NULL, &s);
 		ubf_assert (st1 == st2 + 1);
 		puts (buf.buf.pch);
+		*/
+
 		return bRet;
 	}
 #endif

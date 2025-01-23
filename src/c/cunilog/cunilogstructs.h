@@ -55,7 +55,10 @@ When		Who				What
 		#include "./bulkmalloc.h"
 		#include "./VectorC.h"
 		#include "./platform.h"
+		#include "./strintuint.h"
 		#include "./strnewline.h"
+		#include "./strhexdump.h"
+		#include "./dbgcountandtrack.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/SingleBits.h"
@@ -64,7 +67,10 @@ When		Who				What
 		#include "./../mem/bulkmalloc.h"
 		#include "./../mem/VectorC.h"
 		#include "./../pre/platform.h"
+		#include "./../string/strintuint.h"
 		#include "./../string/strnewline.h"
+		#include "./../string/strhexdump.h"
+		#include "./../dbg/dbgcountandtrack.h"
 	#endif
 
 #endif
@@ -560,6 +566,9 @@ typedef struct scunilogtarget
 	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
 	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.
 	size_t							lnLogEventLine;			// The current length of the event line.
+	DBG_DEFINE_CNTTRACKER(evtLineTracker)					// Tracker for the size of the event
+															//	line.
+
 	SCUNILOGNPI						scuNPI;					// Information for the next processor.
 	CUNILOG_PROCESSOR				**cprocessors;
 	unsigned int					nprocessors;
@@ -581,7 +590,9 @@ typedef struct scunilogtarget
 	SBULKMEM						sbm;					// Bulk memory block.
 	vec_cunilog_fls					fls;					// The vector with str pointers to
 															//	the files to rotate within sbm.
-	SCUNILOGDUMP					*psdump;				// Holds the dump parameters.
+	// We're not using the configurable dump anymore.
+	//SCUNILOGDUMP					*psdump;				// Holds the dump parameters.
+	ddumpWidth						dumpWidth;
 } SCUNILOGTARGET;
 
 /*
@@ -759,10 +770,32 @@ enum cunilogeventseverity
 };
 typedef enum cunilogeventseverity cueventseverity;
 
+enum cunilogeventtype
+{
+		cunilogEvtTypeNormalText							// Normal UTF-8 text.
+
+		/*
+			Caption + hex dump.The number specifies the bit width of the caption's length.
+			The caption text follows its length. The caption is not NUL-terminated.
+			Member lenDataToLog only counts the amount of data to dump out, excluding
+			caption and its length.
+		*/
+	,	cunilogEvtTypeHexDumpWithCaption8					// Caption length is 8 bit.
+	,	cunilogEvtTypeHexDumpWithCaption16					// Caption length is 16 bit.
+	,	cunilogEvtTypeHexDumpWithCaption32					// Caption length is 32 bit.
+	,	cunilogEvtTypeHexDumpWithCaption64					// Caption length is 64 bit.
+};
+typedef enum cunilogeventtype cueventtype;
+
 /*
 	SCUNILOGEVENT
 
 	A logging event structure.
+
+	Note that if the data is dump data, szDataToLog points to a length field of between 1
+	and 8 octets, followed by a caption text without NUL, and this again followed by the
+	actual dump data. The member lenDataToLog contains the length of the actual dump data
+	*only*,. i.e. neither length field nor caption text count towards lenDataToLog.
 */
 typedef struct scunilogevent
 {
@@ -776,6 +809,7 @@ typedef struct scunilogevent
 		struct scunilogevent	*next;
 	#endif
 	cueventseverity				evSeverity;
+	cueventtype					evType;
 } SCUNILOGEVENT;
 
 /*
@@ -786,23 +820,25 @@ typedef struct scunilogevent
 */
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	#define FillSCUNILOGEVENT(pev, pt,					\
-				opts, dts, sev, dat, len)				\
+				opts, dts, sev, tpy, dat, len)			\
 		(pev)->pSCUNILOGTARGET			= pt;			\
 		(pev)->uiOpts					= opts;			\
 		(pev)->stamp					= dts;			\
-		(pev)->evSeverity				= sev;			\
-		(pev)->szDataToLog				= dat;			\
-		(pev)->lenDataToLog				= len
-#else
-	#define FillSCUNILOGEVENT(pev, pt,					\
-				opts, dts, sev, dat, len)				\
-		(pev)->pSCUNILOGTARGET			= pt;			\
-		(pev)->uiOpts					= opts;			\
-		(pev)->stamp					= dts;			\
-		(pev)->evSeverity				= sev;			\
 		(pev)->szDataToLog				= dat;			\
 		(pev)->lenDataToLog				= len;			\
-		(pev)->next						= NULL
+		(pev)->evSeverity				= sev;			\
+		(pev)->evType					= tpy
+#else
+	#define FillSCUNILOGEVENT(pev, pt,					\
+				opts, dts, sev, tpy, dat, len)			\
+		(pev)->pSCUNILOGTARGET			= pt;			\
+		(pev)->uiOpts					= opts;			\
+		(pev)->stamp					= dts;			\
+		(pev)->szDataToLog				= dat;			\
+		(pev)->lenDataToLog				= len;			\
+		(pev)->next						= NULL;			\
+		(pev)->evSeverity				= sev;			\
+		(pev)->evType					= tpy
 #endif
 
 /*
@@ -826,7 +862,8 @@ typedef struct scunilogevent
 //#define CUNILOGEVENT_CANCEL				SINGLEBIT64 (3)
 
 // The data is to be written out as a binary dump.
-#define CUNILOGEVENT_AS_HEXDUMP			SINGLEBIT64 (4)
+//	Replaced by cueventtype.
+//#define CUNILOGEVENT_AS_HEXDUMP			SINGLEBIT64 (4)
 
 // Add fullstop automatically.
 #define CUNILOGEVENT_AUTO_FULLSTOP		SINGLEBIT64 (5)
@@ -849,10 +886,13 @@ typedef struct scunilogevent
 #define cunilogIsEventCancel(pue)						\
 	((pue)->uiOpts & CUNILOGEVENT_CANCEL)
 
+/* Replaced by cueventtype.
 #define cunilogSetEventHexdump(pue)						\
 	((pue)->uiOpts |= CUNILOGEVENT_AS_HEXDUMP)
 #define cunilogIsEventHexdump(pue)						\
 	((pue)->uiOpts & CUNILOGEVENT_AS_HEXDUMP)
+*/
+
 #define cunilogSetEventAutoFullstop(pue)				\
 	((pue)->uiOpts |= CUNILOGEVENT_AUTO_FULLSTOP)
 #define cunilogIsEventAutoFullstop(pue)					\
