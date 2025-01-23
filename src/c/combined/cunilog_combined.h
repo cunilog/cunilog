@@ -16155,13 +16155,13 @@ SCUNILOGEVENT *CreateSCUNILOGEVENT_Text		(
 ;
 
 /*
-	DoneSUNILOGEVENT
+	DoneSCUNILOGEVENT
 
 	Destroys an SUNILOGEVENT structure including all its resources.
 
 	The function always returns NULL.
 */
-SCUNILOGEVENT *DoneSUNILOGEVENT (SCUNILOGEVENT *pev)
+SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGEVENT *pev)
 ;
 
 /*
@@ -16282,6 +16282,8 @@ bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t si
 #define logHexDumpU8sevl_static(s, t,					\
 			l, d, n)									\
 										logHexDumpU8sevl	(pSCUNILOGTARGETstatic, (s), (t), (l), (d), (n))
+#define logHexDumpU8l_static(c, l, b,					\
+			s)							logHexDumpU8l		(pSCUNILOGTARGETstatic, (c), (l), (b), (s))
 #define logBinary_static(d, s)			logBinary			(pSCUNILOGTARGETstatic, (d), (s))
 #define logBinOrTextU8_static(d, s)		logBinOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
 

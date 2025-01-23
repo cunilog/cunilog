@@ -2292,7 +2292,7 @@ SCUNILOGEVENT *CreateSUNILOGEVENT_W	(
 	return NULL;
 }
 
-SCUNILOGEVENT *DoneSUNILOGEVENT (SCUNILOGEVENT *pev)
+SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGEVENT *pev)
 {
 	if (pev->szDataToLog && cunilogIsEventDataAllocated (pev))
 	{
@@ -3226,7 +3226,7 @@ static bool cunilogProcessEventSingleThreaded (SCUNILOGEVENT *pev)
 				//	by DoneSUNILOGEVENT ().
 				pnx = pev->next;
 				cunilogProcessEventSingleThreaded (pev);
-				DoneSUNILOGEVENT (pev);
+				DoneSCUNILOGEVENT (pev);
 				pev = pnx;
 			}
 			if (cunilogIsShutdownTarget (put) && 0 == put->nPendingNoRotEvts )
@@ -3449,7 +3449,7 @@ static bool cunilogProcessEventSingleThreaded (SCUNILOGEVENT *pev)
 	if (cunilogIsEventShutdown (pev))
 	{
 		cunilogSetShutdownTarget (pev->pSCUNILOGTARGET);
-		DoneSUNILOGEVENT (pev);
+		DoneSCUNILOGEVENT (pev);
 		return false;
 	}
 
@@ -3624,7 +3624,7 @@ void ShutdownSCUNILOGTARGETstatic (void)
 			while (pev)
 			{
 				nxt = pev->next;
-				DoneSUNILOGEVENT (pev);
+				DoneSCUNILOGEVENT (pev);
 				pev = nxt;
 			}
 
