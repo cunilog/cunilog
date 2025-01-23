@@ -917,8 +917,8 @@ bool logTextU8sqfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
 bool logTextU8sfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, ...);
 bool logTextU8smbfmtsev		(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, ...);
 bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
-bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const char *ccCaption, size_t lenCaption, const void *pBlob, size_t size);
-bool logHexDumpU8l			(SCUNILOGTARGET *put, const char *ccCaption, size_t lenCaption, const void *pBlob, size_t size);
+bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
+bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
 bool logBinary				(SCUNILOGTARGET *put, const void *pBlob, size_t size);
 bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t size);
 
@@ -938,13 +938,15 @@ bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t si
 #define logTextU8smbfmtsev_static(s, m, ...)			\
 										logTextU8smbfmtsev	(pSCUNILOGTARGETstatic, (s), (m), __VA_ARGS__)
 #define logTextU8smbfmt_static(m, ...)	logTextU8smbfmt		(pSCUNILOGTARGETstatic, (m), __VA_ARGS__)
-#define logHexDumpU8sevl_static(s, t,					\
-			l, d, n)									\
-										logHexDumpU8sevl	(pSCUNILOGTARGETstatic, (s), (t), (l), (d), (n))
-#define logHexDumpU8l_static(c, l, b,					\
-			s)							logHexDumpU8l		(pSCUNILOGTARGETstatic, (c), (l), (b), (s))
+#define logHexDumpU8sevl_static(s, d,					\
+			n, c, l)									\
+										logHexDumpU8sevl	(pSCUNILOGTARGETstatic, (s), (d), (n), (c), (l))
+#define logHexDumpU8l_static(d, n, c,					\
+			l)							logHexDumpU8l		(pSCUNILOGTARGETstatic, (d), (n), (c), (l))
+/*
 #define logBinary_static(d, s)			logBinary			(pSCUNILOGTARGETstatic, (d), (s))
 #define logBinOrTextU8_static(d, s)		logBinOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
+*/
 
 /*
 	The version as text, its year, and as a 64 bit number.

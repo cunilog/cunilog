@@ -2237,10 +2237,10 @@ static inline cueventtype cunilogEventTypeFromLength (size_t len)
 SCUNILOGEVENT *CreateSCUNILOGEVENT_Data		(
 					SCUNILOGTARGET				*put,
 					cueventseverity				sev,
-					const char					*ccCapt,
-					size_t						lenCapt,
 					const char					*ccData,
-					size_t						siz
+					size_t						siz,
+					const char					*ccCapt,
+					size_t						lenCapt
 											)
 {
 	ubf_assert_non_NULL	(put);
@@ -4115,25 +4115,25 @@ bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...)
 	return false;
 }
 
-bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const char *ccCaption, size_t lenCaption, const void *pBlob, size_t size)
+bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption)
 {
 	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data (put, sev, ccCaption, lenCaption, pBlob, size);
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data (put, sev, pBlob, size, ccCaption, lenCaption);
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
-bool logHexDumpU8l			(SCUNILOGTARGET *put, const char *ccCaption, size_t lenCaption, const void *pBlob, size_t size)
+bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption)
 {
 	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data (put, cunilogEvtSeverityNone, ccCaption, lenCaption, pBlob, size);
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data (put, cunilogEvtSeverityNone, pBlob, size, ccCaption, lenCaption);
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
