@@ -14,6 +14,8 @@ are relatively new and still not fully tested.
 
 Until this task is completed, use at your own risk!
 
+While the module is being tested, interfaces might also still change as long as ideal versions haven't been worked out yet.
+
 ## Characteristics
 
 Although at the moment most of its features either haven't been completed or
