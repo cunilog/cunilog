@@ -6532,11 +6532,15 @@ When		Who				What
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
 #ifdef	__cplusplus
 	extern "C"	{
 #endif
 
-bool check_utf8(const char *str, size_t strlen)
+bool check_utf8(const char *str, size_t len)
 ;
 
 #ifdef	__cplusplus
@@ -14240,8 +14244,9 @@ EXTERN_C_BEGIN
 
 	Returns true if the value of c is greater than 0x1F and lower than 0x7F.
 	A character counts as printable if it is within the range from SPC (20h, 32d) to '~'
-	(7Eh, 126d), in which case the function returns true. The function returns false if
-	the octet in C is outside this range.
+	(7Eh, 126d), in which case the function returns true.
+	
+	The macro/function returns false if the octet in c is outside this range.
 */
 #ifdef DEBUG
 	bool ubf_is_printable_ASCII (char c);
@@ -14250,6 +14255,14 @@ EXTERN_C_BEGIN
 	#define ubf_is_printable_ASCII(c)					\
 		((unsigned char) c > 0x1F && (unsigned char) c < 0x7F)
 #endif
+
+/*
+	str_has_only_printable_ASCII
+
+	Returns true if sz only contains printable ASCII characters.
+*/
+bool str_has_only_printable_ASCII (const char *sz, size_t len)
+;
 
 /*
 	ubf_is_letter
@@ -16235,9 +16248,10 @@ bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 	The logHexDump functions expect text and binary data to output a hex dump with the text
 	as caption.
 
-	The logBinary () function outputs
-	a hex dump. The function logBinOrTextU8 () examines the provided data and treats it either
-	as UTF-8 text or binary data for a hex dump.
+	The logHexDump () function outputs a hex dump. The function logHexOrText () examines the
+	provided data and treats it either as ASCII or binary data for a hex dump. The function
+	logHexOrTextU8 () also accepts UTF-8 as text and creates a hex dump if the data to output
+	contains invalid UTF-8.
 
 	The functions without a severity use severity level/severity type cunilogEvtSeverityNone.
 	Functions containing sev in their names accept a severity type.
@@ -16294,9 +16308,9 @@ bool logTextU8smbfmtsev		(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev
 bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
 bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
 bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
-bool logBinary				(SCUNILOGTARGET *put, const void *pBlob, size_t size);
-bool logBinOrText			(SCUNILOGTARGET *put, const void *szText, size_t lenOrSize);
-bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t lenOrSize);
+bool logHexDump				(SCUNILOGTARGET *put, const void *pBlob, size_t size);
+bool logHexOrText			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
+bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
 
 #define logTextU8tsevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextWsevl_static(v, t, l)	logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
@@ -16314,13 +16328,13 @@ bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t le
 #define logTextU8smbfmtsev_static(s, m, ...)			\
 										logTextU8smbfmtsev	(pSCUNILOGTARGETstatic, (s), (m), __VA_ARGS__)
 #define logTextU8smbfmt_static(m, ...)	logTextU8smbfmt		(pSCUNILOGTARGETstatic, (m), __VA_ARGS__)
-#define logHexDumpU8sevl_static(s, d,					\
-			n, c, l)									\
+#define logHexDumpU8sevl_static(s, d, n, c, l)			\
 										logHexDumpU8sevl	(pSCUNILOGTARGETstatic, (s), (d), (n), (c), (l))
 #define logHexDumpU8l_static(d, n, c,					\
 			l)							logHexDumpU8l		(pSCUNILOGTARGETstatic, (d), (n), (c), (l))
-#define logBinary_static(d, s)			logBinary			(pSCUNILOGTARGETstatic, (d), (s))
-#define logBinOrTextU8_static(d, s)		logBinOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
+#define logHexDump_static(d, s)			logHexDump			(pSCUNILOGTARGETstatic, (d), (s))
+#define logHexOrText_static(d, s)		logHexOrText		(pSCUNILOGTARGETstatic, (d), (s))
+#define logHexOrTextU8_static(d, s)		logHexOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
 
 /*
 	The version as text, its year, and as a 64 bit number.

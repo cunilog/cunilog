@@ -10389,15 +10389,22 @@ When		Who				What
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
-bool check_utf8(const char *str, size_t strlen)
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
+bool check_utf8(const char *str, size_t len)
 {
 	int		 i, bytes;
 	unsigned int	 oct, ch;
 	const char	*pos, *end;
 
+	len = USE_STRLEN == len ? strlen (str) : len;
+
 	pos = str;
-	end = str + strlen;
+	end = str + len;
 	while (pos < end) {
 		oct = *pos;
 		if ((oct & 0x80) == 0) {
@@ -10413,23 +10420,23 @@ bool check_utf8(const char *str, size_t strlen)
 			bytes = 4;
 			ch = oct & 0x7;
 		} else
-			return (0);
+			return false;
 		if (pos + bytes > end)
-			return (0);
+			return false;
 		for (i = 1; i < bytes; i++) {
 			oct = pos[i];
 			if ((oct & 0xc0) != 0x80)
-				return (0);
+				return false;
 			ch = ch << 6 | (oct & 0x3f);
 		}
 		if (!(bytes == 1 || (bytes == 2 && ch >= 0x80) ||
 		    (bytes == 3 && ch >= 0x800) ||
 		    (bytes == 4 && ch >= 0x10000)))
-			return (0);
+			return false;
 		pos += bytes;
 	}
 
-	return (1);
+	return true;
 }
 /****************************************************************************************
 
@@ -13543,6 +13550,7 @@ static size_t write_out_one_line	(
 	}
 	memcpy (szAsc, ccLineEnding (nl), lnLineEnding (nl) + 1);
 	szAsc += lnLineEnding (nl);
+	szAsc [0] = ASCII_NUL;
 	
 	#ifdef DEBUG
 	size_t dbgWidth2 = szAsc - szOrg;
@@ -15383,6 +15391,20 @@ When		Who				What
 	}
 #endif
 
+bool str_has_only_printable_ASCII (const char *sz, size_t len)
+{
+	len = STRLENSZ (sz, len);
+
+	unsigned int ui;
+
+	for (ui = 0; ui < len; ++ ui)
+	{
+		if (!ubf_is_printable_ASCII (sz [ui]))
+			return false;
+	}
+	return true;
+}
+
 #ifdef _DEBUG
 	bool ubf_is_letter (char c)
 	{
@@ -15613,6 +15635,7 @@ When		Who				What
 		#include "./ubfdebug.h"
 		#include "./ArrayMacros.h"
 		#include "./membuf.h"
+		#include "./check_utf8.h"
 		#include "./ubfcharscountsandchecks.h"
 		#include "./strfilesys.h"
 		#include "./strintuint.h"
@@ -15641,6 +15664,7 @@ When		Who				What
 		#include "./../dbg/ubfdebug.h"
 		#include "./../pre/ArrayMacros.h"
 		#include "./../mem/membuf.h"
+		#include "./../string/check_utf8.h"
 		#include "./../string/ubfcharscountsandchecks.h"
 		#include "./../string/strfilesys.h"
 		#include "./../string/strintuint.h"
@@ -17636,7 +17660,10 @@ static size_t createDumpEventLineFromSUNILOGEVENT (SCUNILOGEVENT *pev)
 
 		put->lnLogEventLine = szOut - szOrg;
 		char *szHexDmpOut = szOut;
-		size_t sizHx = hxdmpWriteHexDump (szHexDmpOut, pDumpData, pev->lenDataToLog, put->dumpWidth, put->unilogNewLine);
+		size_t sizHx = hxdmpWriteHexDump	(
+						szHexDmpOut, pDumpData, pev->lenDataToLog,
+						put->dumpWidth, put->unilogNewLine
+											);
 		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, sizHx + 1);
 		ubf_assert (CUNILOG_DEFAULT_DBG_CHAR == put->mbLogEventLine.buf.pch [lenTotal]);
 		put->lnLogEventLine += sizHx;
@@ -17655,7 +17682,7 @@ static size_t createDumpEventLineFromSUNILOGEVENT (SCUNILOGEVENT *pev)
 		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, put->lnLogEventLine + 1);
 
 		szOut += lnOctets;
-		memcpy (szOut, scSummaryOctets, lnSummaryOctets);
+		memcpy (szOut, scSummaryOctets, lnSummaryOctets + 1);
 		put->lnLogEventLine += lnSummaryOctets;
 		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, put->lnLogEventLine + 1);
 
@@ -19699,40 +19726,41 @@ bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
-bool logBinary				(SCUNILOGTARGET *put, const void *pBlob, size_t size)
+bool logHexDump				(SCUNILOGTARGET *put, const void *pBlob, size_t size)
 {
-	UNUSED (pBlob);
-	UNUSED (size);
+	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
-	
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
+
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data (put, cunilogEvtSeverityNone, pBlob, size, NULL, 0);
+	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
-bool logBinOrText			(SCUNILOGTARGET *put, const void *szText, size_t lenOrSize)
+bool logHexOrText			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt)
 {
-	UNUSED (szText);
-	UNUSED (lenOrSize);
+	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
-	
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
+
+	if (str_has_only_printable_ASCII (szHexOrTxt, lenHexOrTxt))
+		return logTextU8l (put, szHexOrTxt, lenHexOrTxt);
+
+	return logHexDump (put, szHexOrTxt, lenHexOrTxt);
 }
 
-bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t lenOrSize)
+bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8)
 {
-	UNUSED (szU8TextOrBin);
-	UNUSED (lenOrSize);
+	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
-	
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
+
+	if (check_utf8 (szHexOrTxtU8, lenHexOrTxtU8))
+		return logTextU8l (put, szHexOrTxtU8, lenHexOrTxtU8);
+
+	return logHexDump (put, szHexOrTxtU8, lenHexOrTxtU8);
 }
 
 /* Do we need this?
