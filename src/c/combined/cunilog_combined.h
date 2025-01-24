@@ -6510,6 +6510,40 @@ When		Who				What
 #endif
 
 #endif														// Of #ifdef U_DBGCOUNTANDTRACK_H.
+/*
+ * Copyright (c) 2024 YASUOKA Masahiko <yasuoka@yasuoka.net>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+#ifndef U_CHECK_UTF8_H
+#define U_CHECK_UTF8_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+#ifdef	__cplusplus
+	extern "C"	{
+#endif
+
+bool check_utf8(const char *str, size_t strlen)
+;
+
+#ifdef	__cplusplus
+				}
+#endif
+
+#endif														// Of #ifndef U_CHECK_UTF8_H.
 /****************************************************************************************
 
 	File:		ubfmem.h
@@ -16261,7 +16295,8 @@ bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
 bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
 bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
 bool logBinary				(SCUNILOGTARGET *put, const void *pBlob, size_t size);
-bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t size);
+bool logBinOrText			(SCUNILOGTARGET *put, const void *szText, size_t lenOrSize);
+bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t lenOrSize);
 
 #define logTextU8tsevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextWsevl_static(v, t, l)	logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
@@ -16284,10 +16319,8 @@ bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t si
 										logHexDumpU8sevl	(pSCUNILOGTARGETstatic, (s), (d), (n), (c), (l))
 #define logHexDumpU8l_static(d, n, c,					\
 			l)							logHexDumpU8l		(pSCUNILOGTARGETstatic, (d), (n), (c), (l))
-/*
 #define logBinary_static(d, s)			logBinary			(pSCUNILOGTARGETstatic, (d), (s))
 #define logBinOrTextU8_static(d, s)		logBinOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
-*/
 
 /*
 	The version as text, its year, and as a 64 bit number.

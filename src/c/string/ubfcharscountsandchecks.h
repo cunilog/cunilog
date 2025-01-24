@@ -79,8 +79,9 @@ EXTERN_C_BEGIN
 
 	Returns true if the value of c is greater than 0x1F and lower than 0x7F.
 	A character counts as printable if it is within the range from SPC (20h, 32d) to '~'
-	(7Eh, 126d), in which case the function returns true. The function returns false if
-	the octet in C is outside this range.
+	(7Eh, 126d), in which case the function returns true.
+	
+	The macro/function returns false if the octet in c is outside this range.
 */
 #ifdef DEBUG
 	bool ubf_is_printable_ASCII (char c);

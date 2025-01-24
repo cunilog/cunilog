@@ -919,8 +919,9 @@ bool logTextU8smbfmtsev		(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev
 bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
 bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
 bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
-bool logBinary				(SCUNILOGTARGET *put, const void *pBlob, size_t size);
-bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t size);
+bool logHexDump				(SCUNILOGTARGET *put, const void *pBlob, size_t size);
+bool logHexOrText			(SCUNILOGTARGET *put, const void *szText, size_t lenOrSize);
+bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t lenOrSize);
 
 #define logTextU8tsevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextWsevl_static(v, t, l)	logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
@@ -943,10 +944,8 @@ bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t si
 										logHexDumpU8sevl	(pSCUNILOGTARGETstatic, (s), (d), (n), (c), (l))
 #define logHexDumpU8l_static(d, n, c,					\
 			l)							logHexDumpU8l		(pSCUNILOGTARGETstatic, (d), (n), (c), (l))
-/*
-#define logBinary_static(d, s)			logBinary			(pSCUNILOGTARGETstatic, (d), (s))
-#define logBinOrTextU8_static(d, s)		logBinOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
-*/
+#define logHexDump_static(d, s)			logHexDump			(pSCUNILOGTARGETstatic, (d), (s))
+#define logHexOrTextU8_static(d, s)		logHexOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
 
 /*
 	The version as text, its year, and as a 64 bit number.

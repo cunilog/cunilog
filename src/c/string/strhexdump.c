@@ -590,6 +590,7 @@ static size_t write_out_one_line	(
 	}
 	memcpy (szAsc, ccLineEnding (nl), lnLineEnding (nl) + 1);
 	szAsc += lnLineEnding (nl);
+	szAsc [0] = ASCII_NUL;
 	
 	#ifdef DEBUG
 	size_t dbgWidth2 = szAsc - szOrg;

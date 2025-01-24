@@ -125,6 +125,7 @@ int main (int argc, char *argv [])
 	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, cData, 16, "Caption", USE_STRLEN);
 	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, cData, 17, "Caption", USE_STRLEN);
 	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, cData, strlen (cData), "Caption", USE_STRLEN);
+	logHexDump_static (cData, 20);
 	uint64_t	n = 1000;
 	while (n --)
 	{

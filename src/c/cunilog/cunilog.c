@@ -2093,7 +2093,7 @@ static size_t createDumpEventLineFromSUNILOGEVENT (SCUNILOGEVENT *pev)
 		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, put->lnLogEventLine + 1);
 
 		szOut += lnOctets;
-		memcpy (szOut, scSummaryOctets, lnSummaryOctets);
+		memcpy (szOut, scSummaryOctets, lnSummaryOctets + 1);
 		put->lnLogEventLine += lnSummaryOctets;
 		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, put->lnLogEventLine + 1);
 
@@ -4137,10 +4137,21 @@ bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
-bool logBinary				(SCUNILOGTARGET *put, const void *pBlob, size_t size)
+bool logHexDump				(SCUNILOGTARGET *put, const void *pBlob, size_t size)
 {
-	UNUSED (pBlob);
-	UNUSED (size);
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data (put, cunilogEvtSeverityNone, pBlob, size, NULL, 0);
+	return pev && cunilogProcessOrQueueEvent (pev);
+}
+
+bool logHexOrText			(SCUNILOGTARGET *put, const void *szText, size_t lenOrSize)
+{
+	UNUSED (szText);
+	UNUSED (lenOrSize);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
@@ -4149,10 +4160,10 @@ bool logBinary				(SCUNILOGTARGET *put, const void *pBlob, size_t size)
 	return false;
 }
 
-bool logBinOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t size)
+bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t lenOrSize)
 {
 	UNUSED (szU8TextOrBin);
-	UNUSED (size);
+	UNUSED (lenOrSize);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
