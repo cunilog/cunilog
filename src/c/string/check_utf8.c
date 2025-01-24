@@ -16,15 +16,22 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
-bool check_utf8(const char *str, size_t strlen)
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
+bool check_utf8(const char *str, size_t len)
 {
 	int		 i, bytes;
 	unsigned int	 oct, ch;
 	const char	*pos, *end;
 
+	len = USE_STRLEN == len ? strlen (str) : len;
+
 	pos = str;
-	end = str + strlen;
+	end = str + len;
 	while (pos < end) {
 		oct = *pos;
 		if ((oct & 0x80) == 0) {

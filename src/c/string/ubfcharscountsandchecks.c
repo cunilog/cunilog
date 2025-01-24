@@ -54,6 +54,20 @@ When		Who				What
 	}
 #endif
 
+bool str_has_only_printable_ASCII (const char *sz, size_t len)
+{
+	len = STRLENSZ (sz, len);
+
+	unsigned int ui;
+
+	for (ui = 0; ui < len; ++ ui)
+	{
+		if (!ubf_is_printable_ASCII (sz [ui]))
+			return false;
+	}
+	return true;
+}
+
 #ifdef _DEBUG
 	bool ubf_is_letter (char c)
 	{

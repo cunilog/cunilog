@@ -119,6 +119,7 @@ int main (int argc, char *argv [])
 	logTextU8_static (STR_HELLO_FROM_EXE);
 	logTextU8_static ("A simple line to go in the logfile.");
 	char *cData = "ABCDEFGasdfuiolnaoelasdfuaelhaerodclleahcoelandielacsserooot";
+	char *bData = "ABCDEF\0Gasdfuiolnaoelasdfuaelhaerodclleahcoelandielacsserooot";
 	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, cData, 15, "Caption", USE_STRLEN);
 	logHexDumpU8sevl_static (cunilogEvtSeverityNone, cData, 4, "Caption", USE_STRLEN);
 	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, cData, 4, "Caption", USE_STRLEN);
@@ -126,6 +127,8 @@ int main (int argc, char *argv [])
 	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, cData, 17, "Caption", USE_STRLEN);
 	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, cData, strlen (cData), "Caption", USE_STRLEN);
 	logHexDump_static (cData, 20);
+	logHexOrText_static (bData, 6);
+	logHexOrText_static (bData, 12);
 	uint64_t	n = 1000;
 	while (n --)
 	{

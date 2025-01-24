@@ -51,6 +51,7 @@ When		Who				What
 		#include "./ubfdebug.h"
 		#include "./ArrayMacros.h"
 		#include "./membuf.h"
+		#include "./check_utf8.h"
 		#include "./ubfcharscountsandchecks.h"
 		#include "./strfilesys.h"
 		#include "./strintuint.h"
@@ -79,6 +80,7 @@ When		Who				What
 		#include "./../dbg/ubfdebug.h"
 		#include "./../pre/ArrayMacros.h"
 		#include "./../mem/membuf.h"
+		#include "./../string/check_utf8.h"
 		#include "./../string/ubfcharscountsandchecks.h"
 		#include "./../string/strfilesys.h"
 		#include "./../string/strintuint.h"
@@ -2074,7 +2076,10 @@ static size_t createDumpEventLineFromSUNILOGEVENT (SCUNILOGEVENT *pev)
 
 		put->lnLogEventLine = szOut - szOrg;
 		char *szHexDmpOut = szOut;
-		size_t sizHx = hxdmpWriteHexDump (szHexDmpOut, pDumpData, pev->lenDataToLog, put->dumpWidth, put->unilogNewLine);
+		size_t sizHx = hxdmpWriteHexDump	(
+						szHexDmpOut, pDumpData, pev->lenDataToLog,
+						put->dumpWidth, put->unilogNewLine
+											);
 		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, sizHx + 1);
 		ubf_assert (CUNILOG_DEFAULT_DBG_CHAR == put->mbLogEventLine.buf.pch [lenTotal]);
 		put->lnLogEventLine += sizHx;
@@ -4148,28 +4153,30 @@ bool logHexDump				(SCUNILOGTARGET *put, const void *pBlob, size_t size)
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
-bool logHexOrText			(SCUNILOGTARGET *put, const void *szText, size_t lenOrSize)
+bool logHexOrText			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt)
 {
-	UNUSED (szText);
-	UNUSED (lenOrSize);
+	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
-	
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
+
+	if (str_has_only_printable_ASCII (szHexOrTxt, lenHexOrTxt))
+		return logTextU8l (put, szHexOrTxt, lenHexOrTxt);
+
+	return logHexDump (put, szHexOrTxt, lenHexOrTxt);
 }
 
-bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t lenOrSize)
+bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8)
 {
-	UNUSED (szU8TextOrBin);
-	UNUSED (lenOrSize);
+	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
 		return false;
-	
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
+
+	if (check_utf8 (szHexOrTxtU8, lenHexOrTxtU8))
+		return logTextU8l (put, szHexOrTxtU8, lenHexOrTxtU8);
+
+	return logHexDump (put, szHexOrTxtU8, lenHexOrTxtU8);
 }
 
 /* Do we need this?

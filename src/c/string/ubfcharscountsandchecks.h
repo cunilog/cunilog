@@ -92,6 +92,14 @@ EXTERN_C_BEGIN
 #endif
 
 /*
+	str_has_only_printable_ASCII
+
+	Returns true if sz only contains printable ASCII characters.
+*/
+bool str_has_only_printable_ASCII (const char *sz, size_t len)
+;
+
+/*
 	ubf_is_letter
 	
 	Returns true if the character in c is >= 'A' and <= 'Z' or >= 'a' and <= 'z',

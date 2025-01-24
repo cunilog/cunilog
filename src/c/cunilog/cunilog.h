@@ -860,9 +860,10 @@ bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 	The logHexDump functions expect text and binary data to output a hex dump with the text
 	as caption.
 
-	The logBinary () function outputs
-	a hex dump. The function logBinOrTextU8 () examines the provided data and treats it either
-	as UTF-8 text or binary data for a hex dump.
+	The logHexDump () function outputs a hex dump. The function logHexOrText () examines the
+	provided data and treats it either as ASCII or binary data for a hex dump. The function
+	logHexOrTextU8 () also accepts UTF-8 as text and creates a hex dump if the data to output
+	contains invalid UTF-8.
 
 	The functions without a severity use severity level/severity type cunilogEvtSeverityNone.
 	Functions containing sev in their names accept a severity type.
@@ -920,8 +921,8 @@ bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
 bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
 bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
 bool logHexDump				(SCUNILOGTARGET *put, const void *pBlob, size_t size);
-bool logHexOrText			(SCUNILOGTARGET *put, const void *szText, size_t lenOrSize);
-bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t lenOrSize);
+bool logHexOrText			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
+bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
 
 #define logTextU8tsevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextWsevl_static(v, t, l)	logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
@@ -939,12 +940,12 @@ bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szU8TextOrBin, size_t le
 #define logTextU8smbfmtsev_static(s, m, ...)			\
 										logTextU8smbfmtsev	(pSCUNILOGTARGETstatic, (s), (m), __VA_ARGS__)
 #define logTextU8smbfmt_static(m, ...)	logTextU8smbfmt		(pSCUNILOGTARGETstatic, (m), __VA_ARGS__)
-#define logHexDumpU8sevl_static(s, d,					\
-			n, c, l)									\
+#define logHexDumpU8sevl_static(s, d, n, c, l)			\
 										logHexDumpU8sevl	(pSCUNILOGTARGETstatic, (s), (d), (n), (c), (l))
 #define logHexDumpU8l_static(d, n, c,					\
 			l)							logHexDumpU8l		(pSCUNILOGTARGETstatic, (d), (n), (c), (l))
 #define logHexDump_static(d, s)			logHexDump			(pSCUNILOGTARGETstatic, (d), (s))
+#define logHexOrText_static(d, s)		logHexOrText		(pSCUNILOGTARGETstatic, (d), (s))
 #define logHexOrTextU8_static(d, s)		logHexOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
 
 /*

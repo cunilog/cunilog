@@ -20,11 +20,15 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
 #ifdef	__cplusplus
 	extern "C"	{
 #endif
 
-bool check_utf8(const char *str, size_t strlen)
+bool check_utf8(const char *str, size_t len)
 ;
 
 #ifdef	__cplusplus
