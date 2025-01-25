@@ -809,7 +809,7 @@ typedef struct scunilogevent
 		struct scunilogevent	*next;
 	#endif
 	cueventseverity				evSeverity;
-	cueventtype					evType;
+	cueventtype					evType;						// The event's type of data.
 } SCUNILOGEVENT;
 
 /*

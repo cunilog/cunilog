@@ -15213,7 +15213,7 @@ typedef struct scunilogevent
 		struct scunilogevent	*next;
 	#endif
 	cueventseverity				evSeverity;
-	cueventtype					evType;
+	cueventtype					evType;						// The event's type of data.
 } SCUNILOGEVENT;
 
 /*
@@ -16169,9 +16169,10 @@ void CancelSCUNILOGTARGETstatic (void);
 /*
 	CreateSCUNILOGEVENT_Data
 
-	Allocates a buffer that points to a new event structure SCUNILOGEVENT plus data, initialises
-	it with the function parameters, and returns a pointer to the newly created and initialised
-	structure and data buffer. The event is written out as binary data.
+	Allocates a buffer that points to a new event structure SCUNILOGEVENT plus data,
+	initialises it with the function parameters, and returns a pointer to the newly
+	created and initialised structure and data buffer. The event is written out as binary
+	data.
 
 	Note that you can NOT use USE_STRLEN as the parameter siz.
 
@@ -16180,18 +16181,19 @@ void CancelSCUNILOGTARGETstatic (void);
 SCUNILOGEVENT *CreateSCUNILOGEVENT_Data	(
 					SCUNILOGTARGET				*put,
 					cueventseverity				sev,
-					const char					*ccCapt,
-					size_t						lenCapt,
 					const char					*ccData,
-					size_t						siz
+					size_t						siz,
+					const char					*ccCapt,
+					size_t						lenCapt
 											)
 ;
 
 /*
 	CreateSCUNILOGEVENT_Text
 
-	This is the text version of CreateSCUNILOGEVENTwithData (). If the string ccText is
-	NUL-terminated a value of USE_STRLEN for len can be used.
+	This is the text version of CreateSCUNILOGEVENT_Data (). If the string ccText is
+	NUL-terminated len can be set to USE_STRLEN, and the function calls strlen () to
+	obtain its length.
 */
 SCUNILOGEVENT *CreateSCUNILOGEVENT_Text		(
 					SCUNILOGTARGET				*put,
@@ -16338,6 +16340,7 @@ bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t len
 
 /*
 	The version as text, its year, and as a 64 bit number.
+	Currently still unsupported.
 */
 extern const char		ccCunilogVersionText [];
 extern const char		ccCunilogVersionYear [];
@@ -16345,6 +16348,8 @@ extern const uint64_t	uiCunilogVersion;
 
 /*
 	cunilogCheckVersion
+
+	Currently still unsupported!
 
 	Compares the version of cunilog.c with the version of cunilogversion.h and returns
 	the result of the comparison.

@@ -17864,7 +17864,10 @@ SCUNILOGEVENT *CreateSCUNILOGEVENT_Text		(
 	while (len && ('\n' == ccText [len - 1] || '\r' == ccText [len - 1]))
 		-- len;
 
-	SCUNILOGEVENT *pev = CreateSCUNILOGEVENTandData (put, sev, NULL, 0, cunilogEvtTypeNormalText, ccText, len);
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENTandData	(
+							put, sev, NULL, 0, cunilogEvtTypeNormalText,
+							ccText, len
+													);
 	return pev;
 }
 
@@ -19722,7 +19725,10 @@ bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data (put, cunilogEvtSeverityNone, pBlob, size, ccCaption, lenCaption);
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data	(
+							put, cunilogEvtSeverityNone, pBlob, size,
+							ccCaption, lenCaption
+													);
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
@@ -19733,7 +19739,10 @@ bool logHexDump				(SCUNILOGTARGET *put, const void *pBlob, size_t size)
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data (put, cunilogEvtSeverityNone, pBlob, size, NULL, 0);
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data	(
+							put, cunilogEvtSeverityNone, pBlob,
+							size, NULL, 0
+													);
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 

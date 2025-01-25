@@ -54,21 +54,13 @@ When		Who				What
 			"\t              exits.\n"
 			"\t/v            Verbose output\n";
 
-	char	cServiceDispatcherMsg [] =
-			"\nStartServiceCtrlDispatcher being called.\n"
-			"This may take several seconds.  Please wait.\n";
-
-
 	char	cStartMessage [] =
 			"*** " CUNILOG_PROGRAM_DESCR " (start up) " CUNILOG_VERSION_STRING " - built "_ISO_DATE_" "__TIME__" ***";
-
-	char	cStartErrorMessage []	=
-			"Error: Service start failed.";
-	
 
 int cunilog_main (int argc, char *argv [])
 {
 	replace_ISO_DATE_ (cHelpMessage, USE_STRLEN);
+	cunilog_puts (cHelpMessage);
 
 	return EXIT_SUCCESS;
 }
