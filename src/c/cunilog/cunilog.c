@@ -1454,6 +1454,20 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 								);
 }
 
+void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	EnterCUNILOG_LOCKER (put);
+}
+
+void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	LeaveCUNILOG_LOCKER (put);
+}
+
 static void CloseCUNILOG_LOGFILEifOpen (CUNILOG_LOGFILE *cl)
 {
 	#ifdef OS_IS_WINDOWS
@@ -1572,13 +1586,6 @@ SCUNILOGTARGET *DoneSCUNILOGTARGET (SCUNILOGTARGET *put)
 		ubf_free (put);
 	}
 	return NULL;
-}
-
-SCUNILOGTARGET *DoneSCUNILOGTARGETstatic (void)
-{
-	ubf_assert (cunilogIsTargetInitialised (pSCUNILOGTARGETstatic));
-
-	return DoneSCUNILOGTARGET (pSCUNILOGTARGETstatic);
 }
 
 /*
@@ -3098,16 +3105,16 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 		ubf_assert_non_NULL (put);
 		ubf_assert (hasSCUNILOGTARGETqueue (put));
 
-		SCUNILOGEVENT	*pret	= NULL;
+		SCUNILOGEVENT	*pev	= NULL;
 
 		EnterCUNILOG_LOCKER (put);
 		if (put->qu.first)
 		{
 			ubf_assert_non_0 (put->qu.num);
 
-			pret			= put->qu.first;
-			put->qu.first	= pret->next;
-			pret->next		= NULL;
+			pev				= put->qu.first;
+			put->qu.first	= pev->next;
+			pev->next		= NULL;
 			put->qu.num		-= 1;
 		} else
 		{
@@ -3115,7 +3122,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 			ubf_assert_NULL	(put->qu.last);
 		}
 		LeaveCUNILOG_LOCKER (put);
-		return pret;
+		return pev;
 	}
 #endif
 
@@ -3130,7 +3137,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 		ubf_assert_non_NULL (put);
 		ubf_assert (hasSCUNILOGTARGETqueue (put));
 
-		SCUNILOGEVENT	*pret	= NULL;
+		SCUNILOGEVENT	*pev	= NULL;
 		SCUNILOGEVENT	*last;
 
 		EnterCUNILOG_LOCKER (put);
@@ -3138,7 +3145,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 		{
 			ubf_assert_non_0 (put->qu.num);
 
-			pret			= put->qu.first;
+			pev				= put->qu.first;
 			last			= put->qu.last;
 			ubf_assert_NULL (last->next);
 
@@ -3153,7 +3160,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 			ubf_assert_NULL	(put->qu.last);
 		}
 		LeaveCUNILOG_LOCKER (put);
-		return pret;
+		return pev;
 	}
 #endif
 
@@ -3212,9 +3219,6 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 		#endif
 	}
 #endif
-
-static bool cunilogProcessEventSingleThreaded (SCUNILOGEVENT *pev)
-;
 
 /*
 	The separate logging thread.
@@ -3610,11 +3614,6 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 	}
 #endif
 
-void ShutdownSCUNILOGTARGETstatic (void)
-{
-	ShutdownSCUNILOGTARGET (pSCUNILOGTARGETstatic);
-}
-
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	void CancelSCUNILOGTARGET (SCUNILOGTARGET *put)
 	{
@@ -3654,11 +3653,6 @@ void ShutdownSCUNILOGTARGETstatic (void)
 		cunilogSetTargetShutdown (put);
 	}
 #endif
-
-void CancelSCUNILOGTARGETstatic (void)
-{
-	CancelSCUNILOGTARGET (pSCUNILOGTARGETstatic);
-}
 
 /*
 	Copied from cunilog.h.
@@ -3735,15 +3729,6 @@ enum enCunilogLogPriority
 #endif
 
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	bool SetLogPrioritySCUNILOGTARGETstatic (cunilogprio prio)
-	{
-		ubf_assert (prio < cunilogPrioInvalid);
-
-		return (SetLogPrioritySCUNILOGTARGET (pSCUNILOGTARGETstatic, prio));
-	}
-#endif
-
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	void PauseLogSCUNILOGTARGET (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
@@ -3751,13 +3736,6 @@ enum enCunilogLogPriority
 		EnterCUNILOG_LOCKER (put);
 		cunilogSetPaused (put);
 		LeaveCUNILOG_LOCKER (put);
-	}
-#endif
-
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	void PauseLogSCUNILOGTARGETstatic (void)
-	{
-		PauseLogSCUNILOGTARGET (pSCUNILOGTARGETstatic);
 	}
 #endif
 
@@ -3776,13 +3754,6 @@ enum enCunilogLogPriority
 
 		triggerSCUNILOGEVENTloggingThread (put, n);
 		return n;
-	}
-#endif
-
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	size_t ResumeLogSCUNILOGTARGETstatic (void)
-	{
-		return ResumeLogSCUNILOGTARGET (pSCUNILOGTARGETstatic);
 	}
 #endif
 

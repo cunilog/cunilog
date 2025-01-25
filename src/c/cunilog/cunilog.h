@@ -153,13 +153,13 @@ When		Who				What
 EXTERN_C_BEGIN
 
 /*
-	The pointer to the module's internal static SCUNILOGTARGET structure and a pointer to it.
+	The pointer to the module's internal static SCUNILOGTARGET structure.
 	The _static versions of the logging functions operate on this structure.
 */
 extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 
 /*
-	Funcitons
+	Functions
 */
 
 /*
@@ -558,6 +558,50 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 ;
 
 /*
+	EnterSCUNILOGTARGET
+	LockSCUNILOGTARGET
+
+	LeaveSCUNILOGTARGET
+	UnlockSCUNILOGTARGET
+
+	EnterSCUNILOGTARGETstatic
+	LockSCUNILOGTARGETstatic
+
+	LockSCUNILOGTARGETstatic
+	UnlockSCUNILOGTARGETstatic
+
+	Interface functions/macros to lock (enter) and unlock (leave) the critical section or
+	mutex of the singly-linked events list of the SCUNILOGTARGET structure put points to.
+	The ...static versions lock and unlock the internal static SCUNILOGTARGET structure.
+
+	Since Cunilog provides several means of accessing the events list of a SCUNILOGTARGET
+	structure, and since it handles the events list internally, these functions/macros are most
+	likely not required and should probably not be used.
+
+	Note that these functions/macros do NOT lock or unlock access to the SCUNILOGTARGET
+	structure's members. They are merely for locking and unlocking the singly-linked list
+	containing the events to log.
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, these macros/functions do nothing.
+*/
+void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
+;
+void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
+;
+#define LockSCUNILOGTARGET(put)							\
+			EnterSCUNILOGTARGET (put)
+#define UnlockSCUNILOGTARGET(put)						\
+			LeaveSCUNILOGTARGET (put)
+#define EnterSCUNILOGTARGETstatic()						\
+			LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#define LeaveSCUNILOGTARGETstatic()						\
+			EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#define LockSCUNILOGTARGETstatic()						\
+			EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#define UnlockSCUNILOGTARGETstatic()					\
+			LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+
+/*
 	DoneSCUNILOGTARGET
 
 	Deallocates all resources of the SCUNILOGTARGET put points to. After a structure has been
@@ -565,7 +609,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	it could however be re-used by initialising it again.
 
 	Before calling this function, call ShutdownSCUNILOGTARGET () or CancelSCUNILOGTARGET ()
-	first to either process or discard it's event queue.
+	first to either process or discard the target's event queue.
 
 	The function always returns NULL.
 */
@@ -580,8 +624,8 @@ SCUNILOGTARGET *DoneSCUNILOGTARGET (SCUNILOGTARGET *put)
 
 	The function always returns NULL.
 */
-SCUNILOGTARGET *DoneSCUNILOGTARGETstatic (void)
-;
+#define DoneSCUNILOGTARGETstatic()						\
+			DoneSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 
 /*
 	ShutdownSCUNILOGTARGET
@@ -611,7 +655,8 @@ void ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
 */
-void ShutdownSCUNILOGTARGETstatic (void);
+#define ShutdownSCUNILOGTARGETstatic()					\
+			ShutdownSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 
 /*
 	CancelSCUNILOGTARGET
@@ -636,7 +681,8 @@ void CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
 */
-void CancelSCUNILOGTARGETstatic (void);
+#define CancelSCUNILOGTARGETstatic ()					\
+			CancelSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 
 /*
 	SetLogPrioritySCUNILOGTARGET
@@ -666,7 +712,7 @@ void CancelSCUNILOGTARGETstatic (void);
 /*
 	SetLogPrioritySCUNILOGTARGETstatic
 
-	Sets the priority of the separate logging thread that belongs to internal static
+	Sets the priority of the separate logging thread that belongs to the internal static
 	SCUNILOGTARGET structure.
 
 	The priority levels are based on Windows thread priority levels. See the cunilogprio
@@ -682,8 +728,8 @@ void CancelSCUNILOGTARGETstatic (void);
 	have a separate logging thread, the function returns true.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	bool SetLogPrioritySCUNILOGTARGETstatic (cunilogprio prio)
-	;
+	#define SetLogPrioritySCUNILOGTARGETstatic (prio)	\
+				SetLogPrioritySCUNILOGTARGET (pSCUNILOGTARGETstatic, prio)
 #else
 	#define SetLogPrioritySCUNILOGTARGETstatic(p, p)	(true)
 #endif
@@ -700,6 +746,9 @@ void CancelSCUNILOGTARGETstatic (void);
 	to log and rotate logfiles for events enqueued before this function was called.
 
 	Call ResumeLogSCUNILOGTARGET () to resume the separate logging thread.
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
+	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	void PauseLogSCUNILOGTARGET (SCUNILOGTARGET *put)
@@ -720,10 +769,13 @@ void CancelSCUNILOGTARGETstatic (void);
 	to log and rotate logfiles for events enqueued before this function was called.
 
 	Call ResumeLogSCUNILOGTARGETstatic () to resume the separate logging thread again.
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
+	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	void PauseLogSCUNILOGTARGETstatic (void)
-	;
+	#define PauseLogSCUNILOGTARGETstatic()				\
+		PauseLogSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 #else
 	define PauseLogSCUNILOGTARGETstatic(p)
 #endif
@@ -745,12 +797,15 @@ void CancelSCUNILOGTARGETstatic (void);
 	increments of more than one, sem_post () from the POSIX spec does not. Therefore,
 	on POSIX this function loops and increments the semaphore by 1 only and could
 	possibly block.
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
+	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	size_t ResumeLogSCUNILOGTARGET (SCUNILOGTARGET *put)
 	;
 #else
-	define ResumeLogSCUNILOGTARGET (p)
+	define ResumeLogSCUNILOGTARGET(p)
 #endif
 
 /*
@@ -760,7 +815,7 @@ void CancelSCUNILOGTARGETstatic (void);
 	PauseLogSCUNILOGTARGET () and triggers it for each queued event since
 	PauseLogSCUNILOGTARGET () was called.
 
-	The function returns the number of events in the queue it has triggered for
+	The macro returns the number of events in the queue it has triggered for
 	processing by the separate logging thread.
 
 	Note that this function triggers the semaphore of the separate logging thread for
@@ -770,12 +825,15 @@ void CancelSCUNILOGTARGETstatic (void);
 	increments of more than one, sem_post () from the POSIX spec does not. Therefore,
 	on POSIX this function loops and increments the semaphore by 1 only and could
 	possibly block.
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
+	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	size_t ResumeLogSCUNILOGTARGETstatic (void)
-	;
+	#define ResumeLogSCUNILOGTARGETstatic()			\
+				ResumeLogSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 #else
-	define ResumeLogSCUNILOGTARGETstatic (p)
+	define ResumeLogSCUNILOGTARGETstatic()		(0)
 #endif
 
 /*
