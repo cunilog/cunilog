@@ -15541,13 +15541,13 @@ When		Who				What
 EXTERN_C_BEGIN
 
 /*
-	The pointer to the module's internal static SCUNILOGTARGET structure and a pointer to it.
+	The pointer to the module's internal static SCUNILOGTARGET structure.
 	The _static versions of the logging functions operate on this structure.
 */
 extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 
 /*
-	Funcitons
+	Functions
 */
 
 /*
@@ -15626,7 +15626,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 #endif
 
 /*
-	InitSCUNILOGTARGET
+	InitSCUNILOGTARGETex
 
 	Initialises an existing SCUNILOGTARGET structure.
 
@@ -15664,13 +15664,15 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 						as (size_t) -1.
 						If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify the
-						base path if szLogPath is either relative or NULL. If szLogPath is relative,
-						the path is relative to
+	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+						the base path if szLogPath is either relative or NULL. If szLogPath is
+						relative, the path is relative to
 						cunilogLogPath_relativeToExecutable (the executable file),
-						cunilogLogPath_relativeToCurrentDir (the current directory),
+						cunilogLogPath_relativeToCurrentDir (the current directory), or
 						cunilogLogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
+						The value of this parameter is ignored if szLogPath is an absolute
+						path.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
@@ -15703,14 +15705,14 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 
 	The function returns a pointer to puz on success, NULL otherwise.
 */
-SCUNILOGTARGET *InitSCUNILOGTARGET
+SCUNILOGTARGET *InitSCUNILOGTARGETex
 (
 	  SCUNILOGTARGET			*put				// Must not be NULL.
 	, const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -15718,6 +15720,23 @@ SCUNILOGTARGET *InitSCUNILOGTARGET
 	, enum cunilogeventTSformat	unilogTSformat		// The format of an event timestamp.
 	, enum enLineEndings		unilogNewLine
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
+)
+;
+
+/*
+	InitSCUNILOGTARGET
+
+	Simplified version of InitSCUNILOGTARGETex ().
+*/
+SCUNILOGTARGET *InitSCUNILOGTARGET
+(
+	  SCUNILOGTARGET			*put				// Must not be NULL.
+	, const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szAppName			// Application name.
+	, size_t					lenAppName			// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
 )
 ;
 
@@ -15751,13 +15770,15 @@ SCUNILOGTARGET *InitSCUNILOGTARGET
 						as (size_t) -1.
 						If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify the
-						base path if szLogPath is either relative or NULL. If szLogPath is relative,
-						the path is relative to
+	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+						the base path if szLogPath is either relative or NULL. If szLogPath is
+						relative, the path is relative to
 						cunilogLogPath_relativeToExecutable (the executable file),
-						cunilogLogPath_relativeToCurrentDir (the current directory),
+						cunilogLogPath_relativeToCurrentDir (the current directory), or
 						cunilogLogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
+						The value of this parameter is ignored if szLogPath is an absolute
+						path.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
@@ -15801,7 +15822,7 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -15845,7 +15866,7 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -15857,7 +15878,7 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 ;
 
 /*
-	InitSCUNILOGTARGETstatic
+	InitSCUNILOGTARGETstaticEx
 	
 	Initialises the internal SCUNILOGTARGET structure. If the _static versions of the logging
 	functions are used, an application must call this function before any of these functions
@@ -15886,13 +15907,15 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 						as (size_t) -1.
 						If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify the
-						base path if szLogPath is either relative or NULL. If szLogPath is relative,
-						the path is relative to
+	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+						the base path if szLogPath is either relative or NULL. If szLogPath is
+						relative, the path is relative to
 						cunilogLogPath_relativeToExecutable (the executable file),
-						cunilogLogPath_relativeToCurrentDir (the current directory),
+						cunilogLogPath_relativeToCurrentDir (the current directory), or
 						cunilogLogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
+						The value of this parameter is ignored if szLogPath is an absolute
+						path.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
@@ -15919,22 +15942,22 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 						A value of unilogNewLineSystem picks a default representation for the
 						operating system.
 
-	rp					Can be either unilogRunProcessorsOnStartup or
-						unilogDontRunProcessorsOnStartup to run or not run all processors the
+	rp					Can be either cunilogRunProcessorsOnStartup or
+						cunilogDontRunProcessorsOnStartup to run or not run all processors the
 						first time a logging function is called.
 
-	The function returns a pointer to the internal SCUNILOGTARGET cunilognewlinestructure upon success,
-	NULL otherwise.
+	The function returns a pointer to the internal SCUNILOGTARGET cunilognewlinestructure
+	upon success, NULL otherwise.
 
-	Call DoneSCUNILOGTARGETstatic () to free the structures resources.
+	Call DoneSCUNILOGTARGETstatic () to free the structure's resources.
 */
-SCUNILOGTARGET *InitSCUNILOGTARGETstatic
+SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szApplication		// Application name.
 	, size_t					lenApplication		// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -15946,6 +15969,108 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 ;
 
 /*
+	InitSCUNILOGTARGETstatic
+
+	Simplified version of InitSCUNILOGTARGETstaticEx ().
+
+	szLogPath			The path where the log files are written to. This can either be an
+						absolute or a relative path. If the path is relative, it is assumed to
+						be relative to the executable module. If this parameter is NULL, the
+						function uses the executable module's path. This string does not have to
+						be NUL-terminated if lenLogPath is given correctly and not as (size_t)
+						-1 (or USE_STRLEN).
+
+	lenLogPath			The length of szLogPath. If this parameter is (size_t) -1, the function
+						calls strlen () to obtain it. Conveniently USE_STRLEN is defined as
+						(size_t) -1. If this parameter is 0, the function uses the executable
+						module's path.
+
+	szAppName			The name of the application. This is the part of the log file's name
+						before the date/timestamp, for instance "myApp" in "myApp_2022-10-18.log".
+						If this parameter is NULL, the function uses the executable module's name.
+						The string does not need to be NUL-terminated if lenAppName holds the
+						correct length.
+
+	lenAppName			The length of szApplication. If this parameter is (size_t) -1, the
+						function calls strlen (szApplication) to obtain it. USE_STRLEN is defined
+						as (size_t) -1.
+						If this parameter is 0, the function uses the executable module's name.
+
+	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+						the base path if szLogPath is either relative or NULL. If szLogPath is
+						relative, the path is relative to
+						cunilogLogPath_relativeToExecutable (the executable file),
+						cunilogLogPath_relativeToCurrentDir (the current directory), or
+						cunilogLogPath_relativeToHomeDir (the user's home directory).
+						See cunilogstructs.h for details.
+						The value of this parameter is ignored if szLogPath is an absolute
+						path.
+
+	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
+						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
+						ignored and implicitely set to cunilogSingleThreaded.
+
+	The function returns a pointer to the internal SCUNILOGTARGET cunilognewlinestructure
+	upon success, NULL otherwise.
+
+	Call DoneSCUNILOGTARGETstatic () to free the structure's resources.
+*/
+SCUNILOGTARGET *InitSCUNILOGTARGETstatic
+(
+	  const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szApplication		// Application name.
+	, size_t					lenApplication		// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
+)
+;
+
+/*
+	EnterSCUNILOGTARGET
+	LockSCUNILOGTARGET
+
+	LeaveSCUNILOGTARGET
+	UnlockSCUNILOGTARGET
+
+	EnterSCUNILOGTARGETstatic
+	LockSCUNILOGTARGETstatic
+
+	LockSCUNILOGTARGETstatic
+	UnlockSCUNILOGTARGETstatic
+
+	Interface functions/macros to lock (enter) and unlock (leave) the critical section or
+	mutex of the singly-linked events list of the SCUNILOGTARGET structure put points to.
+	The ...static versions lock and unlock the internal static SCUNILOGTARGET structure.
+
+	Since Cunilog provides several means of accessing the events list of a SCUNILOGTARGET
+	structure, and since it handles the events list internally, these functions/macros are most
+	likely not required and should probably not be used.
+
+	Note that these functions/macros do NOT lock or unlock access to the SCUNILOGTARGET
+	structure's members. They are merely for locking and unlocking the singly-linked list
+	containing the events to log.
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, these macros/functions do nothing.
+*/
+void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
+;
+void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
+;
+#define LockSCUNILOGTARGET(put)							\
+			EnterSCUNILOGTARGET (put)
+#define UnlockSCUNILOGTARGET(put)						\
+			LeaveSCUNILOGTARGET (put)
+#define EnterSCUNILOGTARGETstatic()						\
+			LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#define LeaveSCUNILOGTARGETstatic()						\
+			EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#define LockSCUNILOGTARGETstatic()						\
+			EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#define UnlockSCUNILOGTARGETstatic()					\
+			LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+
+/*
 	DoneSCUNILOGTARGET
 
 	Deallocates all resources of the SCUNILOGTARGET put points to. After a structure has been
@@ -15953,7 +16078,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	it could however be re-used by initialising it again.
 
 	Before calling this function, call ShutdownSCUNILOGTARGET () or CancelSCUNILOGTARGET ()
-	first to either process or discard it's event queue.
+	first to either process or discard the target's event queue.
 
 	The function always returns NULL.
 */
@@ -15968,8 +16093,8 @@ SCUNILOGTARGET *DoneSCUNILOGTARGET (SCUNILOGTARGET *put)
 
 	The function always returns NULL.
 */
-SCUNILOGTARGET *DoneSCUNILOGTARGETstatic (void)
-;
+#define DoneSCUNILOGTARGETstatic()						\
+			DoneSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 
 /*
 	ShutdownSCUNILOGTARGET
@@ -15999,7 +16124,8 @@ void ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
 */
-void ShutdownSCUNILOGTARGETstatic (void);
+#define ShutdownSCUNILOGTARGETstatic()					\
+			ShutdownSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 
 /*
 	CancelSCUNILOGTARGET
@@ -16024,7 +16150,8 @@ void CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
 */
-void CancelSCUNILOGTARGETstatic (void);
+#define CancelSCUNILOGTARGETstatic ()					\
+			CancelSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 
 /*
 	SetLogPrioritySCUNILOGTARGET
@@ -16054,7 +16181,7 @@ void CancelSCUNILOGTARGETstatic (void);
 /*
 	SetLogPrioritySCUNILOGTARGETstatic
 
-	Sets the priority of the separate logging thread that belongs to internal static
+	Sets the priority of the separate logging thread that belongs to the internal static
 	SCUNILOGTARGET structure.
 
 	The priority levels are based on Windows thread priority levels. See the cunilogprio
@@ -16070,8 +16197,8 @@ void CancelSCUNILOGTARGETstatic (void);
 	have a separate logging thread, the function returns true.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	bool SetLogPrioritySCUNILOGTARGETstatic (cunilogprio prio)
-	;
+	#define SetLogPrioritySCUNILOGTARGETstatic (prio)	\
+				SetLogPrioritySCUNILOGTARGET (pSCUNILOGTARGETstatic, prio)
 #else
 	#define SetLogPrioritySCUNILOGTARGETstatic(p, p)	(true)
 #endif
@@ -16088,6 +16215,9 @@ void CancelSCUNILOGTARGETstatic (void);
 	to log and rotate logfiles for events enqueued before this function was called.
 
 	Call ResumeLogSCUNILOGTARGET () to resume the separate logging thread.
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
+	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	void PauseLogSCUNILOGTARGET (SCUNILOGTARGET *put)
@@ -16108,10 +16238,13 @@ void CancelSCUNILOGTARGETstatic (void);
 	to log and rotate logfiles for events enqueued before this function was called.
 
 	Call ResumeLogSCUNILOGTARGETstatic () to resume the separate logging thread again.
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
+	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	void PauseLogSCUNILOGTARGETstatic (void)
-	;
+	#define PauseLogSCUNILOGTARGETstatic()				\
+		PauseLogSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 #else
 	define PauseLogSCUNILOGTARGETstatic(p)
 #endif
@@ -16133,12 +16266,15 @@ void CancelSCUNILOGTARGETstatic (void);
 	increments of more than one, sem_post () from the POSIX spec does not. Therefore,
 	on POSIX this function loops and increments the semaphore by 1 only and could
 	possibly block.
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
+	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	size_t ResumeLogSCUNILOGTARGET (SCUNILOGTARGET *put)
 	;
 #else
-	define ResumeLogSCUNILOGTARGET (p)
+	define ResumeLogSCUNILOGTARGET(p)
 #endif
 
 /*
@@ -16148,7 +16284,7 @@ void CancelSCUNILOGTARGETstatic (void);
 	PauseLogSCUNILOGTARGET () and triggers it for each queued event since
 	PauseLogSCUNILOGTARGET () was called.
 
-	The function returns the number of events in the queue it has triggered for
+	The macro returns the number of events in the queue it has triggered for
 	processing by the separate logging thread.
 
 	Note that this function triggers the semaphore of the separate logging thread for
@@ -16158,12 +16294,15 @@ void CancelSCUNILOGTARGETstatic (void);
 	increments of more than one, sem_post () from the POSIX spec does not. Therefore,
 	on POSIX this function loops and increments the semaphore by 1 only and could
 	possibly block.
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
+	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	size_t ResumeLogSCUNILOGTARGETstatic (void)
-	;
+	#define ResumeLogSCUNILOGTARGETstatic()			\
+				ResumeLogSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 #else
-	define ResumeLogSCUNILOGTARGETstatic (p)
+	define ResumeLogSCUNILOGTARGETstatic()		(0)
 #endif
 
 /*

@@ -238,7 +238,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 #endif
 
 /*
-	InitSCUNILOGTARGET
+	InitSCUNILOGTARGETex
 
 	Initialises an existing SCUNILOGTARGET structure.
 
@@ -276,13 +276,15 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 						as (size_t) -1.
 						If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify the
-						base path if szLogPath is either relative or NULL. If szLogPath is relative,
-						the path is relative to
+	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+						the base path if szLogPath is either relative or NULL. If szLogPath is
+						relative, the path is relative to
 						cunilogLogPath_relativeToExecutable (the executable file),
-						cunilogLogPath_relativeToCurrentDir (the current directory),
+						cunilogLogPath_relativeToCurrentDir (the current directory), or
 						cunilogLogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
+						The value of this parameter is ignored if szLogPath is an absolute
+						path.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
@@ -315,14 +317,14 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 
 	The function returns a pointer to puz on success, NULL otherwise.
 */
-SCUNILOGTARGET *InitSCUNILOGTARGET
+SCUNILOGTARGET *InitSCUNILOGTARGETex
 (
 	  SCUNILOGTARGET			*put				// Must not be NULL.
 	, const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -330,6 +332,23 @@ SCUNILOGTARGET *InitSCUNILOGTARGET
 	, enum cunilogeventTSformat	unilogTSformat		// The format of an event timestamp.
 	, enum enLineEndings		unilogNewLine
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
+)
+;
+
+/*
+	InitSCUNILOGTARGET
+
+	Simplified version of InitSCUNILOGTARGETex ().
+*/
+SCUNILOGTARGET *InitSCUNILOGTARGET
+(
+	  SCUNILOGTARGET			*put				// Must not be NULL.
+	, const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szAppName			// Application name.
+	, size_t					lenAppName			// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
 )
 ;
 
@@ -363,13 +382,15 @@ SCUNILOGTARGET *InitSCUNILOGTARGET
 						as (size_t) -1.
 						If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify the
-						base path if szLogPath is either relative or NULL. If szLogPath is relative,
-						the path is relative to
+	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+						the base path if szLogPath is either relative or NULL. If szLogPath is
+						relative, the path is relative to
 						cunilogLogPath_relativeToExecutable (the executable file),
-						cunilogLogPath_relativeToCurrentDir (the current directory),
+						cunilogLogPath_relativeToCurrentDir (the current directory), or
 						cunilogLogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
+						The value of this parameter is ignored if szLogPath is an absolute
+						path.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
@@ -413,7 +434,7 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -457,7 +478,7 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -469,7 +490,7 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 ;
 
 /*
-	InitSCUNILOGTARGETstatic
+	InitSCUNILOGTARGETstaticEx
 	
 	Initialises the internal SCUNILOGTARGET structure. If the _static versions of the logging
 	functions are used, an application must call this function before any of these functions
@@ -498,13 +519,15 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 						as (size_t) -1.
 						If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify the
-						base path if szLogPath is either relative or NULL. If szLogPath is relative,
-						the path is relative to
+	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+						the base path if szLogPath is either relative or NULL. If szLogPath is
+						relative, the path is relative to
 						cunilogLogPath_relativeToExecutable (the executable file),
-						cunilogLogPath_relativeToCurrentDir (the current directory),
+						cunilogLogPath_relativeToCurrentDir (the current directory), or
 						cunilogLogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
+						The value of this parameter is ignored if szLogPath is an absolute
+						path.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
@@ -531,22 +554,22 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 						A value of unilogNewLineSystem picks a default representation for the
 						operating system.
 
-	rp					Can be either unilogRunProcessorsOnStartup or
-						unilogDontRunProcessorsOnStartup to run or not run all processors the
+	rp					Can be either cunilogRunProcessorsOnStartup or
+						cunilogDontRunProcessorsOnStartup to run or not run all processors the
 						first time a logging function is called.
 
-	The function returns a pointer to the internal SCUNILOGTARGET cunilognewlinestructure upon success,
-	NULL otherwise.
+	The function returns a pointer to the internal SCUNILOGTARGET cunilognewlinestructure
+	upon success, NULL otherwise.
 
-	Call DoneSCUNILOGTARGETstatic () to free the structures resources.
+	Call DoneSCUNILOGTARGETstatic () to free the structure's resources.
 */
-SCUNILOGTARGET *InitSCUNILOGTARGETstatic
+SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szApplication		// Application name.
 	, size_t					lenApplication		// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -554,6 +577,64 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	, enum cunilogeventTSformat	unilogTSformat		// The format of an event timestamp.
 	, enum enLineEndings		unilogNewLine
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
+)
+;
+
+/*
+	InitSCUNILOGTARGETstatic
+
+	Simplified version of InitSCUNILOGTARGETstaticEx ().
+
+	szLogPath			The path where the log files are written to. This can either be an
+						absolute or a relative path. If the path is relative, it is assumed to
+						be relative to the executable module. If this parameter is NULL, the
+						function uses the executable module's path. This string does not have to
+						be NUL-terminated if lenLogPath is given correctly and not as (size_t)
+						-1 (or USE_STRLEN).
+
+	lenLogPath			The length of szLogPath. If this parameter is (size_t) -1, the function
+						calls strlen () to obtain it. Conveniently USE_STRLEN is defined as
+						(size_t) -1. If this parameter is 0, the function uses the executable
+						module's path.
+
+	szAppName			The name of the application. This is the part of the log file's name
+						before the date/timestamp, for instance "myApp" in "myApp_2022-10-18.log".
+						If this parameter is NULL, the function uses the executable module's name.
+						The string does not need to be NUL-terminated if lenAppName holds the
+						correct length.
+
+	lenAppName			The length of szApplication. If this parameter is (size_t) -1, the
+						function calls strlen (szApplication) to obtain it. USE_STRLEN is defined
+						as (size_t) -1.
+						If this parameter is 0, the function uses the executable module's name.
+
+	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+						the base path if szLogPath is either relative or NULL. If szLogPath is
+						relative, the path is relative to
+						cunilogLogPath_relativeToExecutable (the executable file),
+						cunilogLogPath_relativeToCurrentDir (the current directory), or
+						cunilogLogPath_relativeToHomeDir (the user's home directory).
+						See cunilogstructs.h for details.
+						The value of this parameter is ignored if szLogPath is an absolute
+						path.
+
+	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
+						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
+						ignored and implicitely set to cunilogSingleThreaded.
+
+	The function returns a pointer to the internal SCUNILOGTARGET cunilognewlinestructure
+	upon success, NULL otherwise.
+
+	Call DoneSCUNILOGTARGETstatic () to free the structure's resources.
+*/
+SCUNILOGTARGET *InitSCUNILOGTARGETstatic
+(
+	  const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szApplication		// Application name.
+	, size_t					lenApplication		// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
 )
 ;
 

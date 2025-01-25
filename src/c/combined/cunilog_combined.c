@@ -16846,14 +16846,14 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 	return prepareSCUNILOGTARGETforLogging	(put);
 }
 
-SCUNILOGTARGET *InitSCUNILOGTARGET
+SCUNILOGTARGET *InitSCUNILOGTARGETex
 (
 	  SCUNILOGTARGET			*put				// Must not be NULL.
 	, const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -16879,13 +16879,41 @@ SCUNILOGTARGET *InitSCUNILOGTARGET
 	return initCommonMembersAndPrepareSCUNILOGTARGET (put) ? put : NULL;
 }
 
+SCUNILOGTARGET *InitSCUNILOGTARGET
+(
+	  SCUNILOGTARGET			*put				// Must not be NULL.
+	, const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szAppName			// Application name.
+	, size_t					lenAppName			// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
+)
+{
+	SCUNILOGTARGET	*prt;
+
+	prt = InitSCUNILOGTARGETex	(
+			put,
+			szLogPath,	lenLogPath,
+			szAppName,	lenAppName,
+			relLogPath,
+			type,
+			cunilogPostfixDefault,
+			NULL, 0,
+			cunilogEvtTS_Default,
+			cunilogNewLineDefault,
+			cunilogRunProcessorsOnStartup
+								);
+	return prt;
+}
+
 SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -16978,7 +17006,7 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -16993,7 +17021,7 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	if (put)
 	{
 		pu = put;
-		InitSCUNILOGTARGET	(
+		InitSCUNILOGTARGETex	(
 			pu,
 			szLogPath, lenLogPath, szAppName, lenAppName, relLogPath,
 			type, postfix, cuProcessorList, nProcessors,
@@ -17016,13 +17044,13 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	return pu;
 }
 
-SCUNILOGTARGET *InitSCUNILOGTARGETstatic
+SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szApplication		// Application name.
 	, size_t					lenApplication		// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -17032,10 +17060,48 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 {
-	return InitSCUNILOGTARGET	(
+	return InitSCUNILOGTARGETex	(
 		pSCUNILOGTARGETstatic, szLogPath, lenLogPath, szApplication, lenApplication, relLogPath,
 		type, postfix, cuProcessorList, nProcessors, unilogTSformat, unilogNewLine, rp
 								);
+}
+
+SCUNILOGTARGET *InitSCUNILOGTARGETstatic
+(
+	  const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szApplication		// Application name.
+	, size_t					lenApplication		// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
+)
+{
+	return InitSCUNILOGTARGETex	(
+				pSCUNILOGTARGETstatic,
+				szLogPath,		lenLogPath,
+				szApplication,	lenApplication,
+				relLogPath,
+				type,
+				cunilogPostfixDefault,
+				NULL, 0,
+				cunilogEvtTS_Default,
+				cunilogNewLineDefault,
+				cunilogRunProcessorsOnStartup
+								);
+}
+
+void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	EnterCUNILOG_LOCKER (put);
+}
+
+void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	LeaveCUNILOG_LOCKER (put);
 }
 
 static void CloseCUNILOG_LOGFILEifOpen (CUNILOG_LOGFILE *cl)
@@ -17156,13 +17222,6 @@ SCUNILOGTARGET *DoneSCUNILOGTARGET (SCUNILOGTARGET *put)
 		ubf_free (put);
 	}
 	return NULL;
-}
-
-SCUNILOGTARGET *DoneSCUNILOGTARGETstatic (void)
-{
-	ubf_assert (cunilogIsTargetInitialised (pSCUNILOGTARGETstatic));
-
-	return DoneSCUNILOGTARGET (pSCUNILOGTARGETstatic);
 }
 
 /*
@@ -18682,16 +18741,16 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 		ubf_assert_non_NULL (put);
 		ubf_assert (hasSCUNILOGTARGETqueue (put));
 
-		SCUNILOGEVENT	*pret	= NULL;
+		SCUNILOGEVENT	*pev	= NULL;
 
 		EnterCUNILOG_LOCKER (put);
 		if (put->qu.first)
 		{
 			ubf_assert_non_0 (put->qu.num);
 
-			pret			= put->qu.first;
-			put->qu.first	= pret->next;
-			pret->next		= NULL;
+			pev				= put->qu.first;
+			put->qu.first	= pev->next;
+			pev->next		= NULL;
 			put->qu.num		-= 1;
 		} else
 		{
@@ -18699,7 +18758,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 			ubf_assert_NULL	(put->qu.last);
 		}
 		LeaveCUNILOG_LOCKER (put);
-		return pret;
+		return pev;
 	}
 #endif
 
@@ -18714,7 +18773,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 		ubf_assert_non_NULL (put);
 		ubf_assert (hasSCUNILOGTARGETqueue (put));
 
-		SCUNILOGEVENT	*pret	= NULL;
+		SCUNILOGEVENT	*pev	= NULL;
 		SCUNILOGEVENT	*last;
 
 		EnterCUNILOG_LOCKER (put);
@@ -18722,7 +18781,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 		{
 			ubf_assert_non_0 (put->qu.num);
 
-			pret			= put->qu.first;
+			pev				= put->qu.first;
 			last			= put->qu.last;
 			ubf_assert_NULL (last->next);
 
@@ -18737,7 +18796,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 			ubf_assert_NULL	(put->qu.last);
 		}
 		LeaveCUNILOG_LOCKER (put);
-		return pret;
+		return pev;
 	}
 #endif
 
@@ -18796,9 +18855,6 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 		#endif
 	}
 #endif
-
-static bool cunilogProcessEventSingleThreaded (SCUNILOGEVENT *pev)
-;
 
 /*
 	The separate logging thread.
@@ -19194,11 +19250,6 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 	}
 #endif
 
-void ShutdownSCUNILOGTARGETstatic (void)
-{
-	ShutdownSCUNILOGTARGET (pSCUNILOGTARGETstatic);
-}
-
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	void CancelSCUNILOGTARGET (SCUNILOGTARGET *put)
 	{
@@ -19238,11 +19289,6 @@ void ShutdownSCUNILOGTARGETstatic (void)
 		cunilogSetTargetShutdown (put);
 	}
 #endif
-
-void CancelSCUNILOGTARGETstatic (void)
-{
-	CancelSCUNILOGTARGET (pSCUNILOGTARGETstatic);
-}
 
 /*
 	Copied from cunilog.h.
@@ -19319,15 +19365,6 @@ enum enCunilogLogPriority
 #endif
 
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	bool SetLogPrioritySCUNILOGTARGETstatic (cunilogprio prio)
-	{
-		ubf_assert (prio < cunilogPrioInvalid);
-
-		return (SetLogPrioritySCUNILOGTARGET (pSCUNILOGTARGETstatic, prio));
-	}
-#endif
-
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	void PauseLogSCUNILOGTARGET (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
@@ -19335,13 +19372,6 @@ enum enCunilogLogPriority
 		EnterCUNILOG_LOCKER (put);
 		cunilogSetPaused (put);
 		LeaveCUNILOG_LOCKER (put);
-	}
-#endif
-
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	void PauseLogSCUNILOGTARGETstatic (void)
-	{
-		PauseLogSCUNILOGTARGET (pSCUNILOGTARGETstatic);
 	}
 #endif
 
@@ -19360,13 +19390,6 @@ enum enCunilogLogPriority
 
 		triggerSCUNILOGEVENTloggingThread (put, n);
 		return n;
-	}
-#endif
-
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	size_t ResumeLogSCUNILOGTARGETstatic (void)
-	{
-		return ResumeLogSCUNILOGTARGET (pSCUNILOGTARGETstatic);
 	}
 #endif
 
@@ -19830,7 +19853,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		/*
 			Static.
 		*/
-		pt = InitSCUNILOGTARGETstatic	(
+		pt = InitSCUNILOGTARGETstaticEx	(
 					NULL,		0,
 					"Unilog",	USE_STRLEN,
 					cunilogLogPath_relativeToHomeDir,
@@ -19849,7 +19872,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
 		DoneSCUNILOGTARGETstatic ();
 
-		pt = InitSCUNILOGTARGETstatic	(
+		pt = InitSCUNILOGTARGETstaticEx	(
 					NULL,				0,
 					"////sub/Unilog",	USE_STRLEN,
 					cunilogLogPath_relativeToHomeDir,
@@ -19872,7 +19895,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		#endif
 		DoneSCUNILOGTARGETstatic ();
 
-		pt = InitSCUNILOGTARGETstatic	(
+		pt = InitSCUNILOGTARGETstaticEx	(
 					NULL,		0,
 					"Unilog",	USE_STRLEN,
 					cunilogLogPath_relativeToCurrentDir,
@@ -19891,7 +19914,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
 		DoneSCUNILOGTARGETstatic ();
 
-		pt = InitSCUNILOGTARGETstatic	(
+		pt = InitSCUNILOGTARGETstaticEx	(
 					"C:/temp",	USE_STRLEN,
 					"Unilog",	USE_STRLEN,
 					cunilogLogPath_relativeToExecutable,
@@ -19926,7 +19949,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
 		DoneSCUNILOGTARGETstatic ();
 
-		pt = InitSCUNILOGTARGETstatic	(
+		pt = InitSCUNILOGTARGETstaticEx	(
 					"../temp",	USE_STRLEN,
 					"Unilog",	USE_STRLEN,
 					cunilogLogPath_relativeToExecutable,

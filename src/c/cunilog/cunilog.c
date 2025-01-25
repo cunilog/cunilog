@@ -1262,14 +1262,14 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 	return prepareSCUNILOGTARGETforLogging	(put);
 }
 
-SCUNILOGTARGET *InitSCUNILOGTARGET
+SCUNILOGTARGET *InitSCUNILOGTARGETex
 (
 	  SCUNILOGTARGET			*put				// Must not be NULL.
 	, const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -1295,13 +1295,41 @@ SCUNILOGTARGET *InitSCUNILOGTARGET
 	return initCommonMembersAndPrepareSCUNILOGTARGET (put) ? put : NULL;
 }
 
+SCUNILOGTARGET *InitSCUNILOGTARGET
+(
+	  SCUNILOGTARGET			*put				// Must not be NULL.
+	, const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szAppName			// Application name.
+	, size_t					lenAppName			// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
+)
+{
+	SCUNILOGTARGET	*prt;
+
+	prt = InitSCUNILOGTARGETex	(
+			put,
+			szLogPath,	lenLogPath,
+			szAppName,	lenAppName,
+			relLogPath,
+			type,
+			cunilogPostfixDefault,
+			NULL, 0,
+			cunilogEvtTS_Default,
+			cunilogNewLineDefault,
+			cunilogRunProcessorsOnStartup
+								);
+	return prt;
+}
+
 SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -1394,7 +1422,7 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -1409,7 +1437,7 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	if (put)
 	{
 		pu = put;
-		InitSCUNILOGTARGET	(
+		InitSCUNILOGTARGETex	(
 			pu,
 			szLogPath, lenLogPath, szAppName, lenAppName, relLogPath,
 			type, postfix, cuProcessorList, nProcessors,
@@ -1432,13 +1460,13 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	return pu;
 }
 
-SCUNILOGTARGET *InitSCUNILOGTARGETstatic
+SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szApplication		// Application name.
 	, size_t					lenApplication		// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -1448,9 +1476,33 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 {
-	return InitSCUNILOGTARGET	(
+	return InitSCUNILOGTARGETex	(
 		pSCUNILOGTARGETstatic, szLogPath, lenLogPath, szApplication, lenApplication, relLogPath,
 		type, postfix, cuProcessorList, nProcessors, unilogTSformat, unilogNewLine, rp
+								);
+}
+
+SCUNILOGTARGET *InitSCUNILOGTARGETstatic
+(
+	  const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szApplication		// Application name.
+	, size_t					lenApplication		// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
+)
+{
+	return InitSCUNILOGTARGETex	(
+				pSCUNILOGTARGETstatic,
+				szLogPath,		lenLogPath,
+				szApplication,	lenApplication,
+				relLogPath,
+				type,
+				cunilogPostfixDefault,
+				NULL, 0,
+				cunilogEvtTS_Default,
+				cunilogNewLineDefault,
+				cunilogRunProcessorsOnStartup
 								);
 }
 
@@ -4217,7 +4269,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		/*
 			Static.
 		*/
-		pt = InitSCUNILOGTARGETstatic	(
+		pt = InitSCUNILOGTARGETstaticEx	(
 					NULL,		0,
 					"Unilog",	USE_STRLEN,
 					cunilogLogPath_relativeToHomeDir,
@@ -4236,7 +4288,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
 		DoneSCUNILOGTARGETstatic ();
 
-		pt = InitSCUNILOGTARGETstatic	(
+		pt = InitSCUNILOGTARGETstaticEx	(
 					NULL,				0,
 					"////sub/Unilog",	USE_STRLEN,
 					cunilogLogPath_relativeToHomeDir,
@@ -4259,7 +4311,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		#endif
 		DoneSCUNILOGTARGETstatic ();
 
-		pt = InitSCUNILOGTARGETstatic	(
+		pt = InitSCUNILOGTARGETstaticEx	(
 					NULL,		0,
 					"Unilog",	USE_STRLEN,
 					cunilogLogPath_relativeToCurrentDir,
@@ -4278,7 +4330,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
 		DoneSCUNILOGTARGETstatic ();
 
-		pt = InitSCUNILOGTARGETstatic	(
+		pt = InitSCUNILOGTARGETstaticEx	(
 					"C:/temp",	USE_STRLEN,
 					"Unilog",	USE_STRLEN,
 					cunilogLogPath_relativeToExecutable,
@@ -4313,7 +4365,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
 		DoneSCUNILOGTARGETstatic ();
 
-		pt = InitSCUNILOGTARGETstatic	(
+		pt = InitSCUNILOGTARGETstaticEx	(
 					"../temp",	USE_STRLEN,
 					"Unilog",	USE_STRLEN,
 					cunilogLogPath_relativeToExecutable,

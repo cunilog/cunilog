@@ -99,7 +99,7 @@ int main (int argc, char *argv [])
 	ubf_assert_true (b);
 
 	SCUNILOGTARGET	*put;
-	put = InitSCUNILOGTARGETstatic	(
+	put = InitSCUNILOGTARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
 				cunilogLogPath_relativeToExecutable,

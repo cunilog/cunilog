@@ -25,7 +25,7 @@ size_t		lnLogsFolder	= sizeof (ccLogsFolder) - 1;
 int main (void)
 {
 	SCUNILOGTARGET *put;
-	put = InitSCUNILOGTARGETstatic	(
+	put = InitSCUNILOGTARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
 				cunilogLogPath_relativeToExecutable,
@@ -35,7 +35,7 @@ int main (void)
 				cunilogEvtTS_Default,
 				cunilogNewLineDefault,
 				cunilogRunProcessorsOnStartup
-									);
+										);
 	if (!put)
 	{
 		puts ("InitSUNILOGTARGETstatic () failed.");
