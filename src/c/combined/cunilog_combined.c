@@ -16879,33 +16879,35 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	return initCommonMembersAndPrepareSCUNILOGTARGET (put) ? put : NULL;
 }
 
-SCUNILOGTARGET *InitSCUNILOGTARGET
-(
-	  SCUNILOGTARGET			*put				// Must not be NULL.
-	, const char				*szLogPath			// Path to the logging information.
-	, size_t					lenLogPath			// Length of szLogPath
-	, const char				*szAppName			// Application name.
-	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
-	, enum cunilogtype			type
-)
-{
-	SCUNILOGTARGET	*prt;
+#ifdef DEBUG
+	SCUNILOGTARGET *InitSCUNILOGTARGET
+	(
+		  SCUNILOGTARGET			*put				// Must not be NULL.
+		, const char				*szLogPath			// Path to the logging information.
+		, size_t					lenLogPath			// Length of szLogPath
+		, const char				*szAppName			// Application name.
+		, size_t					lenAppName			// Length of szApplication.
+		, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+		, enum cunilogtype			type
+	)
+	{
+		SCUNILOGTARGET	*prt;
 
-	prt = InitSCUNILOGTARGETex	(
-			put,
-			szLogPath,	lenLogPath,
-			szAppName,	lenAppName,
-			relLogPath,
-			type,
-			cunilogPostfixDefault,
-			NULL, 0,
-			cunilogEvtTS_Default,
-			cunilogNewLineDefault,
-			cunilogRunProcessorsOnStartup
-								);
-	return prt;
-}
+		prt = InitSCUNILOGTARGETex	(
+				put,
+				szLogPath,	lenLogPath,
+				szAppName,	lenAppName,
+				relLogPath,
+				type,
+				cunilogPostfixDefault,
+				NULL, 0,
+				cunilogEvtTS_Default,
+				cunilogNewLineDefault,
+				cunilogRunProcessorsOnStartup
+									);
+		return prt;
+	}
+#endif
 
 SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 (

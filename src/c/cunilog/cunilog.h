@@ -340,17 +340,37 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 
 	Simplified version of InitSCUNILOGTARGETex ().
 */
-SCUNILOGTARGET *InitSCUNILOGTARGET
-(
-	  SCUNILOGTARGET			*put				// Must not be NULL.
-	, const char				*szLogPath			// Path to the logging information.
-	, size_t					lenLogPath			// Length of szLogPath
-	, const char				*szAppName			// Application name.
-	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
-	, enum cunilogtype			type
-)
-;
+#ifdef DEBUG
+	SCUNILOGTARGET *InitSCUNILOGTARGET
+	(
+		  SCUNILOGTARGET			*put				// Must not be NULL.
+		, const char				*szLogPath			// Path to the logging information.
+		, size_t					lenLogPath			// Length of szLogPath
+		, const char				*szAppName			// Application name.
+		, size_t					lenAppName			// Length of szApplication.
+		, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+		, enum cunilogtype			type
+	)
+	;
+#else
+	#define InitSCUNILOGTARGET(put,						\
+				szLogPath,	lenLogPath,					\
+				szAppName,	lenAppName,					\
+				relLogPath,								\
+				type)									\
+				InitSCUNILOGTARGETex	(				\
+					(put)								\
+					(szLogPath), (lenLogPath),			\
+					(szAppName), (lenAppName),			\
+					(relLogPath),						\
+					(type),								\
+					cunilogPostfixDefault,				\
+					NULL, 0,							\
+					cunilogEvtTS_Default,				\
+					cunilogNewLineDefault,				\
+					cunilogRunProcessorsOnStartup		\
+										)
+#endif
 
 /*
 	CreateNewSCUNILOGTARGET
