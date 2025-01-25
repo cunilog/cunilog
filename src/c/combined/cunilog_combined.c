@@ -17136,6 +17136,19 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	}
 #endif
 
+#ifdef DEBUG
+	void configSCUNILOGTARGETprocessorList	(
+					SCUNILOGTARGET			*put
+				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
+				,	unsigned int			nProcessors			// Number of processors.
+											)
+	{
+		ubf_assert_non_NULL	(put);
+
+		prepareProcessors (put, cuProcessorList, nProcessors);
+	}
+#endif
+
 void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);

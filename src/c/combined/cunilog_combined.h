@@ -15681,14 +15681,14 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	postfix				The postfix used for the SUNILOGTARGET's logfile. See cunilogstructs.h
 						for more details.
 
-	cuProcessorList		A pointer to a list with cunilog processors. This parameter can be NULL
-						if no cunilog processors apart from the standard processors are required.
-						If this parameter is not NULL, the function does not create a copy of
-						this list and therefore must be available/accessible until
-						DoneSUNILOGTARGET () and ShutdownSCUNILOGTARGET () or
-						CancelSCUNILOGTARGET () are called on it. In other words the list is
-						required to either reside on the heap, static, or is created as
-						automatic in main ().
+	cuProcessorList		A pointer to a list with cunilog processors. This parameter can be
+						NULL, in which case a standard set of processors will be used.
+						If this parameter is not NULL, the function does not create a
+						copy of the provided processor list, which means the list must be
+						available/accessible until ShutdownSCUNILOGTARGET () or
+						CancelSCUNILOGTARGET (), and then DoneSCUNILOGTAREGE () are called
+						on it. In other words the list is required to either reside on the
+						heap, is static, or is created as automatic in main ().
 
 	nProcessors			The amount of processors cuProcessorList points to.
 
@@ -15787,14 +15787,14 @@ SCUNILOGTARGET *InitSCUNILOGTARGET
 	postfix				The postfix used for the SUNILOGTARGET's logfile. See cunilogstructs.h
 						for more details.
 
-	cuProcessorList		A pointer to a list with cunilog processors. This parameter can be NULL
-						if no cunilog processors apart from the standard processors are required.
-						If this parameter is not NULL, the function does not create a copy of
-						this list and therefore must be available/accessible until
-						DoneSUNILOGTARGET () and ShutdownSCUNILOGTARGET () or
-						CancelSCUNILOGTARGET () are called on it. In other words the list is
-						required to either reside on the heap, is static, or is created as
-						automatic in main ().
+	cuProcessorList		A pointer to a list with cunilog processors. This parameter can be
+						NULL, in which case a standard set of processors will be used.
+						If this parameter is not NULL, the function does not create a
+						copy of the provided processor list, which means the list must be
+						available/accessible until ShutdownSCUNILOGTARGET () or
+						CancelSCUNILOGTARGET (), and then DoneSCUNILOGTAREGE () are called
+						on it. In other words the list is required to either reside on the
+						heap, is static, or is created as automatic in main ().
 
 	nProcessors			The amount of processors cuProcessorList points to.
 
@@ -15924,14 +15924,14 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	postfix				The postfix used for the SUNILOGTARGET's logfile. See cunilogstructs.h
 						for more details.
 
-	cuProcessorList		A pointer to a list with cunilog processors. This parameter can be NULL
-						if no cunilog processors apart from the standard processors are required.
-						If this parameter is not NULL, the function does not create a copy of
-						this list and therefore must be available/accessible until
-						DoneSUNILOGTARGET () and ShutdownSCUNILOGTARGET () or
-						CancelSCUNILOGTARGET () are called on it. In other words the list is
-						required to either reside on the heap, is static, or is created as
-						automatic in main ().
+	cuProcessorList		A pointer to a list with cunilog processors. This parameter can be
+						NULL, in which case a standard set of processors will be used.
+						If this parameter is not NULL, the function does not create a
+						copy of the provided processor list, which means the list must be
+						available/accessible until ShutdownSCUNILOGTARGET () or
+						CancelSCUNILOGTARGET (), and then DoneSCUNILOGTAREGE () are called
+						on it. In other words the list is required to either reside on the
+						heap, is static, or is created as automatic in main ().
 
 	nProcessors			The amount of processors cuProcessorList points to.
 
@@ -16080,6 +16080,40 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 		(put)->unilogNewLine = (nl)
 #endif
 
+/*
+	configSCUNILOGTARGETprocessorList
+
+	Sets the processors for a SCUNILOGTARGET struture.
+
+	Parameters
+
+	put					A pointer to a SCUNILOGTARGET structure for which the processors
+						are set.
+
+	cuProcessorList		A pointer to a list with cunilog processors. This parameter can be
+						NULL, in which case a standard set of processors will be used.
+						If this parameter is not NULL, the function does not create a
+						copy of the provided processor list, which means the list must be
+						available/accessible until ShutdownSCUNILOGTARGET () or
+						CancelSCUNILOGTARGET (), and then DoneSCUNILOGTAREGE () are called
+						on it. In other words the list is required to either reside on the
+						heap, is static, or is created as automatic in main ().
+
+	nProcessors			The amount of processors cuProcessorList points to.
+
+*/
+#ifdef DEBUG
+	void configSCUNILOGTARGETprocessorList	(
+					SCUNILOGTARGET			*put
+				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
+				,	unsigned int			nProcessors			// Number of processors.
+											)
+	;
+#else
+	#define configSCUNILOGTARGETprocessorList (put,		\
+				cup, n)									\
+				prepareProcessors (put, cuProcessorList, nProcessors)
+#endif
 
 /*
 	EnterSCUNILOGTARGET
