@@ -16027,6 +16027,61 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 ;
 
 /*
+	configSCUNILOGTARGETcunilogpostfix
+
+	Sets the member unilogEvtTSformat of the SCUNILOGTARGET structure put points to to the
+	value of tsf.
+*/
+#ifdef DEBUG
+	void configSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
+	;
+#else
+	#define configSCUNILOGTARGETcunilogpostfix(put, f)	\
+				(put)->unilogEvtTSformat = (f)
+#endif
+
+/*
+	configSCUNILOGTARGETrunProcessorsOnStartup
+
+	Sets the flag CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP of the uiOpts member of the
+	SCUNILOGTARGET structure put points to according to the value of the runProcessorsOnStartup
+	enumeration rp.
+*/
+#ifdef DEBUG
+	void configSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
+	;
+#else
+	#define configSCUNILOGTARGETrunProcessorsOnStartup(put, rp)	\
+		switch (rp)												\
+		{														\
+			case cunilogRunProcessorsOnStartup:					\
+				cunilogSetRunAllProcessorsOnStartup (put);		\
+				break;											\
+			case cunilogDontRunProcessorsOnStartup:				\
+				cunilogClrRunAllProcessorsOnStartup (put);		\
+				break;											\
+			default:											\
+				cunilogSetRunAllProcessorsOnStartup (put);		\
+				break;											\
+		}
+#endif
+
+/*
+	configSCUNILOGTARGETcunilognewline
+
+	Sets the member unilogNewLine of the SCUNILOGTARGET structure put points to to the
+	value of nl.
+*/
+#ifdef DEBUG
+	void configSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
+	;
+#else
+	#define configSCUNILOGTARGETcunilognewline(put, nl)	\
+		(put)->unilogNewLine = (nl)
+#endif
+
+
+/*
 	EnterSCUNILOGTARGET
 	LockSCUNILOGTARGET
 

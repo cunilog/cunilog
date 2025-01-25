@@ -1506,6 +1506,52 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 								);
 }
 
+#ifdef DEBUG
+	void configSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
+	{
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(0 <= tsf);
+		ubf_assert			(cunilogEvtTS_AmountEnumValues > tsf);
+
+		put->unilogEvtTSformat = tsf;		
+	}
+#endif
+
+#ifdef DEBUG
+	void configSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
+	{
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(0 <= nl);
+		ubf_assert			(cunilogNewLineAmountEnumValues > nl);
+
+		put->unilogNewLine = nl;
+	}
+#endif
+
+#ifdef DEBUG
+	void configSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
+	{
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(
+									cunilogRunProcessorsOnStartup		== rp
+								||	cunilogDontRunProcessorsOnStartup	== rp
+							);
+
+		switch (rp)
+		{
+			case cunilogRunProcessorsOnStartup:
+				cunilogSetRunAllProcessorsOnStartup (put);
+				break;
+			case cunilogDontRunProcessorsOnStartup:
+				cunilogClrRunAllProcessorsOnStartup (put);
+				break;
+			default:
+				cunilogSetRunAllProcessorsOnStartup (put);
+				break;
+		}
+	}
+#endif
+
 void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
