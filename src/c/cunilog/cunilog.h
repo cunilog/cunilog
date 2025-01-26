@@ -365,7 +365,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 				relLogPath,								\
 				type)									\
 				InitSCUNILOGTARGETex	(				\
-					(put)								\
+					(put),								\
 					(szLogPath), (lenLogPath),			\
 					(szAppName), (lenAppName),			\
 					(relLogPath),						\

@@ -98,18 +98,7 @@ int main (int argc, char *argv [])
 	bool			b		= test_cunilog ();
 	ubf_assert_true (b);
 
-	SCUNILOGTARGET	cut;
 	SCUNILOGTARGET	*put;
-
-	// Should fail.
-	put = InitSCUNILOGTARGET	(
-			&cut,
-			"temp",		USE_STRLEN,
-			"OurApp",	USE_STRLEN,
-			cunilogLogPath_isAbsolute,
-			cunilogMultiThreaded
-								);
-	ubf_assert_NULL (put);
 
 	put = InitSCUNILOGTARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,

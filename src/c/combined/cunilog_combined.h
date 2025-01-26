@@ -14911,10 +14911,10 @@ typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 */
 enum cunilogRelLogPath
 {
-		cunilogLogPath_isAbsolute,
-		cunilogLogPath_relativeToExecutable,
-		cunilogLogPath_relativeToCurrentDir,
-		cunilogLogPath_relativeToHomeDir
+		cunilogLogPath_isAbsolute
+	,	cunilogLogPath_relativeToExecutable
+	,	cunilogLogPath_relativeToCurrentDir
+	,	cunilogLogPath_relativeToHomeDir
 	// Do not add anything below this line.
 	,	cunilogLogPath_AmountEnumValues						// Used for sanity checks.
 	// Do not add anything below unilogRotationAmountEnumValues.
@@ -15763,7 +15763,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 				relLogPath,								\
 				type)									\
 				InitSCUNILOGTARGETex	(				\
-					(put)								\
+					(put),								\
 					(szLogPath), (lenLogPath),			\
 					(szAppName), (lenAppName),			\
 					(relLogPath),						\

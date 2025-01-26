@@ -16289,7 +16289,15 @@ static bool ObtainLogPathFromArgument	(
 	} else
 	{	// The path is relative. It cannot be absolute.
 		if (cunilogLogPath_isAbsolute == relLogPath)
+		{
+			#ifndef CUNILOG_BUILD_TEST_FNCTS
+				ubf_assert_msg	(
+					false,
+					"szLogPath cannot be relative or NULL if cunilogLogPath_isAbsolute is given"
+								);
+			#endif
 			return false;
+		}
 		SMEMBUF	t	= SMEMBUF_INITIALISER;
 		size_t	lp	= ObtainRelativeLogPathBase (&t, relLogPath);
 		ln = lp + len;
@@ -16887,6 +16895,8 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	ubf_assert_non_NULL (put);
 	ubf_assert (0 <= relLogPath);
 	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+	ubf_assert (0 <= type);
+	ubf_assert (cunilogTypeAmountEnumValues > type);
 
 	size_t			lnLogPath		= (size_t) -1 != lenLogPath	? lenLogPath : strlen (szLogPath);
 	size_t			lnAppName		= (size_t) -1 != lenAppName	? lenAppName : strlen (szAppName);
@@ -16898,7 +16908,15 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	put->unilogNewLine		= unilogNewLine;
 	char *szLP = CreateLogPathInSUNILOGTARGET (put, szLogPath, lnLogPath, relLogPath);
 	if (NULL == szLP && cunilogLogPath_isAbsolute == relLogPath)
+	{
+		#ifndef CUNILOG_BUILD_TEST_FNCTS
+			ubf_assert_msg	(
+				false,
+				"szLogPath cannot be relative or NULL if cunilogLogPath_isAbsolute is given"
+							);
+		#endif
 		return NULL;
+	}
 	CreateAppNameInSUNILOGTARGET (put, szAppName, lnAppName);
 	prepareProcessors (put, cuProcessorList, nProcessors);
 	return initCommonMembersAndPrepareSCUNILOGTARGET (put) ? put : NULL;
@@ -16919,6 +16937,8 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 		ubf_assert_non_NULL (put);
 		ubf_assert (0 <= relLogPath);
 		ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+		ubf_assert (0 <= type);
+		ubf_assert (cunilogTypeAmountEnumValues > type);
 
 		SCUNILOGTARGET	*prt;
 
@@ -16956,6 +16976,8 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 {
 	ubf_assert (0 <= relLogPath);
 	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+	ubf_assert (0 <= type);
+	ubf_assert (cunilogTypeAmountEnumValues > type);
 
 	SCUNILOGTARGET	*pu;							// Return value.
 	size_t			lnUNILOGTARGET	= ALIGNED_SIZE (sizeof (SCUNILOGTARGET), CUNILOG_DEFAULT_ALIGNMENT);
@@ -16978,7 +17000,15 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	} else
 	{	// No log path given.
 		if (cunilogLogPath_isAbsolute == relLogPath)
+		{
+			#ifndef CUNILOG_BUILD_TEST_FNCTS
+				ubf_assert_msg	(
+					false,
+					"szLogPath cannot be relative or NULL if cunilogLogPath_isAbsolute is given"
+								);
+			#endif
 			return NULL;
+		}
 		lnLogPath = ObtainRelativeLogPathBase (&logpath, relLogPath);
 		ubf_assert_non_0 (lnLogPath);
 		szLogPath = logpath.buf.pch;
@@ -17054,6 +17084,8 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 {
 	ubf_assert (0 <= relLogPath);
 	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+	ubf_assert (0 <= type);
+	ubf_assert (cunilogTypeAmountEnumValues > type);
 
 	SCUNILOGTARGET	*pu;
 
@@ -17101,6 +17133,8 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 {
 	ubf_assert (0 <= relLogPath);
 	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+	ubf_assert (0 <= type);
+	ubf_assert (cunilogTypeAmountEnumValues > type);
 
 	return InitSCUNILOGTARGETex	(
 		pSCUNILOGTARGETstatic, szLogPath, lenLogPath, szApplication, lenApplication, relLogPath,
@@ -17120,6 +17154,8 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 {
 	ubf_assert (0 <= relLogPath);
 	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+	ubf_assert (0 <= type);
+	ubf_assert (cunilogTypeAmountEnumValues > type);
 
 	return InitSCUNILOGTARGETex	(
 				pSCUNILOGTARGETstatic,
@@ -20136,6 +20172,18 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (6 == pt->mbAppName.size);
 		ubf_assert (!memcmp (pt->mbAppName.buf.pch, "Unilog", pt->mbAppName.size));
 		DoneSCUNILOGTARGET (pt);
+
+		// Should fail.
+		SCUNILOGTARGET	cut;
+		SCUNILOGTARGET	*put;
+		put = InitSCUNILOGTARGET	(
+				&cut,
+				"temp",		USE_STRLEN,
+				"OurApp",	USE_STRLEN,
+				cunilogLogPath_isAbsolute,
+				cunilogMultiThreaded
+									);
+		ubf_assert_NULL (put);
 
 		/*
 			Application name from executable name.
