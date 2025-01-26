@@ -368,10 +368,16 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 			if (canBenefitFromSpincount (put))
 			{
 				#ifdef OS_IS_WINDOWS_XP
-					InitializeCriticalSectionAndSpinCount (&put->cl.cs, 100);
-					InitializeCriticalSectionAndSpinCount (&put->bs.cs, 100);
+					InitializeCriticalSectionAndSpinCount	(
+						&put->cl.cs,
+						CUNILOG_WINDOWS_CRITICAL_SECTION_SPIN_COUNT
+															);
 				#else
-					InitializeCriticalSectionEx (&put->cl.cs, 100, CRITICAL_SECTION_NO_DEBUG_INFO);
+					InitializeCriticalSectionEx	(
+						&put->cl.cs,
+						CUNILOG_WINDOWS_CRITICAL_SECTION_SPIN_COUNT,
+						CRITICAL_SECTION_NO_DEBUG_INFO
+												);
 				#endif
 			} else
 			{
@@ -666,7 +672,7 @@ static size_t ObtainRelativeLogPathBase (SMEMBUF *mb, enCunilogRelLogPath relLog
 	return 0;
 }
 
-static void ObtainLogPathFromArgument	(
+static bool ObtainLogPathFromArgument	(
 				SMEMBUF						*smlp,
 				size_t						*lnlp,
 				const char					*szLogPath,
@@ -697,7 +703,9 @@ static void ObtainLogPathFromArgument	(
 			SMEMBUFfromStr (&b, szLogPath, ln);
 		}
 	} else
-	{	// The path is relative.
+	{	// The path is relative. It cannot be absolute.
+		if (cunilogLogPath_isAbsolute == relLogPath)
+			return false;
 		SMEMBUF	t	= SMEMBUF_INITIALISER;
 		size_t	lp	= ObtainRelativeLogPathBase (&t, relLogPath);
 		ln = lp + len;
@@ -724,6 +732,7 @@ static void ObtainLogPathFromArgument	(
 	copySMEMBUFsiz (smlp, &b, ln);
 	doneSMEMBUF (&b);
 	*lnlp = ln;													// The length of the destination.
+	return true;
 }
 
 char *CreateLogPathInSUNILOGTARGET	(
@@ -736,11 +745,23 @@ char *CreateLogPathInSUNILOGTARGET	(
 	if (szLogPath)
 	{
 		ubf_assert (0 != len);
-		ObtainLogPathFromArgument (&put->mbLogPath, &put->lnLogPath, szLogPath, len, relLogPath);
+
+		bool b;
+		b = ObtainLogPathFromArgument	(
+				&put->mbLogPath, &put->lnLogPath, szLogPath, len, relLogPath
+										);
+		// The function only fails if szLogPath is NULL or relative but cunilogLogPath_isAbsolute
+		//	has been given.
+		if (!b)
+			return NULL;
 	} else
 	{
 		// If szLogPath is NULL its length should be 0.
 		ubf_assert_0 (len);
+
+		// Cannot be absolute.
+		if (cunilogLogPath_isAbsolute == relLogPath)
+			return NULL;
 
 		// No path given. We use the path specified with relLogPath.
 		put->lnLogPath = ObtainRelativeLogPathBase (&put->mbLogPath, relLogPath);
@@ -1280,6 +1301,8 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 )
 {
 	ubf_assert_non_NULL (put);
+	ubf_assert (0 <= relLogPath);
+	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
 
 	size_t			lnLogPath		= (size_t) -1 != lenLogPath	? lenLogPath : strlen (szLogPath);
 	size_t			lnAppName		= (size_t) -1 != lenAppName	? lenAppName : strlen (szAppName);
@@ -1289,7 +1312,9 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	put->culogType			= unilogTypeFromArgument (type);
 	put->unilogEvtTSformat	= unilogTSformat;
 	put->unilogNewLine		= unilogNewLine;
-	CreateLogPathInSUNILOGTARGET (put, szLogPath, lnLogPath, relLogPath);
+	char *szLP = CreateLogPathInSUNILOGTARGET (put, szLogPath, lnLogPath, relLogPath);
+	if (NULL == szLP && cunilogLogPath_isAbsolute == relLogPath)
+		return NULL;
 	CreateAppNameInSUNILOGTARGET (put, szAppName, lnAppName);
 	prepareProcessors (put, cuProcessorList, nProcessors);
 	return initCommonMembersAndPrepareSCUNILOGTARGET (put) ? put : NULL;
@@ -1307,6 +1332,10 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 		, enum cunilogtype			type
 	)
 	{
+		ubf_assert_non_NULL (put);
+		ubf_assert (0 <= relLogPath);
+		ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+
 		SCUNILOGTARGET	*prt;
 
 		prt = InitSCUNILOGTARGETex	(
@@ -1341,6 +1370,9 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 {
+	ubf_assert (0 <= relLogPath);
+	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+
 	SCUNILOGTARGET	*pu;							// Return value.
 	size_t			lnUNILOGTARGET	= ALIGNED_SIZE (sizeof (SCUNILOGTARGET), CUNILOG_DEFAULT_ALIGNMENT);
 	size_t			lnTotal			= lnUNILOGTARGET;
@@ -1361,6 +1393,8 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 		lnTotal += lnLP;
 	} else
 	{	// No log path given.
+		if (cunilogLogPath_isAbsolute == relLogPath)
+			return NULL;
 		lnLogPath = ObtainRelativeLogPathBase (&logpath, relLogPath);
 		ubf_assert_non_0 (lnLogPath);
 		szLogPath = logpath.buf.pch;
@@ -1434,6 +1468,9 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 {
+	ubf_assert (0 <= relLogPath);
+	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+
 	SCUNILOGTARGET	*pu;
 
 	if (put)
@@ -1478,6 +1515,9 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 {
+	ubf_assert (0 <= relLogPath);
+	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+
 	return InitSCUNILOGTARGETex	(
 		pSCUNILOGTARGETstatic, szLogPath, lenLogPath, szApplication, lenApplication, relLogPath,
 		type, postfix, cuProcessorList, nProcessors, unilogTSformat, unilogNewLine, rp
@@ -1494,6 +1534,9 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	, enum cunilogtype			type
 )
 {
+	ubf_assert (0 <= relLogPath);
+	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+
 	return InitSCUNILOGTARGETex	(
 				pSCUNILOGTARGETstatic,
 				szLogPath,		lenLogPath,
@@ -3531,7 +3574,13 @@ static bool cunilogProcessProcessor (SCUNILOGEVENT *pev, CUNILOG_PROCESSOR *cup)
 	cunilogIsTargetInitialised	(pev->pSCUNILOGTARGET);
 
 	cunilogUpdateCurrentValue (cup, pev);
-	if (thresholdReached (cup, pev) || cunilogHasRunAllProcessorsOnStartup (pev->pSCUNILOGTARGET))
+	if	(
+				!optCunProcHasOPT_CUNPROC_DISABLED (cup->uiOpts)
+			&&	(
+						thresholdReached (cup, pev)
+					||	cunilogHasRunAllProcessorsOnStartup (pev->pSCUNILOGTARGET)
+				)
+		)
 	{
 		pickAndRunProcessor [cup->task] (cup, pev);
 		// Tells the caller to carry on with the next processor.

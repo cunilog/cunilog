@@ -291,6 +291,8 @@ typedef struct cunilog_processor
 															//	on the heap and needs to be freed.
 #define OPT_CUNPROC_DATA_ALLOCATED		SINGLEBIT64	(3)		// The pData member has been allocated
 															//	on the heap and needs to be freed.
+#define OPT_CUNPROC_DISABLED			SINGLEBIT64 (4)		// The processor is disabled, i.e.
+															//	prevented from being processed.
 
 /*
 	Macros for some flags.
@@ -299,6 +301,10 @@ typedef struct cunilog_processor
 	((v) & OPT_CUNPROC_AT_STARTUP)
 #define optCunProcClrOPT_CUNPROC_AT_STARTUP(v)			\
 	((v) &= ~ OPT_CUNPROC_AT_STARTUP)
+#define optCunProcHasOPT_CUNPROC_DISABLED(v)			\
+	((v) & OPT_CUNPROC_DISABLED)
+#define optCunProcClrOPT_CUNPROC_DISABLED(v)			\
+	((v) &= ~ OPT_CUNPROC_DISABLED)
 
 /*
 	A pData structure for a unilogProcessWriteToLogFile or a unilogProcessFlushLogFile processor.
@@ -501,9 +507,13 @@ typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 */
 enum cunilogRelLogPath
 {
-	cunilogLogPath_relativeToExecutable,
-	cunilogLogPath_relativeToCurrentDir,
-	cunilogLogPath_relativeToHomeDir
+		cunilogLogPath_isAbsolute,
+		cunilogLogPath_relativeToExecutable,
+		cunilogLogPath_relativeToCurrentDir,
+		cunilogLogPath_relativeToHomeDir
+	// Do not add anything below this line.
+	,	cunilogLogPath_AmountEnumValues						// Used for sanity checks.
+	// Do not add anything below unilogRotationAmountEnumValues.
 };
 typedef enum cunilogRelLogPath enCunilogRelLogPath;
 
