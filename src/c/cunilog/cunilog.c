@@ -1313,6 +1313,14 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
 	ubf_assert (0 <= type);
 	ubf_assert (cunilogTypeAmountEnumValues > type);
+	ubf_assert (0 <= postfix);
+	ubf_assert (cunilogPostfixAmountEnumValues >= postfix);
+	ubf_assert (0 <= unilogTSformat);
+	ubf_assert (cunilogEvtTS_AmountEnumValues > unilogTSformat);
+	ubf_assert (0 <= unilogNewLine);
+	ubf_assert (cunilogNewLineAmountEnumValues > unilogNewLine);
+	ubf_assert (0 <= rp);
+	ubf_assert (cunilogRunProcessors_AmountEnumValues > rp);
 
 	size_t			lnLogPath		= (size_t) -1 != lenLogPath	? lenLogPath : strlen (szLogPath);
 	size_t			lnAppName		= (size_t) -1 != lenAppName	? lenAppName : strlen (szAppName);
@@ -1394,6 +1402,14 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
 	ubf_assert (0 <= type);
 	ubf_assert (cunilogTypeAmountEnumValues > type);
+	ubf_assert (0 <= postfix);
+	ubf_assert (cunilogPostfixAmountEnumValues >= postfix);
+	ubf_assert (0 <= unilogTSformat);
+	ubf_assert (cunilogEvtTS_AmountEnumValues > unilogTSformat);
+	ubf_assert (0 <= unilogNewLine);
+	ubf_assert (cunilogNewLineAmountEnumValues > unilogNewLine);
+	ubf_assert (0 <= rp);
+	ubf_assert (cunilogRunProcessors_AmountEnumValues > rp);
 
 	SCUNILOGTARGET	*pu;							// Return value.
 	size_t			lnUNILOGTARGET	= ALIGNED_SIZE (sizeof (SCUNILOGTARGET), CUNILOG_DEFAULT_ALIGNMENT);
@@ -1502,6 +1518,14 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
 	ubf_assert (0 <= type);
 	ubf_assert (cunilogTypeAmountEnumValues > type);
+	ubf_assert (0 <= postfix);
+	ubf_assert (cunilogPostfixAmountEnumValues >= postfix);
+	ubf_assert (0 <= unilogTSformat);
+	ubf_assert (cunilogEvtTS_AmountEnumValues > unilogTSformat);
+	ubf_assert (0 <= unilogNewLine);
+	ubf_assert (cunilogNewLineAmountEnumValues > unilogNewLine);
+	ubf_assert (0 <= rp);
+	ubf_assert (cunilogRunProcessors_AmountEnumValues > rp);
 
 	SCUNILOGTARGET	*pu;
 
@@ -1551,6 +1575,14 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
 	ubf_assert (0 <= type);
 	ubf_assert (cunilogTypeAmountEnumValues > type);
+	ubf_assert (0 <= postfix);
+	ubf_assert (cunilogPostfixAmountEnumValues >= postfix);
+	ubf_assert (0 <= unilogTSformat);
+	ubf_assert (cunilogEvtTS_AmountEnumValues > unilogTSformat);
+	ubf_assert (0 <= unilogNewLine);
+	ubf_assert (cunilogNewLineAmountEnumValues > unilogNewLine);
+	ubf_assert (0 <= rp);
+	ubf_assert (cunilogRunProcessors_AmountEnumValues > rp);
 
 	return InitSCUNILOGTARGETex	(
 		pSCUNILOGTARGETstatic, szLogPath, lenLogPath, szApplication, lenApplication, relLogPath,

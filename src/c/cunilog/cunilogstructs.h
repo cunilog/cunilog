@@ -194,7 +194,7 @@ enum cunilogtype
 	,	cunilogMultiProcesses
 	// Do not add anything below this line.
 	,	cunilogTypeAmountEnumValues								// Used for table sizes.
-	// Do not add anything below unilogTypeAmountEnumValues.
+	// Do not add anything below cunilogTypeAmountEnumValues.
 };
 
 enum cunilogpostfix
@@ -211,7 +211,7 @@ enum cunilogpostfix
 	,	cunilogPostfixYear
 	// Do not add anything below this line.
 	,	cunilogPostfixAmountEnumValues						// Used for table sizes.
-	// Do not add anything below unilogRotationAmountEnumValues.
+	// Do not add anything below cunilogPostfixAmountEnumValues.
 };
 
 /*
@@ -228,7 +228,7 @@ enum cunilogprocesstask
 	,	cunilogProcessCustomProcessor						// An external/custom processor.
 	// Do not add anything below this line.
 	,	cunilogProcessAmountEnumValues						// Used for table sizes.
-	// Do not add anything below unilogRotationAmountEnumValues.
+	// Do not add anything below cunilogProcessAmountEnumValues.
 };
 
 enum cunilogprocessfrequency
@@ -442,13 +442,16 @@ enum cunilogeventTSformat
 	,	cunilogEvtTS_ISO8601T_3spc							// "YYYY-MM-DDTHH:MI:SS.000+01:00   "
 	// Do not add anything below this line.
 	,	cunilogEvtTS_AmountEnumValues						// Used for table sizes.
-	// Do not add anything below unilogRotationAmountEnumValues.
+	// Do not add anything below cunilogEvtTS_AmountEnumValues.
 };
 
 enum cunilogRunProcessorsOnStartup
 {
-	cunilogRunProcessorsOnStartup,
-	cunilogDontRunProcessorsOnStartup
+		cunilogRunProcessorsOnStartup
+	,	cunilogDontRunProcessorsOnStartup
+	// Do not add anything below this line.
+	,	cunilogRunProcessors_AmountEnumValues				// Used for table sizes.
+	// Do not add anything below cunilogRunProcessors_AmountEnumValues.
 };
 typedef enum cunilogRunProcessorsOnStartup runProcessorsOnStartup;
 
