@@ -14695,6 +14695,8 @@ typedef struct cunilog_processor
 															//	on the heap and needs to be freed.
 #define OPT_CUNPROC_DATA_ALLOCATED		SINGLEBIT64	(3)		// The pData member has been allocated
 															//	on the heap and needs to be freed.
+#define OPT_CUNPROC_DISABLED			SINGLEBIT64 (4)		// The processor is disabled, i.e.
+															//	prevented from being processed.
 
 /*
 	Macros for some flags.
@@ -14703,6 +14705,10 @@ typedef struct cunilog_processor
 	((v) & OPT_CUNPROC_AT_STARTUP)
 #define optCunProcClrOPT_CUNPROC_AT_STARTUP(v)			\
 	((v) &= ~ OPT_CUNPROC_AT_STARTUP)
+#define optCunProcHasOPT_CUNPROC_DISABLED(v)			\
+	((v) & OPT_CUNPROC_DISABLED)
+#define optCunProcClrOPT_CUNPROC_DISABLED(v)			\
+	((v) &= ~ OPT_CUNPROC_DISABLED)
 
 /*
 	A pData structure for a unilogProcessWriteToLogFile or a unilogProcessFlushLogFile processor.
@@ -14905,9 +14911,13 @@ typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 */
 enum cunilogRelLogPath
 {
-	cunilogLogPath_relativeToExecutable,
-	cunilogLogPath_relativeToCurrentDir,
-	cunilogLogPath_relativeToHomeDir
+		cunilogLogPath_isAbsolute,
+		cunilogLogPath_relativeToExecutable,
+		cunilogLogPath_relativeToCurrentDir,
+		cunilogLogPath_relativeToHomeDir
+	// Do not add anything below this line.
+	,	cunilogLogPath_AmountEnumValues						// Used for sanity checks.
+	// Do not add anything below unilogRotationAmountEnumValues.
 };
 typedef enum cunilogRelLogPath enCunilogRelLogPath;
 
@@ -15519,6 +15529,11 @@ When		Who				What
 #define CUNILOG_DEFAULT_DBG_CHAR		'\x17'
 #endif
 
+// The spin count for the critical section on Windows.
+#ifndef CUNILOG_WINDOWS_CRITICAL_SECTION_SPIN_COUNT
+#define CUNILOG_WINDOWS_CRITICAL_SECTION_SPIN_COUNT		(5000)
+#endif
+
 // This seems to make sense.
 #define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
 
@@ -15672,7 +15687,8 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 						cunilogLogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
 						The value of this parameter is ignored if szLogPath is an absolute
-						path.
+						path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
+						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
@@ -15798,7 +15814,8 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 						cunilogLogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
 						The value of this parameter is ignored if szLogPath is an absolute
-						path.
+						path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
+						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
@@ -15935,7 +15952,8 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 						cunilogLogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
 						The value of this parameter is ignored if szLogPath is an absolute
-						path.
+						path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
+						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
@@ -16024,7 +16042,8 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 						cunilogLogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
 						The value of this parameter is ignored if szLogPath is an absolute
-						path.
+						path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
+						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
