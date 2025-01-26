@@ -1291,6 +1291,33 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 	return prepareSCUNILOGTARGETforLogging	(put);
 }
 
+#ifdef DEBUG
+	void assertSaneParametersSCUNILOGTARGET	(
+	  enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
+	, enum cunilogpostfix		postfix
+	, enum cunilogeventTSformat	unilogTSformat		// The format of an event timestamp.
+	, enum enLineEndings		unilogNewLine
+	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
+											)
+	{
+		ubf_assert (0 <= relLogPath);
+		ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+		ubf_assert (0 <= type);
+		ubf_assert (cunilogTypeAmountEnumValues > type);
+		ubf_assert (0 <= postfix);
+		ubf_assert (cunilogPostfixAmountEnumValues >= postfix);
+		ubf_assert (0 <= unilogTSformat);
+		ubf_assert (cunilogEvtTS_AmountEnumValues > unilogTSformat);
+		ubf_assert (0 <= unilogNewLine);
+		ubf_assert (cunilogNewLineAmountEnumValues > unilogNewLine);
+		ubf_assert (0 <= rp);
+		ubf_assert (cunilogRunProcessors_AmountEnumValues > rp);
+	}
+#else
+	#define assertSaneParametersSCUNILOGTARGET(rP, tpy, psf, ts, nl, rp)
+#endif
+
 SCUNILOGTARGET *InitSCUNILOGTARGETex
 (
 	  SCUNILOGTARGET			*put				// Must not be NULL.
@@ -1309,18 +1336,9 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 )
 {
 	ubf_assert_non_NULL (put);
-	ubf_assert (0 <= relLogPath);
-	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
-	ubf_assert (0 <= type);
-	ubf_assert (cunilogTypeAmountEnumValues > type);
-	ubf_assert (0 <= postfix);
-	ubf_assert (cunilogPostfixAmountEnumValues >= postfix);
-	ubf_assert (0 <= unilogTSformat);
-	ubf_assert (cunilogEvtTS_AmountEnumValues > unilogTSformat);
-	ubf_assert (0 <= unilogNewLine);
-	ubf_assert (cunilogNewLineAmountEnumValues > unilogNewLine);
-	ubf_assert (0 <= rp);
-	ubf_assert (cunilogRunProcessors_AmountEnumValues > rp);
+	assertSaneParametersSCUNILOGTARGET	(
+		relLogPath, type, postfix, unilogTSformat, unilogNewLine, rp
+										);
 
 	size_t			lnLogPath		= (size_t) -1 != lenLogPath	? lenLogPath : strlen (szLogPath);
 	size_t			lnAppName		= (size_t) -1 != lenAppName	? lenAppName : strlen (szAppName);
@@ -1398,18 +1416,9 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 {
-	ubf_assert (0 <= relLogPath);
-	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
-	ubf_assert (0 <= type);
-	ubf_assert (cunilogTypeAmountEnumValues > type);
-	ubf_assert (0 <= postfix);
-	ubf_assert (cunilogPostfixAmountEnumValues >= postfix);
-	ubf_assert (0 <= unilogTSformat);
-	ubf_assert (cunilogEvtTS_AmountEnumValues > unilogTSformat);
-	ubf_assert (0 <= unilogNewLine);
-	ubf_assert (cunilogNewLineAmountEnumValues > unilogNewLine);
-	ubf_assert (0 <= rp);
-	ubf_assert (cunilogRunProcessors_AmountEnumValues > rp);
+	assertSaneParametersSCUNILOGTARGET	(
+		relLogPath, type, postfix, unilogTSformat, unilogNewLine, rp
+										);
 
 	SCUNILOGTARGET	*pu;							// Return value.
 	size_t			lnUNILOGTARGET	= ALIGNED_SIZE (sizeof (SCUNILOGTARGET), CUNILOG_DEFAULT_ALIGNMENT);
@@ -1514,18 +1523,9 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 {
-	ubf_assert (0 <= relLogPath);
-	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
-	ubf_assert (0 <= type);
-	ubf_assert (cunilogTypeAmountEnumValues > type);
-	ubf_assert (0 <= postfix);
-	ubf_assert (cunilogPostfixAmountEnumValues >= postfix);
-	ubf_assert (0 <= unilogTSformat);
-	ubf_assert (cunilogEvtTS_AmountEnumValues > unilogTSformat);
-	ubf_assert (0 <= unilogNewLine);
-	ubf_assert (cunilogNewLineAmountEnumValues > unilogNewLine);
-	ubf_assert (0 <= rp);
-	ubf_assert (cunilogRunProcessors_AmountEnumValues > rp);
+	assertSaneParametersSCUNILOGTARGET	(
+		relLogPath, type, postfix, unilogTSformat, unilogNewLine, rp
+										);
 
 	SCUNILOGTARGET	*pu;
 
@@ -1571,18 +1571,9 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 {
-	ubf_assert (0 <= relLogPath);
-	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
-	ubf_assert (0 <= type);
-	ubf_assert (cunilogTypeAmountEnumValues > type);
-	ubf_assert (0 <= postfix);
-	ubf_assert (cunilogPostfixAmountEnumValues >= postfix);
-	ubf_assert (0 <= unilogTSformat);
-	ubf_assert (cunilogEvtTS_AmountEnumValues > unilogTSformat);
-	ubf_assert (0 <= unilogNewLine);
-	ubf_assert (cunilogNewLineAmountEnumValues > unilogNewLine);
-	ubf_assert (0 <= rp);
-	ubf_assert (cunilogRunProcessors_AmountEnumValues > rp);
+	assertSaneParametersSCUNILOGTARGET	(
+		relLogPath, type, postfix, unilogTSformat, unilogNewLine, rp
+										);
 
 	return InitSCUNILOGTARGETex	(
 		pSCUNILOGTARGETstatic, szLogPath, lenLogPath, szApplication, lenApplication, relLogPath,
