@@ -482,6 +482,10 @@ typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 	These are the possible enumeration values of the parameter relLogPath of the
 	SCUNILOGTARGET initialisation functions.
 
+	cunilogLogPath_isAbsolute
+
+	The parameter szLogPath cannot be NULL, and it cannot be a relative path.
+
 
 	cunilogLogPath_relativeToExecutable
 	
