@@ -111,7 +111,8 @@ Here's the signature of the InitSUNILOGTARGETstatic () function:
 			cunilogLogPath_relativeToHomeDir (the user's home directory).
 			See cunilogstructs.h for details.
 			The value of this parameter is ignored if szLogPath is an absolute
-			path.
+			path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
+			relative path or NULL, the function fails.
 
 	type		The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 			If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
