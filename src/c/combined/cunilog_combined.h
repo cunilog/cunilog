@@ -15075,6 +15075,9 @@ typedef struct scunilogtarget
 // The separate logging thread, if one exists, is paused.
 #define CUNILOGTARGET_PAUSED					SINGLEBIT64 (12)
 
+// The echo processor is skipped.
+#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (13)
+
 // Debug versions ensure that one of the initialisation function has been called.
 #ifdef DEBUG
 	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (13)
@@ -15162,6 +15165,13 @@ typedef struct scunilogtarget
 	((pt)->uiOpts &= ~ CUNILOGTARGET_PAUSED)
 #define cunilogSetPaused(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_PAUSED)
+
+#define cunilogIsNoEcho(pt)								\
+	((pt)->uiOpts & CUNILOGTARGET_NO_ECHO)
+#define cunilogClrNoEcho(pt)							\
+	((pt)->uiOpts &= ~ CUNILOGTARGET_NO_ECHO)
+#define cunilogSetNoEcho(pt)							\
+	((pt)->uiOpts |= CUNILOGTARGET_NO_ECHO)
 
 
 

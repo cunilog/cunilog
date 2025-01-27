@@ -18135,6 +18135,9 @@ static void cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
 
+	if (cunilogIsNoEcho (pev->pSCUNILOGTARGET))
+		return;
+
 	// The actual task of this processor: Echo the event line.
 	//	Note that we can rely on the following conditions here:
 	//		- The line to output is NUL-terminated.
