@@ -671,7 +671,7 @@ typedef struct scunilogtarget
 // The separate logging thread, if one exists, is paused.
 #define CUNILOGTARGET_PAUSED					SINGLEBIT64 (12)
 
-// Debug versions ensure that one of the initialisation function has been called.
+// Debug versions ensure that one of the initialisation functions has been called.
 #ifdef DEBUG
 	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (13)
 	#define cunilogSetTargetInitialised(pt)				\

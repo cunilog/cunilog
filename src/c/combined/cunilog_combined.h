@@ -6510,6 +6510,26 @@ When		Who				What
 #endif
 
 #endif														// Of #ifdef U_DBGCOUNTANDTRACK_H.
+/****************************************************************************************
+
+	File:		check_utf8.h
+	Why:		Checks for valid UTF-8
+	OS:			C99
+	Author:		Thomas
+	Created:	2025-01-27
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-01-27	Thomas			This history created.
+							Acquired from https://github.com/yasuoka/check_utf8 .
+							Thanks to YASUOKA Masahiko.
+							Function renamed to c_check_utf8 ().
+
+****************************************************************************************/
+
 /*
  * Copyright (c) 2024 YASUOKA Masahiko <yasuoka@yasuoka.net>
  *
@@ -6540,7 +6560,7 @@ When		Who				What
 	extern "C"	{
 #endif
 
-bool check_utf8(const char *str, size_t len)
+bool c_check_utf8(const char *str, size_t len)
 ;
 
 #ifdef	__cplusplus
@@ -15075,7 +15095,7 @@ typedef struct scunilogtarget
 // The separate logging thread, if one exists, is paused.
 #define CUNILOGTARGET_PAUSED					SINGLEBIT64 (12)
 
-// Debug versions ensure that one of the initialisation function has been called.
+// Debug versions ensure that one of the initialisation functions has been called.
 #ifdef DEBUG
 	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (13)
 	#define cunilogSetTargetInitialised(pt)				\
@@ -15163,7 +15183,7 @@ typedef struct scunilogtarget
 	((pt)->uiOpts & CUNILOGTARGET_PAUSED)
 #define cunilogClrPaused(pt)							\
 	((pt)->uiOpts &= ~ CUNILOGTARGET_PAUSED)
-#define cunilogSetPaused(pt)					\
+#define cunilogSetPaused(pt)							\
 	((pt)->uiOpts |= CUNILOGTARGET_PAUSED)
 
 #define cunilogIsNoEcho(pt)								\
@@ -16595,7 +16615,9 @@ bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
 bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
 bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
 bool logHexDump				(SCUNILOGTARGET *put, const void *pBlob, size_t size);
+bool logHexDumpq			(SCUNILOGTARGET *put, const void *pBlob, size_t size);
 bool logHexOrText			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
+bool logHexOrTextq			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
 bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
 
 #define logTextU8tsevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))

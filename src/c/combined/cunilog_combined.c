@@ -10371,6 +10371,26 @@ When		Who				What
 		ubf_assert (false);
 	}
 #endif
+/****************************************************************************************
+
+	File:		check_utf8.c
+	Why:		Checks for valid UTF-8
+	OS:			C99
+	Author:		Thomas
+	Created:	2025-01-27
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-01-27	Thomas			This history created.
+							Acquired from https://github.com/yasuoka/check_utf8 .
+							Thanks to YASUOKA Masahiko.
+							Function renamed to c_check_utf8 ().
+
+****************************************************************************************/
+
 /*
  * Copyright (c) 2024 YASUOKA Masahiko <yasuoka@yasuoka.net>
  *
@@ -10395,7 +10415,7 @@ When		Who				What
 #define USE_STRLEN						((size_t) -1)
 #endif
 
-bool check_utf8(const char *str, size_t len)
+bool c_check_utf8(const char *str, size_t len)
 {
 	int		 i, bytes;
 	unsigned int	 oct, ch;
@@ -19941,6 +19961,25 @@ bool logHexDump				(SCUNILOGTARGET *put, const void *pBlob, size_t size)
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
+bool logHexDumpq			(SCUNILOGTARGET *put, const void *pBlob, size_t size)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Data	(
+							put, cunilogEvtSeverityNone, pBlob,
+							size, NULL, 0
+													);
+	if (pev)
+	{
+		cunilogSetEventNoRotation (pev);
+		return cunilogProcessOrQueueEvent (pev);
+	}
+	return false;
+}
+
 bool logHexOrText			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt)
 {
 	ubf_assert_non_NULL (put);
@@ -19954,6 +19993,19 @@ bool logHexOrText			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexO
 	return logHexDump (put, szHexOrTxt, lenHexOrTxt);
 }
 
+bool logHexOrTextq			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	if (str_has_only_printable_ASCII (szHexOrTxt, lenHexOrTxt))
+		return logTextU8ql (put, szHexOrTxt, lenHexOrTxt);
+
+	return logHexDumpq (put, szHexOrTxt, lenHexOrTxt);
+}
+
 bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8)
 {
 	ubf_assert_non_NULL (put);
@@ -19961,7 +20013,7 @@ bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t len
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	if (check_utf8 (szHexOrTxtU8, lenHexOrTxtU8))
+	if (c_check_utf8 (szHexOrTxtU8, lenHexOrTxtU8))
 		return logTextU8l (put, szHexOrTxtU8, lenHexOrTxtU8);
 
 	return logHexDump (put, szHexOrTxtU8, lenHexOrTxtU8);

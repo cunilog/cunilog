@@ -62,7 +62,18 @@ macros/functions.
 Example for using the internal static structure:
 ```C
 // Application start
-InitSUNILOGTARGETstatic (...);
+
+SCUNILOGTARGET *put = InitSUNILOGTARGETstatic	(
+			"logs", 4,
+			"MyApp", USE_STRLEN,
+			cunilogLogPath_relativeToHomeDir,
+			cunilogMultiThreadedSeparateLoggingThread
+						);
+if (NULL == put)
+{
+	// InitSUNILOGTARGETstatic () failed.
+	exit (EXIT_FAILURE);
+}
 
 // Use the log...static () family of functions and macros for logging.
 logTextU8_static ("A simple line to go in the logfile.");
@@ -70,7 +81,7 @@ logTextU8l_static ("Another line.", 13);
 logTextU8l_static ("And another one.", USE_STRLEN);
 
 // Just before the application exists shut down logging and deallocate its resources.
-ShutdownSCUNILOGTARGETstatic ();
+ShutdownSCUNILOGTARGETstatic ();		// Blocks until the queue is empty.
 DoneSUNILOGTARGETstatic ();
 ```
 

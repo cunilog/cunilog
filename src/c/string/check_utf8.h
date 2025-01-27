@@ -1,3 +1,23 @@
+/****************************************************************************************
+
+	File:		check_utf8.h
+	Why:		Checks for valid UTF-8
+	OS:			C99
+	Author:		Thomas
+	Created:	2025-01-27
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-01-27	Thomas			This history created.
+							Acquired from https://github.com/yasuoka/check_utf8 .
+							Thanks to YASUOKA Masahiko.
+							Function renamed to c_check_utf8 ().
+
+****************************************************************************************/
+
 /*
  * Copyright (c) 2024 YASUOKA Masahiko <yasuoka@yasuoka.net>
  *
@@ -28,7 +48,7 @@
 	extern "C"	{
 #endif
 
-bool check_utf8(const char *str, size_t len)
+bool c_check_utf8(const char *str, size_t len)
 ;
 
 #ifdef	__cplusplus
