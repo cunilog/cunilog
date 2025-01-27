@@ -79,6 +79,7 @@ HEADERS += \
     ../../src/c/datetime/timespecfncts.h \
     ../../src/c/datetime/ubf_date_and_time.h \
     ../../src/c/datetime/ubf_times.h \
+    ../../src/c/dbg/dbgcountandtrack.h \
     ../../src/c/dbg/ubfdebug.h \
     ../../src/c/mem/VectorC.h \
     ../../src/c/mem/bulkmalloc.h \
@@ -91,6 +92,7 @@ HEADERS += \
     ../../src/c/pre/externC.h \
     ../../src/c/pre/platform.h \
     ../../src/c/pre/unref.h \
+    ../../src/c/string/check_utf8.h \
     ../../src/c/string/strcustomfmt.h \
     ../../src/c/string/strfilesys.h \
     ../../src/c/string/strhex.h \
@@ -126,12 +128,14 @@ SOURCES += \
     ../../src/c/datetime/timespecfncts.c \
     ../../src/c/datetime/ubf_date_and_time.c \
     ../../src/c/datetime/ubf_times.c \
+    ../../src/c/dbg/dbgcountandtrack.c \
     ../../src/c/dbg/ubfdebug.c \
     ../../src/c/mem/VectorC.c \
     ../../src/c/mem/bulkmalloc.c \
     ../../src/c/mem/membuf.c \
     ../../src/c/mem/memstrstr.c \
     ../../src/c/mem/ubfmem.c \
+    ../../src/c/string/check_utf8.c \
     ../../src/c/string/strcustomfmt.c \
     ../../src/c/string/strfilesys.c \
     ../../src/c/string/strhex.c \

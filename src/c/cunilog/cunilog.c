@@ -4005,8 +4005,24 @@ bool logTextU8sevl			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccTe
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	SCUNILOGEVENT *pl = CreateSCUNILOGEVENT_Text (put, sev, ccText, len);
-	return cunilogProcessOrQueueEvent (pl);
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Text (put, sev, ccText, len);
+	return pev && cunilogProcessOrQueueEvent (pev);
+}
+
+bool logTextU8sevlq			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Text (put, sev, ccText, len);
+	if (pev)
+	{
+		cunilogSetEventNoRotation (pev);
+		return cunilogProcessOrQueueEvent (pev);
+	}
+	return false;
 }
 
 bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len)
@@ -4027,6 +4043,11 @@ bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cw
 bool logTextU8sev			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText)
 {
 	return logTextU8sevl (put, sev, ccText, USE_STRLEN);
+}
+
+bool logTextU8sevq			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText)
+{
+	return logTextU8sevlq (put, sev, ccText, USE_STRLEN);
 }
 
 bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText)
@@ -4054,7 +4075,7 @@ bool logTextU8l				(SCUNILOGTARGET *put, const char *ccText, size_t len)
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
-bool logTextU8ql			(SCUNILOGTARGET *put, const char *ccText, size_t len)
+bool logTextU8lq			(SCUNILOGTARGET *put, const char *ccText, size_t len)
 {
 	ubf_assert_non_NULL (put);
 
@@ -4091,7 +4112,7 @@ bool logTextU8				(SCUNILOGTARGET *put, const char *ccText)
 
 bool logTextU8q				(SCUNILOGTARGET *put, const char *ccText)
 {
-	return logTextU8ql (put, ccText, USE_STRLEN);
+	return logTextU8lq (put, ccText, USE_STRLEN);
 }
 
 bool logTextW				(SCUNILOGTARGET *put, const wchar_t *cwText)
@@ -4156,7 +4177,7 @@ bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 		vsnprintf (ob, l + 1, fmt, ap);
 		va_end (ap);
 
-		bool b = logTextU8ql (put, ob, l);
+		bool b = logTextU8lq (put, ob, l);
 		ubf_free (ob);
 		return b;
 	}
@@ -4218,7 +4239,7 @@ bool logTextU8sqfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 		vsnprintf (ob, l + 1, fmt, ap);
 		va_end (ap);
 
-		bool b = logTextU8ql (put, ob, l);
+		bool b = logTextU8lq (put, ob, l);
 		if (ob != cb) ubf_free (ob);
 		return b;
 	}
@@ -4397,7 +4418,7 @@ bool logHexOrTextq			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHex
 		return false;
 
 	if (str_has_only_printable_ASCII (szHexOrTxt, lenHexOrTxt))
-		return logTextU8ql (put, szHexOrTxt, lenHexOrTxt);
+		return logTextU8lq (put, szHexOrTxt, lenHexOrTxt);
 
 	return logHexDumpq (put, szHexOrTxt, lenHexOrTxt);
 }

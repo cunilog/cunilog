@@ -1161,11 +1161,13 @@ bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 	on the SCUNILOGTARGET structure put points to.
 */
 bool logTextU8sevl			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len);
+bool logTextU8sevlq			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len);
 bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len);
 bool logTextU8sev			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText);
+bool logTextU8sevq			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText);
 bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText);
 bool logTextU8l				(SCUNILOGTARGET *put, const char *ccText, size_t len);
-bool logTextU8ql			(SCUNILOGTARGET *put, const char *ccText, size_t len);
+bool logTextU8lq			(SCUNILOGTARGET *put, const char *ccText, size_t len);
 bool logTextWl				(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len);
 bool logTextU8				(SCUNILOGTARGET *put, const char *ccText);
 bool logTextU8q				(SCUNILOGTARGET *put, const char *ccText);
@@ -1186,14 +1188,16 @@ bool logHexOrTextq			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHex
 bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
 
 #define logTextU8tsevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
+#define logTextU8tsevlq_static(v, t, l)	logTextU8sevlq		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextWsevl_static(v, t, l)	logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextU8sev_static(v, t)		logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
+#define logTextU8sevq_static(v, t)		logTextU8sevq		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
 #define logTextWsev_static(v, t)		logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
 #define logTextU8l_static(t, l)			logTextU8l			(pSCUNILOGTARGETstatic, (t), (l))
-#define logTextU8ql_static(t, l)		logTextU8ql			(pSCUNILOGTARGETstatic, (t), (l))
+#define logTextU8lq_static(t, l)		logTextU8lq			(pSCUNILOGTARGETstatic, (t), (l))
 #define logTextWl_static(t, l)			logTextWl			(pSCUNILOGTARGETstatic, (t), (l))
 #define logTextU8_static(t)				logTextU8l			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
-#define logTextU8q_static(t)			logTextU8ql			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
+#define logTextU8q_static(t)			logTextU8lq			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
 #define logTextW_static(t)				logTextW			(pSCUNILOGTARGETstatic, (t));
 #define logTextU8fmt_static(...)		logTextU8fmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
 #define logTextU8sfmt_static(...)		logTextU8sfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
