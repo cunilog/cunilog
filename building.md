@@ -17,7 +17,9 @@ To build the software as part of your application, you got two choices:
 	if you either intend to contribute to Cunilog's development or intend to
 	change the code for yourself only. It's a little bit more effort to add
 	every single file at first but it makes life much easier when applying code
-	changes. Updates might require files to be removed or added.
+	changes. Updates might require files to be removed or added. The list with the files to add to your project can be found in the file __SingleFiles.txt__ in the __scripts__ directory. Alternatively you can follow these instructions:
+  - Add all files from the folders __cunilog__, __datetime__, __dbg__, __extern__, __mem__, __pre__, and __string__.
+  - Add all files from the folder __OS__ and its subfolders, which are __Apple__, __POSIX__, and __Windows__.
 
 ## Android
 
@@ -33,7 +35,8 @@ So far, Cunilog neither builds nor works on Linux. Stay tuned.
 
 Apart from the correct character set there's nothing special to consider for Windows. Either include the combined source code files or add every single file to your project.
 
-Cunilog can only be built with __Character Set__ set to __Use Unicode Character Set__. In Visual Studio, this can be found under __Project__, __Properties__, __Configuration Properties__, then __Advanced__. If your application needs to be built differently, include Cunilog as a static library.
+On Windows, Cunilog requires to be built with __Character Set__ set to __Use Unicode Character Set__. This means it can only be compiled as part of your application if your application is compiled with the same character set. Note that __Unicode Character Set__ on Windows means UTF-16, not UTF-8, which is fine because Cunilog converts all strings/texts to UTF-16 before it calls any Windows API, and it converts strings/texts coming back from Windows APIs to UTF-8 before returning them to the caller.
+In Visual Studio, the character set an application is built with can be found under __Project__, __Properties__, __Configuration Properties__, then __Advanced__. If your application needs to be built differently, include Cunilog as a static library.
 
 ### Building Cunilog as a Windows static library
 
