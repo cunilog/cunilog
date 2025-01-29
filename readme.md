@@ -12,7 +12,7 @@ While most of the single source code files/units in this module have been in use
 and tested over many years in production environments, some of the files/units
 are relatively new and still not fully tested.
 
-Until this task is completed, use at your own risk!
+Until this task is finished, use at your own risk!
 
 While the module is being tested, interfaces might also still change as long as ideal versions haven't been worked out yet.
 
