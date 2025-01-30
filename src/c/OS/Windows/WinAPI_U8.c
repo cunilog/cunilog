@@ -97,9 +97,23 @@ const char	ccLongFileNamePrefix [] = "\\\\?\\";				// The ASCII/UTF-8 version.
 #endif
 
 #ifdef DEBUG
+	int reqUTF8sizel (const WCHAR *wcU16, int lenU16)
+	{
+		return WideCharToMultiByte (CP_UTF8, 0, wcU16, lenU16, NULL, 0, NULL, NULL);
+	}
+#endif
+
+#ifdef DEBUG
 	int UTF8_from_WinU16 (char *chU8, int sizeU8, const WCHAR *wcU16)
 	{
 		return WideCharToMultiByte (CP_UTF8, 0, wcU16, -1, chU8, sizeU8, NULL, NULL);
+	}
+#endif
+
+#ifdef DEBUG
+	int UTF8_from_WinU16l (char *chU8, int sizeU8, const WCHAR *wcU16, int lenU16)
+	{
+		return WideCharToMultiByte (CP_UTF8, 0, wcU16, lenU16, chU8, sizeU8, NULL, NULL);
 	}
 #endif
 

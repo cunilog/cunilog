@@ -294,9 +294,23 @@ const char	ccLongFileNamePrefix [] = "\\\\?\\";				// The ASCII/UTF-8 version.
 #endif
 
 #ifdef DEBUG
+	int reqUTF8sizel (const WCHAR *wcU16, int lenU16)
+	{
+		return WideCharToMultiByte (CP_UTF8, 0, wcU16, lenU16, NULL, 0, NULL, NULL);
+	}
+#endif
+
+#ifdef DEBUG
 	int UTF8_from_WinU16 (char *chU8, int sizeU8, const WCHAR *wcU16)
 	{
 		return WideCharToMultiByte (CP_UTF8, 0, wcU16, -1, chU8, sizeU8, NULL, NULL);
+	}
+#endif
+
+#ifdef DEBUG
+	int UTF8_from_WinU16l (char *chU8, int sizeU8, const WCHAR *wcU16, int lenU16)
+	{
+		return WideCharToMultiByte (CP_UTF8, 0, wcU16, lenU16, chU8, sizeU8, NULL, NULL);
 	}
 #endif
 
@@ -20060,16 +20074,44 @@ bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t len
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len)
 {
-	UNREFERENCED_PARAMETER (sev);
-	UNREFERENCED_PARAMETER (cwText);
-	UNREFERENCED_PARAMETER (len);
-
 	ubf_assert_non_NULL (put);
-
+	
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	ubf_assert_msg (false, "Not implemented yet.");
+	char s8 [CUNILOG_STD_MSG_SIZE * 4];
+	char *p8;
+
+	len = USE_STRLEN == len ? wcslen (cwText) : len;
+	ubf_assert (len <= INT_MAX);
+	if (len > INT_MAX)
+		return false;
+
+	int il = (int) len;
+	if (0 == il)
+		return logTextU8sevl (put, sev, "", 0);
+
+	int siz = reqUTF8sizel (cwText, il);
+
+	// We always need at least space for a NUL terminator, hence siz can actually never
+	//	be 0 here.
+	ubf_assert_non_0 (siz);
+
+	if (siz <= CUNILOG_STD_MSG_SIZE * 4)
+		p8 = s8;
+	else
+		p8 = malloc (siz);
+	if (p8)
+	{
+		UTF8_from_WinU16l (p8, siz, cwText, il);
+		ubf_assert_0 (p8 [siz - 1]);
+		bool b = logTextU8sevl (put, sev, p8, ((size_t) siz) - 1);
+
+		if (p8 != s8)
+			free (p8);
+
+		return b;
+	}
 	return false;
 }
 #endif
@@ -20077,15 +20119,35 @@ bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cw
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText)
 {
-	UNREFERENCED_PARAMETER (sev);
-	UNREFERENCED_PARAMETER (cwText);
-
 	ubf_assert_non_NULL (put);
-
+	
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	ubf_assert_msg (false, "Not implemented yet.");
+	char s8 [CUNILOG_STD_MSG_SIZE * 4];
+	char *p8;
+
+	int siz = reqUTF8size (cwText);
+
+	// We always need at least space for a NUL terminator, hence siz can actually never
+	//	be 0 here.
+	ubf_assert_non_0 (siz);
+
+	if (siz <= CUNILOG_STD_MSG_SIZE * 4)
+		p8 = s8;
+	else
+		p8 = malloc (siz);
+	if (p8)
+	{
+		UTF8_from_WinU16 (p8, siz, cwText);
+		ubf_assert_0 (p8 [siz - 1]);
+		bool b = logTextU8sevl (put, sev, p8, ((size_t) siz) - 1);
+
+		if (p8 != s8)
+			free (p8);
+
+		return b;
+	}
 	return false;
 }
 #endif
@@ -20093,31 +20155,24 @@ bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwT
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWl				(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len)
 {
-	UNREFERENCED_PARAMETER (cwText);
-	UNREFERENCED_PARAMETER (len);
-
 	ubf_assert_non_NULL (put);
-
+	
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
+	return logTextWsevl (put, cunilogEvtSeverityNone, cwText, len);
 }
 #endif
 
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextW				(SCUNILOGTARGET *put, const wchar_t *cwText)
 {
-	UNREFERENCED_PARAMETER (cwText);
-
 	ubf_assert_non_NULL (put);
 	
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
+	return logTextWsev (put, cunilogEvtSeverityNone, cwText);
 }
 #endif
 

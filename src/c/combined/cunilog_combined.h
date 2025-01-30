@@ -934,6 +934,21 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 #endif
 
 /*
+	reqUTF8sizel
+
+	Returns the required size for the UTF-8 representation from the Windows
+	UTF-16 string wcU16 points to.
+
+	This is a function in debug versions and a macro in release builds.
+*/
+#ifdef DEBUG
+	int reqUTF8sizel (const WCHAR *wcU16, int lenU16);
+#else
+	#define reqUTF8sizel(wcU16, lenU16)					\
+		WideCharToMultiByte (CP_UTF8, 0, wcU16, lenU16, NULL, 0, NULL, NULL)
+#endif
+
+/*
 	UTF8_from_WinU16
 	
 	Simplified invocation of WideCharToMultiByte () that converts from Windows
@@ -946,6 +961,25 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 #else
 	#define UTF8_from_WinU16(chU8, sizeU8, wcU16)		\
 		WideCharToMultiByte (CP_UTF8, 0, wcU16, -1, chU8, sizeU8, NULL, NULL)
+#endif
+
+/*
+	UTF8_from_WinU16l
+
+	Simplified invocation of WideCharToMultiByte () that converts from Windows
+	UTF-16 to UTF8. The parameter lenU16 specifies the length of wcU16 and
+	the UTF-16 string does not have to be NUL-terminated.
+
+	This is a function in debug versions and a macro in release builds.
+*/
+#ifdef DEBUG
+	int UTF8_from_WinU16l (char *chU8, int sizeU8, const WCHAR *wcU16, int lenU16);
+#else
+	#define UTF8_from_WinU16l(chU8, sizeU8, wcU16,		\
+				lenU16)									\
+				WideCharToMultiByte (CP_UTF8, 0,		\
+					wcU16, lenU16, chU8, sizeU8,		\
+					NULL, NULL)
 #endif
 
 /*
