@@ -46,7 +46,7 @@ When		Who				What
 	#include "./dbgcountandtrack.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
-		#include "./ubfdebug.h
+		#include "./ubfdebug.h"
 	#else
 		#include "./ubfdebug.h"
 	#endif

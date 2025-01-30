@@ -662,6 +662,12 @@ static size_t ObtainRelativeLogPathBase (SMEMBUF *mb, enCunilogRelLogPath relLog
 {
 	switch (relLogPath)
 	{
+		#ifdef DEBUG
+		case cunilogLogPath_isAbsolute:
+			ubf_assert_msg (false, "This should have been caught before we got here");
+			// Hopefully this causes an access violation/segmentation fault.
+			return CUNILOG_SIZE_ERROR;
+		#endif
 		case cunilogLogPath_relativeToExecutable:
 			return ObtainPathFromExecutableModule (mb);
 		case cunilogLogPath_relativeToCurrentDir:
@@ -3701,10 +3707,10 @@ static void (*pickAndRunProcessor [cunilogProcessAmountEnumValues]) (CUNILOG_PRO
 */
 static bool cunilogProcessProcessor (SCUNILOGEVENT *pev, CUNILOG_PROCESSOR *cup)
 {
-	ubf_assert_non_NULL			(pev);
-	ubf_assert_non_NULL			(cup);
-	ubf_assert_non_NULL			(pev->pSCUNILOGTARGET);
-	cunilogIsTargetInitialised	(pev->pSCUNILOGTARGET);
+	ubf_assert_non_NULL	(pev);
+	ubf_assert_non_NULL	(cup);
+	ubf_assert_non_NULL	(pev->pSCUNILOGTARGET);
+	ubf_assert			(cunilogIsTargetInitialised	(pev->pSCUNILOGTARGET));
 
 	cunilogUpdateCurrentValue (cup, pev);
 	if	(
