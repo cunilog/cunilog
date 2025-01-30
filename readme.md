@@ -31,7 +31,7 @@ characteristics:
 - Available as static library. A dynamic library is planned.
 - Platform independent without build automation system. No cmake or autotools
 	are needed to build the module. At the moment it only builds on Windows.
-- UTF-8 by default but support for UTF-16 on Windows is planned.
+- UTF-8 by default but a few UTF-16 functions are available on Windows.
 - Preprocessor definitions to include or remove rarely used features.
 - Bindings for other programming languages. Right now only C is supported, though.
 - Command-line utility to capture the output of executables and scripts.
