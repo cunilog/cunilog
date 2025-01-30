@@ -2651,6 +2651,8 @@ BOOL WritePrivateProfileStringU8long(
 	fprintfU8
 
 	UTF-8 version of fprintf ().
+	
+	Should only be used if stream is set to UTF-16.
 */
 int fprintfU8 (FILE *stream, const char *format, ...);
 
@@ -2658,6 +2660,8 @@ int fprintfU8 (FILE *stream, const char *format, ...);
 	printfU8
 
 	UTF-8 version of printf (). See http://www.cplusplus.com/reference/cstdio/printf/ .
+	
+	Should only be used if Windows console output is set to UTF-16.
 */
 #define printfU8(...) fprintfU8 (stdout, __VA_ARGS__)
 
@@ -2665,6 +2669,8 @@ int fprintfU8 (FILE *stream, const char *format, ...);
 	putsU8
 
 	UTF-8 version of puts (). See http://www.cplusplus.com/reference/cstdio/puts/ .
+	
+	Should only be used if Windows console output is set to UTF-16.
 */
 int putsU8 (const char *strU8);
 

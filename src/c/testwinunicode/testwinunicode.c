@@ -26,6 +26,8 @@ When		Who				What
 void wmain (void)
 {
 
+	CunilogSetConsoleToUTF8 ();
+
 	SCUNILOGTARGET	*put;
 
 	put = InitSCUNILOGTARGETstatic	(

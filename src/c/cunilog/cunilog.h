@@ -175,7 +175,8 @@ extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 	cunilog_puts
 	cunilog_printf
 
-	Our puts () that resolves to putsU8 () on Windows.
+	Our puts () that resolves to putsU8 () on Windows. These macros should only be
+	used if the console is set to output in UTF-16.
 */
 #ifdef PLATFORM_IS_WINDOWS
 	#define cunilog_puts(t)	putsU8 (t)
@@ -247,6 +248,17 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 #else
 	#define postfixMaskFromLogPostfix(pfx)			\
 		(arrPostfixWildcardMask [pfx])
+#endif
+
+/*
+	CunilogSetConsoleToUTF8
+
+	Sets the console to UTF-8 on Windows. Does nothing on POSIX.
+*/
+#ifdef PLATFORM_IS_WINDOWS
+	#define CunilogSetConsoleToUTF8()	SetConsoleCodePageToUTF8 ()
+#else
+	#define CunilogSetConsoleToUTF8()
 #endif
 
 /*

@@ -3279,6 +3279,8 @@ BOOL WritePrivateProfileStringU8long(
 	fprintfU8
 
 	UTF-8 version of fprintf ().
+	
+	Should only be used if stream is set to UTF-16.
 */
 int fprintfU8 (FILE *stream, const char *format, ...);
 
@@ -3286,6 +3288,8 @@ int fprintfU8 (FILE *stream, const char *format, ...);
 	printfU8
 
 	UTF-8 version of printf (). See http://www.cplusplus.com/reference/cstdio/printf/ .
+	
+	Should only be used if Windows console output is set to UTF-16.
 */
 #define printfU8(...) fprintfU8 (stdout, __VA_ARGS__)
 
@@ -3293,6 +3297,8 @@ int fprintfU8 (FILE *stream, const char *format, ...);
 	putsU8
 
 	UTF-8 version of puts (). See http://www.cplusplus.com/reference/cstdio/puts/ .
+	
+	Should only be used if Windows console output is set to UTF-16.
 */
 int putsU8 (const char *strU8);
 
@@ -15705,7 +15711,8 @@ extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 	cunilog_puts
 	cunilog_printf
 
-	Our puts () that resolves to putsU8 () on Windows.
+	Our puts () that resolves to putsU8 () on Windows. These macros should only be
+	used if the console is set to output in UTF-16.
 */
 #ifdef PLATFORM_IS_WINDOWS
 	#define cunilog_puts(t)	putsU8 (t)
@@ -15777,6 +15784,17 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 #else
 	#define postfixMaskFromLogPostfix(pfx)			\
 		(arrPostfixWildcardMask [pfx])
+#endif
+
+/*
+	CunilogSetConsoleToUTF8
+
+	Sets the console to UTF-8 on Windows. Does nothing on POSIX.
+*/
+#ifdef PLATFORM_IS_WINDOWS
+	#define CunilogSetConsoleToUTF8()	SetConsoleCodePageToUTF8 ()
+#else
+	#define CunilogSetConsoleToUTF8()
 #endif
 
 /*

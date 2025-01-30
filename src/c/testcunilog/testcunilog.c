@@ -56,6 +56,7 @@ int main (int argc, char *argv [])
 	UNREFERENCED_PARAMETER (argc);
 	UNREFERENCED_PARAMETER (argv);
 
+	CunilogSetConsoleToUTF8 ();
 
 	/*
 		Tests.
@@ -133,8 +134,12 @@ int main (int argc, char *argv [])
 	Sleep (2000);
 	ResumeLogSCUNILOGTARGETstatic ();
 
-	//WinSetStdoutToUTF16 ();
 	logTextU8_static ("This one's in UTF-16 (\xC5\x98), which should be an \"R\" with a flipped roof.");
+
+	/*
+	Sleep (2000);
+	puts ("This one's in UTF-16 (\xC5\x98), which should be an \"R\" with a flipped roof.");
+	*/
 
 	//CancelSCUNILOGTARGETstatic ();
 	ShutdownSCUNILOGTARGETstatic ();

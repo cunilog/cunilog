@@ -18254,11 +18254,12 @@ static void cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	//		- It only consists of printable characters.
 	//		- The length of the event line has been stored correctly.
 	//		- If we require a lock, we have it already.
+
 	int ips;
 	if (pev->pSCUNILOGTARGET->lnLogEventLine)
-		ips = cunilog_puts (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch);
+		ips = puts (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch);
 	else
-		ips = cunilog_puts ("");
+		ips = puts ("");
 	if (EOF == ips)
 	{	// "Bad file descriptor" might not be the best error here but what's better?
 		ubf_assert_msg (false, "Error writing to stdout. ");
