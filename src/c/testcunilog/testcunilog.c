@@ -122,17 +122,19 @@ int main (int argc, char *argv [])
 		logTextU8_static ("Another simple line to go in the logfile (first batch).");
 	}
 	PauseLogSCUNILOGTARGETstatic ();
-	puts ("Sleeping (1)...");
+	cunilog_puts ("Sleeping (1)...");
 	Sleep (2000);
 	n = 1000;
 	while (n --)
 	{
 		logTextU8_static ("Another simple line to go in the logfile (second batch).");
 	}
-	puts ("Sleeping (2)...");
+	cunilog_puts ("Sleeping (2)...");
 	Sleep (2000);
 	ResumeLogSCUNILOGTARGETstatic ();
 
+	//WinSetStdoutToUTF16 ();
+	logTextU8_static ("This one's in UTF-16 (\xC5\x98), which should be an \"R\" with a flipped roof.");
 
 	//CancelSCUNILOGTARGETstatic ();
 	ShutdownSCUNILOGTARGETstatic ();

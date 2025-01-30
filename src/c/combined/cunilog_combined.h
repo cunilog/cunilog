@@ -15703,13 +15703,16 @@ extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 
 /*
 	cunilog_puts
+	cunilog_printf
 
 	Our puts () that resolves to putsU8 () on Windows.
 */
 #ifdef PLATFORM_IS_WINDOWS
 	#define cunilog_puts(t)	putsU8 (t)
+	#define cunilog_printf(...) printfU8 (__VA_ARGS__)
 #else
 	#define cunilog_puts(t)	puts (t)
+	#define cunilog_printf(...) printf (__VA_ARGS__)
 #endif
 
 /*
