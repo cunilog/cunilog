@@ -16664,9 +16664,8 @@ bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 	The functions without a severity use severity level/severity type cunilogEvtSeverityNone.
 	Functions containing sev in their names accept a severity type.
 
-	Functions that have U8 in their names are for UTF-8, the ones with a W are intended for
-	Windows UTF-16 encoding. Note that the W functions haven't been implemented yet.
-	On POSIX systems the W functions are not available.
+	Functions that have U8 in their names are for UTF-8, the ones with a WU16 are intended for
+	Windows UTF-16 encoding. On POSIX systems the WU16 functions are not available.
 
 	Functions ending in l accept a length parameter for the text's length, in octets/bytes. You
 	can use USE_STRLEN for this parameter, in which case the text buffer's length is obtained
@@ -16722,10 +16721,10 @@ bool logHexOrTextq			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHex
 bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
 
 #ifdef PLATFORM_IS_WINDOWS
-bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len);
-bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText);
-bool logTextWl				(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len);
-bool logTextW				(SCUNILOGTARGET *put, const wchar_t *cwText);
+bool logTextWU16sevl		(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len);
+bool logTextWU16sev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText);
+bool logTextWU16l			(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len);
+bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 #endif
 
 #define logTextU8tsevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
@@ -16751,10 +16750,10 @@ bool logTextW				(SCUNILOGTARGET *put, const wchar_t *cwText);
 #define logHexOrTextU8_static(d, s)		logHexOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
 
 #ifdef PLATFORM_IS_WINDOWS
-#define logTextWsevl_static(v, t, l)	logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
-#define logTextWsev_static(v, t)		logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
-#define logTextWl_static(t, l)			logTextWl			(pSCUNILOGTARGETstatic, (t), (l))
-#define logTextW_static(t)				logTextW			(pSCUNILOGTARGETstatic, (t));
+#define logTextWU16sevl_static(v, t, l)	logTextWU16sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
+#define logTextWU16sev_static(v, t)		logTextWU16sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
+#define logTextWU16l_static(t, l)		logTextWU16l		(pSCUNILOGTARGETstatic, (t), (l))
+#define logTextWU16_static(t)			logTextWU16l		(pSCUNILOGTARGETstatic, (t), USE_STRLEN);
 #endif
 
 /*

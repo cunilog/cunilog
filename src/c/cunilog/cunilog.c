@@ -4454,7 +4454,7 @@ bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t len
 }
 
 #ifdef PLATFORM_IS_WINDOWS
-bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len)
+bool logTextWU16sevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len)
 {
 	ubf_assert_non_NULL (put);
 	
@@ -4499,7 +4499,7 @@ bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cw
 #endif
 
 #ifdef PLATFORM_IS_WINDOWS
-bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText)
+bool logTextWU16sev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText)
 {
 	ubf_assert_non_NULL (put);
 	
@@ -4535,26 +4535,26 @@ bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwT
 #endif
 
 #ifdef PLATFORM_IS_WINDOWS
-bool logTextWl				(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len)
+bool logTextWU16l				(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len)
 {
 	ubf_assert_non_NULL (put);
 	
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	return logTextWsevl (put, cunilogEvtSeverityNone, cwText, len);
+	return logTextWU16sevl (put, cunilogEvtSeverityNone, cwText, len);
 }
 #endif
 
 #ifdef PLATFORM_IS_WINDOWS
-bool logTextW				(SCUNILOGTARGET *put, const wchar_t *cwText)
+bool logTextWU16				(SCUNILOGTARGET *put, const wchar_t *cwText)
 {
 	ubf_assert_non_NULL (put);
 	
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	return logTextWsev (put, cunilogEvtSeverityNone, cwText);
+	return logTextWU16sev (put, cunilogEvtSeverityNone, cwText);
 }
 #endif
 
