@@ -668,6 +668,22 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 ;
 
 /*
+	getAbsoluteLogPathSCUNILOGTARGET
+
+	Returns the absolute path to the folder logfiles are written to, including a directory
+	separator. If plen is not NULL, the function returns the length of the path at the address
+	plen points to. This is the value strlen () would return.
+
+	The last character of the returned path is a directory separator, which is a backslash
+	on Windows and a forward slash on all other systems.
+
+	The function returns NULL if it fails. In this case it will not have changed the address
+	plen points to.
+*/
+const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
+;
+
+/*
 	configSCUNILOGTARGETcunilogpostfix
 
 	Sets the member unilogEvtTSformat of the SCUNILOGTARGET structure put points to to the
@@ -1093,7 +1109,6 @@ SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGEVENT *pev)
 	Writes out the event pev points to to the logging target put points to. The function
 	only sets the pSCUNILOGTARGET member of the SCUNILOGEVENT structure and calls
 	cunilogProcessOrQueueEvent () on it.
-	This function is called by all logging functions.
 
 	Returns true on success, false otherwise. The function fails after ShutdownSCUNILOGTARGET ()
 	or CancelSCUNILOGTARGET () have been called on the SCUNILOGTARGET structure put points to.
@@ -1128,7 +1143,8 @@ bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 	Functions containing sev in their names accept a severity type.
 
 	Functions that have U8 in their names are for UTF-8, the ones with a W are intended for
-	Windows UTF-16 encoding.
+	Windows UTF-16 encoding. Note that the W functions haven't been implemented yet.
+	On POSIX systems the W functions are not available.
 
 	Functions ending in l accept a length parameter for the text's length, in octets/bytes. You
 	can use USE_STRLEN for this parameter, in which case the text buffer's length is obtained
@@ -1162,16 +1178,12 @@ bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 */
 bool logTextU8sevl			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len);
 bool logTextU8sevlq			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len);
-bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len);
 bool logTextU8sev			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText);
 bool logTextU8sevq			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText);
-bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText);
 bool logTextU8l				(SCUNILOGTARGET *put, const char *ccText, size_t len);
 bool logTextU8lq			(SCUNILOGTARGET *put, const char *ccText, size_t len);
-bool logTextWl				(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len);
 bool logTextU8				(SCUNILOGTARGET *put, const char *ccText);
 bool logTextU8q				(SCUNILOGTARGET *put, const char *ccText);
-bool logTextW				(SCUNILOGTARGET *put, const wchar_t *cwText);
 bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...);
 bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
 bool logTextU8sfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
@@ -1187,18 +1199,21 @@ bool logHexOrText			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexO
 bool logHexOrTextq			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
 bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
 
+#ifdef PLATFORM_IS_WINDOWS
+bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len);
+bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText);
+bool logTextWl				(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len);
+bool logTextW				(SCUNILOGTARGET *put, const wchar_t *cwText);
+#endif
+
 #define logTextU8tsevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextU8tsevlq_static(v, t, l)	logTextU8sevlq		(pSCUNILOGTARGETstatic, (v), (t), (l))
-#define logTextWsevl_static(v, t, l)	logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextU8sev_static(v, t)		logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
 #define logTextU8sevq_static(v, t)		logTextU8sevq		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
-#define logTextWsev_static(v, t)		logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
 #define logTextU8l_static(t, l)			logTextU8l			(pSCUNILOGTARGETstatic, (t), (l))
 #define logTextU8lq_static(t, l)		logTextU8lq			(pSCUNILOGTARGETstatic, (t), (l))
-#define logTextWl_static(t, l)			logTextWl			(pSCUNILOGTARGETstatic, (t), (l))
 #define logTextU8_static(t)				logTextU8l			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
 #define logTextU8q_static(t)			logTextU8lq			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
-#define logTextW_static(t)				logTextW			(pSCUNILOGTARGETstatic, (t));
 #define logTextU8fmt_static(...)		logTextU8fmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
 #define logTextU8sfmt_static(...)		logTextU8sfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
 #define logTextU8sfmtsev_static(s, ...)	logTextU8sfmtsev	(pSCUNILOGTARGETstatic, (s), __VA_ARGS__)
@@ -1212,6 +1227,13 @@ bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t len
 #define logHexDump_static(d, s)			logHexDump			(pSCUNILOGTARGETstatic, (d), (s))
 #define logHexOrText_static(d, s)		logHexOrText		(pSCUNILOGTARGETstatic, (d), (s))
 #define logHexOrTextU8_static(d, s)		logHexOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
+
+#ifdef PLATFORM_IS_WINDOWS
+#define logTextWsevl_static(v, t, l)	logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
+#define logTextWsev_static(v, t)		logTextWsevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
+#define logTextWl_static(t, l)			logTextWl			(pSCUNILOGTARGETstatic, (t), (l))
+#define logTextW_static(t)				logTextW			(pSCUNILOGTARGETstatic, (t));
+#endif
 
 /*
 	The version as text, its year, and as a 64 bit number.

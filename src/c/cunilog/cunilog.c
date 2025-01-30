@@ -693,10 +693,11 @@ static bool ObtainLogPathFromArgument	(
 	{
 		if (!isDirSep (szLogPath [ln - 1]))
 		{
-			if (SMEMBUFfromStrReserveBytes (&b, szLogPath, ln, 1))
+			if (SMEMBUFfromStrReserveBytes (&b, szLogPath, ln, 2))
 			{
 				b.buf.pch [ln] = UBF_DIR_SEP;
 				++ ln;
+				b.buf.pch [ln] = ASCII_NUL;
 			}
 		} else
 		{
@@ -737,7 +738,7 @@ static bool ObtainLogPathFromArgument	(
 	}
 	str_correct_dir_separators (b.buf.pch, ln);
 	str_remove_path_navigators (b.buf.pch, &ln);
-	copySMEMBUFsiz (smlp, &b, ln);
+	copySMEMBUFsiz (smlp, &b, ln + 1);							// NUL-terminated.
 	doneSMEMBUF (&b);
 	*lnlp = ln;													// The length of the destination.
 	return true;
@@ -1434,9 +1435,9 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	if (szLogPath && lnLogPath)
 	{
 		if (!isDirSep (szLogPath [lnLogPath -1]))
-			lnLP = ALIGNED_SIZE (lnLogPath + 1, CUNILOG_DEFAULT_ALIGNMENT);
+			lnLP = ALIGNED_SIZE (lnLogPath + 2, CUNILOG_DEFAULT_ALIGNMENT);
 		else 
-			lnLP = ALIGNED_SIZE (lnLogPath, CUNILOG_DEFAULT_ALIGNMENT);
+			lnLP = ALIGNED_SIZE (lnLogPath + 1, CUNILOG_DEFAULT_ALIGNMENT);
 		lnTotal += lnLP;
 	} else
 	{	// No log path given.
@@ -1453,19 +1454,19 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 		lnLogPath = ObtainRelativeLogPathBase (&logpath, relLogPath);
 		ubf_assert_non_0 (lnLogPath);
 		szLogPath = logpath.buf.pch;
-		lnLP = ALIGNED_SIZE (lnLogPath, CUNILOG_DEFAULT_ALIGNMENT);
+		lnLP = ALIGNED_SIZE (lnLogPath + 1, CUNILOG_DEFAULT_ALIGNMENT);
 		lnTotal += lnLP;
 	}
 	if (szAppName && lnAppName)
 	{
-		lnAP = ALIGNED_SIZE (lnAppName, CUNILOG_DEFAULT_ALIGNMENT);
+		lnAP = ALIGNED_SIZE (lnAppName + 1, CUNILOG_DEFAULT_ALIGNMENT);
 		lnTotal += lnAP;
 	} else
 	{	// No application name given.
 		lnAppName = ObtainAppNameFromExecutableModule (&appname);
 		ubf_assert_non_0 (lnAppName);
 		szAppName = appname.buf.pch;
-		lnAP = ALIGNED_SIZE (lnAppName, CUNILOG_DEFAULT_ALIGNMENT);
+		lnAP = ALIGNED_SIZE (lnAppName + 1, CUNILOG_DEFAULT_ALIGNMENT);
 		lnTotal += lnAP;
 	}
 	pu = ubf_malloc (lnTotal);
@@ -1475,16 +1476,17 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 		pu->uiOpts |= CUNILOGTARGET_ALLOCATED;
 		initSMEMBUF (&pu->mbLogPath);
 		pu->mbLogPath.buf.pcc = (char *) pu + ALIGNED_SIZE (lnUNILOGTARGET, CUNILOG_DEFAULT_ALIGNMENT);
-		memcpy (pu->mbLogPath.buf.pch, szLogPath, lnLogPath);
+		memcpy (pu->mbLogPath.buf.pch, szLogPath, lnLogPath + 1);
 		if (!isDirSep (szLogPath [lnLogPath -1]))
 		{
-			pu->mbLogPath.buf.pch [lnLogPath]	= UBF_DIR_SEP;
-			pu->mbLogPath.size					= lnLogPath + 1;
-			pu->lnLogPath						= lnLogPath + 1;
+			pu->mbLogPath.buf.pch [lnLogPath]		= UBF_DIR_SEP;
+			pu->mbLogPath.buf.pch [lnLogPath + 1]	= ASCII_NUL;
+			pu->mbLogPath.size						= lnLogPath + 2;
+			pu->lnLogPath							= lnLogPath + 1;
 		} else
 		{
-			pu->mbLogPath.size					= lnLogPath;
-			pu->lnLogPath						= lnLogPath;
+			pu->mbLogPath.size						= lnLogPath + 1;
+			pu->lnLogPath							= lnLogPath;
 		}
 		str_correct_dir_separators (pu->mbLogPath.buf.pch, lnLogPath);
 		pu->mbAppName.buf.pch = pu->mbLogPath.buf.pch + lnLP;
@@ -1608,6 +1610,20 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 				cunilogNewLineDefault,
 				cunilogRunProcessorsOnStartup
 								);
+}
+
+const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert (cunilogIsTargetInitialised (put));
+
+	if (cunilogIsTargetInitialised (put) && isUsableSMEMBUF (&put->mbLogPath))
+	{
+		if (plen)
+			*plen = put->lnLogPath;
+		return put->mbLogPath.buf.pcc;
+	}
+	return NULL;
 }
 
 #ifdef DEBUG
@@ -4025,21 +4041,6 @@ bool logTextU8sevlq			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccT
 	return false;
 }
 
-bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len)
-{
-	UNREFERENCED_PARAMETER (sev);
-	UNREFERENCED_PARAMETER (cwText);
-	UNREFERENCED_PARAMETER (len);
-
-	ubf_assert_non_NULL (put);
-
-	if (cunilogIsShutdownTarget (put))
-		return false;
-
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
-}
-
 bool logTextU8sev			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText)
 {
 	return logTextU8sevl (put, sev, ccText, USE_STRLEN);
@@ -4048,20 +4049,6 @@ bool logTextU8sev			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccTex
 bool logTextU8sevq			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText)
 {
 	return logTextU8sevlq (put, sev, ccText, USE_STRLEN);
-}
-
-bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText)
-{
-	UNREFERENCED_PARAMETER (sev);
-	UNREFERENCED_PARAMETER (cwText);
-
-	ubf_assert_non_NULL (put);
-
-	if (cunilogIsShutdownTarget (put))
-		return false;
-
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
 }
 
 bool logTextU8l				(SCUNILOGTARGET *put, const char *ccText, size_t len)
@@ -4091,20 +4078,6 @@ bool logTextU8lq			(SCUNILOGTARGET *put, const char *ccText, size_t len)
 	return false;
 }
 
-bool logTextWl				(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len)
-{
-	UNREFERENCED_PARAMETER (cwText);
-	UNREFERENCED_PARAMETER (len);
-
-	ubf_assert_non_NULL (put);
-
-	if (cunilogIsShutdownTarget (put))
-		return false;
-
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
-}
-
 bool logTextU8				(SCUNILOGTARGET *put, const char *ccText)
 {
 	return logTextU8l (put, ccText, USE_STRLEN);
@@ -4113,19 +4086,6 @@ bool logTextU8				(SCUNILOGTARGET *put, const char *ccText)
 bool logTextU8q				(SCUNILOGTARGET *put, const char *ccText)
 {
 	return logTextU8lq (put, ccText, USE_STRLEN);
-}
-
-bool logTextW				(SCUNILOGTARGET *put, const wchar_t *cwText)
-{
-	UNREFERENCED_PARAMETER (cwText);
-
-	ubf_assert_non_NULL (put);
-	
-	if (cunilogIsShutdownTarget (put))
-		return false;
-
-	ubf_assert_msg (false, "Not implemented yet.");
-	return false;
 }
 
 bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...)
@@ -4436,6 +4396,71 @@ bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t len
 	return logHexDump (put, szHexOrTxtU8, lenHexOrTxtU8);
 }
 
+#ifdef PLATFORM_IS_WINDOWS
+bool logTextWsevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len)
+{
+	UNREFERENCED_PARAMETER (sev);
+	UNREFERENCED_PARAMETER (cwText);
+	UNREFERENCED_PARAMETER (len);
+
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	ubf_assert_msg (false, "Not implemented yet.");
+	return false;
+}
+#endif
+
+#ifdef PLATFORM_IS_WINDOWS
+bool logTextWsev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText)
+{
+	UNREFERENCED_PARAMETER (sev);
+	UNREFERENCED_PARAMETER (cwText);
+
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	ubf_assert_msg (false, "Not implemented yet.");
+	return false;
+}
+#endif
+
+#ifdef PLATFORM_IS_WINDOWS
+bool logTextWl				(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len)
+{
+	UNREFERENCED_PARAMETER (cwText);
+	UNREFERENCED_PARAMETER (len);
+
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	ubf_assert_msg (false, "Not implemented yet.");
+	return false;
+}
+#endif
+
+#ifdef PLATFORM_IS_WINDOWS
+bool logTextW				(SCUNILOGTARGET *put, const wchar_t *cwText)
+{
+	UNREFERENCED_PARAMETER (cwText);
+
+	ubf_assert_non_NULL (put);
+	
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	ubf_assert_msg (false, "Not implemented yet.");
+	return false;
+}
+#endif
+
+
 /* Do we need this?
 const char		ccCunilogVersionText [] = CUNILOG_VERSION_STRING;
 const char		ccCunilogVersionYear [] = CUNILOG_VERSION_YEAR;
@@ -4511,6 +4536,13 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (cunilogEvtTS_Default	== SCUNILOGTARGETstatic.unilogEvtTSformat);
 		ubf_assert (6 == SCUNILOGTARGETstatic.lnAppName);
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
+
+		size_t lnAbsLogPath;
+		const char *szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
+
 		DoneSCUNILOGTARGETstatic ();
 
 		pt = InitSCUNILOGTARGETstaticEx	(
@@ -4534,6 +4566,12 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		#else
 			ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "sub/Unilog", SCUNILOGTARGETstatic.lnAppName));
 		#endif
+
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
+
 		DoneSCUNILOGTARGETstatic ();
 
 		pt = InitSCUNILOGTARGETstaticEx	(
@@ -4553,6 +4591,12 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (cunilogEvtTS_Default	== SCUNILOGTARGETstatic.unilogEvtTSformat);
 		ubf_assert (6 == SCUNILOGTARGETstatic.lnAppName);
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
+
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
+
 		DoneSCUNILOGTARGETstatic ();
 
 		pt = InitSCUNILOGTARGETstaticEx	(
@@ -4570,11 +4614,12 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (cunilogSingleThreaded	== SCUNILOGTARGETstatic.culogType);
 		ubf_assert (cunilogPostfixDay		== SCUNILOGTARGETstatic.culogPostfix);
 		ubf_assert (cunilogEvtTS_Default		== SCUNILOGTARGETstatic.unilogEvtTSformat);
-		ubf_assert (8 == SCUNILOGTARGETstatic.mbLogPath.size);
+		// Size is 8 + NUL.
+		ubf_assert (9 == SCUNILOGTARGETstatic.mbLogPath.size);
 		ubf_assert	(
 				!memcmp	(
 					SCUNILOGTARGETstatic.mbLogPath.buf.pch,
-					"C:" UBF_DIR_SEP_STR "temp" UBF_DIR_SEP_STR,
+					"C:" UBF_DIR_SEP_STR "temp" UBF_DIR_SEP_STR ASCII_NUL_STR,
 					SCUNILOGTARGETstatic.mbLogPath.size
 						)
 					);
@@ -4583,11 +4628,18 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				!memcmp	(
 					SCUNILOGTARGETstatic.mbLogfileName.buf.pch,
 					"C:" UBF_DIR_SEP_STR "temp" UBF_DIR_SEP_STR "Unilog",
-					SCUNILOGTARGETstatic.mbLogPath.size + SCUNILOGTARGETstatic.lnAppName
+					SCUNILOGTARGETstatic.mbLogPath.size + SCUNILOGTARGETstatic.lnAppName - 1
 						)
 					);
 		ubf_assert (6 == SCUNILOGTARGETstatic.lnAppName);
-		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
+		// Should be NUL-terminated.
+		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName + 1));
+
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
+
 		DoneSCUNILOGTARGETstatic ();
 
 		pt = InitSCUNILOGTARGETstaticEx	(
@@ -4605,7 +4657,13 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (cunilogSingleThreaded	== SCUNILOGTARGETstatic.culogType);
 		ubf_assert (cunilogPostfixDay				== SCUNILOGTARGETstatic.culogPostfix);
 		ubf_assert (6 == SCUNILOGTARGETstatic.lnAppName);
-		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
+		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName + 1));
+
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
+
 		DoneSCUNILOGTARGETstatic ();
 
 		/*
@@ -4632,6 +4690,12 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				NULL, 0, cunilogEvtTS_Default, cunilogNewLineSystem,
 				cunilogDontRunProcessorsOnStartup
 										);
+
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
+
 		DoneSCUNILOGTARGET (pt);
 
 		pt = InitOrCreateSCUNILOGTARGET	(
@@ -4648,11 +4712,11 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (pt != pSCUNILOGTARGETstatic);
 		ubf_assert (cunilogSingleThreaded	== pt->culogType);
 		ubf_assert (cunilogPostfixDay				== pt->culogPostfix);
-		ubf_assert (8 == pt->mbLogPath.size);
+		ubf_assert (9 == pt->mbLogPath.size);				// "C:/Temp/" + NUL.
 		ubf_assert	(
 				!memcmp	(
 					pt->mbLogPath.buf.pch,
-					"C:" UBF_DIR_SEP_STR "Temp" UBF_DIR_SEP_STR,
+					"C:" UBF_DIR_SEP_STR "Temp" UBF_DIR_SEP_STR ASCII_NUL_STR,
 					pt->mbLogPath.size
 						)
 					);
@@ -4660,12 +4724,18 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				// "C:\\Temp\\Unilog".
 				!memcmp	(
 					pt->mbLogfileName.buf.pch,
-					"C:" UBF_DIR_SEP_STR "Temp" UBF_DIR_SEP_STR "Unilog",
-					pt->mbLogPath.size + pt->mbAppName.size
+					"C:" UBF_DIR_SEP_STR "Temp" UBF_DIR_SEP_STR "Unilog_",
+					pt->lnLogPath + pt->lnAppName + 1
 						)
 					);
-		ubf_assert (6 == pt->mbAppName.size);
-		ubf_assert (!memcmp (pt->mbAppName.buf.pch, "Unilog", pt->mbAppName.size));
+		ubf_assert (6 == pt->lnAppName);
+		ubf_assert (!memcmp (pt->mbAppName.buf.pch, "Unilog", pt->lnAppName));
+
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
+
 		DoneSCUNILOGTARGET (pt);
 
 		// Should fail.
@@ -4700,15 +4770,22 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (pt);
 		ubf_assert (pt != pSCUNILOGTARGETstatic);
 		ubf_assert (cunilogSingleThreaded	== pt->culogType);
-		ubf_assert (cunilogPostfixDay				== pt->culogPostfix);
-		ubf_assert (8 == pt->mbLogPath.size);
+		ubf_assert (cunilogPostfixDay		== pt->culogPostfix);
+		ubf_assert (9 == pt->mbLogPath.size);
+		ubf_assert (8 == pt->lnLogPath);
 		ubf_assert	(
 				!memcmp	(
 					pt->mbLogPath.buf.pch,
-					"C:" UBF_DIR_SEP_STR "Temp" UBF_DIR_SEP_STR,
+					"C:" UBF_DIR_SEP_STR "Temp" UBF_DIR_SEP_STR ASCII_NUL_STR,
 					pt->mbLogPath.size
 						)
 					);
+
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
+
 		DoneSCUNILOGTARGET (pt);
 
 		return bRet;

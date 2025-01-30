@@ -557,8 +557,7 @@ typedef struct scunilogtarget
 	SMEMBUF							mbLogPath;				// The logging folder/path to logfiles.
 															//	On Windows, its last character is a
 															//	backslash. On POSIX, its last character
-															//	is a forward slash. It is not NUL-
-															//	terminated.
+															//	is a forward slash.
 	size_t							lnLogPath;				// Its length excl. NUL terminator.
 	SMEMBUF							mbAppName;				// Plain application name. Not NUL-terminated.
 	size_t							lnAppName;				// Its length.

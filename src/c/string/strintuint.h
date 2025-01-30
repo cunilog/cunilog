@@ -132,6 +132,9 @@ When		Who				What
 #ifndef ASCII_NUL
 #define ASCII_NUL			'\0'
 #endif
+#ifndef ASCII_NUL_STR
+#define ASCII_NUL_STR		"\0"
+#endif
 
 // Fall through comment used in switch () statements. See
 //	https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wimplicit-fallthrough .

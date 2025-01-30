@@ -210,6 +210,9 @@ When		Who				What
 #ifndef ASCII_NUL
 #define ASCII_NUL			'\0'
 #endif
+#ifndef ASCII_NUL_STR
+#define ASCII_NUL_STR		"\0"
+#endif
 // End of Text.
 #ifndef ASCII_ETX
 #define ASCII_ETX			'\3'
