@@ -692,6 +692,14 @@ void DoneU8Args (int argc, char *args [])
 	ubf_free (arr);
 }
 
+static bool StdoutSetToUTF16 = false;
+
+static inline void WinSetStdoutToUTF16once (void)
+{
+	if (!StdoutSetToUTF16)
+		WinSetStdoutToUTF16 ();
+}
+
 #ifdef HAVE_SHELLAPI
 	#ifdef DEBUG
 		WCHAR **CmdLineArgsW (int *nArgs)
@@ -3649,6 +3657,8 @@ int fprintfU8 (FILE *stream, const char *format, ...)
 	int			iRet		= -1;
 	va_list		args;
 
+	WinSetStdoutToUTF16once ();
+
 	va_start (args, format);
 	// Returns the required buffer size without terminating NUL.
 	iReq = vsnprintf (NULL, 0, format, args);
@@ -3687,6 +3697,8 @@ int putsU8 (const char *strU8)
 	WCHAR	wcToPrint	[WINAPI_U8_HEAP_THRESHOLD];
 	WCHAR	*pcToPrint;
 	int		iRet;
+
+	WinSetStdoutToUTF16once ();
 
 	pcToPrint = AllocWinU16fromU8orUseThreshold (wcToPrint, strU8);
 	iRet = _putws (pcToPrint);

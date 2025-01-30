@@ -26,12 +26,6 @@ When		Who				What
 void wmain (void)
 {
 
-	#ifdef PLATFORM_IS_WINDOWS
-		// Note that without this Windows fails to display UTF-16 characters correctly
-		//	in a console.
-		WinSetStdoutToUTF16 ();
-	#endif
-
 	SCUNILOGTARGET	*put;
 
 	put = InitSCUNILOGTARGETstatic	(

@@ -56,12 +56,6 @@ int main (int argc, char *argv [])
 	UNREFERENCED_PARAMETER (argc);
 	UNREFERENCED_PARAMETER (argv);
 
-	#ifdef PLATFORM_IS_WINDOWS
-		// Note that without this Windows fails to display UTF-16 characters correctly
-		//	in a console.
-		WinSetStdoutToUTF16 ();
-	#endif
-
 
 	/*
 		Tests.
