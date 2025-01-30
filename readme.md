@@ -22,8 +22,8 @@ Although at the moment most of its features either haven't been completed or
 aren't available at all yet, the module is meant to have the following
 characteristics:
 
-- A simple drop-in module. No library is required. Just build it together with
-	the rest of your project/application. This is how it works at the moment.
+- A simple drop-in module. Just build its source code together with
+	the rest of your project/application or add the library for static linking.
 - Execution speed was a major factor in developing this module. It is very fast
 	and outperforms other logging facilities.
 - Small footprint. The goal is to keep it below 50 KiB of binary code and below

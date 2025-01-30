@@ -543,6 +543,38 @@ typedef struct scunilognpi
 															//	needs to start from scratch.
 } SCUNILOGNPI;
 
+
+/*
+	Possible return values of the error/fail callback function.
+
+	cunilogErrCB_next_processor			The error/fail callback function is called again for
+										the next processor that fails, even for the same event.
+
+	cunilogErrCB_next_event				The error/fail callback function is called again if the
+										next event fails. It is not called for failing
+										processors of this event.
+
+	cunilogErrCB_shutdown				The Cunilog target is shutdown.
+
+	cunilogErrCB_cancel					The Cunilog target is cancelled.
+*/
+enum enErrCBretval
+{
+		cunilogErrCB_next_processor
+	,	cunilogErrCB_next_event
+	,	cunilogErrCB_shutdown
+	,	cunilogErrCB_cancel
+	// Do not add anything below this line.
+	,	cunilogErrCB_AmountEnumValues						// Used for sanity checks.
+	// Do not add anything below cunilogErrCB_AmountEnumValues.
+};
+typedef enum enErrCBretval errCBretval;
+
+/*
+	Error/fail callback function.
+*/
+typedef errCBretval (*cunilogErrCallback) (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev);
+
 /*
 	SUNILOGTARGET
 
@@ -609,6 +641,8 @@ typedef struct scunilogtarget
 	// We're not using the configurable dump anymore.
 	//SCUNILOGDUMP					*psdump;				// Holds the dump parameters.
 	ddumpWidth						dumpWidth;
+
+	cunilogErrCallback				errorCB;				// Error/fail callback function.
 } SCUNILOGTARGET;
 
 /*
@@ -678,8 +712,8 @@ typedef struct scunilogtarget
 	#define cunilogIsTargetInitialised(pt)				\
 			((pt)->uiOpts & CUNILOGTARGET_INITIALISED)
 #else
-	#define cunilogSetTargetInitialised(pt)
-	#define cunilogIsTargetInitialised(pt)
+	#define cunilogSetTargetInitialised(pt)	(true)
+	#define cunilogIsTargetInitialised(pt)	(true)
 #endif
 
 // The echo processor is skipped.
@@ -898,6 +932,9 @@ typedef struct scunilogevent
 //	It is also used for internal logging.
 #define CUNILOGEVENT_NOROTATION			SINGLEBIT64 (6)
 
+// Suppresses the remaining processors.
+#define CUNILOGEVENT_STOP_PROCESSING	SINGLEBIT64	(7)
+
 // Macros to set and check flags.
 #define cunilogSetEventAllocated(pue)					\
 	((pue)->uiOpts |= CUNILOGEVENT_ALLOCATED)
@@ -928,6 +965,13 @@ typedef struct scunilogevent
 	((pue)->uiOpts & CUNILOGEVENT_NOROTATION)
 #define cunilogSetEventNoRotation(pue)					\
 	((pue)->uiOpts |= CUNILOGEVENT_NOROTATION)
+
+#define cunilogSetEventStopProcessing(pev)				\
+	((pev)->uiOpts |= CUNILOGEVENT_STOP_PROCESSING)
+#define cunilogClrEventStopProcessing(pev)				\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_STOP_PROCESSING)
+#define cunilogHasEventStopProcessing(pev)				\
+	((pev)->uiOpts & CUNILOGEVENT_STOP_PROCESSING)
 
 /*
 	Return type of the separate logging thread.

@@ -98,6 +98,10 @@ When		Who				What
 #define CUNILOG_SIZE_ERROR				((size_t) -1)
 #endif
 
+#ifndef CUNILOG_UNKNOWN_ERROR
+#define CUNILOG_UNKNOWN_ERROR			(-1)
+#endif
+
 // Value of member nMaxToRotate of a CUNILOG_ROTATION_DATA structure to be obtained
 //	during initialisation.
 #ifndef CUNILOG_MAX_ROTATE_AUTO
@@ -173,9 +177,9 @@ extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 	Our puts () that resolves to putsU8 () on Windows.
 */
 #ifdef PLATFORM_IS_WINDOWS
-	#define cunilog_puts(t)	putsU8 (t);
+	#define cunilog_puts(t)	putsU8 (t)
 #else
-	#define cunilog_puts(t)	puts (t);
+	#define cunilog_puts(t)	puts (t)
 #endif
 
 /*

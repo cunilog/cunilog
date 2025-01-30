@@ -1276,6 +1276,7 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 	ubf_assert_non_NULL (put);
 
 	str_remove_path_navigators (put->mbLogPath.buf.pch, &put->lnLogPath);
+	put->errorCB = NULL;
 	InitSCUNILOGNPI							(&put->scuNPI);
 	DBG_INIT_CNTTRACKER						(put->evtLineTracker);
 	put->nPendingNoRotEvts					= 0;
@@ -2551,6 +2552,50 @@ SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGEVENT *pev)
 	return NULL;
 }
 
+void cunilogInvokeErrorCallback (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+{
+	ubf_assert_non_NULL (cup);
+	ubf_assert_non_NULL (pev);
+	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
+
+	if (CUNILOG_UNKNOWN_ERROR == error)
+	{
+		#ifdef PLATFORM_IS_WINDOWS
+			error = GetLastError ();
+		#else
+			error = errno;
+		#endif
+	}
+
+	if (pev->pSCUNILOGTARGET->errorCB)
+	{
+		errCBretval rv = pev->pSCUNILOGTARGET->errorCB (error, cup, pev);
+		ubf_assert (0 <= rv);
+		ubf_assert (cunilogErrCB_AmountEnumValues > rv);
+
+		switch (rv)
+		{
+			case cunilogErrCB_next_processor:
+				break;
+			case cunilogErrCB_next_event:
+				cunilogSetEventStopProcessing (pev);
+				break;
+
+			// To do!!!
+			case cunilogErrCB_shutdown:
+				ubf_assert (false);
+				break;
+
+			// To do!!!
+			// Default is to cancel the target.
+			case cunilogErrCB_cancel:
+			default:
+				ubf_assert (false);
+				break;
+		}
+	}
+}
+
 /*
 	The dummy/no-operation processor.
 */
@@ -2576,7 +2621,16 @@ static void cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	//		- It only consists of printable characters.
 	//		- The length of the event line has been stored correctly.
 	//		- If we require a lock, we have it already.
-	cunilog_puts (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch);
+	int ips;
+	if (pev->pSCUNILOGTARGET->lnLogEventLine)
+		ips = cunilog_puts (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch);
+	else
+		ips = cunilog_puts ("");
+	if (EOF == ips)
+	{	// "Bad file descriptor" might not be the best error here but what's better?
+		ubf_assert_msg (false, "Error writing to stdout. ");
+		cunilogInvokeErrorCallback (EBADF, cup, pev);
+	}
 }
 
 static void unilogProcessUpdateLogPathFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
@@ -2614,7 +2668,7 @@ static bool cunilogOpenLogFile (CUNILOG_LOGFILE *pl, const char *szLogFileName)
 						FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
 						NULL
 									);
-		return NULL == pl->hLogFile || INVALID_HANDLE_VALUE == pl->hLogFile;
+		return NULL != pl->hLogFile && INVALID_HANDLE_VALUE != pl->hLogFile;
 	#else
 		// We always (and automatically) append.
 		pl->fLogFile = fopen (szLogFileName, CUNILOG_DEFAULT_OPEN_MODE);
@@ -2698,11 +2752,21 @@ static void cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEV
 	if (isUsableSMEMBUF (&put->mbLogfileName))
 	{
 		if (requiresOpenLogFile (pl))
-			cunilogOpenLogFile (pl, put->mbLogfileName.buf.pcc);
-		else
+		{
+			if (!cunilogOpenLogFile (pl, put->mbLogfileName.buf.pcc))
+				cunilogInvokeErrorCallback (CUNILOG_UNKNOWN_ERROR, cup, pev);
+		} else
 		if (requiresNewLogFile (put))
-			cunilogOpenNewLogFile (pl, put->mbLogfileName.buf.pcc);
-		cunilogWriteDataToLogFile (pl, put->mbLogEventLine.buf.pch, put->lnLogEventLine, put->unilogNewLine);
+		{
+			if (!cunilogOpenNewLogFile (pl, put->mbLogfileName.buf.pcc))
+				cunilogInvokeErrorCallback (CUNILOG_UNKNOWN_ERROR, cup, pev);
+		}
+		if	(
+				!cunilogWriteDataToLogFile	(
+					pl, put->mbLogEventLine.buf.pch, put->lnLogEventLine, put->unilogNewLine
+											)
+			)
+				cunilogInvokeErrorCallback (CUNILOG_UNKNOWN_ERROR, cup, pev);
 	}
 }
 
@@ -2722,20 +2786,11 @@ static void cunilogProcessFlushFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	CUNILOG_LOGFILE *pcl = cup->pData;
 
 	#ifdef OS_IS_WINDOWS
-		#ifdef DEBUG
-			bool b = FlushFileBuffers (pcl->hLogFile);
-			UNREFERENCED_PARAMETER (b);
-		#else
-			FlushFileBuffers (pcl->hLogFile);
-		#endif
+		if (!FlushFileBuffers (pcl->hLogFile))
+			cunilogInvokeErrorCallback (CUNILOG_UNKNOWN_ERROR, cup, pev);
 	#else
-		#ifdef DEBUG
-			int r = fflush (pcl->fLogFile);
-			ubf_assert (0 == r);
-			UNREFERENCED_PARAMETER (r);
-		#else
-			fflush (pcl->fLogFile);
-		#endif
+		if (0 != fflush (pcl->fLogFile))
+			cunilogInvokeErrorCallback (CUNILOG_UNKNOWN_ERROR, cup, pev);
 	#endif
 }
 
@@ -3661,8 +3716,8 @@ static bool cunilogProcessProcessor (SCUNILOGEVENT *pev, CUNILOG_PROCESSOR *cup)
 		)
 	{
 		pickAndRunProcessor [cup->task] (cup, pev);
-		// Tells the caller to carry on with the next processor.
-		return true;
+		// True tells the caller to carry on with the next processor.
+		return cunilogHasEventStopProcessing (pev) ? false : true;
 	}
 
 	// Tells the caller not to bother with the next processor unless bForceNext is true
@@ -3678,6 +3733,8 @@ static void cunilogProcessProcessors (SCUNILOGEVENT *pev)
 	ubf_assert_non_NULL						(pev->pSCUNILOGTARGET->cprocessors);
 
 	pev->pSCUNILOGTARGET->scuNPI.nIgnoredTotal = 0;
+	cunilogClrEventStopProcessing (pev);
+
 	unsigned int ui = 0;
 	while (ui < pev->pSCUNILOGTARGET->nprocessors)
 	{
