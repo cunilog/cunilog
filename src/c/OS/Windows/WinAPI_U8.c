@@ -43,6 +43,9 @@ When		Who				What
 #include <limits.h>
 #include <malloc.h>
 
+#include <io.h>
+#include <fcntl.h>
+
 #ifdef _MSC_VER
 	#include <crtdbg.h>
 #endif
@@ -3185,6 +3188,12 @@ void SetConsoleCodePageToUTF8 (void)
 {
 	SetConsoleCP (CP_UTF8);
 	SetConsoleOutputCP (CP_UTF8);
+}
+
+int WinSetStdoutToUTF16 (void)
+{
+	// Change stdout to Unicode UTF-16
+    return _setmode(_fileno(stdout), _O_U16TEXT);
 }
 
 BOOL SetCurrentDirectoryU8(

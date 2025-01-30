@@ -1,23 +1,25 @@
 /****************************************************************************************
 
-	File:		testcunilog.h
-	Why:		Test application for cunilog.
-	OS:			C99.
-	Author:		Thomas
-	Created:	2024-07-09
-
+	Project:	Cunilog
+	File:		testwinunicode.c
+	Why:		
+	OS:			
+	Autor:		Thomas
+	Created:	2025-01-30
+  
 History
 -------
 
 When		Who				What
 -----------------------------------------------------------------------------------------
-2024-07-09	Thomas			Created.
+2025-01-30	Thomas			Created.
 
 ****************************************************************************************/
 
 /*
 	This code is public domain.
 */
+
 
 #define LOGS_FOLDER_NAME				"logs"
 

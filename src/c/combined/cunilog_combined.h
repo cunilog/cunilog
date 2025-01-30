@@ -3087,6 +3087,18 @@ void SetConsoleCodePageToANSI (void);
 void SetConsoleCodePageToUTF8 (void);
 
 /*
+	WinSetStdoutToUTF16
+
+	Changes stdout to UTF-16. This is required to correctly display UTF-16 characters
+	in a console window. See
+	https://giodicanio.com/2023/06/01/how-to-print-unicode-text-to-the-windows-console-in-c-plus-plus/ .
+	It really doesn't seem to work without this.
+
+	The function returns the return value of _setmode ().
+*/
+int WinSetStdoutToUTF16 (void);
+
+/*
 	SetCurrentDirectoryU8
 	
 	UTF-8 version of SetCurrentDirectoryW ().

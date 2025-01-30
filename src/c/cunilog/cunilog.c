@@ -4492,8 +4492,9 @@ bool logTextWU16sevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t 
 	if (p8)
 	{
 		UTF8_from_WinU16l (p8, siz, cwText, il);
-		ubf_assert_0 (p8 [siz - 1]);
-		bool b = logTextU8sevl (put, sev, p8, ((size_t) siz) - 1);
+		if (ASCII_NUL == p8 [siz])
+			-- siz;
+		bool b = logTextU8sevl (put, sev, p8, siz);
 
 		if (p8 != s8)
 			free (p8);
@@ -4528,8 +4529,9 @@ bool logTextWU16sev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *
 	if (p8)
 	{
 		UTF8_from_WinU16 (p8, siz, cwText);
-		ubf_assert_0 (p8 [siz - 1]);
-		bool b = logTextU8sevl (put, sev, p8, ((size_t) siz) - 1);
+		if (ASCII_NUL == p8 [siz])
+			-- siz;
+		bool b = logTextU8sevl (put, sev, p8, siz);
 
 		if (p8 != s8)
 			free (p8);

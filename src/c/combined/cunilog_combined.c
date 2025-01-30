@@ -240,6 +240,9 @@ When		Who				What
 #include <limits.h>
 #include <malloc.h>
 
+#include <io.h>
+#include <fcntl.h>
+
 #ifdef _MSC_VER
 	#include <crtdbg.h>
 #endif
@@ -3382,6 +3385,12 @@ void SetConsoleCodePageToUTF8 (void)
 {
 	SetConsoleCP (CP_UTF8);
 	SetConsoleOutputCP (CP_UTF8);
+}
+
+int WinSetStdoutToUTF16 (void)
+{
+	// Change stdout to Unicode UTF-16
+    return _setmode(_fileno(stdout), _O_U16TEXT);
 }
 
 BOOL SetCurrentDirectoryU8(
@@ -20110,8 +20119,9 @@ bool logTextWU16sevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t 
 	if (p8)
 	{
 		UTF8_from_WinU16l (p8, siz, cwText, il);
-		ubf_assert_0 (p8 [siz - 1]);
-		bool b = logTextU8sevl (put, sev, p8, ((size_t) siz) - 1);
+		if (ASCII_NUL == p8 [siz])
+			-- siz;
+		bool b = logTextU8sevl (put, sev, p8, siz);
 
 		if (p8 != s8)
 			free (p8);
@@ -20146,8 +20156,9 @@ bool logTextWU16sev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *
 	if (p8)
 	{
 		UTF8_from_WinU16 (p8, siz, cwText);
-		ubf_assert_0 (p8 [siz - 1]);
-		bool b = logTextU8sevl (put, sev, p8, ((size_t) siz) - 1);
+		if (ASCII_NUL == p8 [siz])
+			-- siz;
+		bool b = logTextU8sevl (put, sev, p8, siz);
 
 		if (p8 != s8)
 			free (p8);
