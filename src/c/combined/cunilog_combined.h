@@ -3099,6 +3099,18 @@ void SetConsoleCodePageToUTF8 (void);
 int WinSetStdoutToUTF16 (void);
 
 /*
+	WinSetStdinToUTF16
+
+	Changes stdin to UTF-16. This is required to correctly expect UTF-16 characters
+	from input in a console window. See
+	https://giodicanio.com/2023/06/01/how-to-print-unicode-text-to-the-windows-console-in-c-plus-plus/ .
+	It really doesn't seem to work without this.
+
+	The function returns the return value of _setmode ().
+*/
+int WinSetStdinToUTF16 (void);
+
+/*
 	SetCurrentDirectoryU8
 	
 	UTF-8 version of SetCurrentDirectoryW ().
@@ -15786,16 +15798,33 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 		(arrPostfixWildcardMask [pfx])
 #endif
 
+enum enclconsoleoutpCP
+{
+		cunilogConsoleIsUninitialised
+	,	cunilogConsoleIsUTF8
+	,	cunilogConsoleIsUTF16
+};
+typedef enum enclconsoleoutpCP culogconcp;
+
+void CunilogSetConsoleTo (culogconcp cp);
+
 /*
 	CunilogSetConsoleToUTF8
+	CunilogSetConsoleToUTF16
 
-	Sets the console to UTF-8 on Windows. Does nothing on POSIX.
+	Macros to set the console to UTF-8 or UTF-16 on Windows. Does nothing on POSIX.
 */
 #ifdef PLATFORM_IS_WINDOWS
-	#define CunilogSetConsoleToUTF8()	SetConsoleCodePageToUTF8 ()
+	#define CunilogSetConsoleToUTF8()	CunilogSetConsoleTo (cunilogConsoleIsUTF8)
 #else
 	#define CunilogSetConsoleToUTF8()
 #endif
+#ifdef PLATFORM_IS_WINDOWS
+	#define CunilogSetConsoleToUTF16()	CunilogSetConsoleTo (cunilogConsoleIsUTF16)
+#else
+	#define CunilogSetConsoleToUTF16()
+#endif
+
 
 /*
 	InitSCUNILOGTARGETex

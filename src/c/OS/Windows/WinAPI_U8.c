@@ -3196,6 +3196,12 @@ int WinSetStdoutToUTF16 (void)
     return _setmode(_fileno(stdout), _O_U16TEXT);
 }
 
+int WinSetStdinToUTF16 (void)
+{
+	// Change stdout to Unicode UTF-16
+    return _setmode(_fileno(stdin), _O_U16TEXT);
+}
+
 BOOL SetCurrentDirectoryU8(
   const char *lpPathNameU8
 )

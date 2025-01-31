@@ -250,16 +250,33 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 		(arrPostfixWildcardMask [pfx])
 #endif
 
+enum enclconsoleoutpCP
+{
+		cunilogConsoleIsUninitialised
+	,	cunilogConsoleIsUTF8
+	,	cunilogConsoleIsUTF16
+};
+typedef enum enclconsoleoutpCP culogconcp;
+
+void CunilogSetConsoleTo (culogconcp cp);
+
 /*
 	CunilogSetConsoleToUTF8
+	CunilogSetConsoleToUTF16
 
-	Sets the console to UTF-8 on Windows. Does nothing on POSIX.
+	Macros to set the console to UTF-8 or UTF-16 on Windows. Does nothing on POSIX.
 */
 #ifdef PLATFORM_IS_WINDOWS
-	#define CunilogSetConsoleToUTF8()	SetConsoleCodePageToUTF8 ()
+	#define CunilogSetConsoleToUTF8()	CunilogSetConsoleTo (cunilogConsoleIsUTF8)
 #else
 	#define CunilogSetConsoleToUTF8()
 #endif
+#ifdef PLATFORM_IS_WINDOWS
+	#define CunilogSetConsoleToUTF16()	CunilogSetConsoleTo (cunilogConsoleIsUTF16)
+#else
+	#define CunilogSetConsoleToUTF16()
+#endif
+
 
 /*
 	InitSCUNILOGTARGETex

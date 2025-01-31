@@ -2471,6 +2471,18 @@ void SetConsoleCodePageToUTF8 (void);
 int WinSetStdoutToUTF16 (void);
 
 /*
+	WinSetStdinToUTF16
+
+	Changes stdin to UTF-16. This is required to correctly expect UTF-16 characters
+	from input in a console window. See
+	https://giodicanio.com/2023/06/01/how-to-print-unicode-text-to-the-windows-console-in-c-plus-plus/ .
+	It really doesn't seem to work without this.
+
+	The function returns the return value of _setmode ().
+*/
+int WinSetStdinToUTF16 (void);
+
+/*
 	SetCurrentDirectoryU8
 	
 	UTF-8 version of SetCurrentDirectoryW ().

@@ -3393,6 +3393,12 @@ int WinSetStdoutToUTF16 (void)
     return _setmode(_fileno(stdout), _O_U16TEXT);
 }
 
+int WinSetStdinToUTF16 (void)
+{
+	// Change stdout to Unicode UTF-16
+    return _setmode(_fileno(stdin), _O_U16TEXT);
+}
+
 BOOL SetCurrentDirectoryU8(
   const char *lpPathNameU8
 )
@@ -16816,6 +16822,28 @@ static bool hasSCUNILOGTARGETqueue (SCUNILOGTARGET *put)
 static bool StartSeparateLoggingThread_ifNeeded (SCUNILOGTARGET *put)
 ;
 
+static culogconcp ourCunilogConsoleOutputCodePage = cunilogConsoleIsUninitialised;
+
+void CunilogSetConsoleTo (culogconcp cp)
+{
+	ubf_assert	(
+						cunilogConsoleIsUTF8	== cp
+					||	cunilogConsoleIsUTF16	== cp
+				);
+
+	switch (cp)
+	{
+		case cunilogConsoleIsUTF8:
+			SetConsoleCodePageToUTF8 ();	break;
+		case cunilogConsoleIsUTF16:
+			WinSetStdinToUTF16 ();
+			WinSetStdoutToUTF16 ();			break;
+		default:
+			SetConsoleCodePageToUTF8 ();	break;
+	}
+	ourCunilogConsoleOutputCodePage = cp;
+}
+
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	// This is the only type possible in a single-threaded environment.
 	#define unilogTypeFromArgument(type)					\
@@ -18239,6 +18267,32 @@ static void cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	
 }
 
+#ifdef PLATFORM_IS_WINDOWS
+	static inline int cunilogPutsWin (const char *szOutput, size_t len)
+	{
+		if (cunilogConsoleIsUninitialised == ourCunilogConsoleOutputCodePage)
+			CunilogSetConsoleTo (cunilogConsoleIsUTF8);
+
+		if (len)
+		{
+			switch (ourCunilogConsoleOutputCodePage)
+			{
+				case cunilogConsoleIsUTF8:	return puts		(szOutput);
+				case cunilogConsoleIsUTF16:	return putsU8	(szOutput);
+				default:					return puts		(szOutput);
+			}
+		} else
+		{
+			switch (ourCunilogConsoleOutputCodePage)
+			{
+				case cunilogConsoleIsUTF8:	return puts		("");
+				case cunilogConsoleIsUTF16:	return putsU8	("");
+				default:					return puts		("");
+			}
+		}
+	}
+#endif
+
 static void cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 {
 	UNREFERENCED_PARAMETER (cup);
@@ -18256,13 +18310,20 @@ static void cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	//		- If we require a lock, we have it already.
 
 	int ips;
-	if (pev->pSCUNILOGTARGET->lnLogEventLine)
-		ips = puts (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch);
-	else
-		ips = puts ("");
+	#ifdef PLATFORM_IS_WINDOWS
+		ips = cunilogPutsWin	(
+				pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch,
+				pev->pSCUNILOGTARGET->lnLogEventLine
+								);
+	#else
+		if (pev->pSCUNILOGTARGET->lnLogEventLine)
+			ips = puts (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch);
+		else
+			ips = puts ("");
+	#endif
 	if (EOF == ips)
 	{	// "Bad file descriptor" might not be the best error here but what's better?
-		ubf_assert_msg (false, "Error writing to stdout. ");
+		ubf_assert_msg (false, "Error writing to stdout.");
 		cunilogInvokeErrorCallback (EBADF, cup, pev);
 	}
 }
