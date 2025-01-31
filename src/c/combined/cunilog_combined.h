@@ -14787,16 +14787,23 @@ typedef struct cunilog_processor
 															//	on the heap and needs to be freed.
 #define OPT_CUNPROC_DISABLED			SINGLEBIT64 (4)		// The processor is disabled, i.e.
 															//	prevented from being processed.
+															//	Carries on with the next processor
+															//	unconditionally, just like
+															//	OPT_CUNPROC_FORCE_NEXT.
 
 /*
 	Macros for some flags.
 */
+
 #define optCunProcHasOPT_CUNPROC_AT_STARTUP(v)			\
 	((v) & OPT_CUNPROC_AT_STARTUP)
 #define optCunProcClrOPT_CUNPROC_AT_STARTUP(v)			\
 	((v) &= ~ OPT_CUNPROC_AT_STARTUP)
+
 #define optCunProcHasOPT_CUNPROC_DISABLED(v)			\
 	((v) & OPT_CUNPROC_DISABLED)
+#define optCunProcSetOPT_CUNPROC_DISABLED(v)			\
+	((v) |= OPT_CUNPROC_DISABLED)
 #define optCunProcClrOPT_CUNPROC_DISABLED(v)			\
 	((v) &= ~ OPT_CUNPROC_DISABLED)
 
@@ -15798,21 +15805,40 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 		(arrPostfixWildcardMask [pfx])
 #endif
 
-enum enclconsoleoutpCP
-{
-		cunilogConsoleIsUninitialised
-	,	cunilogConsoleIsUTF8
-	,	cunilogConsoleIsUTF16
-};
-typedef enum enclconsoleoutpCP culogconcp;
+/*
+	CunilogSetConsoleTo
 
-void CunilogSetConsoleTo (culogconcp cp);
+	Sets the console to UTF-8 or UTF-16.
+*/
+#ifdef PLATFORM_IS_WINDOWS
+	enum enclconsoleoutpCP
+	{
+			cunilogConsoleIsUninitialised
+		,	cunilogConsoleIsUTF8
+		,	cunilogConsoleIsUTF16
+		,	cunilogConsoleIsNeither
+	};
+	typedef enum enclconsoleoutpCP culogconcp;
+
+	void CunilogSetConsoleTo (culogconcp cp);
+#endif
 
 /*
 	CunilogSetConsoleToUTF8
 	CunilogSetConsoleToUTF16
+	CunilogSetConsoleToNone
 
-	Macros to set the console to UTF-8 or UTF-16 on Windows. Does nothing on POSIX.
+	Macros to set the console to UTF-8 or UTF-16 on Windows. They do nothing on POSIX.
+
+	By default the echo/console output processor changes the Windows console input
+	and output character sets/code pages to UTF-8 when invoked for the first time.
+	Calling one of these functions beforehand explicitely sets the code pages/console
+	character sets and prevents the echo/console output processor from changing them
+	during logging.
+
+	The function CunilogSetConsoleToNone () does not change the code pages/character
+	sets for the attached console but simply prevents the Cunilog echo/console output
+	processor from changing them during logging.
 */
 #ifdef PLATFORM_IS_WINDOWS
 	#define CunilogSetConsoleToUTF8()	CunilogSetConsoleTo (cunilogConsoleIsUTF8)
@@ -15824,7 +15850,11 @@ void CunilogSetConsoleTo (culogconcp cp);
 #else
 	#define CunilogSetConsoleToUTF16()
 #endif
-
+#ifdef PLATFORM_IS_WINDOWS
+	#define CunilogSetConsoleToNone()	CunilogSetConsoleTo (cunilogConsoleIsNeither)
+#else
+	#define CunilogSetConsoleToNone()
+#endif
 
 /*
 	InitSCUNILOGTARGETex
@@ -16355,6 +16385,25 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 				cup, n)									\
 				prepareProcessors (put, cuProcessorList, nProcessors)
 #endif
+
+/*
+	configSCUNILOGTARGETdisableTaskProcessors
+	configSCUNILOGTARGETenableTaskProcessors
+
+	Disables/enables processors for task task.
+*/
+void configSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+void configSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+
+/*
+	configSCUNILOGTARGETdisableEchoProcessor
+	configSCUNILOGTARGETenableEchoProcessor
+
+	Disables/enables echo (console output) processors. Echo or console output processors
+	are processors whose task is cunilogProcessEchoToConsole.
+*/
+void configSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put);
+void configSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
 
 /*
 	EnterSCUNILOGTARGET

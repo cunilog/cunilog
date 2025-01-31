@@ -293,16 +293,23 @@ typedef struct cunilog_processor
 															//	on the heap and needs to be freed.
 #define OPT_CUNPROC_DISABLED			SINGLEBIT64 (4)		// The processor is disabled, i.e.
 															//	prevented from being processed.
+															//	Carries on with the next processor
+															//	unconditionally, just like
+															//	OPT_CUNPROC_FORCE_NEXT.
 
 /*
 	Macros for some flags.
 */
+
 #define optCunProcHasOPT_CUNPROC_AT_STARTUP(v)			\
 	((v) & OPT_CUNPROC_AT_STARTUP)
 #define optCunProcClrOPT_CUNPROC_AT_STARTUP(v)			\
 	((v) &= ~ OPT_CUNPROC_AT_STARTUP)
+
 #define optCunProcHasOPT_CUNPROC_DISABLED(v)			\
 	((v) & OPT_CUNPROC_DISABLED)
+#define optCunProcSetOPT_CUNPROC_DISABLED(v)			\
+	((v) |= OPT_CUNPROC_DISABLED)
 #define optCunProcClrOPT_CUNPROC_DISABLED(v)			\
 	((v) &= ~ OPT_CUNPROC_DISABLED)
 

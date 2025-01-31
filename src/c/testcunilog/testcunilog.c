@@ -56,7 +56,8 @@ int main (int argc, char *argv [])
 	UNREFERENCED_PARAMETER (argc);
 	UNREFERENCED_PARAMETER (argv);
 
-	CunilogSetConsoleToUTF16 ();
+	//CunilogSetConsoleToUTF16 ();
+	CunilogSetConsoleToNone ();
 
 	/*
 		Tests.
@@ -98,6 +99,8 @@ int main (int argc, char *argv [])
 				cunilogNewLineDefault,
 				cunilogRunProcessorsOnStartup
 									);
+
+	//configSCUNILOGTARGETdisableEchoProcessor (put);
 	UNREFERENCED_PARAMETER (put);
 	//b &= SetLogPrioritySCUNILOGTARGET (put, cunilogPrioIdle);
 	ubf_assert_true (b);

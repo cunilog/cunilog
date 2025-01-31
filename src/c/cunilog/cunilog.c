@@ -1189,27 +1189,31 @@ static bool hasSCUNILOGTARGETqueue (SCUNILOGTARGET *put)
 static bool StartSeparateLoggingThread_ifNeeded (SCUNILOGTARGET *put)
 ;
 
-static culogconcp ourCunilogConsoleOutputCodePage = cunilogConsoleIsUninitialised;
+#ifdef PLATFORM_IS_WINDOWS
+	static culogconcp ourCunilogConsoleOutputCodePage = cunilogConsoleIsUninitialised;
 
-void CunilogSetConsoleTo (culogconcp cp)
-{
-	ubf_assert	(
-						cunilogConsoleIsUTF8	== cp
-					||	cunilogConsoleIsUTF16	== cp
-				);
-
-	switch (cp)
+	void CunilogSetConsoleTo (culogconcp cp)
 	{
-		case cunilogConsoleIsUTF8:
-			SetConsoleCodePageToUTF8 ();	break;
-		case cunilogConsoleIsUTF16:
-			WinSetStdinToUTF16 ();
-			WinSetStdoutToUTF16 ();			break;
-		default:
-			SetConsoleCodePageToUTF8 ();	break;
+		ubf_assert	(
+							cunilogConsoleIsUTF8	== cp
+						||	cunilogConsoleIsUTF16	== cp
+						||	cunilogConsoleIsNeither	== cp
+					);
+
+		switch (cp)
+		{
+			case cunilogConsoleIsUTF8:
+				SetConsoleCodePageToUTF8 ();	break;
+			case cunilogConsoleIsUTF16:
+				WinSetStdinToUTF16 ();
+				WinSetStdoutToUTF16 ();			break;
+			case cunilogConsoleIsNeither:		break;
+			default:
+				SetConsoleCodePageToUTF8 ();	break;
+		}
+		ourCunilogConsoleOutputCodePage = cp;
 	}
-	ourCunilogConsoleOutputCodePage = cp;
-}
+#endif
 
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	// This is the only type possible in a single-threaded environment.
@@ -1713,6 +1717,50 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 		prepareProcessors (put, cuProcessorList, nProcessors);
 	}
 #endif
+
+void configSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL (put->cprocessors);
+
+	unsigned int n = 0;
+	while (n < put->nprocessors)
+	{
+		if (task == put->cprocessors [n]->task)
+			optCunProcSetOPT_CUNPROC_DISABLED (put->cprocessors [n]->uiOpts);
+		-- n;
+	}
+}
+
+void configSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL (put->cprocessors);
+
+	unsigned int n = 0;
+	while (n < put->nprocessors)
+	{
+		if (task == put->cprocessors [n]->task)
+			optCunProcClrOPT_CUNPROC_DISABLED (put->cprocessors [n]->uiOpts);
+		-- n;
+	}
+}
+
+void configSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL (put->cprocessors);
+
+	configSCUNILOGTARGETdisableTaskProcessors (put, cunilogProcessEchoToConsole);
+}
+
+void configSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL (put->cprocessors);
+
+	configSCUNILOGTARGETenableTaskProcessors (put, cunilogProcessEchoToConsole);
+}
 
 void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
 {
@@ -2644,17 +2692,19 @@ static void cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 		{
 			switch (ourCunilogConsoleOutputCodePage)
 			{
-				case cunilogConsoleIsUTF8:	return puts		(szOutput);
-				case cunilogConsoleIsUTF16:	return putsU8	(szOutput);
-				default:					return puts		(szOutput);
+				case cunilogConsoleIsUTF8:		return puts		(szOutput);
+				case cunilogConsoleIsUTF16:		return putsU8	(szOutput);
+				case cunilogConsoleIsNeither:	return puts		(szOutput);
+				default:						return puts		(szOutput);
 			}
 		} else
 		{
 			switch (ourCunilogConsoleOutputCodePage)
 			{
-				case cunilogConsoleIsUTF8:	return puts		("");
-				case cunilogConsoleIsUTF16:	return putsU8	("");
-				default:					return puts		("");
+				case cunilogConsoleIsUTF8:		return puts		("");
+				case cunilogConsoleIsUTF16:		return putsU8	("");
+				case cunilogConsoleIsNeither:	return puts		("");
+				default:						return puts		("");
 			}
 		}
 	}
@@ -3768,13 +3818,14 @@ static bool cunilogProcessProcessor (SCUNILOGEVENT *pev, CUNILOG_PROCESSOR *cup)
 	ubf_assert_non_NULL	(pev->pSCUNILOGTARGET);
 	ubf_assert			(cunilogIsTargetInitialised	(pev->pSCUNILOGTARGET));
 
+	// If the processor is disabled we move on to the next one unconditionally.
+	if (optCunProcHasOPT_CUNPROC_DISABLED (cup->uiOpts))
+		return true;
+
 	cunilogUpdateCurrentValue (cup, pev);
 	if	(
-				!optCunProcHasOPT_CUNPROC_DISABLED (cup->uiOpts)
-			&&	(
-						thresholdReached (cup, pev)
-					||	cunilogHasRunAllProcessorsOnStartup (pev->pSCUNILOGTARGET)
-				)
+				thresholdReached (cup, pev)
+			||	cunilogHasRunAllProcessorsOnStartup (pev->pSCUNILOGTARGET)
 		)
 	{
 		pickAndRunProcessor [cup->task] (cup, pev);
