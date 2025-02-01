@@ -2032,6 +2032,15 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ubf_assert ('X'		== szISO_1 [LEN_ISO8601DATETIMESTAMP_NO_OFFS]);
 		ubf_assert ('\0'	== szISO_2 [LEN_ISO8601DATETIMESTAMP_NO_OFFS]);
 
+		// Test the NCSA datetime stamp. We're not really testing here. We only
+		//	check for a buffer overrun.
+		char ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME + 1];
+		ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME] = '#';
+		NCSADATETIME_from_UBF_TIMESTAMP (ctncsa, GetSystemTimeAsUBF_TIMESTAMP ());
+		ubf_assert (ASCII_NUL == ctncsa [LEN_NCSA_COMMON_LOG_DATETIME]);
+		ubf_assert ('#' == ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME]);
+
+
 		// Timings.
 		/*
 			We found that the psx function is twice as fast as the win version.
