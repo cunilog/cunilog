@@ -853,9 +853,13 @@ void ISO8601_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts);
 
 /*
 	This macro should be made obsolete. 2024-08-13, Thomas.
+
+	2025-02-01: Made obsolete.
 */
 #define UBF_TIMESTAMP_to_ISO8601(i, t)				\
-	ISO8601_from_UBF_TIMESTAMP ((i), (t))
+	Should cause a compiler error: "Macro UBF_TIMESTAMP_to_ISO8601() obsolete. Use ISO8601_from_UBF_TIMESTAMP()"
+	//ISO8601_from_UBF_TIMESTAMP ((i), (t))
+	
 
 /*
 	ISO8601_from_UBF_TIMESTAMP_c
@@ -898,9 +902,12 @@ void ISO8601T_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts);
 
 /*
 	This macro should be made obsolete. 2024-08-13, Thomas.
+
+	2025-02-01: Made obsolete.
 */
 #define UBF_TIMESTAMP_to_ISO8601T(i, t)				\
-	ISO8601T_from_UBF_TIMESTAMP ((i), (t))
+	Should cause a compiler error: "Macro UBF_TIMESTAMP_to_ISO8601T() obsolete. Use ISO8601T_from_UBF_TIMESTAMP()"
+	//ISO8601T_from_UBF_TIMESTAMP ((i), (t))
 
 /*
 	ISO8601T_from_UBF_TIMESTAMP_c
@@ -1155,6 +1162,17 @@ void ISO8601YearAndMonth_from_UBF_TIMESTAMP (char *chISOYearAndMonth, UBF_TIMEST
 void ISO8601YearAndMonth_from_UBF_TIMESTAMP_c (char *chISOYearAndMonth, UBF_TIMESTAMP ts);
 
 /*
+	A quick note regarding the "...to..." functions:
+
+	Our premise is to follow the memcpy () or strcpy () principle of storing output at
+	the address a function's/macro's first parameter points to. The "...to..." functions/
+	macros contradict this premise and will therefore be made deprecated/obsolte in the
+	future. The "...from..." versions are the ones to focus on.
+
+	Over time more and more of these function names will be changed.
+*/
+
+/*
 	UBF_TIMESTAMP_to_ISO8601_Holocene
 	ISO8601_Holocene_from_UBF_TIMESTAMP
 
@@ -1200,7 +1218,7 @@ void UBF_TIMESTAMP_to_ISO8601_no_ms (char *chISO, UBF_TIMESTAMP ts);
 
 
 /*
-	UBF_TIMESTAMP_to_ISO8601_no_ms_Holocene
+	UBF_TIMESTAMP_from_ISO8601_no_ms_Holocene
 
 	Identical to UBF_TIMESTAMP_to_ISO8601_no_ms () but returns the timestamp
 	in the Holocene format, which is 10000 years greater than the ISO8601
@@ -1208,7 +1226,35 @@ void UBF_TIMESTAMP_to_ISO8601_no_ms (char *chISO, UBF_TIMESTAMP ts);
 	The buffer chISO must have space for at least SIZ_ISO8601DATETIMESTAMP_HOL
 	octets. This number includes the terminating NUL character.
 */
-void UBF_TIMESTAMP_to_ISO8601_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts);
+void ISO8601_from_UBF_TIMESTAMP_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts);
+
+/*
+	To be deprecated/made obsolete in the future.
+*/
+#define UBF_TIMESTAMP_to_ISO8601_no_ms_Holocene(c, t)	\
+	UBF_TIMESTAMP_from_ISO8601_no_ms_Holocene ((c), (t))
+
+
+// Our months.
+#ifndef HAVE_CCDTMNTHS
+extern const char ccdtMnths [12][4];
+#define HAVE_CCDTMNTHS
+#endif
+
+/*
+	NCSADATETIME_from_UBF_TIMESTAMP
+
+	Obtains an NCSA date/timestamp from the UBF_TIMESTAMP structure ts.
+	The timestamp follows the date/time format of the Common Log Format. See
+	https://en.wikipedia.org/wiki/Common_Log_Format for more details.
+
+	The buffer szncsadtim points to must be at least SIZ_NCSA_COMMON_LOG_DATETIME long, which
+	includes a terminating NUL character.
+
+	"[10/Oct/2000:13:55:36 -0700]"
+*/
+void NCSADATETIME_from_UBF_TIMESTAMP (char *szncsadtim, UBF_TIMESTAMP ts)
+;
 
 /*
 	MS_from_SUBF_TIMESTRUCT

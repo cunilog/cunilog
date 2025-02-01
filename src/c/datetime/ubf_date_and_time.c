@@ -1542,7 +1542,7 @@ void UBF_TIMESTAMP_to_ISO8601_no_ms (char *chISO, UBF_TIMESTAMP ts)
 	SUBF_TIMESTRUCT_to_ISO8601_no_ms (chISO, &t);
 }
 
-void UBF_TIMESTAMP_to_ISO8601_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts)
+void ISO8601_from_UBF_TIMESTAMP_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts)
 {
 	SUBF_TIMESTRUCT		t;
 
@@ -1565,6 +1565,49 @@ void UBF_TIMESTAMP_to_ISO8601_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts)
 				);
 	if (t.bOffsetNegative)										// Offset is negative.
 		chISO [20] = '-';
+}
+
+#ifdef NEED_CCDTMNTHS
+const char ccdtMnths [12][4] =
+		{"Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+#endif
+
+void NCSADATETIME_from_UBF_TIMESTAMP (char *szncsadtim, UBF_TIMESTAMP ts)
+{
+	char *szOutp = szncsadtim;								// For debugging.
+	UNUSED (szOutp);
+
+	*szncsadtim ++ = '[';
+	ubf_str0_from_59max (szncsadtim, (unsigned int) UBF_TIMESTAMP_DAY (ts));
+	szncsadtim += 2;
+	*szncsadtim ++ = '/';
+	unsigned int uidxMnth = (unsigned int) UBF_TIMESTAMP_MONTH (ts);
+	// Handle malformed bits.
+	uidxMnth &= 0x3F;
+	ubf_assert (12 > uidxMnth);
+	uidxMnth = 12 <= uidxMnth ? 11 : uidxMnth;
+	memcpy (szncsadtim, ccdtMnths [uidxMnth], 3);
+	szncsadtim += 3;
+	*szncsadtim ++ = '/';
+	ubf_str0_from_uint16 (szncsadtim, 4, (unsigned int) UBF_TIMESTAMP_YEAR (ts));
+	szncsadtim += 4;
+	*szncsadtim ++ = ':';
+	ubf_str0_from_59max (szncsadtim, (unsigned int) UBF_TIMESTAMP_HOUR (ts));
+	szncsadtim += 2;
+	*szncsadtim ++ = ':';
+	ubf_str0_from_59max (szncsadtim, (unsigned int) UBF_TIMESTAMP_MINUTE (ts));
+	szncsadtim += 2;
+	*szncsadtim ++ = ':';
+	ubf_str0_from_59max (szncsadtim, (unsigned int) UBF_TIMESTAMP_SECOND (ts));
+	szncsadtim += 2;
+	*szncsadtim ++ = ' ';
+	*szncsadtim ++ = UBF_TIMESTAMP_OFFSETNEGATIVE (ts) ? '-' : '+';
+	ubf_str0_from_59max (szncsadtim, (unsigned int) UBF_TIMESTAMP_OFFSETHOURS (ts));
+	szncsadtim += 2;
+	ubf_str0_from_59max (szncsadtim, (unsigned int) UBF_TIMESTAMP_OFFSETMINUTES (ts));
+	szncsadtim += 2;
+	*szncsadtim ++ = ']';
+	*szncsadtim = '\0';
 }
 
 uint64_t MS_from_SUBF_TIMESTRUCT (SUBF_TIMESTRUCT *pts)

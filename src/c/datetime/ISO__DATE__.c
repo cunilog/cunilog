@@ -65,9 +65,11 @@ When		Who				What
 static const char cc__DATE__ [] = __DATE__;
 static const char cc__TIME__ [] = __TIME__;
 
-static const char *ccMonths [12] =	{
-			"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-									};
+#ifdef NEED_CCDTMNTHS
+const char ccdtMnths [12][4] =
+		{"Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+#endif
+
 static const char *ccDigMns [12] =	{
 			"01",  "02",  "03",  "04",  "05",  "06",  "07",  "08",  "09",  "10",  "11",  "12"
 									};
@@ -91,7 +93,7 @@ const char *szBuild_ISO__DATE__ (void)
 	int m;
 	for (m = 0; m < 12; ++ m)
 	{
-		if (!memcmp (ccMonths [m], cc__DATE__, 3))
+		if (!memcmp (ccdtMnths [m], cc__DATE__, 3))
 			break;
 	}
 	// Year, like "2024".

@@ -56,6 +56,12 @@ int main (int argc, char *argv [])
 	UNREFERENCED_PARAMETER (argc);
 	UNREFERENCED_PARAMETER (argv);
 
+	// Test the NCSA datetime stamp.
+	char ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME + 1];
+	ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME] = '#';
+	NCSADATETIME_from_UBF_TIMESTAMP (ctncsa, GetSystemTimeAsUBF_TIMESTAMP ());
+	ubf_assert ('#' == ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME]);
+
 	//CunilogSetConsoleToUTF16 ();
 	CunilogSetConsoleToNone ();
 

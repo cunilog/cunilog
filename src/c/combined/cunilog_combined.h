@@ -8427,6 +8427,19 @@ When		Who				What
 #define SIZ_ISO8601DATETIMESTAMPMS_HOL		(LEN_ISO8601DATETIMESTAMPMS_HOL + 1)
 #endif
 
+/*
+	This is a horrible date/time format. Although it should be banned from this planet, it is
+	widely used in webservers. See for instance https://en.wikipedia.org/wiki/Common_Log_Format .
+
+	"[10/Oct/2000:13:55:36 -0700]"
+*/
+#ifndef LEN_NCSA_COMMON_LOG_DATETIME							// "[10/Oct/2000:13:55:36 -0700]"
+#define LEN_NCSA_COMMON_LOG_DATETIME		(28)
+#endif
+#ifndef SIZ_NCSA_COMMON_LOG_DATETIME							// "[10/Oct/2000:13:55:36 -0700]"
+#define SIZ_NCSA_COMMON_LOG_DATETIME		(LEN_NCSA_COMMON_LOG_DATETIME + 1)
+#endif
+
 #ifndef NUM_MS_IN_SECOND
 #define NUM_MS_IN_SECOND					(1000)
 #endif
@@ -8831,6 +8844,17 @@ void GetSystemTime_UBF_TIMESTAMP (UBF_TIMESTAMP *ut);
 */
 #define GETSYSTEMTIME_UBF_TIMESTAMP(t)					\
 	GetSystemTime_UBF_TIMESTAMP (&(t))
+
+/*
+	GetSystemTimeAsUBF_TIMESTAMP
+
+	Returns the system time as a UBF_TIMESTAMP. The system time is in UTC.
+	The returned SUBF_TIMESTAMP contains no time offset.
+	
+	The function calls GetSystemTime_SUBF_TIMESTRUCT () to obtain the system time,
+	then calls SUBF_TIMESTRUCT_to_UBF_TIMESTAMP () on the obtained time.
+*/
+UBF_TIMESTAMP GetSystemTimeAsUBF_TIMESTAMP (void);
 
 /*
 	GetLocalTime_SUBF_TIMESTRUCT
@@ -9750,9 +9774,13 @@ void ISO8601_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts);
 
 /*
 	This macro should be made obsolete. 2024-08-13, Thomas.
+
+	2025-02-01: Made obsolete.
 */
 #define UBF_TIMESTAMP_to_ISO8601(i, t)				\
-	ISO8601_from_UBF_TIMESTAMP ((i), (t))
+	Should cause a compiler error: "Macro UBF_TIMESTAMP_to_ISO8601() obsolete. Use ISO8601_from_UBF_TIMESTAMP()"
+	//ISO8601_from_UBF_TIMESTAMP ((i), (t))
+	
 
 /*
 	ISO8601_from_UBF_TIMESTAMP_c
@@ -9795,9 +9823,12 @@ void ISO8601T_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts);
 
 /*
 	This macro should be made obsolete. 2024-08-13, Thomas.
+
+	2025-02-01: Made obsolete.
 */
 #define UBF_TIMESTAMP_to_ISO8601T(i, t)				\
-	ISO8601T_from_UBF_TIMESTAMP ((i), (t))
+	Should cause a compiler error: "Macro UBF_TIMESTAMP_to_ISO8601T() obsolete. Use ISO8601T_from_UBF_TIMESTAMP()"
+	//ISO8601T_from_UBF_TIMESTAMP ((i), (t))
 
 /*
 	ISO8601T_from_UBF_TIMESTAMP_c
@@ -10052,6 +10083,17 @@ void ISO8601YearAndMonth_from_UBF_TIMESTAMP (char *chISOYearAndMonth, UBF_TIMEST
 void ISO8601YearAndMonth_from_UBF_TIMESTAMP_c (char *chISOYearAndMonth, UBF_TIMESTAMP ts);
 
 /*
+	A quick note regarding the "...to..." functions:
+
+	Our premise is to follow the memcpy () or strcpy () principle of storing output at
+	the address a function's/macro's first parameter points to. The "...to..." functions/
+	macros contradict this premise and will therefore be made deprecated/obsolte in the
+	future. The "...from..." versions are the ones to focus on.
+
+	Over time more and more of these function names will be changed.
+*/
+
+/*
 	UBF_TIMESTAMP_to_ISO8601_Holocene
 	ISO8601_Holocene_from_UBF_TIMESTAMP
 
@@ -10097,7 +10139,7 @@ void UBF_TIMESTAMP_to_ISO8601_no_ms (char *chISO, UBF_TIMESTAMP ts);
 
 
 /*
-	UBF_TIMESTAMP_to_ISO8601_no_ms_Holocene
+	UBF_TIMESTAMP_from_ISO8601_no_ms_Holocene
 
 	Identical to UBF_TIMESTAMP_to_ISO8601_no_ms () but returns the timestamp
 	in the Holocene format, which is 10000 years greater than the ISO8601
@@ -10105,7 +10147,35 @@ void UBF_TIMESTAMP_to_ISO8601_no_ms (char *chISO, UBF_TIMESTAMP ts);
 	The buffer chISO must have space for at least SIZ_ISO8601DATETIMESTAMP_HOL
 	octets. This number includes the terminating NUL character.
 */
-void UBF_TIMESTAMP_to_ISO8601_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts);
+void ISO8601_from_UBF_TIMESTAMP_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts);
+
+/*
+	To be deprecated/made obsolete in the future.
+*/
+#define UBF_TIMESTAMP_to_ISO8601_no_ms_Holocene(c, t)	\
+	UBF_TIMESTAMP_from_ISO8601_no_ms_Holocene ((c), (t))
+
+
+// Our months.
+#ifndef HAVE_CCDTMNTHS
+extern const char ccdtMnths [12][4];
+#define HAVE_CCDTMNTHS
+#endif
+
+/*
+	NCSADATETIME_from_UBF_TIMESTAMP
+
+	Obtains an NCSA date/timestamp from the UBF_TIMESTAMP structure ts.
+	The timestamp follows the date/time format of the Common Log Format. See
+	https://en.wikipedia.org/wiki/Common_Log_Format for more details.
+
+	The buffer szncsadtim points to must be at least SIZ_NCSA_COMMON_LOG_DATETIME long, which
+	includes a terminating NUL character.
+
+	"[10/Oct/2000:13:55:36 -0700]"
+*/
+void NCSADATETIME_from_UBF_TIMESTAMP (char *szncsadtim, UBF_TIMESTAMP ts)
+;
 
 /*
 	MS_from_SUBF_TIMESTRUCT
@@ -10455,6 +10525,13 @@ When		Who				What
 #endif
 
 EXTERN_C_BEGIN
+
+// Our months.
+#ifndef HAVE_CCDTMNTHS
+extern const char ccdtMnths [12][4];
+#define HAVE_CCDTMNTHS
+#define NEED_CCDTMNTHS
+#endif
 
 /*
 	szBuild_ISO__DATE__
@@ -14941,6 +15018,7 @@ enum cunilogeventTSformat
 	,	cunilogEvtTS_ISO8601T								// "YYYY-MM-DDTHH:MI:SS.000+01:00 "
 	,	cunilogEvtTS_ISO8601_3spc							// "YYYY-MM-DD HH:MI:SS.000+01:00   "
 	,	cunilogEvtTS_ISO8601T_3spc							// "YYYY-MM-DDTHH:MI:SS.000+01:00   "
+	,	cunilogEvtTS_NCSADT									// "[10/Oct/2000:13:55:36 -0700] "
 	// Do not add anything below this line.
 	,	cunilogEvtTS_AmountEnumValues						// Used for table sizes.
 	// Do not add anything below cunilogEvtTS_AmountEnumValues.
@@ -15808,7 +15886,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 /*
 	CunilogSetConsoleTo
 
-	Sets the console to UTF-8 or UTF-16.
+	Sets the console to UTF-8 or UTF-16 on Windows.
 */
 #ifdef PLATFORM_IS_WINDOWS
 	enum enclconsoleoutpCP
@@ -15834,11 +15912,12 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	and output character sets/code pages to UTF-8 when invoked for the first time.
 	Calling one of these functions beforehand explicitely sets the code pages/console
 	character sets and prevents the echo/console output processor from changing them
-	during logging.
+	when a logging function that echoes to the console is called the first time.
 
 	The function CunilogSetConsoleToNone () does not change the code pages/character
 	sets for the attached console but simply prevents the Cunilog echo/console output
-	processor from changing them during logging.
+	processor from changing them when a logging function that writes to the console is
+	called for the first time.
 */
 #ifdef PLATFORM_IS_WINDOWS
 	#define CunilogSetConsoleToUTF8()	CunilogSetConsoleTo (cunilogConsoleIsUTF8)

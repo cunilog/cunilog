@@ -247,6 +247,16 @@ void GetSystemTime_UBF_TIMESTAMP (UBF_TIMESTAMP *ut)
 	SUBF_TIMESTRUCT_to_UBF_TIMESTAMP (ut, &ts);
 }
 
+UBF_TIMESTAMP GetSystemTimeAsUBF_TIMESTAMP (void)
+{
+	SUBF_TIMESTRUCT	ts;
+	UBF_TIMESTAMP	ut;
+
+	GetSystemTime_SUBF_TIMESTRUCT (&ts);
+	SUBF_TIMESTRUCT_to_UBF_TIMESTAMP (&ut, &ts);
+	return ut;
+}
+
 void GetLocalTime_SUBF_TIMESTRUCT_psx (SUBF_TIMESTRUCT *pts)
 {
 	int				i_adjustment_hours;
@@ -271,7 +281,7 @@ void GetLocalTime_SUBF_TIMESTRUCT_psx (SUBF_TIMESTRUCT *pts)
 		gettimeofday (&tv, &tz);
 		if (tz.tz_minuteswest < 0)
 		{
-			bOffsetNegative = true;
+		bOffsetNegative = true;
 			tz.tz_minuteswest *= -1;
 		}
 		i_adjustment_hours	= tz.tz_minuteswest / 60;

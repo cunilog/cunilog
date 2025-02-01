@@ -261,6 +261,19 @@ When		Who				What
 #define SIZ_ISO8601DATETIMESTAMPMS_HOL		(LEN_ISO8601DATETIMESTAMPMS_HOL + 1)
 #endif
 
+/*
+	This is a horrible date/time format. Although it should be banned from this planet, it is
+	widely used in webservers. See for instance https://en.wikipedia.org/wiki/Common_Log_Format .
+
+	"[10/Oct/2000:13:55:36 -0700]"
+*/
+#ifndef LEN_NCSA_COMMON_LOG_DATETIME							// "[10/Oct/2000:13:55:36 -0700]"
+#define LEN_NCSA_COMMON_LOG_DATETIME		(28)
+#endif
+#ifndef SIZ_NCSA_COMMON_LOG_DATETIME							// "[10/Oct/2000:13:55:36 -0700]"
+#define SIZ_NCSA_COMMON_LOG_DATETIME		(LEN_NCSA_COMMON_LOG_DATETIME + 1)
+#endif
+
 #ifndef NUM_MS_IN_SECOND
 #define NUM_MS_IN_SECOND					(1000)
 #endif
@@ -665,6 +678,17 @@ void GetSystemTime_UBF_TIMESTAMP (UBF_TIMESTAMP *ut);
 */
 #define GETSYSTEMTIME_UBF_TIMESTAMP(t)					\
 	GetSystemTime_UBF_TIMESTAMP (&(t))
+
+/*
+	GetSystemTimeAsUBF_TIMESTAMP
+
+	Returns the system time as a UBF_TIMESTAMP. The system time is in UTC.
+	The returned SUBF_TIMESTAMP contains no time offset.
+	
+	The function calls GetSystemTime_SUBF_TIMESTRUCT () to obtain the system time,
+	then calls SUBF_TIMESTRUCT_to_UBF_TIMESTAMP () on the obtained time.
+*/
+UBF_TIMESTAMP GetSystemTimeAsUBF_TIMESTAMP (void);
 
 /*
 	GetLocalTime_SUBF_TIMESTRUCT

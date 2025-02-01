@@ -2065,6 +2065,11 @@ static inline void evtTSFormats_unilogEvtTS_ISO8601T_3spc (char *chISO, UBF_TIME
 	chISO [LEN_ISO8601DATETIMESTAMPMS + 2]	= ' ';
 }
 
+static inline void evtTSFormats_unilogEvtTS_NCSADT (char *chNCSADT, UBF_TIMESTAMP ts)
+{
+	NCSADATETIME_from_UBF_TIMESTAMP (chNCSADT, ts);
+}
+
 /*
 	Structure for the event timestamp table.
 	First member is the length that'll be written; second member is a pointer to the
@@ -2093,6 +2098,10 @@ SeventTSformats evtTSFormats [cunilogEvtTS_AmountEnumValues] =
 	,	{	// unilogEvtTS_ISO8601T_3spc
 			LEN_ISO8601DATETIMESTAMPMS + 3,
 			evtTSFormats_unilogEvtTS_ISO8601T_3spc			// "YYYY-MM-DDTHH:MI:SS.000+01:00   ".
+		}
+	,	{
+			LEN_NCSA_COMMON_LOG_DATETIME + 1,				// "[10/Oct/2000:13:55:36 -0700] ".
+			evtTSFormats_unilogEvtTS_NCSADT
 		}
 };
 

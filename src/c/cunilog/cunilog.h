@@ -253,7 +253,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 /*
 	CunilogSetConsoleTo
 
-	Sets the console to UTF-8 or UTF-16.
+	Sets the console to UTF-8 or UTF-16 on Windows.
 */
 #ifdef PLATFORM_IS_WINDOWS
 	enum enclconsoleoutpCP
@@ -279,11 +279,12 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	and output character sets/code pages to UTF-8 when invoked for the first time.
 	Calling one of these functions beforehand explicitely sets the code pages/console
 	character sets and prevents the echo/console output processor from changing them
-	during logging.
+	when a logging function that echoes to the console is called the first time.
 
 	The function CunilogSetConsoleToNone () does not change the code pages/character
 	sets for the attached console but simply prevents the Cunilog echo/console output
-	processor from changing them during logging.
+	processor from changing them when a logging function that writes to the console is
+	called for the first time.
 */
 #ifdef PLATFORM_IS_WINDOWS
 	#define CunilogSetConsoleToUTF8()	CunilogSetConsoleTo (cunilogConsoleIsUTF8)

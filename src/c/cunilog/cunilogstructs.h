@@ -447,6 +447,7 @@ enum cunilogeventTSformat
 	,	cunilogEvtTS_ISO8601T								// "YYYY-MM-DDTHH:MI:SS.000+01:00 "
 	,	cunilogEvtTS_ISO8601_3spc							// "YYYY-MM-DD HH:MI:SS.000+01:00   "
 	,	cunilogEvtTS_ISO8601T_3spc							// "YYYY-MM-DDTHH:MI:SS.000+01:00   "
+	,	cunilogEvtTS_NCSADT									// "[10/Oct/2000:13:55:36 -0700] "
 	// Do not add anything below this line.
 	,	cunilogEvtTS_AmountEnumValues						// Used for table sizes.
 	// Do not add anything below cunilogEvtTS_AmountEnumValues.
