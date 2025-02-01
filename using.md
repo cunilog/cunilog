@@ -27,6 +27,11 @@ If the length of a string is provided instead of USE_STRLEN, the function/macro
 will not read beyond this length. This means that most functions/macros can
 be called with string buffers that are not NUL-terminated.
 
+Cunilog treats all strings as UTF-8 strings without actually understanding the
+concept of UTF-8. For instance, a UTF-8 codepoint consisting of 3 octets/bytes
+is worked with as a string that consists of 3 characters. It is the caller's
+responsibility to ensure UTF-8 passed on to Cunilog is correct UTF-8.
+
 ## Logging
 
 We assume that you only intend to log/write to a single log file, from a
