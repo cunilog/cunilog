@@ -2940,12 +2940,16 @@ static void enqueueAndTriggerSeparateLoggingThread (SCUNILOGEVENT *pev);
 	#define DecrementNoRotationEvents(p)
 #endif
 
-static void logFromInsideRotatorTextU8fmt (SCUNILOGTARGET *put, const char *fmt, ...)
+static bool logFromInsideRotatorTextU8fmt (SCUNILOGTARGET *put, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
 
+	if (cunilogIsShutdownTarget (put))
+	return false;
+
 	va_list		ap;
 	size_t		len;
+	bool		bRet = false;
 
 	// We're supposed to be inside a rotator. This means we should have a
 	//	CUNILOG_ROTATOR_ARGS structure set in our target. It also means
@@ -2961,7 +2965,7 @@ static void logFromInsideRotatorTextU8fmt (SCUNILOGTARGET *put, const char *fmt,
 	/*
 		prd->plogSCUNILOGTARGET == NULL		-> Log to current SCUNILOGTARGET (put) but
 												without rotation (because we currently *are*
-												within a rotation.
+												within a rotation).
 		prd->plogSCUNILOGTARGET == put		-> Bug, as this should be NULL.
 		prd->plogSCUNILOGTARGET == <Anything else>
 											-> Log to this SCUNILOGTARGET normally.
@@ -2970,9 +2974,9 @@ static void logFromInsideRotatorTextU8fmt (SCUNILOGTARGET *put, const char *fmt,
 	if (prd->plogSCUNILOGTARGET && put != prd->plogSCUNILOGTARGET)
 	{
 		va_start (ap, fmt);
-		logTextU8vfmt (put, fmt, ap);
+		bRet = logTextU8vfmt (put, fmt, ap);
 		va_end (ap);
-		ubf_assert (false);
+		return bRet;
 	}
 
 	va_start (ap, fmt);
@@ -2996,12 +3000,14 @@ static void logFromInsideRotatorTextU8fmt (SCUNILOGTARGET *put, const char *fmt,
 				{
 					IncrementPendingNoRotationEvents (put);
 					enqueueAndTriggerSeparateLoggingThread (pev);
-				}else
+					bRet = true;
+				} else
 			#endif
-					cunilogProcessEventSingleThreaded (pev);
+					bRet = cunilogProcessEventSingleThreaded (pev);
 		}
 		ubf_free (szTxtToLog);
 	}
+	return bRet;
 }
 
 #ifdef OS_IS_WINDOWS
