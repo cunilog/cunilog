@@ -2945,7 +2945,7 @@ static bool logFromInsideRotatorTextU8fmt (SCUNILOGTARGET *put, const char *fmt,
 	ubf_assert_non_NULL (put);
 
 	if (cunilogIsShutdownTarget (put))
-	return false;
+		return false;
 
 	va_list		ap;
 	size_t		len;
