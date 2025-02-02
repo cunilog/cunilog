@@ -51,6 +51,16 @@ When		Who				What
 const char	ccLogsFolder []	= STR_LOGS_FOLDER;
 size_t		lnLogsFolder	= sizeof (ccLogsFolder) - 1;
 
+bool testV (SCUNILOGTARGET *put, char *sz, ...)
+{
+	va_list ap;
+
+	va_start (ap, sz);
+	bool b = logTextU8vfmt (put, sz, ap);
+	va_end (ap);
+	return b;
+}
+
 int main (int argc, char *argv [])
 {
 	UNREFERENCED_PARAMETER (argc);
@@ -138,6 +148,7 @@ int main (int argc, char *argv [])
 	ResumeLogSCUNILOGTARGETstatic ();
 
 	logTextU8_static ("This one's in UTF-16 (\xC5\x98), which should be an \"R\" with a flipped roof.");
+	testV (put, "Hello %i", 20);
 
 	/*
 	Sleep (2000);

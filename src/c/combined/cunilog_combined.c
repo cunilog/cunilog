@@ -18683,12 +18683,40 @@ static void enqueueAndTriggerSeparateLoggingThread (SCUNILOGEVENT *pev);
 	#define DecrementNoRotationEvents(p)
 #endif
 
-static void logNoRotationTextU8fmt (SCUNILOGTARGET *put, const char *fmt, ...)
+static void logFromInsideRotatorTextU8fmt (SCUNILOGTARGET *put, const char *fmt, ...)
 {
+	ubf_assert_non_NULL (put);
+
 	va_list		ap;
 	size_t		len;
 
-	ubf_assert_non_NULL (put);
+	// We're supposed to be inside a rotator. This means we should have a
+	//	CUNILOG_ROTATOR_ARGS structure set in our target. It also means
+	//	we should have a cunilog processor. Its pData member points to a
+	//	rotation data structure. Anything else is a bug.
+	ubf_assert_non_NULL (put->prargs);
+	ubf_assert_non_NULL (put->prargs->cup);
+	ubf_assert_non_NULL (put->prargs->cup->pData);
+
+	CUNILOG_ROTATION_DATA	*prd = put->prargs->cup->pData;
+	ubf_assert_non_NULL (prd);
+
+	/*
+		prd->plogSCUNILOGTARGET == NULL		-> Log to current SCUNILOGTARGET (put) but
+												without rotation (because we currently *are*
+												within a rotation.
+		prd->plogSCUNILOGTARGET == put		-> Bug, as this should be NULL.
+		prd->plogSCUNILOGTARGET == <Anything else>
+											-> Log to this SCUNILOGTARGET normally.
+	*/
+	ubf_assert (put != prd->plogSCUNILOGTARGET);
+	if (prd->plogSCUNILOGTARGET && put != prd->plogSCUNILOGTARGET)
+	{
+		va_start (ap, fmt);
+		logTextU8vfmt (put, fmt, ap);
+		va_end (ap);
+		ubf_assert (false);
+	}
 
 	va_start (ap, fmt);
 	len = (size_t) vsnprintf (NULL, 0, fmt, ap);
@@ -18740,7 +18768,7 @@ static void logNoRotationTextU8fmt (SCUNILOGTARGET *put, const char *fmt, ...)
 
 static void fsComprLogIntTxt (SCUNILOGTARGET *put, const char *szStrArg)
 {
-	logNoRotationTextU8fmt (put, szStrArg, put->mbFilToRotate.buf.pch);
+	logFromInsideRotatorTextU8fmt (put, szStrArg, put->mbFilToRotate.buf.pch);
 }
 
 static void FileSystemCompressLogfile (SCUNILOGTARGET *put)
@@ -18762,7 +18790,7 @@ static void FileSystemCompressLogfile (SCUNILOGTARGET *put)
 			} else
 			{
 				GetTextForLastError (szErr);
-				logNoRotationTextU8fmt	(
+				logFromInsideRotatorTextU8fmt	(
 					put,
 					"Error %s while attempting to initiate file system compression for file \"%s\".\n",
 					szErr, put->mbFilToRotate.buf.pch
@@ -18773,7 +18801,7 @@ static void FileSystemCompressLogfile (SCUNILOGTARGET *put)
 			break;
 		case fscompress_error:
 			GetTextForLastError (szErr);
-			logNoRotationTextU8fmt	(
+			logFromInsideRotatorTextU8fmt	(
 				put,
 				"Error %s while attempting to check file system compression for file \"%s\".\n",
 				szErr, put->mbFilToRotate.buf.pch
@@ -18788,16 +18816,16 @@ static void FileSystemCompressLogfile (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
-		logNoRotationTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pch);
+		logFromInsideRotatorTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pch);
 		bool b = MoveToRecycleBinU8 (put->mbFilToRotate.buf.pch);
 		if (b)
 		{
-			logNoRotationTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pch);
 		} else
 		{
 			char szErr [CUNILOG_STD_MSG_SIZE];
 			GetTextForLastError (szErr);
-			logNoRotationTextU8fmt (put, "Error %s while attempting to move obsolete logfile \"%s\" to recycle bin.\n", szErr, put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Error %s while attempting to move obsolete logfile \"%s\" to recycle bin.\n", szErr, put->mbFilToRotate.buf.pch);
 		}
 	}
 
@@ -18810,13 +18838,13 @@ static void FileSystemCompressLogfile (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
-		logNoRotationTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pch);
+		logFromInsideRotatorTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pch);
 		if (LIBTRASHCAN_SUCCESS == trashcan_soft_delete_apple (put->mbFilToRotate.buf.pch))
 		{
-			logNoRotationTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pch);
 		} else
 		{
-			logNoRotationTextU8fmt (put, "Error while attempting to move obsolete logfile \"%s\" to recycle bin.\n", put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Error while attempting to move obsolete logfile \"%s\" to recycle bin.\n", put->mbFilToRotate.buf.pch);
 		}
 	}
 
@@ -18826,16 +18854,16 @@ static void FileSystemCompressLogfile (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
-		logNoRotationTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pch);
+		logFromInsideRotatorTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pch);
 		bool b = MoveFileToTrashPOSIX (put->mbFilToRotate.buf.pch);
 		if (b)
 		{
-			logNoRotationTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pch);
 		} else
 		{
 			char szErr [CUNILOG_STD_MSG_SIZE];
 			GetTextForLastError (szErr);
-			logNoRotationTextU8fmt (put, "Error %s while attempting to move obsolete logfile \"%s\" to recycle bin.\n", szErr, put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Error %s while attempting to move obsolete logfile \"%s\" to recycle bin.\n", szErr, put->mbFilToRotate.buf.pch);
 		}
 	}
 
@@ -18868,16 +18896,16 @@ static inline void cuMoveFileToRecycleBin (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 	
-		logNoRotationTextU8fmt (put, "Deleting obsolete logfile \"%s\"...\n", put->mbFilToRotate.buf.pch);
+		logFromInsideRotatorTextU8fmt (put, "Deleting obsolete logfile \"%s\"...\n", put->mbFilToRotate.buf.pch);
 		bool b = DeleteFileU8 (put->mbFilToRotate.buf.pch);
 		if (b)
 		{
-			logNoRotationTextU8fmt (put, "Obsolete logfile \"%s\" deleted.\n", put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" deleted.\n", put->mbFilToRotate.buf.pch);
 		} else
 		{
 			char szErr [CUNILOG_STD_MSG_SIZE];
 			GetTextForLastError (szErr);
-			logNoRotationTextU8fmt (put, "Error %s while attempting to delete obsolete logfile \"%s\".\n", szErr, put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Error %s while attempting to delete obsolete logfile \"%s\".\n", szErr, put->mbFilToRotate.buf.pch);
 		}
 	}
 #endif
@@ -18912,6 +18940,9 @@ static void performActualRotation (CUNILOG_ROTATOR_ARGS *prg)
 	SCUNILOGTARGET			*put = pev->pSCUNILOGTARGET;
 	ubf_assert_non_NULL (put);
 
+	// Now the target knows exactly which rotator it is working on.
+	put->prargs = prg;
+
 	switch (prd->tsk)
 	{
 		case cunilogrotationtask_None:
@@ -18929,6 +18960,9 @@ static void performActualRotation (CUNILOG_ROTATOR_ARGS *prg)
 			DeleteObsoleteLogfile (put);
 			break;
 	}
+
+	// We're not in a rotator anymore.
+	put->prargs = NULL;
 }
 
 static void prepareU8fullFileNameToRotate (CUNILOG_ROTATOR_ARGS *prg)
@@ -20013,6 +20047,27 @@ bool logTextU8q				(SCUNILOGTARGET *put, const char *ccText)
 	return logTextU8lq (put, ccText, USE_STRLEN);
 }
 
+bool logTextU8vfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	size_t		l;
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+
+	char *ob = ubf_malloc (l + 1);
+	if (ob)
+	{
+		vsnprintf (ob, l + 1, fmt, ap);
+		bool b = logTextU8l (put, ob, l);
+		ubf_free (ob);
+		return b;
+	}
+	return false;
+}
+
 bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
@@ -20035,6 +20090,27 @@ bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 		va_end (ap);
 
 		bool b = logTextU8l (put, ob, l);
+		ubf_free (ob);
+		return b;
+	}
+	return false;
+}
+
+bool logTextU8qvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	size_t		l;
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+
+	char *ob = ubf_malloc (l + 1);
+	if (ob)
+	{
+		vsnprintf (ob, l + 1, fmt, ap);
+		bool b = logTextU8lq (put, ob, l);
 		ubf_free (ob);
 		return b;
 	}
@@ -20069,6 +20145,32 @@ bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 	return false;
 }
 
+bool logTextU8svfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	size_t		l;
+
+	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
+	char		*ob;
+
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+
+	ob = l < CUNILOG_DEFAULT_SFMT_SIZE ? cb : ubf_malloc (l + 1);
+	if (ob)
+	{
+		vsnprintf (ob, l + 1, fmt, ap);
+
+		bool b = logTextU8l (put, ob, l);
+		if (ob != cb) ubf_free (ob);
+		return b;
+	}
+	return false;
+}
+
 bool logTextU8sfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
@@ -20094,6 +20196,31 @@ bool logTextU8sfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 		va_end (ap);
 
 		bool b = logTextU8l (put, ob, l);
+		if (ob != cb) ubf_free (ob);
+		return b;
+	}
+	return false;
+}
+
+bool logTextU8sqvfmt		(SCUNILOGTARGET *put, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	size_t		l;
+
+	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
+	char		*ob;
+
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+
+	ob = l < CUNILOG_DEFAULT_SFMT_SIZE ? cb : ubf_malloc (l + 1);
+	if (ob)
+	{
+		vsnprintf (ob, l + 1, fmt, ap);
+		bool b = logTextU8lq (put, ob, l);
 		if (ob != cb) ubf_free (ob);
 		return b;
 	}
@@ -20131,6 +20258,32 @@ bool logTextU8sqfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 	return false;
 }
 
+bool logTextU8svfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	size_t		l;
+
+	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
+	char		*ob;
+
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+
+	ob = l < CUNILOG_DEFAULT_SFMT_SIZE ? cb : ubf_malloc (l + 1);
+	if (ob)
+	{
+		vsnprintf (ob, l + 1, fmt, ap);
+
+		bool b = logTextU8sevl (put, sev, ob, l);
+		if (ob != cb) ubf_free (ob);
+		return b;
+	}
+	return false;
+}
+
 bool logTextU8sfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
@@ -20162,6 +20315,31 @@ bool logTextU8sfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fm
 	return false;
 }
 
+bool logTextU8smbvfmtsev	(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+	ubf_assert (isInitialisedSMEMBUF (smb));
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	size_t		l;
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+
+	growToSizeSMEMBUF (smb, l + 1);
+	if (isUsableSMEMBUF (smb))
+	{
+		if (smb->buf.pch)
+		{
+			vsnprintf (smb->buf.pch, l + 1, fmt, ap);
+
+			bool b = logTextU8sevl (put, sev, smb->buf.pch, l);
+			return b;
+		}
+	}
+	return false;
+}
+
 bool logTextU8smbfmtsev		(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
@@ -20187,6 +20365,32 @@ bool logTextU8smbfmtsev		(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev
 			va_end (ap);
 
 			bool b = logTextU8sevl (put, sev, smb->buf.pch, l);
+			return b;
+		}
+	}
+	return false;
+}
+
+bool logTextU8smbvfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+	ubf_assert (isInitialisedSMEMBUF (smb));
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	size_t		l;
+
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+
+	growToSizeSMEMBUF (smb, l + 1);
+	if (isUsableSMEMBUF (smb))
+	{
+		if (smb->buf.pch)
+		{
+			vsnprintf (smb->buf.pch, l + 1, fmt, ap);
+
+			bool b = logTextU8l (put, smb->buf.pch, l);
 			return b;
 		}
 	}

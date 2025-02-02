@@ -15198,6 +15198,8 @@ typedef enum enErrCBretval errCBretval;
 */
 typedef errCBretval (*cunilogErrCallback) (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev);
 
+typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
+
 /*
 	SUNILOGTARGET
 
@@ -15266,6 +15268,7 @@ typedef struct scunilogtarget
 	ddumpWidth						dumpWidth;
 
 	cunilogErrCallback				errorCB;				// Error/fail callback function.
+	CUNILOG_ROTATOR_ARGS			*prargs;				// Current rotator arguments.
 } SCUNILOGTARGET;
 
 /*
@@ -16939,12 +16942,19 @@ bool logTextU8l				(SCUNILOGTARGET *put, const char *ccText, size_t len);
 bool logTextU8lq			(SCUNILOGTARGET *put, const char *ccText, size_t len);
 bool logTextU8				(SCUNILOGTARGET *put, const char *ccText);
 bool logTextU8q				(SCUNILOGTARGET *put, const char *ccText);
+bool logTextU8vfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
 bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...);
+bool logTextU8qvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
 bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
+bool logTextU8svfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
 bool logTextU8sfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
+bool logTextU8sqvfmt		(SCUNILOGTARGET *put, const char *fmt, va_list ap);
 bool logTextU8sqfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
+bool logTextU8svfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, va_list ap);
 bool logTextU8sfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, ...);
+bool logTextU8smbvfmtsev	(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, va_list ap);
 bool logTextU8smbfmtsev		(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, ...);
+bool logTextU8smbvfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, va_list ap);
 bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
 bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
 bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);

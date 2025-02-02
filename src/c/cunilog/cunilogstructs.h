@@ -583,6 +583,8 @@ typedef enum enErrCBretval errCBretval;
 */
 typedef errCBretval (*cunilogErrCallback) (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev);
 
+typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
+
 /*
 	SUNILOGTARGET
 
@@ -651,6 +653,7 @@ typedef struct scunilogtarget
 	ddumpWidth						dumpWidth;
 
 	cunilogErrCallback				errorCB;				// Error/fail callback function.
+	CUNILOG_ROTATOR_ARGS			*prargs;				// Current rotator arguments.
 } SCUNILOGTARGET;
 
 /*
