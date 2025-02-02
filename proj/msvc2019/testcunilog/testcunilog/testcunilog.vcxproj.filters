@@ -141,6 +141,9 @@
     <ClCompile Include="..\..\..\..\src\c\string\check_utf8.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\c\datetime\shortmonths.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogstructs.h">
@@ -291,6 +294,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\c\string\check_utf8.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\c\datetime\shortmonths.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

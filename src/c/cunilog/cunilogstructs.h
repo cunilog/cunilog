@@ -259,10 +259,6 @@ enum cunilogprocessfrequency
 typedef struct scunilogtarget SCUNILOGTARGET;
 typedef struct cunilog_processor
 {
-	/*
-	SCUNILOGTARGET				*pSCUNILOGTARGET;			// Pointer to the target the
-															//	processor belongs to.
-	*/
 	enum cunilogprocesstask			task;					// What to apply.
 	enum cunilogprocessfrequency	freq;					// When to apply
 															//	(frequency/theshold type).
@@ -354,6 +350,10 @@ typedef struct cunilog_rotation_data
 															//	file name). Only used when
 															//	CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE
 															//	set. See option flags below.
+	SCUNILOGTARGET				*plogSCUNILOGTARGET;		// Pointer to a logging target.
+															//	If this is NULL, the processor's
+															//	target is logged to, without
+															//	rotation.
 	uint64_t					uiFlgs;						// Option flags. See below.
 } CUNILOG_ROTATION_DATA;
 

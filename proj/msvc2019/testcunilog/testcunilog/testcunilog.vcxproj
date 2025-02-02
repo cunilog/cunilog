@@ -161,6 +161,7 @@
     <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogcfgparser.c" />
     <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogstructs.c" />
     <ClCompile Include="..\..\..\..\src\c\datetime\ISO__DATE__.c" />
+    <ClCompile Include="..\..\..\..\src\c\datetime\shortmonths.c" />
     <ClCompile Include="..\..\..\..\src\c\datetime\timespecfncts.c" />
     <ClCompile Include="..\..\..\..\src\c\datetime\ubf_date_and_time.c" />
     <ClCompile Include="..\..\..\..\src\c\datetime\ubf_times.c" />
@@ -207,6 +208,7 @@
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogstructs.h" />
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogversion.h" />
     <ClInclude Include="..\..\..\..\src\c\datetime\ISO__DATE__.h" />
+    <ClInclude Include="..\..\..\..\src\c\datetime\shortmonths.h" />
     <ClInclude Include="..\..\..\..\src\c\datetime\timespecfncts.h" />
     <ClInclude Include="..\..\..\..\src\c\datetime\ubf_date_and_time.h" />
     <ClInclude Include="..\..\..\..\src\c\datetime\ubf_times.h" />

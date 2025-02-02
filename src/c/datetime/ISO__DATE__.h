@@ -80,13 +80,6 @@ When		Who				What
 
 EXTERN_C_BEGIN
 
-// Our months.
-#ifndef HAVE_CCDTMNTHS
-extern const char ccdtMnths [12][4];
-#define HAVE_CCDTMNTHS
-#define NEED_CCDTMNTHS
-#endif
-
 /*
 	szBuild_ISO__DATE__
 

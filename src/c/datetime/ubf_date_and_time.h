@@ -1234,13 +1234,6 @@ void ISO8601_from_UBF_TIMESTAMP_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts);
 #define UBF_TIMESTAMP_to_ISO8601_no_ms_Holocene(c, t)	\
 	UBF_TIMESTAMP_from_ISO8601_no_ms_Holocene ((c), (t))
 
-
-// Our months.
-#ifndef HAVE_CCDTMNTHS
-extern const char ccdtMnths [12][4];
-#define HAVE_CCDTMNTHS
-#endif
-
 /*
 	NCSADATETIME_from_UBF_TIMESTAMP
 

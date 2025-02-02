@@ -42,6 +42,7 @@ When		Who				What
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
 	#include "./ISO__DATE__.h"
+	#include "./shortmonths.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./ubfmem.h"
@@ -64,11 +65,6 @@ When		Who				What
 //	__TIME__: "23:59:01".
 static const char cc__DATE__ [] = __DATE__;
 static const char cc__TIME__ [] = __TIME__;
-
-#ifdef NEED_CCDTMNTHS
-const char ccdtMnths [12][4] =
-		{"Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-#endif
 
 static const char *ccDigMns [12] =	{
 			"01",  "02",  "03",  "04",  "05",  "06",  "07",  "08",  "09",  "10",  "11",  "12"

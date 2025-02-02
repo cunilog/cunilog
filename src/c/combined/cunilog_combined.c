@@ -7031,6 +7031,59 @@ void vec_swap_(char **data, size_t *length, size_t *capacity, size_t memsz,
 }
 /****************************************************************************************
 
+	File		shortmonths.h
+	Why:		An array with the short month names in English.
+	OS:			C99
+	Created:	2025-02-02
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-02-02	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./platform.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/platform.h"
+	#endif
+
+#endif
+
+const char ccdtMnths [12][4] =
+		{"Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+/****************************************************************************************
+
 	File:		ubf_time.c
 	Why:		Contains structures and functions to work with UBF_TIMESTAMP
 				and SUBF_TIMESTRUCT structures.
@@ -7560,14 +7613,16 @@ When		Who				What
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
 	#include "./ubf_date_and_time.h"
-	#include "./../pre/unref.h"
+	#include "./shortmonths.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./strintuint.h"
 		#include "./ubfdebug.h"
+		#include "./unref.h"
 	#else
 		#include "./../string/strintuint.h"
 		#include "./../dbg/ubfdebug.h"
+		#include "./../pre/unref.h"
 	#endif
 
 	#ifdef PLATFORM_IS_POSIX
@@ -9080,11 +9135,6 @@ void ISO8601_from_UBF_TIMESTAMP_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts)
 		chISO [20] = '-';
 }
 
-#ifdef NEED_CCDTMNTHS
-const char ccdtMnths [12][4] =
-		{"Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-#endif
-
 void NCSADATETIME_from_UBF_TIMESTAMP (char *szncsadtim, UBF_TIMESTAMP ts)
 {
 	char *szOutp = szncsadtim;								// For debugging.
@@ -9845,6 +9895,7 @@ When		Who				What
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
 	#include "./ISO__DATE__.h"
+	#include "./shortmonths.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./ubfmem.h"
@@ -9867,11 +9918,6 @@ When		Who				What
 //	__TIME__: "23:59:01".
 static const char cc__DATE__ [] = __DATE__;
 static const char cc__TIME__ [] = __TIME__;
-
-#ifdef NEED_CCDTMNTHS
-const char ccdtMnths [12][4] =
-		{"Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-#endif
 
 static const char *ccDigMns [12] =	{
 			"01",  "02",  "03",  "04",  "05",  "06",  "07",  "08",  "09",  "10",  "11",  "12"
@@ -15843,6 +15889,7 @@ CUNILOG_ROTATION_DATA	stdcuppRotatorFS_compress =
 	cunilogrotationtask_FScompressLogfiles,
 	2, 0, CUNILOG_MAX_ROTATE_AUTO,
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,
+	NULL,
 	CUNILOG_ROTATOR_FLAG_NONE
 };
 
@@ -15851,6 +15898,7 @@ CUNILOG_ROTATION_DATA	stdcuppRotatorMove_to_recycle_bin =
 	cunilogrotationtask_MoveToRecycleBinLogfiles,
 	3, 0, CUNILOG_MAX_ROTATE_AUTO,
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,
+	NULL,
 	CUNILOG_ROTATOR_FLAG_NONE
 };
 
@@ -15859,6 +15907,7 @@ CUNILOG_ROTATION_DATA	stdcuppRotatorDelete =
 	cunilogrotationtask_DeleteLogfiles,
 	4, 0, CUNILOG_MAX_ROTATE_AUTO,
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,
+	NULL,
 	CUNILOG_ROTATOR_FLAG_NONE
 };
 

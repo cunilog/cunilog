@@ -47,14 +47,16 @@ When		Who				What
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
 	#include "./ubf_date_and_time.h"
-	#include "./../pre/unref.h"
+	#include "./shortmonths.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./strintuint.h"
 		#include "./ubfdebug.h"
+		#include "./unref.h"
 	#else
 		#include "./../string/strintuint.h"
 		#include "./../dbg/ubfdebug.h"
+		#include "./../pre/unref.h"
 	#endif
 
 	#ifdef PLATFORM_IS_POSIX
@@ -1566,11 +1568,6 @@ void ISO8601_from_UBF_TIMESTAMP_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts)
 	if (t.bOffsetNegative)										// Offset is negative.
 		chISO [20] = '-';
 }
-
-#ifdef NEED_CCDTMNTHS
-const char ccdtMnths [12][4] =
-		{"Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-#endif
 
 void NCSADATETIME_from_UBF_TIMESTAMP (char *szncsadtim, UBF_TIMESTAMP ts)
 {

@@ -33,6 +33,7 @@ head
 /mem/bulkmalloc
 /mem/memstrstr
 /mem/VectorC
+/datetime/shortmonths
 /datetime/ubf_times
 /datetime/ubf_date_and_time
 /datetime/timespecfncts
@@ -75,6 +76,7 @@ head
 /mem/bulkmalloc
 /mem/memstrstr
 /mem/VectorC
+/datetime/shortmonths
 /datetime/ubf_times
 /datetime/ubf_date_and_time
 /datetime/timespecfncts
