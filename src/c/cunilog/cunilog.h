@@ -1232,10 +1232,12 @@ bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 	octets, which includes the NUL-terminator. UTF-8 characters can have up to 4 octets/bytes.
 	Cunilog writes out only UTF-8 but doesn't actually understand its encoding.
 
+	The vfmt versions are variadic functions/macros that expect a va_list argument.
+
 	The fmt versions offer variadic functionality like printf () does. The function
 	logTextU8fmt () uses an additional memory allocation and deallocation internally. The sfmt
-	type functions like logTextU8sfmt () use the stack for the fmt output if less than
-	CUNILOG_DEFAULT_SFMT_SIZE bytes are required. Otherwise the heap is used.
+	type functions like logTextU8sfmt () attempt to use the stack for the fmt output if less
+	than CUNILOG_DEFAULT_SFMT_SIZE bytes are required. Otherwise the heap is used.
 	
 	Function names containing a "q" (for quick) do not invoke any rotation processors.
 
