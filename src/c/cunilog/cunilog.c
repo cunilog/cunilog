@@ -2102,7 +2102,7 @@ SeventTSformats evtTSFormats [cunilogEvtTS_AmountEnumValues] =
 			LEN_ISO8601DATETIMESTAMPMS + 3,
 			evtTSFormats_unilogEvtTS_ISO8601T_3spc			// "YYYY-MM-DDTHH:MI:SS.000+01:00   ".
 		}
-	,	{
+	,	{	// cunilogEvtTS_NCSADT
 			LEN_NCSA_COMMON_LOG_DATETIME + 1,				// "[10/Oct/2000:13:55:36 -0700] ".
 			evtTSFormats_unilogEvtTS_NCSADT
 		}

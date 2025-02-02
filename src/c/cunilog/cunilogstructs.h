@@ -424,8 +424,8 @@ typedef struct cunilog_rotation_data
 	typedef struct scunilogevent SCUNILOGEVENT;
 	typedef struct cunilog_queue_base
 	{
-		SCUNILOGEVENT			*first;						// A *SCUNILOGEVENT.
-		SCUNILOGEVENT			*last;						// A *SCUNILOGEVENT.
+		SCUNILOGEVENT			*first;						// First event.
+		SCUNILOGEVENT			*last;						// Last event.
 		size_t					num;						// Current amount of queue
 															//	elements.
 	} CUNILOG_QUEUE_BASE;
@@ -439,6 +439,12 @@ typedef struct cunilog_rotation_data
 
 	The value cunilogEvtTS_ISO8601_3spc adds 3 spaces instead of one, and so does the
 	value cunilogEvtTS_ISO8601T_3spc but with a 'T' between date and time.
+
+	Value cunilogEvtTS_NCSADT denotes a terribly hugly date/timestamp format webservers
+	introduced just after the dinosaurs went extinct 66 million years ago. Worst part of
+	this bit of history is probably that the date/timestamp is not the first column of an
+	event line. See Common Log Format (https://en.wikipedia.org/wiki/Common_Log_Format)
+	for details on the scope of the horror.
 */
 enum cunilogeventTSformat
 {
