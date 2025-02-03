@@ -39,7 +39,8 @@ Windows and UTF-8 are not at all best friends. Microsoft have done a lot to
 improve the situation but it's still quite murky.
 
 The native character set of Windows is UTF-16, which derived from the original
-UCS-2. Many Windows APIs are available in two different flavours: Functions/macros
+UCS-2 [Universal Coded Character Set](https://en.wikipedia.org/wiki/Universal_Coded_Character_Set).
+Many Windows APIs are available in two different flavours: Functions/macros
 ending in "A" and functions/macros ending with a "W". When a function/macro is
 called without either ending, a project's character set configuration determines
 the final function/macro name.
@@ -53,8 +54,8 @@ UTF-8.
 Cunilog therefore still converts UTF-8 strings to Windows UTF-16 before calling
 most of the system APIs. It does the opposite with strings coming back from the
 Windows API. One reason for this is to support very long filenames. (However, this
-is a different topic altogether, as most Windows APIs don't support very long
-filenames at all).
+is a different topic altogether, as many Windows APIs don't support very long
+filenames at all anyway yet).
 
 ## Windows and a console
 
@@ -64,9 +65,21 @@ the console is set to code page 65001 (CP_UTF8). Note that the behaviour differs
 between versions of Windows, in particular between versions/updates after 2019
 and before that.
 
-Versions __before__ 2019 require the console to be set to UTF-16, and the "W"
+The list with [Code Page Identifiers](https://learn.microsoft.com/en-us/windows/win32/intl/code-page-identifiers)
+doesn't seem to contain a code page for UTF-16, at least not for unmanaged
+applications. In other words, once an application has set an attached console to
+CP_UTF8 (code page 65001), there's no simple way back.
+
+Versions of Windows __before__ 2019 require the console to be set to UTF-16, and the "W"
 versions of the input and output functions to be used. Windows versions __from__
-2019 accept the console to be configured for UTF-8 and then understands UTF-8.
+2019 accept the console to be configured for UTF-8 and then understand UTF-8
+for the "A" output functions.
+
+Wikipedia's got a nice overview explaining that mess.
+Check out [Unicode in Microsoft Windows](https://en.wikipedia.org/wiki/Unicode_in_Microsoft_Windows).
+
+Microsoft recommends an application manifest.
+See [Use UTF-8 code pages in Windows apps](https://learn.microsoft.com/en-us/windows/apps/design/globalizing/use-utf8-code-page).
 
 By default, Cunilog configures a console attached to an application for UTF-8
 the very first time it sends text to it. This may or may not be a good thing to
@@ -79,7 +92,7 @@ logging function that outputs something to the console changes it.
 __CunilogSetConsoleToUTF8 ()__ sets the console to UTF-8. It is not required to call
 this function as Cunilog calls it automatically just before it outputs something
 to the console the very first time. From that moment on Cunilog uses the ASCII
-functions puts () to output to the console. Note that puts () or one of its
+function puts () to output to the console. Note that puts () or one of its
 derivatives is literally the only console output function it ever invokes.
 
 __CunilogSetConsoleToUTF16 ()__ sets the console to UTF-16. Cunilog then uses the

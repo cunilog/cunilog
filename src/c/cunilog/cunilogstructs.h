@@ -193,22 +193,28 @@ enum cunilogtype
 	,	cunilogMultiThreadedSeparateLoggingThread
 	,	cunilogMultiProcesses
 	// Do not add anything below this line.
-	,	cunilogTypeAmountEnumValues								// Used for table sizes.
+	,	cunilogTypeAmountEnumValues							// Used for table sizes.
 	// Do not add anything below cunilogTypeAmountEnumValues.
 };
 
+/*
+	The postfix applied to the application name.
+
+	Example:
+	"MyApp" + "_" + "YYYY-MM-DD HH_MI"
+*/
 enum cunilogpostfix
 {
 		cunilogPostfixNone
-	,	cunilogPostfixMinute
-	,	cunilogPostfixMinuteT
-	,	cunilogPostfixHour
-	,	cunilogPostfixHourT
-	,	cunilogPostfixDay
+	,	cunilogPostfixMinute								// "YYYY-MM-DD HH_MI"	
+	,	cunilogPostfixMinuteT								// "YYYY-MM-DDTHH_MI"
+	,	cunilogPostfixHour									// "YYYY-MM-DD HH"
+	,	cunilogPostfixHourT									// "YYYY-MM-DDTHH"
+	,	cunilogPostfixDay									// "YYYY-MM-DD"
 	,	cunilogPostfixDefault = cunilogPostfixDay
-	,	cunilogPostfixWeek
-	,	cunilogPostfixMonth
-	,	cunilogPostfixYear
+	,	cunilogPostfixWeek									// "YYYY-Wnn"
+	,	cunilogPostfixMonth									// "YYYY-MM"
+	,	cunilogPostfixYear									// "YYYY"
 	// Do not add anything below this line.
 	,	cunilogPostfixAmountEnumValues						// Used for table sizes.
 	// Do not add anything below cunilogPostfixAmountEnumValues.
@@ -733,8 +739,11 @@ typedef struct scunilogtarget
 	#define cunilogIsTargetInitialised(pt)	(true)
 #endif
 
-// The echo processor is skipped.
+// The echo/console output processor is skipped.
 #define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (14)
+
+// The processor that writes to the logfile is skipped.
+#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (15)
 
 /*
 	Macros for some flags.
@@ -819,6 +828,12 @@ typedef struct scunilogtarget
 #define cunilogSetNoEcho(pt)							\
 	((pt)->uiOpts |= CUNILOGTARGET_NO_ECHO)
 
+#define cunilogHasDontWriteToLogfile(pt)				\
+	((pt)->uiOpts & CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
+#define cunilogClrNoWriteToLogfile(pt)					\
+	((pt)->uiOpts &= ~ CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
+#define cunilogSetNoWriteToLogfile(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 
 
 /*

@@ -3031,6 +3031,20 @@ BOOL PathIsUNCU8(
 #endif
 
 #ifdef HAVE_SHLWAPI
+BOOL PathIsNetworkPathU8(
+	LPSTR	pszPathU8
+)
+{	// See
+	//	https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisnetworkpathw .
+	//	Can only be up to MAX_PATH.
+	WCHAR	wcPath [MAX_PATH + 1];
+
+	WinU16_from_UTF8 (wcPath, MAX_PATH + 1, pszPathU8);
+	return PathIsNetworkPathW (wcPath);
+}
+#endif
+
+#ifdef HAVE_SHLWAPI
 LPCSTR PathFindNextComponentU8(
 	LPSTR pszPathU8
 )

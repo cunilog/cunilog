@@ -2319,6 +2319,22 @@ BOOL PathIsUNCU8(
 #endif
 
 /*
+	PathIsNetworkPathU8
+	
+	UTF-8 version of the Windows API PathIsNetworkPathW (). See
+	https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisnetworkpathw
+	for more information.
+	
+	To use this function, define HAVE_SHLWAPI and link to Shlwapi.lib.
+*/
+#ifdef HAVE_SHLWAPI
+BOOL PathIsNetworkPathU8(
+	LPSTR	pszPathU8
+)
+;
+#endif
+
+/*
 	PathFindNextComponentU8
 
 	UTF-8 version of the Windows API PathFindNextComponenW (). See

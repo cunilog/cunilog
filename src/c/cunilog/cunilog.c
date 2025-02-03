@@ -264,7 +264,7 @@ size_t arrLengthTimeStampFromPostfix [] =					// [unilogPostfixAmountEnumValues]
 #ifdef DEBUG
 	size_t lenDateTimeStampFromPostfix (enum cunilogpostfix postfix)
 	{
-		ubf_assert (postfix <= cunilogPostfixYear);
+		ubf_assert (0 <= postfix);
 		ubf_assert (postfix < cunilogPostfixAmountEnumValues);
 
 		return arrLengthTimeStampFromPostfix [postfix];
@@ -272,7 +272,8 @@ size_t arrLengthTimeStampFromPostfix [] =					// [unilogPostfixAmountEnumValues]
 #endif
 
 /*
-	Note the wildcard mask for "YYYY-MM-DD HH_MI". Hours and minutes are separated by an
+	Note the wildcard mask for "YYYY-MM-DD HH_MI" (cunilogPostfixMinute) and
+	"YYYY-MM-DDTHH_MI" (cunilogPostfixMinuteT). Hours and minutes are separated by an
 	underscore instead of a colon.
 */
 const char *arrPostfixWildcardMask []	=		// [cunilogPostfixAmountEnumValues]
@@ -292,7 +293,6 @@ const char *arrPostfixWildcardMask []	=		// [cunilogPostfixAmountEnumValues]
 	const char *postfixMaskFromLogPostfix (enum cunilogpostfix postfix)
 	{
 		ubf_assert (postfix >= 0);
-		ubf_assert (postfix <= cunilogPostfixYear);
 		ubf_assert (postfix < cunilogPostfixAmountEnumValues);
 
 		return arrPostfixWildcardMask [postfix];
@@ -315,8 +315,8 @@ static void noPostfix (char *sz, UBF_TIMESTAMP ts)
 void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 {
 	/* cunilogPostfixNone		*/		noPostfix
-	/* cunilogPostfixMinute		*/	,	ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_c
-	/* cunilogPostfixMinuteT	*/	,	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_c
+	/* cunilogPostfixMinute		*/	,	ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_
+	/* cunilogPostfixMinuteT	*/	,	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_
 	/* cunilogPostfixHour		*/	,	ISO8601DateAndHour_from_UBF_TIMESTAMP_c
 	/* cunilogPostfixHourT		*/	,	ISO8601TDateAndHour_from_UBF_TIMESTAMP_c
 	/* cunilogPostfixDay		*/	,	ISO8601Date_from_UBF_TIMESTAMP_c
@@ -337,7 +337,7 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 	}
 #else
 	#define obtainDateAndTimeStamp(sw, ts, pfx)			\
-		obtainTimeStampAsString [(pfx)] (sw, ts)
+		obtainTimeStampAsString [(pfx)] ((sw), (ts))
 #endif
 
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
@@ -2479,6 +2479,9 @@ static size_t createEventLineFromSUNILOGEVENT (SCUNILOGEVENT *pev)
 
 static inline void storeCaptionLengthInData (unsigned char **pData, size_t ui, size_t lenCapt)
 {
+	ubf_assert_non_NULL (pData);
+	ubf_assert_non_NULL (*pData);
+
 	uint8_t			ui8;
 	uint16_t		ui16;
 	uint32_t		ui32;
@@ -2522,9 +2525,9 @@ static SCUNILOGEVENT *CreateSCUNILOGEVENTandData	(
 					size_t						siz
 													)
 {
-	ubf_assert_non_NULL (put);
-	ubf_assert_non_NULL (ccData);
-	ubf_assert (USE_STRLEN != siz);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL	(ccData);
+	ubf_assert			(USE_STRLEN != siz);
 
 	size_t			ui		= widthOfCaptionLengthFromCunilogEventType (type);
 	size_t			aln		= ALIGNED_SIZE (sizeof (SCUNILOGEVENT), CUNILOG_DEFAULT_ALIGNMENT);
@@ -2774,11 +2777,6 @@ static void unilogProcessUpdateLogPathFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVEN
 	memcpy (put->cPrevDateTimeStamp, put->szDateTimeStamp, lenPostfixStamp);
 
 	obtainDateAndTimeStamp (put->szDateTimeStamp, pev->stamp, put->culogPostfix);
-
-	// The cunilogPostfixMinute postfix causes a colon to appear between hours and minutes.
-	//	We simply replace it with an underscore.
-	put->szDateTimeStamp [13] = cunilogPostfixMinute == put->culogPostfix ? '_' : put->szDateTimeStamp [13];
-
 	put->szDateTimeStamp [lenPostfixStamp] = '.';
 }
 
@@ -2870,6 +2868,9 @@ static void cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEV
 	ubf_assert_non_NULL (put);
 	ubf_assert (isUsableSMEMBUF (&put->mbLogfileName));
 
+	if (cunilogHasDontWriteToLogfile (put))
+		return;
+
 	CUNILOG_LOGFILE	*pl	= cup->pData;
 	ubf_assert_non_NULL (pl);
 
@@ -2896,16 +2897,13 @@ static void cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEV
 
 static void cunilogProcessFlushFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 {
-	UNREFERENCED_PARAMETER (pev);
-
 	ubf_assert_non_NULL (pev);
+	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
+	SCUNILOGTARGET	*put = pev->pSCUNILOGTARGET;
+	ubf_assert_non_NULL (put);
 	
-	/*
-		Not necessary for this processor.
-
-		SCUNILOGTARGET	*put = pev->pSCUNILOGTARGET;
-		ubf_assert_non_NULL (put);
-	*/
+	if (cunilogHasDontWriteToLogfile (put))
+		return;
 
 	CUNILOG_LOGFILE *pcl = cup->pData;
 
@@ -3029,11 +3027,6 @@ static bool logFromInsideRotatorTextU8fmt (SCUNILOGTARGET *put, const char *fmt,
 	}
 #endif
 
-static void fsComprLogIntTxt (SCUNILOGTARGET *put, const char *szStrArg)
-{
-	logFromInsideRotatorTextU8fmt (put, szStrArg, put->mbFilToRotate.buf.pch);
-}
-
 static void FileSystemCompressLogfile (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
@@ -3045,11 +3038,17 @@ static void FileSystemCompressLogfile (SCUNILOGTARGET *put)
 	switch (cmprRes)
 	{
 		case fscompress_uncompressed:
-			fsComprLogIntTxt (put, "Initiating file system compression for file \"%s\"...\n");
+			logFromInsideRotatorTextU8fmt	(
+				put, "Initiating file system compression for file \"%s\"...\n",
+				put->mbFilToRotate.buf.pch
+											);
 			b = FScompressFileByName (put->mbFilToRotate.buf.pch);
 			if (b)
 			{
-				fsComprLogIntTxt (put, "File system compression for file \"%s\" initiated.\n");
+				logFromInsideRotatorTextU8fmt	(
+					put, "File system compression for file \"%s\" initiated.\n",
+				put->mbFilToRotate.buf.pch
+												);
 			} else
 			{
 				GetTextForLastError (szErr);
@@ -4175,8 +4174,9 @@ enum enCunilogLogPriority
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	bool SetLogPrioritySCUNILOGTARGET (SCUNILOGTARGET *put, cunilogprio prio)
 	{
-		ubf_assert_non_NULL (put);
-		ubf_assert (prio < cunilogPrioInvalid);
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(0 <= prio);
+		ubf_assert			(prio < cunilogPrioInvalid);
 
 		if (hasSeparateLoggingThread (put))
 		{

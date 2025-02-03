@@ -3228,6 +3228,20 @@ BOOL PathIsUNCU8(
 #endif
 
 #ifdef HAVE_SHLWAPI
+BOOL PathIsNetworkPathU8(
+	LPSTR	pszPathU8
+)
+{	// See
+	//	https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisnetworkpathw .
+	//	Can only be up to MAX_PATH.
+	WCHAR	wcPath [MAX_PATH + 1];
+
+	WinU16_from_UTF8 (wcPath, MAX_PATH + 1, pszPathU8);
+	return PathIsNetworkPathW (wcPath);
+}
+#endif
+
+#ifdef HAVE_SHLWAPI
 LPCSTR PathFindNextComponentU8(
 	LPSTR pszPathU8
 )
@@ -17845,7 +17859,7 @@ SeventTSformats evtTSFormats [cunilogEvtTS_AmountEnumValues] =
 			LEN_ISO8601DATETIMESTAMPMS + 3,
 			evtTSFormats_unilogEvtTS_ISO8601T_3spc			// "YYYY-MM-DDTHH:MI:SS.000+01:00   ".
 		}
-	,	{
+	,	{	// cunilogEvtTS_NCSADT
 			LEN_NCSA_COMMON_LOG_DATETIME + 1,				// "[10/Oct/2000:13:55:36 -0700] ".
 			evtTSFormats_unilogEvtTS_NCSADT
 		}
@@ -18222,6 +18236,9 @@ static size_t createEventLineFromSUNILOGEVENT (SCUNILOGEVENT *pev)
 
 static inline void storeCaptionLengthInData (unsigned char **pData, size_t ui, size_t lenCapt)
 {
+	ubf_assert_non_NULL (pData);
+	ubf_assert_non_NULL (*pData);
+
 	uint8_t			ui8;
 	uint16_t		ui16;
 	uint32_t		ui32;
@@ -18265,9 +18282,9 @@ static SCUNILOGEVENT *CreateSCUNILOGEVENTandData	(
 					size_t						siz
 													)
 {
-	ubf_assert_non_NULL (put);
-	ubf_assert_non_NULL (ccData);
-	ubf_assert (USE_STRLEN != siz);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL	(ccData);
+	ubf_assert			(USE_STRLEN != siz);
 
 	size_t			ui		= widthOfCaptionLengthFromCunilogEventType (type);
 	size_t			aln		= ALIGNED_SIZE (sizeof (SCUNILOGEVENT), CUNILOG_DEFAULT_ALIGNMENT);
@@ -18613,6 +18630,9 @@ static void cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEV
 	ubf_assert_non_NULL (put);
 	ubf_assert (isUsableSMEMBUF (&put->mbLogfileName));
 
+	if (cunilogHasDontWriteToLogfile (put))
+		return;
+
 	CUNILOG_LOGFILE	*pl	= cup->pData;
 	ubf_assert_non_NULL (pl);
 
@@ -18639,16 +18659,13 @@ static void cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEV
 
 static void cunilogProcessFlushFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 {
-	UNREFERENCED_PARAMETER (pev);
-
 	ubf_assert_non_NULL (pev);
+	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
+	SCUNILOGTARGET	*put = pev->pSCUNILOGTARGET;
+	ubf_assert_non_NULL (put);
 	
-	/*
-		Not necessary for this processor.
-
-		SCUNILOGTARGET	*put = pev->pSCUNILOGTARGET;
-		ubf_assert_non_NULL (put);
-	*/
+	if (cunilogHasDontWriteToLogfile (put))
+		return;
 
 	CUNILOG_LOGFILE *pcl = cup->pData;
 
@@ -18772,11 +18789,6 @@ static bool logFromInsideRotatorTextU8fmt (SCUNILOGTARGET *put, const char *fmt,
 	}
 #endif
 
-static void fsComprLogIntTxt (SCUNILOGTARGET *put, const char *szStrArg)
-{
-	logFromInsideRotatorTextU8fmt (put, szStrArg, put->mbFilToRotate.buf.pch);
-}
-
 static void FileSystemCompressLogfile (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
@@ -18788,11 +18800,17 @@ static void FileSystemCompressLogfile (SCUNILOGTARGET *put)
 	switch (cmprRes)
 	{
 		case fscompress_uncompressed:
-			fsComprLogIntTxt (put, "Initiating file system compression for file \"%s\"...\n");
+			logFromInsideRotatorTextU8fmt	(
+				put, "Initiating file system compression for file \"%s\"...\n",
+				put->mbFilToRotate.buf.pch
+											);
 			b = FScompressFileByName (put->mbFilToRotate.buf.pch);
 			if (b)
 			{
-				fsComprLogIntTxt (put, "File system compression for file \"%s\" initiated.\n");
+				logFromInsideRotatorTextU8fmt	(
+					put, "File system compression for file \"%s\" initiated.\n",
+				put->mbFilToRotate.buf.pch
+												);
 			} else
 			{
 				GetTextForLastError (szErr);
@@ -19918,8 +19936,9 @@ enum enCunilogLogPriority
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	bool SetLogPrioritySCUNILOGTARGET (SCUNILOGTARGET *put, cunilogprio prio)
 	{
-		ubf_assert_non_NULL (put);
-		ubf_assert (prio < cunilogPrioInvalid);
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(0 <= prio);
+		ubf_assert			(prio < cunilogPrioInvalid);
 
 		if (hasSeparateLoggingThread (put))
 		{

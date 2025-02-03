@@ -1356,8 +1356,8 @@ void ISO8601TDateAndHour_from_UBF_TIMESTAMP_c (char *chISODateAndHour, UBF_TIMES
 
 void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_s (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
 {
-	// yyyy-mm-dd hh
-	// YYYY-MM-DD HH
+	// yyyy-mm-dd hh:mm
+	// YYYY-MM-DD HH:MM
 	snprintf	(
 		chISODateHourAndMinute, SIZ_ISO8601DATETIMESTAMPMS,
 		"%4.4u-%2.2u-%2.2u %2.2u:%2.2u",
@@ -1371,20 +1371,6 @@ void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_s (char *chISODateHourAndMinute
 
 void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_c (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
 {
-	// yyyy-mm-dd hh
-	// YYYY-MM-DD HH
-	/*
-	snprintf	(
-		chISODateHourAndMinute, SIZ_ISO8601DATETIMESTAMPMS,
-		"%4.4u-%2.2u-%2.2u %2.2u:%2.2u",
-		(unsigned int) UBF_TIMESTAMP_YEAR (ts),
-		(unsigned int) UBF_TIMESTAMP_MONTH (ts),
-		(unsigned int) UBF_TIMESTAMP_DAY (ts),
-		(unsigned int) UBF_TIMESTAMP_HOUR (ts),
-		(unsigned int) UBF_TIMESTAMP_MINUTE (ts)
-				);
-	*/
-
 	ubf_str0_from_uint16 (chISODateHourAndMinute, 4, (unsigned int) UBF_TIMESTAMP_YEAR (ts));
 	chISODateHourAndMinute += 4;
 	*chISODateHourAndMinute ++ = '-';
@@ -1402,10 +1388,29 @@ void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_c (char *chISODateHourAndMinute
 	*chISODateHourAndMinute= '\0';
 }
 
+void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_ (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
+{
+	ubf_str0_from_uint16 (chISODateHourAndMinute, 4, (unsigned int) UBF_TIMESTAMP_YEAR (ts));
+	chISODateHourAndMinute += 4;
+	*chISODateHourAndMinute ++ = '-';
+	ubf_str0_from_59max (chISODateHourAndMinute, (unsigned int) UBF_TIMESTAMP_MONTH (ts));
+	chISODateHourAndMinute += 2;
+	*chISODateHourAndMinute ++ = '-';
+	ubf_str0_from_59max (chISODateHourAndMinute, (unsigned int) UBF_TIMESTAMP_DAY (ts));
+	chISODateHourAndMinute += 2;
+	*chISODateHourAndMinute ++ = ' ';
+	ubf_str0_from_59max (chISODateHourAndMinute, (unsigned int) UBF_TIMESTAMP_HOUR (ts));
+	chISODateHourAndMinute += 2;
+	*chISODateHourAndMinute ++ = '_';
+	ubf_str0_from_59max (chISODateHourAndMinute, (unsigned int) UBF_TIMESTAMP_MINUTE (ts));
+	chISODateHourAndMinute += 2;
+	*chISODateHourAndMinute= '\0';
+}
+
 void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_s (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
 {
-	// yyyy-mm-dd hh
-	// YYYY-MM-DD HH
+	// yyyy-mm-dd hh:mm
+	// YYYY-MM-DD HH:MM
 	snprintf	(
 		chISODateHourAndMinute, SIZ_ISO8601DATETIMESTAMPMS,
 		"%4.4u-%2.2u-%2.2uT%2.2u:%2.2u",
@@ -1419,8 +1424,8 @@ void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_s (char *chISODateHourAndMinut
 
 void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_c (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
 {
-	// yyyy-mm-dd hh
-	// YYYY-MM-DD HH
+	// yyyy-mm-dd hh:mm
+	// YYYY-MM-DD HH:MM
 
 	ubf_str0_from_uint16 (chISODateHourAndMinute, 4, (unsigned int) UBF_TIMESTAMP_YEAR (ts));
 	chISODateHourAndMinute += 4;
@@ -1434,6 +1439,25 @@ void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_c (char *chISODateHourAndMinut
 	ubf_str0_from_59max (chISODateHourAndMinute, (unsigned int) UBF_TIMESTAMP_HOUR (ts));
 	chISODateHourAndMinute += 2;
 	*chISODateHourAndMinute ++ = ':';
+	ubf_str0_from_59max (chISODateHourAndMinute, (unsigned int) UBF_TIMESTAMP_MINUTE (ts));
+	chISODateHourAndMinute += 2;
+	*chISODateHourAndMinute= '\0';
+}
+
+void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_ (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
+{
+	ubf_str0_from_uint16 (chISODateHourAndMinute, 4, (unsigned int) UBF_TIMESTAMP_YEAR (ts));
+	chISODateHourAndMinute += 4;
+	*chISODateHourAndMinute ++ = '-';
+	ubf_str0_from_59max (chISODateHourAndMinute, (unsigned int) UBF_TIMESTAMP_MONTH (ts));
+	chISODateHourAndMinute += 2;
+	*chISODateHourAndMinute ++ = '-';
+	ubf_str0_from_59max (chISODateHourAndMinute, (unsigned int) UBF_TIMESTAMP_DAY (ts));
+	chISODateHourAndMinute += 2;
+	*chISODateHourAndMinute ++ = 'T';
+	ubf_str0_from_59max (chISODateHourAndMinute, (unsigned int) UBF_TIMESTAMP_HOUR (ts));
+	chISODateHourAndMinute += 2;
+	*chISODateHourAndMinute ++ = '_';
 	ubf_str0_from_59max (chISODateHourAndMinute, (unsigned int) UBF_TIMESTAMP_MINUTE (ts));
 	chISODateHourAndMinute += 2;
 	*chISODateHourAndMinute= '\0';

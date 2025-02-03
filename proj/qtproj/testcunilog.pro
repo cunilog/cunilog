@@ -76,6 +76,7 @@ HEADERS += \
     ../../src/c/cunilog/cunilogdefs.h \
     ../../src/c/cunilog/cunilogstructs.h \
     ../../src/c/datetime/ISO__DATE__.h \
+    ../../src/c/datetime/shortmonths.h \
     ../../src/c/datetime/timespecfncts.h \
     ../../src/c/datetime/ubf_date_and_time.h \
     ../../src/c/datetime/ubf_times.h \
@@ -125,6 +126,7 @@ SOURCES += \
     ../../src/c/cunilog/cunilogcfgparser.c \
     ../../src/c/cunilog/cunilogstructs.c \
     ../../src/c/datetime/ISO__DATE__.c \
+    ../../src/c/datetime/shortmonths.c \
     ../../src/c/datetime/timespecfncts.c \
     ../../src/c/datetime/ubf_date_and_time.c \
     ../../src/c/datetime/ubf_times.c \

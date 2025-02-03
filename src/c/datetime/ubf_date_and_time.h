@@ -1091,6 +1091,22 @@ void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_c (char *chISODateHourAndMinute
 #endif
 
 /*
+	ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_
+
+	Retrieves the date/time stamp in ts as a NUL-terminated string in ISO 8601 that contains the
+	date, hour, and minute. Hour and minute are separated by an underscore instead of a colon
+	in order to use it in filenames on Windows.
+	The buffer chISODateHourAndMinute points to must be at least SIZ_ISO8601DATEHOURANDMINUTE
+	octets long.
+
+	The function does not take an offset into consideration and might therefore
+	result in an hour value that is perceived as being incorrect (although it is not).
+
+	Example of returned string: "2023-11-16 09_47"
+*/
+void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_ (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
+
+/*
 	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_s
 
 	The function is identical to ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_s () but inserts
@@ -1124,6 +1140,22 @@ void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_c (char *chISODateHourAndMinut
 	#define ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP(c,t)	\
 		ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_c (c, t)
 #endif
+
+/*
+	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_
+
+	Retrieves the date/time stamp in ts as a NUL-terminated string in ISO 8601 that contains the
+	date, hour, and minute. Hour and minute are separated by an underscore instead of a colon
+	in order to use it in filenames on Windows. Date and time are separated by a "T".
+	The buffer chISODateHourAndMinute points to must be at least SIZ_ISO8601DATEHOURANDMINUTE
+	octets long.
+
+	The function does not take an offset into consideration and might therefore
+	result in an hour value that is perceived as being incorrect (although it is not).
+
+	Example of returned string: "2023-11-16T09_47"
+*/
+void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_ (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
 
 /*
 	ISO8601Year_from_UBF_TIMESTAMP

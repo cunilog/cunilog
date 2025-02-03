@@ -53,8 +53,9 @@ Cunilog's predecessor to POSIX platforms.
 
 ## Purpose
 
-Cunilog writes event texts to the console and/or logfiles. It compresses and/or deletes less recent files.
-Basically, it writes out something like this:
+Cunilog writes event texts to the console and/or logfiles. It compresses and/or
+deletes less recent files. Basically, its main purpose is to write out something
+like this:
 
 	2024-08-02 23:36:00.076+01:00 
 	2024-08-02 23:36:00.076+01:00 ----------
@@ -66,8 +67,8 @@ very quick. The software's origins are in automation with realtime constraints.
 
 ## What it is not
 
-- It is not a replacement for existing logging facilities like syslog in Linux
-	systems or Windows event logging.
+- It is not a replacement for existing logging facilities like syslog or logrotate
+	on Linux systems or Windows event logging.
 
 - It is even further away from software like Apache Kafka and Pulsar. These serve
 	totally different purposes.

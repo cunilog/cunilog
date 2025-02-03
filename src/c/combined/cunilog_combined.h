@@ -2947,6 +2947,22 @@ BOOL PathIsUNCU8(
 #endif
 
 /*
+	PathIsNetworkPathU8
+	
+	UTF-8 version of the Windows API PathIsNetworkPathW (). See
+	https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisnetworkpathw
+	for more information.
+	
+	To use this function, define HAVE_SHLWAPI and link to Shlwapi.lib.
+*/
+#ifdef HAVE_SHLWAPI
+BOOL PathIsNetworkPathU8(
+	LPSTR	pszPathU8
+)
+;
+#endif
+
+/*
 	PathFindNextComponentU8
 
 	UTF-8 version of the Windows API PathFindNextComponenW (). See
@@ -15039,8 +15055,8 @@ typedef struct cunilog_rotation_data
 	typedef struct scunilogevent SCUNILOGEVENT;
 	typedef struct cunilog_queue_base
 	{
-		SCUNILOGEVENT			*first;						// A *SCUNILOGEVENT.
-		SCUNILOGEVENT			*last;						// A *SCUNILOGEVENT.
+		SCUNILOGEVENT			*first;						// First event.
+		SCUNILOGEVENT			*last;						// Last event.
 		size_t					num;						// Current amount of queue
 															//	elements.
 	} CUNILOG_QUEUE_BASE;
@@ -15054,6 +15070,12 @@ typedef struct cunilog_rotation_data
 
 	The value cunilogEvtTS_ISO8601_3spc adds 3 spaces instead of one, and so does the
 	value cunilogEvtTS_ISO8601T_3spc but with a 'T' between date and time.
+
+	Value cunilogEvtTS_NCSADT denotes a terribly hugly date/timestamp format webservers
+	introduced just after the dinosaurs went extinct 66 million years ago. Worst part of
+	this bit of history is probably that the date/timestamp is not the first column of an
+	event line. See Common Log Format (https://en.wikipedia.org/wiki/Common_Log_Format)
+	for details on the scope of the horror.
 */
 enum cunilogeventTSformat
 {
@@ -15342,8 +15364,11 @@ typedef struct scunilogtarget
 	#define cunilogIsTargetInitialised(pt)	(true)
 #endif
 
-// The echo processor is skipped.
+// The echo/console output processor is skipped.
 #define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (14)
+
+// The processor that writes to the logfile is skipped.
+#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (15)
 
 /*
 	Macros for some flags.
@@ -15428,6 +15453,12 @@ typedef struct scunilogtarget
 #define cunilogSetNoEcho(pt)							\
 	((pt)->uiOpts |= CUNILOGTARGET_NO_ECHO)
 
+#define cunilogHasDontWriteToLogfile(pt)				\
+	((pt)->uiOpts & CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
+#define cunilogClrNoWriteToLogfile(pt)					\
+	((pt)->uiOpts &= ~ CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
+#define cunilogSetNoWriteToLogfile(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 
 
 /*
