@@ -240,10 +240,15 @@ EXTERN_C_BEGIN
 		// The debug version has a function definition.
 		void *ubf_aligned_malloc_intern (size_t alignment, size_t size);
 	#else
-		#define ubf_aligned_malloc_intern(alignment,size) _aligned_malloc (alignment, size)
+		#define ubf_aligned_malloc_intern(alignment, size) _aligned_malloc (alignment, size)
 	#endif
 #else
-	void *ubf_aligned_malloc_intern (size_t alignment, size_t size);
+	#ifdef DEBUG
+		// The debug version has a function definition.
+		void *ubf_aligned_malloc_intern (size_t alignment, size_t size);
+	#else
+		#define ubf_aligned_malloc_intern(alignment, size) aligned_alloc (alignment, size)
+	#endif
 #endif
 
 // Memory allocation. See https://msdn.microsoft.com/en-us/library/8z34s9c6.aspx

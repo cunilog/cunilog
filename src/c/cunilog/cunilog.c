@@ -250,15 +250,16 @@ CUNILOG_PROCESSOR	*stdcupp [] =
 
 size_t arrLengthTimeStampFromPostfix [] =					// [unilogPostfixAmountEnumValues]
 {
-	/* cunilogPostfixNone		*/		0
-	/* cunilogPostfixMinute		*/	,	LEN_ISO8601DATEHOURANDMINUTE
-	/* cunilogPostfixMinuteT	*/	,	LEN_ISO8601DATEHOURANDMINUTE
-	/* cunilogPostfixHour		*/	,	LEN_ISO8601DATEANDHOUR
-	/* cunilogPostfixHourT		*/	,	LEN_ISO8601DATEANDHOUR
-	/* cunilogPostfixDay		*/	,	LEN_ISO8601DATE
-	/* cunilogPostfixWeek		*/	,	LEN_ISO8601YEARANDWEEK
-	/* cunilogPostfixMonth		*/	,	LEN_ISO8601YEARANDMONTH
-	/* cunilogPostfixYear		*/	,	LEN_ISO8601YEAR
+	/* cunilogPostfixNone					*/		0
+	/* cunilogPostfixMinute					*/	,	LEN_ISO8601DATEHOURANDMINUTE
+	/* cunilogPostfixMinuteT				*/	,	LEN_ISO8601DATEHOURANDMINUTE
+	/* cunilogPostfixHour					*/	,	LEN_ISO8601DATEANDHOUR
+	/* cunilogPostfixHourT					*/	,	LEN_ISO8601DATEANDHOUR
+	/* cunilogPostfixDay					*/	,	LEN_ISO8601DATE
+	/* cunilogPostfixWeek					*/	,	LEN_ISO8601YEARANDWEEK
+	/* cunilogPostfixMonth					*/	,	LEN_ISO8601YEARANDMONTH
+	/* cunilogPostfixYear					*/	,	LEN_ISO8601YEAR
+	/* cunilogPostfixDotNumberDescending	*/	,	0
 };
 
 #ifdef DEBUG
@@ -279,14 +280,15 @@ size_t arrLengthTimeStampFromPostfix [] =					// [unilogPostfixAmountEnumValues]
 const char *arrPostfixWildcardMask []	=		// [cunilogPostfixAmountEnumValues]
 {
 	"",											// cunilogPostfixNone
-	"\?\?\?\?-\?\?-\?\? \?\?_\?\?",				// cunilogPostfixMinute		"YYYY-MM-DD HH_MI".
-	"\?\?\?\?-\?\?-\?\?T\?\?_\?\?",				// cunilogPostfixMinuteT	"YYYY-MM-DDTHH_MI".
-	"\?\?\?\?-\?\?-\?\? \?\?",					// cunilogPostfixHour		"YYYY-MM-DD HH".
-	"\?\?\?\?-\?\?-\?\?T\?\?",					// cunilogPostfixHourT		"YYYY-MM-DDTHH".
-	"\?\?\?\?-\?\?-\?\?",						// cunilogPostfixDay		"YYYY-MM-DD".
-	"\?\?\?\?-W\?\?",							// cunilogPostfixWeek		"YYYY-Wnn".
-	"\?\?\?\?-\?\?",							// cunilogPostfixMonth		"YYYY-MM".
-	"\?\?\?\?"									// cunilogPostfixYear		"YYYY".
+	"\?\?\?\?-\?\?-\?\? \?\?_\?\?",				// cunilogPostfixMinute					"YYYY-MM-DD HH_MI".
+	"\?\?\?\?-\?\?-\?\?T\?\?_\?\?",				// cunilogPostfixMinuteT				"YYYY-MM-DDTHH_MI".
+	"\?\?\?\?-\?\?-\?\? \?\?",					// cunilogPostfixHour					"YYYY-MM-DD HH".
+	"\?\?\?\?-\?\?-\?\?T\?\?",					// cunilogPostfixHourT					"YYYY-MM-DDTHH".
+	"\?\?\?\?-\?\?-\?\?",						// cunilogPostfixDay					"YYYY-MM-DD".
+	"\?\?\?\?-W\?\?",							// cunilogPostfixWeek					"YYYY-Wnn".
+	"\?\?\?\?-\?\?",							// cunilogPostfixMonth					"YYYY-MM".
+	"\?\?\?\?"									// cunilogPostfixYear					"YYYY".
+	"",											// cunilogPostfixDotNumberDescending
 };
 
 #ifdef DEBUG
@@ -314,15 +316,16 @@ static void noPostfix (char *sz, UBF_TIMESTAMP ts)
 */
 void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 {
-	/* cunilogPostfixNone		*/		noPostfix
-	/* cunilogPostfixMinute		*/	,	ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_
-	/* cunilogPostfixMinuteT	*/	,	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_
-	/* cunilogPostfixHour		*/	,	ISO8601DateAndHour_from_UBF_TIMESTAMP_c
-	/* cunilogPostfixHourT		*/	,	ISO8601TDateAndHour_from_UBF_TIMESTAMP_c
-	/* cunilogPostfixDay		*/	,	ISO8601Date_from_UBF_TIMESTAMP_c
-	/* cunilogPostfixWeek		*/	,	ISO8601YearAndWeek_from_UBF_TIMESTAMP_c
-	/* cunilogPostfixMonth		*/	,	ISO8601YearAndMonth_from_UBF_TIMESTAMP_c
-	/* cunilogPostfixYear		*/	,	ISO8601Year_from_UBF_TIMESTAMP_c
+	/* cunilogPostfixNone					*/		noPostfix
+	/* cunilogPostfixMinute					*/	,	ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_
+	/* cunilogPostfixMinuteT				*/	,	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_
+	/* cunilogPostfixHour					*/	,	ISO8601DateAndHour_from_UBF_TIMESTAMPc
+	/* cunilogPostfixHourT					*/	,	ISO8601TDateAndHour_from_UBF_TIMESTAMPc
+	/* cunilogPostfixDay					*/	,	ISO8601Date_from_UBF_TIMESTAMPc
+	/* cunilogPostfixWeek					*/	,	ISO8601YearAndWeek_from_UBF_TIMESTAMPc
+	/* cunilogPostfixMonth					*/	,	ISO8601YearAndMonth_from_UBF_TIMESTAMPc
+	/* cunilogPostfixYear					*/	,	ISO8601Year_from_UBF_TIMESTAMPc
+	/* cunilogPostfixDotNumberDescending	*/	,	noPostfix
 };
 
 #ifdef DEBUG
@@ -330,7 +333,6 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 	{
 		ubf_assert_non_NULL (szWhere);
 		ubf_assert (postfix >= 0);
-		ubf_assert (postfix <= cunilogPostfixYear);
 		ubf_assert (postfix < cunilogPostfixAmountEnumValues);
 
 		obtainTimeStampAsString [postfix] (szWhere, ts);
@@ -1039,6 +1041,14 @@ static void prepareSCUNILOGTARGETinitFilenameBuffers (SCUNILOGTARGET *put, size_
 static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
+
+	// A little helper for debugging.
+	/*
+	if (cunilogPostfixDotNumberDescending == put->culogPostfix)
+	{
+		size_t lnAfterDotLog = 0;
+	}
+	*/
 
 	size_t lnRoomForStamp	= lenDateTimeStampFromPostfix (put->culogPostfix);
 	size_t lnUnderscore		= lnRoomForStamp ? 1 : 0;			// The underscore that separates
@@ -2042,19 +2052,19 @@ static inline enum enLineEndings eventLineEnding (SCUNILOGEVENT *pev)
 
 static inline void evtTSFormats_unilogEvtTS_ISO8601 (char *chISO, UBF_TIMESTAMP ts)
 {
-	ISO8601_from_UBF_TIMESTAMP_c (chISO, ts);
+	ISO8601_from_UBF_TIMESTAMPc (chISO, ts);
 	chISO [LEN_ISO8601DATETIMESTAMPMS]		= ' ';
 }
 
 static inline void evtTSFormats_unilogEvtTS_ISO8601T (char *chISO, UBF_TIMESTAMP ts)
 {
-	ISO8601T_from_UBF_TIMESTAMP_c (chISO, ts);
+	ISO8601T_from_UBF_TIMESTAMPc (chISO, ts);
 	chISO [LEN_ISO8601DATETIMESTAMPMS]		= ' ';
 }
 
 static inline void evtTSFormats_unilogEvtTS_ISO8601_3spc (char *chISO, UBF_TIMESTAMP ts)
 {
-	ISO8601_from_UBF_TIMESTAMP_c (chISO, ts);
+	ISO8601_from_UBF_TIMESTAMPc (chISO, ts);
 	chISO [LEN_ISO8601DATETIMESTAMPMS]		= ' ';
 	chISO [LEN_ISO8601DATETIMESTAMPMS + 1]	= ' ';
 	chISO [LEN_ISO8601DATETIMESTAMPMS + 2]	= ' ';
@@ -2062,7 +2072,7 @@ static inline void evtTSFormats_unilogEvtTS_ISO8601_3spc (char *chISO, UBF_TIMES
 
 static inline void evtTSFormats_unilogEvtTS_ISO8601T_3spc (char *chISO, UBF_TIMESTAMP ts)
 {
-	ISO8601T_from_UBF_TIMESTAMP_c (chISO, ts);
+	ISO8601T_from_UBF_TIMESTAMPc (chISO, ts);
 	chISO [LEN_ISO8601DATETIMESTAMPMS]		= ' ';
 	chISO [LEN_ISO8601DATETIMESTAMPMS + 1]	= ' ';
 	chISO [LEN_ISO8601DATETIMESTAMPMS + 2]	= ' ';
@@ -2477,10 +2487,14 @@ static size_t createEventLineFromSUNILOGEVENT (SCUNILOGEVENT *pev)
 	return CUNILOG_SIZE_ERROR;
 }
 
-static inline void storeCaptionLengthInData (unsigned char **pData, size_t ui, size_t lenCapt)
+/*
+	Not to be called with 0 == ui.
+*/
+static inline void storeCaptionLength (unsigned char **pData, size_t ui, size_t lenCapt)
 {
 	ubf_assert_non_NULL (pData);
 	ubf_assert_non_NULL (*pData);
+	ubf_assert_non_0	(ui);
 
 	uint8_t			ui8;
 	uint16_t		ui16;
@@ -2489,8 +2503,12 @@ static inline void storeCaptionLengthInData (unsigned char **pData, size_t ui, s
 
 	switch (ui)
 	{
+		/*
+		// We're not being called for 0 == ui.
 		case 0:
+			ubf_assert_msg (false, "Must be a bug!");
 			return;
+		*/
 		case 1:
 			ui8 = (uint8_t) (lenCapt & 0xFF);
 			memcpy (*pData, &ui8, ui);
@@ -2529,9 +2547,10 @@ static SCUNILOGEVENT *CreateSCUNILOGEVENTandData	(
 	ubf_assert_non_NULL	(ccData);
 	ubf_assert			(USE_STRLEN != siz);
 
-	size_t			ui		= widthOfCaptionLengthFromCunilogEventType (type);
+	size_t			wl		= widthOfCaptionLengthFromCunilogEventType (type);
+	ubf_assert (wl || 0 == lenCapt);						// If 0 == wl we can't have a caption.
 	size_t			aln		= ALIGNED_SIZE (sizeof (SCUNILOGEVENT), CUNILOG_DEFAULT_ALIGNMENT);
-	size_t			ln		= aln + ui + lenCapt + siz;
+	size_t			ln		= aln + wl + lenCapt + siz;
 	SCUNILOGEVENT	*pev	= ubf_malloc (ln);
 
 	if (pev)
@@ -2544,9 +2563,9 @@ static SCUNILOGEVENT *CreateSCUNILOGEVENTandData	(
 			sev, type,
 			pData, siz
 							);
-		storeCaptionLengthInData (&pData, ui, lenCapt);
-		if (ui)
+		if (wl)
 		{
+			storeCaptionLength (&pData, wl, lenCapt);
 			memcpy (pData, ccCapt, lenCapt);
 			pData += lenCapt;
 		}
@@ -2864,6 +2883,7 @@ static void cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEV
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
+
 	SCUNILOGTARGET	*put = pev->pSCUNILOGTARGET;
 	ubf_assert_non_NULL (put);
 	ubf_assert (isUsableSMEMBUF (&put->mbLogfileName));

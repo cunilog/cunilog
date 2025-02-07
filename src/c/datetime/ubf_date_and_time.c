@@ -1063,7 +1063,7 @@ void UBF_TIMESTAMP_to_ISO8601 (char *chISO, UBF_TIMESTAMP ts)
 }
 */
 
-void ISO8601_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts)
+void ISO8601_from_UBF_TIMESTAMPs (char *chISO, UBF_TIMESTAMP ts)
 {
 	// Stores the output for date/time including milliseconds.
 	// yyyy-mm-dd hh:mi:ss.mis+01:00
@@ -1085,7 +1085,7 @@ void ISO8601_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts)
 		chISO [23] = '-';
 }
 
-void ISO8601_from_UBF_TIMESTAMP_c (char *chISO, UBF_TIMESTAMP ts)
+void ISO8601_from_UBF_TIMESTAMPc (char *chISO, UBF_TIMESTAMP ts)
 {
 	// Stores the output for date/time including milliseconds.
 	// yyyy-mm-dd hh:mi:ss.mis+01:00
@@ -1138,7 +1138,7 @@ void ISO8601_from_UBF_TIMESTAMP_c (char *chISO, UBF_TIMESTAMP ts)
 		chISO [23] = '-';
 }
 
-void ISO8601T_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts)
+void ISO8601T_from_UBF_TIMESTAMPs (char *chISO, UBF_TIMESTAMP ts)
 {
 	// Stores the output for date/time including milliseconds.
 	// yyyy-mm-dd hh:mi:ss.mis+01:00
@@ -1160,7 +1160,7 @@ void ISO8601T_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts)
 		chISO [23] = '-';
 }
 
-void ISO8601T_from_UBF_TIMESTAMP_c (char *chISO, UBF_TIMESTAMP ts)
+void ISO8601T_from_UBF_TIMESTAMPc (char *chISO, UBF_TIMESTAMP ts)
 {
 	// Stores the output for date/time including milliseconds.
 	// yyyy-mm-dd hh:mi:ss.mis+01:00
@@ -1213,7 +1213,7 @@ void ISO8601T_from_UBF_TIMESTAMP_c (char *chISO, UBF_TIMESTAMP ts)
 		chISO [23] = '-';
 }
 
-void ISO8601Date_from_UBF_TIMESTAMP (char *chISODateOnly, UBF_TIMESTAMP ts)
+void ISO8601Date_from_UBF_TIMESTAMPs (char *chISODateOnly, UBF_TIMESTAMP ts)
 {
 	// yyyy-mm-dd
 	// YYYY-MM-DD
@@ -1226,7 +1226,7 @@ void ISO8601Date_from_UBF_TIMESTAMP (char *chISODateOnly, UBF_TIMESTAMP ts)
 				);
 }
 
-void ISO8601Date_from_UBF_TIMESTAMP_c (char *chISODateOnly, UBF_TIMESTAMP ts)
+void ISO8601Date_from_UBF_TIMESTAMPc (char *chISODateOnly, UBF_TIMESTAMP ts)
 {
 	// yyyy-mm-dd
 	// YYYY-MM-DD
@@ -1250,7 +1250,7 @@ void ISO8601Date_from_UBF_TIMESTAMP_c (char *chISODateOnly, UBF_TIMESTAMP ts)
 	*chISODateOnly= '\0';
 }
 
-void ISO8601YearAndWeek_from_UBF_TIMESTAMP_s (char *chISO8601YearAndWeek, UBF_TIMESTAMP ts)
+void ISO8601YearAndWeek_from_UBF_TIMESTAMPs (char *chISO8601YearAndWeek, UBF_TIMESTAMP ts)
 {
 	unsigned int	week;
 	uint32_t		newYear;
@@ -1261,7 +1261,7 @@ void ISO8601YearAndWeek_from_UBF_TIMESTAMP_s (char *chISO8601YearAndWeek, UBF_TI
 	snprintf (chISO8601YearAndWeek, SIZ_ISO8601YEARANDWEEK, "%4.4u-W%2.2u", (unsigned int) newYear, week);
 }
 
-void ISO8601YearAndWeek_from_UBF_TIMESTAMP_c (char *chISO8601YearAndWeek, UBF_TIMESTAMP ts)
+void ISO8601YearAndWeek_from_UBF_TIMESTAMPc (char *chISO8601YearAndWeek, UBF_TIMESTAMP ts)
 {
 	unsigned int	week;
 	uint32_t		newYear;
@@ -1278,7 +1278,7 @@ void ISO8601YearAndWeek_from_UBF_TIMESTAMP_c (char *chISO8601YearAndWeek, UBF_TI
 	*chISO8601YearAndWeek= '\0';
 }
 
-void ISO8601DateAndHour_from_UBF_TIMESTAMP_s (char *chISODateAndHour, UBF_TIMESTAMP ts)
+void ISO8601DateAndHour_from_UBF_TIMESTAMPs (char *chISODateAndHour, UBF_TIMESTAMP ts)
 {
 	// yyyy-mm-dd hh
 	// YYYY-MM-DD HH
@@ -1292,7 +1292,7 @@ void ISO8601DateAndHour_from_UBF_TIMESTAMP_s (char *chISODateAndHour, UBF_TIMEST
 				);
 }
 
-void ISO8601DateAndHour_from_UBF_TIMESTAMP_c (char *chISODateAndHour, UBF_TIMESTAMP ts)
+void ISO8601DateAndHour_from_UBF_TIMESTAMPc (char *chISODateAndHour, UBF_TIMESTAMP ts)
 {
 	// yyyy-mm-dd hh
 	// YYYY-MM-DD HH
@@ -1321,7 +1321,7 @@ void ISO8601DateAndHour_from_UBF_TIMESTAMP_c (char *chISODateAndHour, UBF_TIMEST
 	*chISODateAndHour= '\0';
 }
 
-void ISO8601TDateAndHour_from_UBF_TIMESTAMP_s (char *chISODateAndHour, UBF_TIMESTAMP ts)
+void ISO8601TDateAndHour_from_UBF_TIMESTAMPs (char *chISODateAndHour, UBF_TIMESTAMP ts)
 {
 	// yyyy-mm-dd hh
 	// YYYY-MM-DD HH
@@ -1335,7 +1335,7 @@ void ISO8601TDateAndHour_from_UBF_TIMESTAMP_s (char *chISODateAndHour, UBF_TIMES
 				);
 }
 
-void ISO8601TDateAndHour_from_UBF_TIMESTAMP_c (char *chISODateAndHour, UBF_TIMESTAMP ts)
+void ISO8601TDateAndHour_from_UBF_TIMESTAMPc (char *chISODateAndHour, UBF_TIMESTAMP ts)
 {
 	// yyyy-mm-dd hh
 	// YYYY-MM-DD HH
@@ -1354,7 +1354,7 @@ void ISO8601TDateAndHour_from_UBF_TIMESTAMP_c (char *chISODateAndHour, UBF_TIMES
 	*chISODateAndHour= '\0';
 }
 
-void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_s (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
+void ISO8601DateHourAndMinute_from_UBF_TIMESTAMPs (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
 {
 	// yyyy-mm-dd hh:mm
 	// YYYY-MM-DD HH:MM
@@ -1369,7 +1369,7 @@ void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_s (char *chISODateHourAndMinute
 				);
 }
 
-void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_c (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
+void ISO8601DateHourAndMinute_from_UBF_TIMESTAMPc (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
 {
 	ubf_str0_from_uint16 (chISODateHourAndMinute, 4, (unsigned int) UBF_TIMESTAMP_YEAR (ts));
 	chISODateHourAndMinute += 4;
@@ -1407,7 +1407,7 @@ void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_ (char *chISODateHourAndMinute,
 	*chISODateHourAndMinute= '\0';
 }
 
-void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_s (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
+void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMPs (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
 {
 	// yyyy-mm-dd hh:mm
 	// YYYY-MM-DD HH:MM
@@ -1422,7 +1422,7 @@ void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_s (char *chISODateHourAndMinut
 				);
 }
 
-void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_c (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
+void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMPc (char *chISODateHourAndMinute, UBF_TIMESTAMP ts)
 {
 	// yyyy-mm-dd hh:mm
 	// YYYY-MM-DD HH:MM
@@ -1463,7 +1463,7 @@ void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_ (char *chISODateHourAndMinute
 	*chISODateHourAndMinute= '\0';
 }
 
-void ISO8601Year_from_UBF_TIMESTAMP (char *chYear, UBF_TIMESTAMP ts)
+void ISO8601Year_from_UBF_TIMESTAMPs (char *chYear, UBF_TIMESTAMP ts)
 {
 	// YYYY
 	snprintf	(
@@ -1472,13 +1472,13 @@ void ISO8601Year_from_UBF_TIMESTAMP (char *chYear, UBF_TIMESTAMP ts)
 				);
 }
 
-void ISO8601Year_from_UBF_TIMESTAMP_c (char *chYear, UBF_TIMESTAMP ts)
+void ISO8601Year_from_UBF_TIMESTAMPc (char *chYear, UBF_TIMESTAMP ts)
 {
 	// YYYY
 	ubf_str0_from_uint16 (chYear, 4, (unsigned int) UBF_TIMESTAMP_YEAR (ts));
 }
 
-void ISO8601YearAndMonth_from_UBF_TIMESTAMP (char *chISOYearAndMonth, UBF_TIMESTAMP ts)
+void ISO8601YearAndMonth_from_UBF_TIMESTAMPs (char *chISOYearAndMonth, UBF_TIMESTAMP ts)
 {
 	// yyyy-mm
 	// YYYY-MM
@@ -1490,7 +1490,7 @@ void ISO8601YearAndMonth_from_UBF_TIMESTAMP (char *chISOYearAndMonth, UBF_TIMEST
 				);
 }
 
-void ISO8601YearAndMonth_from_UBF_TIMESTAMP_c (char *chISOYearAndMonth, UBF_TIMESTAMP ts)
+void ISO8601YearAndMonth_from_UBF_TIMESTAMPc (char *chISOYearAndMonth, UBF_TIMESTAMP ts)
 {
 	// yyyy-mm
 	// YYYY-MM
@@ -1828,34 +1828,34 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ISO8601YearAndWeek_from_UBF_TIMESTAMP (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601Year_from_UBF_TIMESTAMP (cOut, ut);
+		ISO8601Year_from_UBF_TIMESTAMPs (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601Year_from_UBF_TIMESTAMP_c (cOut, ut);
+		ISO8601Year_from_UBF_TIMESTAMPc (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601DateAndHour_from_UBF_TIMESTAMP (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601DateAndHour_from_UBF_TIMESTAMP_c (cOut, ut);
+		ISO8601DateAndHour_from_UBF_TIMESTAMPc (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601_from_UBF_TIMESTAMP (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400+08:30", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601_from_UBF_TIMESTAMP_c (cOut, ut);
+		ISO8601_from_UBF_TIMESTAMPc (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400+08:30", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMP (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601YearAndWeek_from_UBF_TIMESTAMP_c (cOut, ut);
+		ISO8601YearAndWeek_from_UBF_TIMESTAMPc (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601YearAndMonth_from_UBF_TIMESTAMP (cOut, ut);
+		ISO8601YearAndMonth_from_UBF_TIMESTAMPs (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-11", SIZ_ISO8601YEARANDMONTH));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601YearAndMonth_from_UBF_TIMESTAMP_c (cOut, ut);
+		ISO8601YearAndMonth_from_UBF_TIMESTAMPc (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-11", SIZ_ISO8601YEARANDMONTH));
 
 		// The same again but with a negative offset of 45 minutes.
@@ -1872,28 +1872,28 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ut |= UBF_TIMESTAMP_MILLISECOND_BITS (&ts);
 		ut |= UBF_TIMESTAMP_MICROSECOND_BITS (&ts);
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601Year_from_UBF_TIMESTAMP (cOut, ut);
+		ISO8601Year_from_UBF_TIMESTAMPs (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601Year_from_UBF_TIMESTAMP_c (cOut, ut);
+		ISO8601Year_from_UBF_TIMESTAMPc (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601DateAndHour_from_UBF_TIMESTAMP (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601DateAndHour_from_UBF_TIMESTAMP_c (cOut, ut);
+		ISO8601DateAndHour_from_UBF_TIMESTAMPc (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601_from_UBF_TIMESTAMP (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400-08:45", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601_from_UBF_TIMESTAMP_c (cOut, ut);
+		ISO8601_from_UBF_TIMESTAMPc (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400-08:45", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMP (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
-		ISO8601YearAndWeek_from_UBF_TIMESTAMP_c (cOut, ut);
+		ISO8601YearAndWeek_from_UBF_TIMESTAMPc (cOut, ut);
 		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 
 		u = 0;
@@ -2031,12 +2031,12 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		char szTS2 [SIZ_ISO8601DATETIMESTAMPMS];
 		
 		ISO8601_from_UBF_TIMESTAMP	(szTS1, tt);
-		ISO8601_from_UBF_TIMESTAMP_c	(szTS2, tt);
+		ISO8601_from_UBF_TIMESTAMPc	(szTS2, tt);
 		ubf_assert (!memcmp (szTS1, szTS2, SIZ_ISO8601DATETIMESTAMPMS));
 
 		tt = LocalTime_UBF_TIMESTAMP ();
 		ISO8601T_from_UBF_TIMESTAMP  (szTS1, tt);
-		ISO8601T_from_UBF_TIMESTAMP_c (szTS2, tt);
+		ISO8601T_from_UBF_TIMESTAMPc (szTS2, tt);
 		ubf_assert (!memcmp (szTS1, szTS2, SIZ_ISO8601DATETIMESTAMPMS));
 
 		char szISO_1 [SIZ_ISO8601DATETIMESTAMP_NO_OFFS];

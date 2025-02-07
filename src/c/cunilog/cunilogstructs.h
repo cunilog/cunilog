@@ -202,6 +202,10 @@ enum cunilogtype
 
 	Example:
 	"MyApp" + "_" + "YYYY-MM-DD HH_MI"
+
+	Postfixes are ascending by default, meaning that newer logfiles cantain
+	higher dates/numbers. For numbers we allow a maximum width of 20 digits,
+	which is enough for a uint64_t.
 */
 enum cunilogpostfix
 {
@@ -215,6 +219,7 @@ enum cunilogpostfix
 	,	cunilogPostfixWeek									// "YYYY-Wnn"
 	,	cunilogPostfixMonth									// "YYYY-MM"
 	,	cunilogPostfixYear									// "YYYY"
+	,	cunilogPostfixDotNumberDescending					// ".<number>.
 	// Do not add anything below this line.
 	,	cunilogPostfixAmountEnumValues						// Used for table sizes.
 	// Do not add anything below cunilogPostfixAmountEnumValues.

@@ -33,6 +33,8 @@ an application. In this case checking beforehand if the arguments are valid
 UTF-8 might be a good habit. However, if these parameters come from user input
 or other unknown sources, it should go without saying that UTF-8 checks are a must.
 
+Remember that Cunilog does not carry out any of these checks.
+
 ## Windows and UTF-8
 
 Windows and UTF-8 are not at all best friends. Microsoft have done a lot to

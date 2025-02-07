@@ -67,7 +67,7 @@ int main (int argc, char *argv [])
 	UNREFERENCED_PARAMETER (argv);
 
 	//CunilogSetConsoleToUTF16 ();
-	CunilogSetConsoleToNone ();
+	//CunilogSetConsoleToNone ();
 
 	/*
 		Tests.
@@ -97,6 +97,24 @@ int main (int argc, char *argv [])
 	ubf_assert_true (b);
 
 	SCUNILOGTARGET	*put;
+
+	put = InitSCUNILOGTARGETstaticEx	(
+				ccLogsFolder, lnLogsFolder,
+				NULL, 0,
+				cunilogLogPath_relativeToExecutable,
+				cunilogMultiThreadedSeparateLoggingThread,
+				cunilogPostfixDotNumberDescending,
+				NULL, 0,
+				cunilogEvtTS_Default,
+				cunilogNewLineDefault,
+				cunilogRunProcessorsOnStartup
+									);
+
+	logTextU8_static ("cunilogPostfixDotNumberDescending");
+
+	ShutdownSCUNILOGTARGETstatic ();
+	DoneSCUNILOGTARGETstatic ();
+
 
 	put = InitSCUNILOGTARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,

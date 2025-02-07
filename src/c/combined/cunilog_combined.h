@@ -6893,10 +6893,15 @@ EXTERN_C_BEGIN
 		// The debug version has a function definition.
 		void *ubf_aligned_malloc_intern (size_t alignment, size_t size);
 	#else
-		#define ubf_aligned_malloc_intern(alignment,size) _aligned_malloc (alignment, size)
+		#define ubf_aligned_malloc_intern(alignment, size) _aligned_malloc (alignment, size)
 	#endif
 #else
-	void *ubf_aligned_malloc_intern (size_t alignment, size_t size);
+	#ifdef DEBUG
+		// The debug version has a function definition.
+		void *ubf_aligned_malloc_intern (size_t alignment, size_t size);
+	#else
+		#define ubf_aligned_malloc_intern(alignment, size) aligned_alloc (alignment, size)
+	#endif
 #endif
 
 // Memory allocation. See https://msdn.microsoft.com/en-us/library/8z34s9c6.aspx
@@ -9830,7 +9835,7 @@ void SUBF_TIMESTRUCT_to_ISO8601 (char *chISO, SUBF_TIMESTRUCT *pts);
 	SUBF_TIMESTRUCT_to_ISO8601((i), (p))
 
 /*
-	ISO8601_from_UBF_TIMESTAMP_s
+	ISO8601_from_UBF_TIMESTAMPs
 
 	Writes an array of characters in ISO 8601 format to chISO from the UBF_TIMESTAMP
 	ts. Instead of the ISO 8601 date and time separator ("T") this functions inserts a
@@ -9844,7 +9849,7 @@ void SUBF_TIMESTRUCT_to_ISO8601 (char *chISO, SUBF_TIMESTRUCT *pts);
 	ISO8601T_from_UBF_TIMESTAMP () returns the same string but with the correct
 	date and time separator ("T"), i.e. "YYYY-MM-DDTHH:MI:SS.000+01:00".
 */
-void ISO8601_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts);
+void ISO8601_from_UBF_TIMESTAMPs (char *chISO, UBF_TIMESTAMP ts);
 
 /*
 	This macro should be made obsolete. 2024-08-13, Thomas.
@@ -9857,30 +9862,30 @@ void ISO8601_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts);
 	
 
 /*
-	ISO8601_from_UBF_TIMESTAMP_c
+	ISO8601_from_UBF_TIMESTAMPc
 
 	The function is identical to ISO8601_from_UBF_TIMESTAMP () but does not use snprintf (),
 	which means it is faster than ISO8601_from_UBF_TIMESTAMP ().
 */
-void ISO8601_from_UBF_TIMESTAMP_c (char *chISO, UBF_TIMESTAMP ts);
+void ISO8601_from_UBF_TIMESTAMPc (char *chISO, UBF_TIMESTAMP ts);
 
 /*
 	ISO8601_from_UBF_TIMESTAMP
 
-	Wrapper macro to switch between the _s or the _c version of the function. The
-	_s version uses snprintf () to compile the result string while the _c version
+	Wrapper macro to switch between the s or the c version of the function. The
+	s version uses snprintf () to compile the result string while the c version
 	doesn't.
 */
 #ifdef UBF_DATE_AND_TIME_USE_SPRINTF
 	#define ISO8601_from_UBF_TIMESTAMP(c,t)				\
-		ISO8601_from_UBF_TIMESTAMP_s (c, t)
+		ISO8601_from_UBF_TIMESTAMPs (c, t)
 #else
 	#define ISO8601_from_UBF_TIMESTAMP(c,t)			\
-		ISO8601_from_UBF_TIMESTAMP_c (c, t)
+		ISO8601_from_UBF_TIMESTAMPc (c, t)
 #endif
 
 /*
-	ISO8601T_from_UBF_TIMESTAMP
+	ISO8601T_from_UBF_TIMESTAMPs
 
 	Writes an array of characters in ISO 8601 format to chISO from the UBF_TIMESTAMP
 	ts. Since a UBF_TIMESTAMP timestamp contains an offset to UTC,
@@ -9893,7 +9898,7 @@ void ISO8601_from_UBF_TIMESTAMP_c (char *chISO, UBF_TIMESTAMP ts);
 	"T". The function ISO8601_from_UBF_TIMESTAMP () produces an identical result but
 	replaces the T with a more human readable space character.
 */
-void ISO8601T_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts);
+void ISO8601T_from_UBF_TIMESTAMPs (char *chISO, UBF_TIMESTAMP ts);
 
 /*
 	This macro should be made obsolete. 2024-08-13, Thomas.
@@ -9905,83 +9910,98 @@ void ISO8601T_from_UBF_TIMESTAMP_s (char *chISO, UBF_TIMESTAMP ts);
 	//ISO8601T_from_UBF_TIMESTAMP ((i), (t))
 
 /*
-	ISO8601T_from_UBF_TIMESTAMP_c
+	ISO8601T_from_UBF_TIMESTAMPc
 
 	The function is identical to ISO8601T_from_UBF_TIMESTAMP () but does not use snprintf (),
 	which means it is much faster than ISO8601T_from_UBF_TIMESTAMP ().
 */
-void ISO8601T_from_UBF_TIMESTAMP_c (char *chISO, UBF_TIMESTAMP ts);
+void ISO8601T_from_UBF_TIMESTAMPc (char *chISO, UBF_TIMESTAMP ts);
 
 /*
 	ISO8601T_from_UBF_TIMESTAMP
 
-	Wrapper macro to switch between the _s or the _c version of the function. The
-	_s version uses snprintf () to compile the result string while the _c version
+	Wrapper macro to switch between the s or the c version of the function. The
+	s version uses snprintf () to compile the result string while the c version
 	doesn't.
 */
 #ifdef UBF_DATE_AND_TIME_USE_SPRINTF
 	#define ISO8601T_from_UBF_TIMESTAMP(c,t)			\
-		ISO8601T_from_UBF_TIMESTAMP_s (c, t)
+		ISO8601T_from_UBF_TIMESTAMPs (c, t)
 #else
 	#define ISO8601T_from_UBF_TIMESTAMP(c,t)			\
-		ISO8601T_from_UBF_TIMESTAMP_c (c, t)
+		ISO8601T_from_UBF_TIMESTAMPc (c, t)
 #endif
 
 /*
-	ISO8601Date_from_UBF_TIMESTAMP
+	ISO8601Date_from_UBF_TIMESTAMPs
 
 	Saves the NUL-terminated date of the UBF_TIMESTAMP ts in the buffer chISODateOnly
 	points to. The buffer must have a size of at least SIZ_ISO8601DATE octets.
 
 	Example of returned string: "YYYY-MM-DD"
 */
-void ISO8601Date_from_UBF_TIMESTAMP (char *chISODateOnly, UBF_TIMESTAMP ts);
+void ISO8601Date_from_UBF_TIMESTAMPs (char *chISODateOnly, UBF_TIMESTAMP ts);
 
 /*
-	ISO8601Date_from_UBF_TIMESTAMP_c
+	ISO8601Date_from_UBF_TIMESTAMPc
 
 	The function is identical to ISO8601Date_from_UBF_TIMESTAMP () but does not use snprintf (),
 	which means it is faster than ISO8601Date_from_UBF_TIMESTAMP ().
 */
-void ISO8601Date_from_UBF_TIMESTAMP_c (char *chISODateOnly, UBF_TIMESTAMP ts);
+void ISO8601Date_from_UBF_TIMESTAMPc (char *chISODateOnly, UBF_TIMESTAMP ts);
 
 /*
-	ISO8601YearAndWeek_from_UBF_TIMESTAMP_s
+	ISO8601Date_from_UBF_TIMESTAMP
+
+	Wrapper macro to switch between the s or the c version of the function. The
+	s version uses snprintf () to compile the result string while the c version
+	doesn't.
+*/
+#ifdef UBF_DATE_AND_TIME_USE_SPRINTF
+	#define ISO8601Date_from_UBF_TIMESTAMP(c,t)			\
+		ISO8601Date_from_UBF_TIMESTAMPs (c, t)
+#else
+	#define ISO8601Date_from_UBF_TIMESTAMP(c,t)			\
+		ISO8601Date_from_UBF_TIMESTAMPc (c, t)
+#endif
+
+/*
+	ISO8601YearAndWeek_from_UBF_TIMESTAMPs
 
 	Retrieves the date/time stamp ts as a NUL-terminated string in ISO 8601 format. The buffer
 	chISO8601Week points to must be at least SIZ_ISO8601YEARANDWEEK octets long.
 
 	Example of returned string: "YYYY-W04"
 */
-void ISO8601YearAndWeek_from_UBF_TIMESTAMP_s (char *chISO8601YearAndWeek, UBF_TIMESTAMP ts);
+void ISO8601YearAndWeek_from_UBF_TIMESTAMPs (char *chISO8601YearAndWeek, UBF_TIMESTAMP ts);
 
 /*
-	ISO8601YearAndWeek_from_UBF_TIMESTAMP_c
+	ISO8601YearAndWeek_from_UBF_TIMESTAMPc
 
 	Identical to ISO8601YearAndWeek_from_UBF_TIMESTAMP () but does not call snprintf (),
 	which means it might be slightly faster.
 
 	Example of returned string: "YYYY-W04"
 */
-void ISO8601YearAndWeek_from_UBF_TIMESTAMP_c (char *chISO8601YearAndWeek, UBF_TIMESTAMP ts);
+void ISO8601YearAndWeek_from_UBF_TIMESTAMPc (char *chISO8601YearAndWeek, UBF_TIMESTAMP ts);
 
 /*
 	ISO8601YearAndWeek_from_UBF_TIMESTAMP
 
-	Wrapper macro to switch between the _s or the _c version of the function. The
-	_s version uses snprintf () to compile the result string while the _c version
+	Wrapper macro to switch between the s or the c version of the function. The
+	s version uses snprintf () to compile the result string while the c version
 	doesn't.
 */
 #ifdef UBF_DATE_AND_TIME_USE_SPRINTF
 	#define ISO8601YearAndWeek_from_UBF_TIMESTAMP(c,t)	\
-		ISO8601YearAndWeek_from_UBF_TIMESTAMP_s (c, t)
+		ISO8601YearAndWeek_from_UBF_TIMESTAMPs (c, t)
 #else
 	#define ISO8601YearAndWeek_from_UBF_TIMESTAMP(c,t)	\
-		ISO8601YearAndWeek_from_UBF_TIMESTAMP_c (c, t)
+		ISO8601YearAndWeek_from_UBF_TIMESTAMPc (c, t)
 #endif
 
 /*
-	ISO8601DateAndHour_from_UBF_TIMESTAMP_s
+	ISO8601DateAndHour_from_UBF_TIMESTAMPs
 
 	Retrieves the date/time stamp in ts as a NUL-terminated string in ISO 8601 that contains the
 	date and the hour. The buffer chISODateAndHour points to must be at least
@@ -9992,64 +10012,64 @@ void ISO8601YearAndWeek_from_UBF_TIMESTAMP_c (char *chISO8601YearAndWeek, UBF_TI
 
 	Example of returned string: "YYYY-MM-DD 18"
 */
-void ISO8601DateAndHour_from_UBF_TIMESTAMP_s (char *chISODateAndHour, UBF_TIMESTAMP ts);
+void ISO8601DateAndHour_from_UBF_TIMESTAMPs (char *chISODateAndHour, UBF_TIMESTAMP ts);
 
 /*
-	ISO8601DateAndHour_from_UBF_TIMESTAMP_c
+	ISO8601DateAndHour_from_UBF_TIMESTAMPc
 
 	The function is identical to ISO8601DateAndHour_from_UBF_TIMESTAMP () but does not
 	call snprintf (), which means it is faster than ISO8601DateAndHour_from_UBF_TIMESTAMP ().
 */
-void ISO8601DateAndHour_from_UBF_TIMESTAMP_c (char *chISODateAndHour, UBF_TIMESTAMP ts);
+void ISO8601DateAndHour_from_UBF_TIMESTAMPc (char *chISODateAndHour, UBF_TIMESTAMP ts);
 
 /*
 	ISO8601DateAndHour_from_UBF_TIMESTAMP
 
-	Wrapper macro to switch between the _s or the _c version of the function. The
-	_s version uses snprintf () to compile the result string while the _c version
+	Wrapper macro to switch between the s or the c version of the function. The
+	s version uses snprintf () to compile the result string while the c version
 	doesn't.
 */
 #ifdef UBF_DATE_AND_TIME_USE_SPRINTF
 	#define ISO8601DateAndHour_from_UBF_TIMESTAMP(c,t)	\
-		ISO8601DateAndHour_from_UBF_TIMESTAMP_s (c, t)
+		ISO8601DateAndHour_from_UBF_TIMESTAMPs (c, t)
 #else
 	#define ISO8601DateAndHour_from_UBF_TIMESTAMP(c,t)	\
-		ISO8601DateAndHour_from_UBF_TIMESTAMP_c (c, t)
+		ISO8601DateAndHour_from_UBF_TIMESTAMPc (c, t)
 #endif
 
 /*
-	ISO8601TDateAndHour_from_UBF_TIMESTAMP_s
+	ISO8601TDateAndHour_from_UBF_TIMESTAMPs
 
-	The function is identical to ISO8601DateAndHour_from_UBF_TIMESTAMP_s () but inserts
+	The function is identical to ISO8601DateAndHour_from_UBF_TIMESTAMPs () but inserts
 	a "T" instead of a space between date and time.
 */
-void ISO8601TDateAndHour_from_UBF_TIMESTAMP_s (char *chISODateAndHour, UBF_TIMESTAMP ts);
+void ISO8601TDateAndHour_from_UBF_TIMESTAMPs (char *chISODateAndHour, UBF_TIMESTAMP ts);
 
 /*
-	ISO8601TDateAndHour_from_UBF_TIMESTAMP_c
+	ISO8601TDateAndHour_from_UBF_TIMESTAMPc
 
-	The function is identical to ISO8601DateAndHour_from_UBF_TIMESTAMP_c () but inserts
+	The function is identical to ISO8601DateAndHour_from_UBF_TIMESTAMPc () but inserts
 	a "T" instead of a space between date and time.
 */
-void ISO8601TDateAndHour_from_UBF_TIMESTAMP_c (char *chISODateAndHour, UBF_TIMESTAMP ts);
+void ISO8601TDateAndHour_from_UBF_TIMESTAMPc (char *chISODateAndHour, UBF_TIMESTAMP ts);
 
 /*
 	ISO8601TDateAndHour_from_UBF_TIMESTAMP
 
-	Wrapper macro to switch between the _s or the _c version of the function. The
-	_s version uses snprintf () to compile the result string while the _c version
+	Wrapper macro to switch between the s or the c version of the function. The
+	s version uses snprintf () to compile the result string while the c version
 	doesn't.
 */
 #ifdef UBF_DATE_AND_TIME_USE_SPRINTF
 	#define ISO8601TDateAndHour_from_UBF_TIMESTAMP(c,t)	\
-		ISO8601TDateAndHour_from_UBF_TIMESTAMP_s (c, t)
+		ISO8601TDateAndHour_from_UBF_TIMESTAMPs (c, t)
 #else
 	#define ISO8601TDateAndHour_from_UBF_TIMESTAMP(c,t)	\
-		ISO8601TDateAndHour_from_UBF_TIMESTAMP_c (c, t)
+		ISO8601TDateAndHour_from_UBF_TIMESTAMPc (c, t)
 #endif
 
 /*
-	ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_s
+	ISO8601DateHourAndMinute_from_UBF_TIMESTAMPs
 
 	Retrieves the date/time stamp in ts as a NUL-terminated string in ISO 8601 that contains the
 	date, hour, and minute. The buffer chISODateHourAndMinute points to must be at least
@@ -10060,50 +10080,66 @@ void ISO8601TDateAndHour_from_UBF_TIMESTAMP_c (char *chISODateAndHour, UBF_TIMES
 
 	Example of returned string: "2023-11-16 09:47"
 */
-void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_s (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
+void ISO8601DateHourAndMinute_from_UBF_TIMESTAMPs (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
 
 /*
-	ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_c
+	ISO8601DateHourAndMinute_from_UBF_TIMESTAMPc
 
 	The function is identical to ISO8601DateHourAndMinute_from_UBF_TIMESTAMP () but does not call
 	snprintf. It is therefore much faster.
 */
-void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_c (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
+void ISO8601DateHourAndMinute_from_UBF_TIMESTAMPc (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
 
 /*
 	ISO8601DateHourAndMinute_from_UBF_TIMESTAMP
 
-	Wrapper macro to switch between the _s or the _c version of the function. The
-	_s version uses snprintf () to compile the result string while the _c version
+	Wrapper macro to switch between the s or the c version of the function. The
+	s version uses snprintf () to compile the result string while the c version
 	doesn't.
 */
 #ifdef UBF_DATE_AND_TIME_USE_SPRINTF
 	#define ISO8601DateHourAndMinute_from_UBF_TIMESTAMP(c,t)	\
-		ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_s (c, t)
+		ISO8601DateHourAndMinute_from_UBF_TIMESTAMPs (c, t)
 #else
 	#define ISO8601DateHourAndMinute_from_UBF_TIMESTAMP(c,t)	\
-		ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_c (c, t)
+		ISO8601DateHourAndMinute_from_UBF_TIMESTAMPc (c, t)
 #endif
 
 /*
-	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_s
+	ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_
 
-	The function is identical to ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_s () but inserts
-	a "T" instead of a space between date and time.
+	Retrieves the date/time stamp in ts as a NUL-terminated string in ISO 8601 that contains the
+	date, hour, and minute. Hour and minute are separated by an underscore instead of a colon
+	in order to use it in filenames on Windows.
+	The buffer chISODateHourAndMinute points to must be at least SIZ_ISO8601DATEHOURANDMINUTE
+	octets long.
 
-	Example of returned string: "2023-11-16T09:47"
+	The function does not take an offset into consideration and might therefore
+	result in an hour value that is perceived as being incorrect (although it is not).
+
+	Example of returned string: "2023-11-16 09_47"
 */
-void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_s (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
+void ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_ (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
 
 /*
-	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_c
+	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMPs
 
-	The function is identical to ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_c () but inserts
+	The function is identical to ISO8601DateHourAndMinute_from_UBF_TIMESTAMPs () but inserts
 	a "T" instead of a space between date and time.
 
 	Example of returned string: "2023-11-16T09:47"
 */
-void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_c (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
+void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMPs (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
+
+/*
+	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMPc
+
+	The function is identical to ISO8601DateHourAndMinute_from_UBF_TIMESTAMPc () but inserts
+	a "T" instead of a space between date and time.
+
+	Example of returned string: "2023-11-16T09:47"
+*/
+void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMPc (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
 
 /*
 	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP
@@ -10114,47 +10150,93 @@ void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_c (char *chISODateHourAndMinut
 */
 #ifdef UBF_DATE_AND_TIME_USE_SPRINTF
 	#define ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP(c,t)	\
-		ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_s (c, t)
+		ISO8601TDateHourAndMinute_from_UBF_TIMESTAMPs (c, t)
 #else
 	#define ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP(c,t)	\
-		ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_c (c, t)
+		ISO8601TDateHourAndMinute_from_UBF_TIMESTAMPc (c, t)
 #endif
 
 /*
-	ISO8601Year_from_UBF_TIMESTAMP
+	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_
+
+	Retrieves the date/time stamp in ts as a NUL-terminated string in ISO 8601 that contains the
+	date, hour, and minute. Hour and minute are separated by an underscore instead of a colon
+	in order to use it in filenames on Windows. Date and time are separated by a "T".
+	The buffer chISODateHourAndMinute points to must be at least SIZ_ISO8601DATEHOURANDMINUTE
+	octets long.
+
+	The function does not take an offset into consideration and might therefore
+	result in an hour value that is perceived as being incorrect (although it is not).
+
+	Example of returned string: "2023-11-16T09_47"
+*/
+void ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_ (char *chISODateHourAndMinute, UBF_TIMESTAMP ts);
+
+/*
+	ISO8601Year_from_UBF_TIMESTAMPs
 
 	Returns the year extracted from ts as "YYYY" as a NUL-terminated string. The buffer
 	chYear points to must be at least SIZ_ISO8601YEAR octets big.
 */
-void ISO8601Year_from_UBF_TIMESTAMP (char *chYear, UBF_TIMESTAMP ts);
+void ISO8601Year_from_UBF_TIMESTAMPs (char *chYear, UBF_TIMESTAMP ts);
 
 /*
-	ISO8601Year_from_UBF_TIMESTAMP_c
+	ISO8601Year_from_UBF_TIMESTAMPc
 
-	The function is identical to ISO8601Year_from_UBF_TIMESTAMP () but is slightly faster
+	The function is identical to ISO8601Year_from_UBF_TIMESTAMPs () but is slightly faster
 	since it does not not call snprintf ().
 
 	Returns the year extracted from ts as "YYYY" as a NUL-terminated string. The buffer
 	chYear points to must be at least SIZ_ISO8601YEAR octets big.
 */
-void ISO8601Year_from_UBF_TIMESTAMP_c (char *chYear, UBF_TIMESTAMP ts);
+void ISO8601Year_from_UBF_TIMESTAMPc (char *chYear, UBF_TIMESTAMP ts);
 
 /*
-	ISO8601YearAndMonth_from_UBF_TIMESTAMP
+	ISO8601Year_from_UBF_TIMESTAMP
+
+	Wrapper macro to switch between the s or the c version of the function. The
+	s version uses snprintf () to compile the result string while the c version
+	doesn't.
+*/
+#ifdef UBF_DATE_AND_TIME_USE_SPRINTF
+	#define ISO8601Year_from_UBF_TIMESTAMP(c,t)	\
+		ISO8601Year_from_UBF_TIMESTAMPs (c, t)
+#else
+	#define ISO8601Year_from_UBF_TIMESTAMP(c,t)	\
+		ISO8601Year_from_UBF_TIMESTAMPc (c, t)
+#endif
+
+/*
+	ISO8601YearAndMonth_from_UBF_TIMESTAMPs
 
 	Returns the extracted year and month as "YYYY-MM". The buffer pointed to by
 	chISOYearAndMonth must be at least SIZ_ISO8601YEARANDMONTH bytes long. The returned
 	string is NUL-terminated.
 */
-void ISO8601YearAndMonth_from_UBF_TIMESTAMP (char *chISOYearAndMonth, UBF_TIMESTAMP ts);
+void ISO8601YearAndMonth_from_UBF_TIMESTAMPs (char *chISOYearAndMonth, UBF_TIMESTAMP ts);
 
 /*
-	ISO8601YearAndMonth_from_UBF_TIMESTAMP_c
+	ISO8601YearAndMonth_from_UBF_TIMESTAMPc
 
 	The function is identical to ISO8601YearAndMonth_from_UBF_TIMESTAMP () but is faster
 	because it does not call snprintf ().
 */
-void ISO8601YearAndMonth_from_UBF_TIMESTAMP_c (char *chISOYearAndMonth, UBF_TIMESTAMP ts);
+void ISO8601YearAndMonth_from_UBF_TIMESTAMPc (char *chISOYearAndMonth, UBF_TIMESTAMP ts);
+
+/*
+	ISO8601YearAndMonth_from_UBF_TIMESTAMP
+
+	Wrapper macro to switch between the s or the c version of the function. The
+	s version uses snprintf () to compile the result string while the c version
+	doesn't.
+*/
+#ifdef UBF_DATE_AND_TIME_USE_SPRINTF
+	#define ISO8601YearAndMonth_from_UBF_TIMESTAMP(c,t)	\
+		ISO8601YearAndMonth_from_UBF_TIMESTAMPs (c, t)
+#else
+	#define ISO8601YearAndMonth_from_UBF_TIMESTAMP(c,t)	\
+		ISO8601YearAndMonth_from_UBF_TIMESTAMPc (c, t)
+#endif
 
 /*
 	A quick note regarding the "...to..." functions:
@@ -14824,22 +14906,33 @@ enum cunilogtype
 	,	cunilogMultiThreadedSeparateLoggingThread
 	,	cunilogMultiProcesses
 	// Do not add anything below this line.
-	,	cunilogTypeAmountEnumValues								// Used for table sizes.
+	,	cunilogTypeAmountEnumValues							// Used for table sizes.
 	// Do not add anything below cunilogTypeAmountEnumValues.
 };
 
+/*
+	The postfix applied to the application name.
+
+	Example:
+	"MyApp" + "_" + "YYYY-MM-DD HH_MI"
+
+	Postfixes are ascending by default, meaning that newer logfiles cantain
+	higher dates/numbers. For numbers we allow a maximum width of 20 digits,
+	which is enough for a uint64_t.
+*/
 enum cunilogpostfix
 {
 		cunilogPostfixNone
-	,	cunilogPostfixMinute
-	,	cunilogPostfixMinuteT
-	,	cunilogPostfixHour
-	,	cunilogPostfixHourT
-	,	cunilogPostfixDay
+	,	cunilogPostfixMinute								// "YYYY-MM-DD HH_MI"	
+	,	cunilogPostfixMinuteT								// "YYYY-MM-DDTHH_MI"
+	,	cunilogPostfixHour									// "YYYY-MM-DD HH"
+	,	cunilogPostfixHourT									// "YYYY-MM-DDTHH"
+	,	cunilogPostfixDay									// "YYYY-MM-DD"
 	,	cunilogPostfixDefault = cunilogPostfixDay
-	,	cunilogPostfixWeek
-	,	cunilogPostfixMonth
-	,	cunilogPostfixYear
+	,	cunilogPostfixWeek									// "YYYY-Wnn"
+	,	cunilogPostfixMonth									// "YYYY-MM"
+	,	cunilogPostfixYear									// "YYYY"
+	,	cunilogPostfixDotNumberDescending					// ".<number>.
 	// Do not add anything below this line.
 	,	cunilogPostfixAmountEnumValues						// Used for table sizes.
 	// Do not add anything below cunilogPostfixAmountEnumValues.
