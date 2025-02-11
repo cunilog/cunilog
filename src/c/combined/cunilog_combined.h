@@ -82,7 +82,7 @@ When		Who				What
 #define CUNILOG_VERSION_MAJOR	1							// Major version.
 #define CUNILOG_VERSION_MINOR	0							// Minor version.
 #define CUNILOG_VERSION_SUB		2							// Subversion for maintenance.
-#define CUNILOG_VERSION_BUILD	6							// Build number.
+#define CUNILOG_VERSION_BUILD	9							// Build number.
 #define CUNILOG_VERSION_YEAR	"2025"						// Copyright year.
 
 // Convert constants to strings using ANSI stringify operator.
@@ -15594,6 +15594,9 @@ enum cunilogeventtype
 	,	cunilogEvtTypeHexDumpWithCaption16					// Caption length is 16 bit.
 	,	cunilogEvtTypeHexDumpWithCaption32					// Caption length is 32 bit.
 	,	cunilogEvtTypeHexDumpWithCaption64					// Caption length is 64 bit.
+	// Do not add anything below this line.
+	,	cunilogEvtTypeAmountEnumValues						// Used for sanity checks.
+	// Do not add anything below cunilogEvtTypeAmountEnumValues.
 };
 typedef enum cunilogeventtype cueventtype;
 
@@ -17137,8 +17140,6 @@ extern const uint64_t	uiCunilogVersion;
 /*
 	cunilogCheckVersion
 
-	Currently still unsupported!
-
 	Compares the version of cunilog.c with the version of cunilogversion.h and returns
 	the result of the comparison.
 
@@ -17147,21 +17148,26 @@ extern const uint64_t	uiCunilogVersion;
 	1		The version of cunilog.c is greater than the one in cunilogversion.h.
 
 	When cunilog is built as a static library, an application includes cunilog_combined.h
-	only. This function ensures that the static library and cunilog_combined.h (actually:
+	only. This function/macro ensures that the static library and cunilog_combined.h (actually:
 	cunilogversion.h) fit together.
 
 	The function aborts in debug versions. In release builds it merely returns the result
 	of the comparison.
+
+	Example:
+
+	if (0 != cunilogCheckVersion ())
+	{
+		puts ("Version of cunilog_combined.h and libcunilog different.");
+		return EXIT_FAILURE;
+	}
 */
-/*
 #define CUNILOG_VERSION_HDR							\
 (		((uint64_t) CUNILOG_VERSION_MAJOR	<< 48)	\
 	|	((uint64_t) CUNILOG_VERSION_MINOR	<< 32)	\
 	|	((uint64_t) CUNILOG_VERSION_SUB		<< 16)	\
 	|	((uint64_t) CUNILOG_VERSION_BUILD)			\
 )
-*/
-#define CUNILOG_VERSION_HDR	((uint64_t) CUNILOG_VERSION_BUILD)
 int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion);
 #define cunilogCheckVersion() cunilogCheckVersionIntChk (CUNILOG_VERSION_HDR)
 

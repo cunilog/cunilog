@@ -125,3 +125,12 @@ To automatically link to the correct version of libcunilog you can insert the fo
 	#endif
 #endif
 ```
+
+The macro __cunilogCheckVersion()__ can be used to check that the version definitions in the file __cunilog_combined.h__ are compatible with the ones of the built library:
+```C
+if (0 != cunilogCheckVersion ())
+{
+	puts ("Version of cunilog_combined.h and libcunilog different.");
+	return EXIT_FAILURE;
+}
+```

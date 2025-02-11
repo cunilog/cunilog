@@ -881,6 +881,9 @@ enum cunilogeventtype
 	,	cunilogEvtTypeHexDumpWithCaption16					// Caption length is 16 bit.
 	,	cunilogEvtTypeHexDumpWithCaption32					// Caption length is 32 bit.
 	,	cunilogEvtTypeHexDumpWithCaption64					// Caption length is 64 bit.
+	// Do not add anything below this line.
+	,	cunilogEvtTypeAmountEnumValues						// Used for sanity checks.
+	// Do not add anything below cunilogEvtTypeAmountEnumValues.
 };
 typedef enum cunilogeventtype cueventtype;
 

@@ -55,7 +55,7 @@ When		Who				What
 #define CUNILOG_VERSION_MAJOR	1							// Major version.
 #define CUNILOG_VERSION_MINOR	0							// Minor version.
 #define CUNILOG_VERSION_SUB		2							// Subversion for maintenance.
-#define CUNILOG_VERSION_BUILD	6							// Build number.
+#define CUNILOG_VERSION_BUILD	9							// Build number.
 #define CUNILOG_VERSION_YEAR	"2025"						// Copyright year.
 
 // Convert constants to strings using ANSI stringify operator.

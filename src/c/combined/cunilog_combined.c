@@ -2346,7 +2346,7 @@ BOOL GetUserProfileDirectoryU8(
 	if (dw <= WINAPI_U8_HEAP_THRESHOLD)
 		pcProfDir = wcProfDir;
 	else
-		pcProfDir = malloc (dw);
+		pcProfDir = malloc (dw * sizeof (wchar_t));
 	if (pcProfDir)
 	{
 		bool b = GetUserProfileDirectoryW (hToken, pcProfDir, &dw);
@@ -18327,6 +18327,8 @@ static SCUNILOGEVENT *CreateSCUNILOGEVENTandData	(
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL	(ccData);
 	ubf_assert			(USE_STRLEN != siz);
+	ubf_assert			(0 <= type);
+	ubf_assert			(cunilogEvtTypeAmountEnumValues > type);
 
 	size_t			wl		= widthOfCaptionLengthFromCunilogEventType (type);
 	ubf_assert (wl || 0 == lenCapt);						// If 0 == wl we can't have a caption.
@@ -20697,17 +20699,11 @@ bool logTextWU16				(SCUNILOGTARGET *put, const wchar_t *cwText)
 #endif
 
 
-/* Do we need this?
-const char		ccCunilogVersionText [] = CUNILOG_VERSION_STRING;
-const char		ccCunilogVersionYear [] = CUNILOG_VERSION_YEAR;
-*/
-/*
-const uint64_t	uiCunilogVersion		=		((uint64_t) CUNILOG_VERSION_MAJOR	<< 48)
-											|	((uint64_t) CUNILOG_VERSION_MINOR	<< 32)
-											|	((uint64_t) CUNILOG_VERSION_SUB		<< 16)
-											|	((uint64_t) CUNILOG_VERSION_BUILD);
-*/
-const uint64_t	uiCunilogVersion		=		((uint64_t) CUNILOG_VERSION_BUILD);
+const uint64_t	uiCunilogVersion	=		((uint64_t) CUNILOG_VERSION_MAJOR	<< 48)
+										|	((uint64_t) CUNILOG_VERSION_MINOR	<< 32)
+										|	((uint64_t) CUNILOG_VERSION_SUB		<< 16)
+										|	((uint64_t) CUNILOG_VERSION_BUILD);
+
 int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 {
 	ubf_assert_non_0 (cunilogHdrVersion);
