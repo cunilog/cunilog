@@ -119,6 +119,7 @@ Note that when Cunilog changes the console on Windows, this also affects all
 __SCUNILOGTARGET__ Cunilog targets, and of course the application's console output too.
 A Windows application can only be attached to
 a single console, and changes to this console's configuration affect all
-functions reading from or writing to that console.
-
-
+functions reading from or writing to that console. To be fair, Windows distinguishes
+between input and output but Cunilog does not, at least not currently. When Cunilog
+configures the console attached to an application it does this for output as well
+as input at the same time.
