@@ -17,7 +17,7 @@ If the description isn't detailed enough, then the function, macro, or object is
 of one of the functions, macros, or objects before/above. These comments may contain only differences
 to the previous object, function, or macro, and necessary information is found there.
 
-If something consistently requires looking at the code in order to understand it, though, this is considered a bug and should be rectified.
+If something consistently requires looking at the code in order to understand how to call or use it, though, this is considered a bug and should be rectified.
 
 In the documentation and comments, functions are normally referred to as __function_name ()__ with a single space between name and opening bracket while macros are referred to as __macro_name()__ without space.
 
