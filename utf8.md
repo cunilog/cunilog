@@ -115,7 +115,10 @@ __configSCUNILOGTARGETdisableEchoProcessor ()__ on the target just after
 it has been initialised and before any of the logging functions have been
 invoked.
 
-Note that when Cunilog changes the console on Windows, this also affects the
-application's console output. A Windows application can only be attached to
+Note that when Cunilog changes the console on Windows, this also affects all
+__SCUNILOGTARGET__ Cunilog targets, and of course the application's console output too.
+A Windows application can only be attached to
 a single console, and changes to this console's configuration affect all
 functions reading from or writing to that console.
+
+
