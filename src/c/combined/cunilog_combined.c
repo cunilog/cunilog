@@ -17019,7 +17019,7 @@ static bool StartSeparateLoggingThread_ifNeeded (SCUNILOGTARGET *put)
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	// This is the only type possible in a single-threaded environment.
 	#define unilogTypeFromArgument(type)					\
-				(unilogSingleThreaded)
+				(cunilogSingleThreaded)
 #else
 	#define unilogTypeFromArgument(type)					\
 				(type)
@@ -17112,8 +17112,10 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 	put->errorCB = NULL;
 	InitSCUNILOGNPI							(&put->scuNPI);
 	DBG_INIT_CNTTRACKER						(put->evtLineTracker);
-	put->nPendingNoRotEvts					= 0;
-	put->nPausedEvents						= 0;
+	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+		put->nPendingNoRotEvts				= 0;
+		put->nPausedEvents					= 0;
+	#endif
 	put->dumpWidth							= enDataDumpWidth16;
 	initPrevTimestamp						(put);
 	InitSCUNILOGTARGETmbLogFold				(put);
@@ -18772,8 +18774,8 @@ static bool enqueueAndTriggerSeparateLoggingThread (SCUNILOGEVENT *pev);
 		//printf ("%" PRIu64 "\n", put->nPendingNoRotEvts);
 	}
 #else
-	#define IncrementNoRotationEvents(p)
-	#define DecrementNoRotationEvents(p)
+	#define IncrementPendingNoRotationEvents(put)
+	#define DecrementPendingNoRotationEvents(put)
 #endif
 
 static bool logFromInsideRotatorTextU8fmt (SCUNILOGTARGET *put, const char *fmt, ...)
@@ -19611,6 +19613,8 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 #else
 	static bool StartSeparateLoggingThread_ifNeeded (SCUNILOGTARGET *put)
 	{
+		UNUSED (put);
+
 		return true;
 	}
 #endif
@@ -19900,12 +19904,11 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 
 	// Sanity check for the type.
 	ubf_assert (put->culogType >= 0);
-	ubf_assert (put->culogType >= cunilogSingleThreaded);
 	ubf_assert (put->culogType < cunilogTypeAmountEnumValues);
 
 	#ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 		// This is the only one possible in a single-threaded environment.
-		ubf_assert (unilogSingleThreaded == pta->unilogType);
+		ubf_assert (cunilogSingleThreaded == put->culogType);
 	#endif
 
 	return cunilogProcOrQueueEvt [put->culogType] (pev);
@@ -19977,7 +19980,7 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 	{
 		ubf_assert_non_NULL (put);
 
-		cunilogSetTargetShutdown (put);
+		cunilogSetShutdownTarget (put);
 		return true;
 	}
 #endif
@@ -20015,11 +20018,11 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 		return true;
 	}
 #else
-	void CancelSCUNILOGTARGET (SCUNILOGTARGET *put)
+	bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
-		cunilogSetTargetShutdown (put);
+		cunilogSetShutdownTarget (put);
 		return true;
 	}
 #endif

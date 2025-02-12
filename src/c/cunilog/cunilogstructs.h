@@ -455,7 +455,9 @@ typedef struct cunilog_rotation_data
 #define cunilogClrRotatorFlag_USE_MBDSTFILE(pt)			\
 	((pt)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
 
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+#ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	typedef struct scunilogevent SCUNILOGEVENT;
+#else
 	typedef struct cunilog_locker
 	{
 		#ifdef OS_IS_WINDOWS

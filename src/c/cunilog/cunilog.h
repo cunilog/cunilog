@@ -1022,7 +1022,7 @@ bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	bool SetLogPrioritySCUNILOGTARGET (SCUNILOGTARGET *put, cunilogprio prio)
 	;
 #else
-	#define SetLogPrioritySCUNILOGTARGET(p, p)	(true)
+	#define SetLogPrioritySCUNILOGTARGET(put, prio) (true)
 #endif
 
 /*
@@ -1047,7 +1047,7 @@ bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	#define SetLogPrioritySCUNILOGTARGETstatic (prio)	\
 				SetLogPrioritySCUNILOGTARGET (pSCUNILOGTARGETstatic, prio)
 #else
-	#define SetLogPrioritySCUNILOGTARGETstatic(p, p)	(true)
+	#define SetLogPrioritySCUNILOGTARGETstatic(put, prio) (true)
 #endif
 
 /*
@@ -1070,7 +1070,7 @@ bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	void PauseLogSCUNILOGTARGET (SCUNILOGTARGET *put)
 	;
 #else
-	define PauseLogSCUNILOGTARGET(p)
+	#define PauseLogSCUNILOGTARGET(put)
 #endif
 
 /*
@@ -1093,7 +1093,7 @@ bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	#define PauseLogSCUNILOGTARGETstatic()				\
 		PauseLogSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 #else
-	define PauseLogSCUNILOGTARGETstatic(p)
+	#define PauseLogSCUNILOGTARGETstatic()
 #endif
 
 /*
@@ -1121,7 +1121,7 @@ bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	size_t ResumeLogSCUNILOGTARGET (SCUNILOGTARGET *put)
 	;
 #else
-	define ResumeLogSCUNILOGTARGET(p)
+	#define ResumeLogSCUNILOGTARGET(put)
 #endif
 
 /*
@@ -1149,7 +1149,7 @@ bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	#define ResumeLogSCUNILOGTARGETstatic()			\
 				ResumeLogSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 #else
-	define ResumeLogSCUNILOGTARGETstatic()		(0)
+	#define ResumeLogSCUNILOGTARGETstatic()		(0)
 #endif
 
 /*
