@@ -95,7 +95,7 @@ __CunilogSetConsoleToUTF8 ()__ sets the console to UTF-8. It is not required to 
 this function as Cunilog calls it automatically just before it outputs something
 to the console the very first time. From that moment on Cunilog uses the ASCII
 function puts () to output to the console. Note that puts () or one of its
-derivatives is literally the only console output function it ever invokes.
+derivatives is literally the only console output function Cunilog ever invokes.
 
 __CunilogSetConsoleToUTF16 ()__ sets the console to UTF-16. Cunilog then uses the
 UTF-16 version of puts (), which is _putws (), for console output. Maybe I'm
