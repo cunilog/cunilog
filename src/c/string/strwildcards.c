@@ -210,10 +210,17 @@ static inline const char *handleGlobStars	(
 											)
 {
 	char		c;
-	const char	*p;
+	//const char	*p = NULL;									// Init to NULL to silence warning.
+	const char	*p;												// Nah!
 	enGl		gl;
 
 	gl = globCharAfterStar (&c, g, ccGlob, lnGlob);
+	ubf_assert	(
+						en_globCharAfterStar		== gl
+					||	en_globDepleted				== gl
+					||	en_globCharAfterDoubleStar	== gl
+					||	en_globDoubleCharDepleted	== gl
+				);
 	switch (gl)
 	{
 		case en_globCharAfterDoubleStar:

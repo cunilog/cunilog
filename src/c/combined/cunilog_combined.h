@@ -14939,7 +14939,59 @@ enum cunilogpostfix
 };
 
 /*
-	The possible processors.
+	The possible processors. This is the member task of a CUNILOG_PROCESSOR structure.
+
+
+	cunilogProcessNoOperation
+
+	This is a dummy processor and does nothing.
+
+
+	cunilogProcessEchoToConsole
+
+	Echoes/outputs the event line to the console
+
+
+	cunilogProcessUpdateLogFileName
+
+	Updates the name of the logfile. This probably shouldn't be a processor but if no logfile
+	is required, not having this processor can save a few CPU cycles.
+
+
+	cunilogProcessWriteToLogFile
+
+	Carries out the actual write operation to the logfile. The member pData points to a
+	CUNILOG_LOGFILE structure. If the file doesn't exist yet it is created and opened for
+	writing to it. If the logfile exists, it is opened for writing.
+
+
+	cunilogProcessFlushLogFile
+
+	Flushes the logfile. The member pData points to the same CUNILOG_LOGFILE structure the
+	cunilogProcessWriteToLogFile processor points to.
+
+
+	cunilogProcessRotateLogfiles
+	
+	A logfile rotator. The member pDate points to a CUNILOG_ROTATION_DATA structure that
+	contains details about the rotation.
+
+
+	cunilogProcessCustomProcessor
+
+	A custom processor. The member pData points to a CUNILOG_CUSTPROCESS structure that
+	contains a pointer to a callback function to carry out the actual task of the processor.
+
+
+	cunilogProcessTargetRedirector
+
+	Redirects to another target. The member pData points to a fully initialised SCUNILOGTARGET
+	structure to which the event is redirectred to. After the redirection further processing
+	within the current target is suppressed, meaning that this is the last processor.
+
+	If pData is NULL, no redirection takes place and the remaining processors are worked
+	through as usual. Since this is most likely not what the caller intended, a debug
+	assertion expects pData not being NULL.
 */
 enum cunilogprocesstask
 {
@@ -14950,6 +15002,8 @@ enum cunilogprocesstask
 	,	cunilogProcessFlushLogFile							// Flushes the logfile.
 	,	cunilogProcessRotateLogfiles						// Rotates logfiles.
 	,	cunilogProcessCustomProcessor						// An external/custom processor.
+	,	cunilogProcessTargetRedirector						// Redirect to different target.
+	,	cunilogProcessTargetFork							// Fork the event to another target.
 	// Do not add anything below this line.
 	,	cunilogProcessAmountEnumValues						// Used for table sizes.
 	// Do not add anything below cunilogProcessAmountEnumValues.
@@ -15319,7 +15373,7 @@ typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 	SUNILOGTARGET
 
 	The base config structure for using cunilog. Do not alter any of its members directly.
-	Always use the provided functions to alter its members.
+	Always use the functions provided to alter its members.
 */
 typedef struct scunilogtarget
 {
@@ -15362,7 +15416,7 @@ typedef struct scunilogtarget
 	unsigned int					nprocessors;
 
 	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-		CUNILOG_LOCKER				cl;						// Locker for functions and event queue.
+		CUNILOG_LOCKER				cl;						// Locker for events queue.
 		CUNILOG_SEMAPHORE			sm;						// Semaphore for event queue.
 		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.
 		CUNILOG_THREAD				th;						// The separate logging thread.
@@ -15623,6 +15677,9 @@ typedef struct scunilogevent
 	#endif
 	cueventseverity				evSeverity;
 	cueventtype					evType;						// The event's type of data.
+	size_t						sizEvent;					// The total allocated size of the
+															//	event. If 0, the size is the size
+															//	of the structure.
 } SCUNILOGEVENT;
 
 /*
@@ -15633,17 +15690,18 @@ typedef struct scunilogevent
 */
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	#define FillSCUNILOGEVENT(pev, pt,					\
-				opts, dts, sev, tpy, dat, len)			\
+				opts, dts, sev, tpy, dat, len, siz)		\
 		(pev)->pSCUNILOGTARGET			= pt;			\
 		(pev)->uiOpts					= opts;			\
 		(pev)->stamp					= dts;			\
 		(pev)->szDataToLog				= dat;			\
 		(pev)->lenDataToLog				= len;			\
 		(pev)->evSeverity				= sev;			\
-		(pev)->evType					= tpy
+		(pev)->evType					= tpy;			\
+		(pev)->sizEvent					= siz
 #else
 	#define FillSCUNILOGEVENT(pev, pt,					\
-				opts, dts, sev, tpy, dat, len)			\
+				opts, dts, sev, tpy, dat, len, siz)		\
 		(pev)->pSCUNILOGTARGET			= pt;			\
 		(pev)->uiOpts					= opts;			\
 		(pev)->stamp					= dts;			\
@@ -15651,7 +15709,8 @@ typedef struct scunilogevent
 		(pev)->lenDataToLog				= len;			\
 		(pev)->next						= NULL;			\
 		(pev)->evSeverity				= sev;			\
-		(pev)->evType					= tpy
+		(pev)->evType					= tpy;			\
+		(pev)->sizEvent					= siz
 #endif
 
 /*
@@ -15766,7 +15825,7 @@ typedef struct cunilog_rotator_args
 /*
 	A callback function of a custom processor.
 */
-typedef void		(*pfCustProc) (CUNILOG_PROCESSOR *, SCUNILOGEVENT *);
+typedef bool (*pfCustProc) (CUNILOG_PROCESSOR *, SCUNILOGEVENT *);
 
 /*
 	A pData structure for a unilogProcessCustomProcessor (custom/external) processor.
@@ -15788,8 +15847,10 @@ enum enCunilogLogPriority
 	cunilogPrioBelowNormal,
 	cunilogPrioLow,
 	cunilogPrioIdle,
+	cunilogPrioBeginBackground,
+	cunilogPrioEndBackground,
 	// Do not insert enum values below this line.
-	cunilogPrioInvalid
+	cunilogPrioAmountEnumValues
 };
 typedef enum enCunilogLogPriority	cunilogprio;
 
@@ -16744,8 +16805,10 @@ SCUNILOGTARGET *DoneSCUNILOGTARGET (SCUNILOGTARGET *put)
 	afterwards return false.
 
 	This function should be called just before DoneSCUNILOGTARGET ().
+
+	The function returns true on success, false otherwise.
 */
-void ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
+bool ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
 
 /*
 	ShutdownSCUNILOGTARGETstatic
@@ -16755,6 +16818,8 @@ void ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
+
+	The function returns true on success, false otherwise.
 */
 #define ShutdownSCUNILOGTARGETstatic()					\
 			ShutdownSCUNILOGTARGET (pSCUNILOGTARGETstatic)
@@ -16771,8 +16836,10 @@ void ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
+
+	The function returns true on success, false otherwise.
 */
-void CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
+bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 
 /*
 	CancelSCUNILOGTARGETstatic
@@ -16781,6 +16848,8 @@ void CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
+
+	The function returns true on success, false otherwise.
 */
 #define CancelSCUNILOGTARGETstatic ()					\
 			CancelSCUNILOGTARGET (pSCUNILOGTARGETstatic)
@@ -16793,15 +16862,29 @@ void CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	
 	The priority levels are based on Windows thread priority levels. See the cunilogprio
 	enum type (parameter prio) for possible values. For POSIX, these have been placed in
-	a table with nice values as approximations (table icuWinPrioTable; see code file).
+	a table with nice values as approximations (table icuWinPrioTable; see code file),
+	although they are not really nice values as the priority is applied to the separate
+	logging thread only.
 	Neither the table nor this function have been tested to ensure the approximations
-	are accurate.
+	for POSIX are accurate.
+
+	Windows systems support cunilogPrioBeginBackground and cunilogPrioEndBackground. These
+	values change the separate logging thread's priority to THREAD_MODE_BACKGROUND_BEGIN and
+	THREAD_MODE_BACKGROUND_END respectively. See
+	https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority
+	for details.
+	Since directly comparable functionality is not available on POSIX,
+	cunilogPrioBeginBackground is identical to cunilogPrioIdle, which sets the thread priority
+	value to 19, and cunilogPrioEndBackground is identical to a value of 0, which means normal
+	priority. See https://www.man7.org/linux/man-pages/man3/pthread_setschedprio.3.html .
 
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
 	to true.
 
 	Returns true on success, false otherwise. If the SCUNILOGTARGET structure doesn't
-	have a separate logging thread, the function returns true.
+	have a separate logging thread, the function returns true. Whether the function
+	returns success or failure depends on the system call that sets the priority. The
+	function also returns false if the value for prio is invalid.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	bool SetLogPrioritySCUNILOGTARGET (SCUNILOGTARGET *put, cunilogprio prio)
@@ -16975,13 +17058,30 @@ SCUNILOGEVENT *CreateSCUNILOGEVENT_Text		(
 ;
 
 /*
+	DuplicateSCUNILOGEVENT
+
+	Creates a copy of the event pev on the heap. If the event has a size other than
+	sizeof (SCUNILOGEVENT) this is taken into consideration. The target of the newly
+	created event is identical to the target of the event pev points to.
+
+	Call DoneSCUNILOGEVENT () to destroy it.
+
+	The function returns a pointer to a newly allocated event, which is an exact copy
+	of pev apart from that the newly allocated event has the option flag CUNILOGEVENT_ALLOCATED
+	set regardless of whether this flag was present in pev.
+*/
+SCUNILOGEVENT *DuplicateSCUNILOGEVENT (SCUNILOGEVENT *pev)
+;
+
+/*
 	DoneSCUNILOGEVENT
 
-	Destroys an SUNILOGEVENT structure including all its resources.
+	Destroys an SUNILOGEVENT structure including all its resources if the event belongs
+	to target put. If put is NULL the event is destroyed regardless.
 
 	The function always returns NULL.
 */
-SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGEVENT *pev)
+SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGTARGET *put, SCUNILOGEVENT *pev)
 ;
 
 /*

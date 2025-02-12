@@ -2307,7 +2307,7 @@ BOOL GetDefaultUserProfileDirectoryU8(
 	if (dw <= WINAPI_U8_HEAP_THRESHOLD)
 		pcProfDir = wcProfDir;
 	else
-		pcProfDir = malloc (dw);
+		pcProfDir = malloc (dw * sizeof (WCHAR));
 	if (pcProfDir)
 	{
 		BOOL b = GetDefaultUserProfileDirectoryW (pcProfDir, &dw);
@@ -2346,7 +2346,7 @@ BOOL GetUserProfileDirectoryU8(
 	if (dw <= WINAPI_U8_HEAP_THRESHOLD)
 		pcProfDir = wcProfDir;
 	else
-		pcProfDir = malloc (dw * sizeof (wchar_t));
+		pcProfDir = malloc (dw * sizeof (WCHAR));
 	if (pcProfDir)
 	{
 		bool b = GetUserProfileDirectoryW (hToken, pcProfDir, &dw);
@@ -15378,10 +15378,17 @@ static inline const char *handleGlobStars	(
 											)
 {
 	char		c;
-	const char	*p;
+	//const char	*p = NULL;									// Init to NULL to silence warning.
+	const char	*p;												// Nah!
 	enGl		gl;
 
 	gl = globCharAfterStar (&c, g, ccGlob, lnGlob);
+	ubf_assert	(
+						en_globCharAfterStar		== gl
+					||	en_globDepleted				== gl
+					||	en_globCharAfterDoubleStar	== gl
+					||	en_globDoubleCharDepleted	== gl
+				);
 	switch (gl)
 	{
 		case en_globCharAfterDoubleStar:
@@ -17606,6 +17613,7 @@ static void DoneSCUNILOGTARGETprocessors (SCUNILOGTARGET *psu)
 			case cunilogProcessUpdateLogFileName:
 			case cunilogProcessFlushLogFile:
 			case cunilogProcessCustomProcessor:
+			case cunilogProcessTargetRedirector:
 			case cunilogProcessAmountEnumValues:
 				break;
 			case cunilogProcessWriteToLogFile:
@@ -17733,7 +17741,7 @@ const char *EventSeverityTexts []	=
 	/*	14	*/	"ILG"
 };
 
-static const char *unilogTextFromEventSeverity (enum cunilogeventseverity evSeverity)
+static inline const char *unilogTextFromEventSeverity (enum cunilogeventseverity evSeverity)
 {
 	// Check consistency between unilogstruct.h and the declarations here.
 	ubf_assert (0 == cunilogEvtSeverityNone);
@@ -17773,13 +17781,13 @@ static const char *unilogTextFromEventSeverity (enum cunilogeventseverity evSeve
 	return EventSeverityTexts [evSeverity];
 }
 
-static size_t requiredEventSeverityChars (cueventseverity sev)
+static inline size_t requiredEventSeverityChars (cueventseverity sev)
 {
 	// "" or "INF" + " ".
 	return cunilogEvtSeverityNone == sev ? 0 : 3 + 1;
 }
 
-static size_t writeEventSeverity (char *szOut, cueventseverity sev)
+static inline size_t writeEventSeverity (char *szOut, cueventseverity sev)
 {
 	ubf_assert_non_NULL (szOut);
 
@@ -18344,7 +18352,7 @@ static SCUNILOGEVENT *CreateSCUNILOGEVENTandData	(
 			CUNILOGEVENT_ALLOCATED,
 			LocalTime_UBF_TIMESTAMP (),
 			sev, type,
-			pData, siz
+			pData, siz, ln
 							);
 		if (wl)
 		{
@@ -18432,15 +18440,37 @@ SCUNILOGEVENT *CreateSUNILOGEVENT_W	(
 	return NULL;
 }
 
-SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGEVENT *pev)
+SCUNILOGEVENT *DuplicateSCUNILOGEVENT (SCUNILOGEVENT *pev)
 {
-	if (pev->szDataToLog && cunilogIsEventDataAllocated (pev))
+	ubf_assert_non_NULL (pev);
+
+	size_t size;
+
+	if (pev->sizEvent)
+		size = pev->sizEvent;
+	else
+		size = sizeof (SCUNILOGEVENT);
+	SCUNILOGEVENT *pnev = ubf_malloc (size);
+	if (pnev)
 	{
-		ubf_free (pev->szDataToLog);
+		memcpy (pnev, pev, size);
+		cunilogSetEventAllocated (pnev);
 	}
-	if (cunilogIsEventAllocated (pev))
+	return pnev;
+}
+
+SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGTARGET *put, SCUNILOGEVENT *pev)
+{
+	if (NULL == put || put == pev->pSCUNILOGTARGET)
 	{
-		ubf_free (pev);
+		if (pev->szDataToLog && cunilogIsEventDataAllocated (pev))
+		{
+			ubf_free (pev->szDataToLog);
+		}
+		if (cunilogIsEventAllocated (pev))
+		{
+			ubf_free (pev);
+		}
 	}
 	return NULL;
 }
@@ -18492,11 +18522,12 @@ void cunilogInvokeErrorCallback (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOG
 /*
 	The dummy/no-operation processor.
 */
-static void cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 {
 	UNREFERENCED_PARAMETER (cup);
 	UNREFERENCED_PARAMETER (pev);
-	
+
+	return true;
 }
 
 #ifdef PLATFORM_IS_WINDOWS
@@ -18527,14 +18558,14 @@ static void cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	}
 #endif
 
-static void cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+static bool cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 {
 	UNREFERENCED_PARAMETER (cup);
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
 
 	if (cunilogIsNoEcho (pev->pSCUNILOGTARGET))
-		return;
+		return true;
 
 	// The actual task of this processor: Echo the event line.
 	//	Note that we can rely on the following conditions here:
@@ -18560,9 +18591,10 @@ static void cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 		ubf_assert_msg (false, "Error writing to stdout.");
 		cunilogInvokeErrorCallback (EBADF, cup, pev);
 	}
+	return true;
 }
 
-static void unilogProcessUpdateLogPathFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 {
 	UNREFERENCED_PARAMETER (cup);
 	ubf_assert_non_NULL (pev);
@@ -18580,6 +18612,7 @@ static void unilogProcessUpdateLogPathFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVEN
 
 	obtainDateAndTimeStamp (put->szDateTimeStamp, pev->stamp, put->culogPostfix);
 	put->szDateTimeStamp [lenPostfixStamp] = '.';
+	return true;
 }
 
 static bool cunilogOpenLogFile (CUNILOG_LOGFILE *pl, const char *szLogFileName)
@@ -18662,7 +18695,7 @@ static bool cunilogWriteDataToLogFile (CUNILOG_LOGFILE *pl, char *pData, size_t 
 	#endif
 }
 
-static void cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+static bool cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
@@ -18672,7 +18705,7 @@ static void cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEV
 	ubf_assert (isUsableSMEMBUF (&put->mbLogfileName));
 
 	if (cunilogHasDontWriteToLogfile (put))
-		return;
+		return true;
 
 	CUNILOG_LOGFILE	*pl	= cup->pData;
 	ubf_assert_non_NULL (pl);
@@ -18696,9 +18729,10 @@ static void cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEV
 			)
 				cunilogInvokeErrorCallback (CUNILOG_UNKNOWN_ERROR, cup, pev);
 	}
+	return true;
 }
 
-static void cunilogProcessFlushFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+static bool cunilogProcessFlushFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
@@ -18706,7 +18740,7 @@ static void cunilogProcessFlushFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	ubf_assert_non_NULL (put);
 	
 	if (cunilogHasDontWriteToLogfile (put))
-		return;
+		return true;
 
 	CUNILOG_LOGFILE *pcl = cup->pData;
 
@@ -18717,10 +18751,11 @@ static void cunilogProcessFlushFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 		if (0 != fflush (pcl->fLogFile))
 			cunilogInvokeErrorCallback (CUNILOG_UNKNOWN_ERROR, cup, pev);
 	#endif
+	return true;
 }
 
 static bool cunilogProcessEventSingleThreaded (SCUNILOGEVENT *pev);
-static void enqueueAndTriggerSeparateLoggingThread (SCUNILOGEVENT *pev);
+static bool enqueueAndTriggerSeparateLoggingThread (SCUNILOGEVENT *pev);
 
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 
@@ -19222,13 +19257,13 @@ static inline void obtainLogfilesListToRotate (SCUNILOGTARGET *put)
 	#endif
 }
 
-static void cunilogProcessRotateLogfilesFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+static bool cunilogProcessRotateLogfilesFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 {
 	ubf_assert_non_NULL (cup);
 	ubf_assert_non_NULL (pev);
 	
 	if (cunilogHasEventNoRotation (pev))
-		return;
+		return true;
 
 	SCUNILOGTARGET			*put = pev->pSCUNILOGTARGET;
 	ubf_assert_non_NULL (put);
@@ -19255,6 +19290,7 @@ static void cunilogProcessRotateLogfilesFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEV
 			prapareLogfilesListAndRotate (&args);
 			break;
 	}
+	return true;
 }
 
 /*
@@ -19262,8 +19298,9 @@ static void cunilogProcessRotateLogfilesFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEV
 	which has two members: pData for custom data and the function pointer procFnc, which
 	is the actual custom processor function.
 */
-static void cunilogProcessCustomProcessorFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+static bool cunilogProcessCustomProcessorFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 {
+	ubf_assert_non_NULL (cup);
 	ubf_assert_non_NULL (pev);
 	
 	#ifdef DEBUG
@@ -19274,7 +19311,51 @@ static void cunilogProcessCustomProcessorFnct (CUNILOG_PROCESSOR *cup, SCUNILOGE
 	CUNILOG_CUSTPROCESS	*pcu = cup->pData;
 	ubf_assert_non_NULL (pcu);
 	ubf_assert_non_NULL (pcu->procFnc);
-	pcu->procFnc (cup, pev);
+	return pcu->procFnc (cup, pev);
+}
+
+/*
+	The redirector processor. The event is redirected to a different SCUNILOGTARGET,
+	to which the pData member points to. When the event is redirected, the remaining
+	processors of the current target are ignored.
+
+	If pData is NULL, no redirection takes place and the remaining processors are worked
+	through as usual. Since this is most likely not what the caller intended, a debug
+	assertion expects pData not being NULL.
+*/
+static bool cunilogProcessTargetRedirectorFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+{
+	ubf_assert_non_NULL (cup);
+	ubf_assert_non_NULL (pev);
+
+	SCUNILOGTARGET *put = cup->pData;
+	ubf_assert_non_NULL (put);
+
+	if (put)
+	{
+		logEv (put, pev);
+		return false;
+	}
+	return true;
+}
+
+static bool cunilogProcessTargetForkFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+{
+	ubf_assert_non_NULL (cup);
+	ubf_assert_non_NULL (pev);
+
+	SCUNILOGTARGET *put = cup->pData;
+	ubf_assert_non_NULL (put);
+
+	if (put)
+	{
+		SCUNILOGEVENT *pnev = DuplicateSCUNILOGEVENT (pev);
+		if (pnev)
+		{
+			logEv (put, pev);
+		}
+	}
+	return true;
 }
 
 /*
@@ -19493,7 +19574,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 				//	by DoneSUNILOGEVENT ().
 				pnx = pev->next;
 				cunilogProcessEventSingleThreaded (pev);
-				DoneSCUNILOGEVENT (pev);
+				DoneSCUNILOGEVENT (put, pev);
 				pev = pnx;
 			}
 			if (cunilogIsShutdownTarget (put) && 0 == put->nPendingNoRotEvts )
@@ -19651,15 +19732,17 @@ static bool thresholdReached (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	return bRet;
 }
 
-static void (*pickAndRunProcessor [cunilogProcessAmountEnumValues]) (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev) =
+static bool (*pickAndRunProcessor [cunilogProcessAmountEnumValues]) (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev) =
 {
 	/* cunilogProcessNoOperation		*/		cunilogProcessNoneFnct
 	/* cunilogProcessEchoToConsole		*/	,	cunilogProcessEchoFnct
-	/* cunilogProcessUpdateLogFileName	*/	,	unilogProcessUpdateLogPathFnct
+	/* cunilogProcessUpdateLogFileName	*/	,	cunilogProcessUpdateLogFileNameFnct
 	/* cunilogProcessWriteToLogFile		*/	,	cunilogProcessWriteToLogFileFnct
 	/* cunilogProcessFlush				*/	,	cunilogProcessFlushFnct
 	/* cunilogProcessRotateLogfiles		*/	,	cunilogProcessRotateLogfilesFnct
 	/* cunilogProcessCustomProcessor	*/	,	cunilogProcessCustomProcessorFnct
+	/* cunilogProcessTargetRedirector	*/	,	cunilogProcessTargetRedirectorFnct
+	/* cunilogProcessTargetFork			*/	,	cunilogProcessTargetForkFnct
 };
 
 /*
@@ -19682,9 +19765,10 @@ static bool cunilogProcessProcessor (SCUNILOGEVENT *pev, CUNILOG_PROCESSOR *cup)
 			||	cunilogHasRunAllProcessorsOnStartup (pev->pSCUNILOGTARGET)
 		)
 	{
-		pickAndRunProcessor [cup->task] (cup, pev);
 		// True tells the caller to carry on with the next processor.
-		return cunilogHasEventStopProcessing (pev) ? false : true;
+		bool bNext =		pickAndRunProcessor [cup->task] (cup, pev)
+						&&	!cunilogHasEventStopProcessing (pev);
+		return bNext;
 	}
 
 	// Tells the caller not to bother with the next processor unless bForceNext is true
@@ -19725,14 +19809,14 @@ static bool cunilogProcessEventSingleThreaded (SCUNILOGEVENT *pev)
 	if (cunilogIsEventShutdown (pev))
 	{
 		cunilogSetShutdownTarget (pev->pSCUNILOGTARGET);
-		DoneSCUNILOGEVENT (pev);
-		return false;
+		DoneSCUNILOGEVENT (NULL, pev);
+		// The shutdown event has been processed. We treat this as being success.
+		return true;
 	}
 
 	size_t	eventLineSize = createEventLineFromSUNILOGEVENT (pev);
 	if (CUNILOG_SIZE_ERROR != eventLineSize)
 	{
-		// For now we simply process the event's processors.
 		cunilogProcessProcessors (pev);
 		if (cunilogHasEventNoRotation (pev))
 			DecrementPendingNoRotationEvents (pev->pSCUNILOGTARGET);
@@ -19741,7 +19825,7 @@ static bool cunilogProcessEventSingleThreaded (SCUNILOGEVENT *pev)
 	return false;
 }
 
-static void enqueueAndTriggerSeparateLoggingThread (SCUNILOGEVENT *pev)
+static bool enqueueAndTriggerSeparateLoggingThread (SCUNILOGEVENT *pev)
 {
 	ubf_assert_non_NULL						(pev);
 	ubf_assert_non_NULL						(pev->pSCUNILOGTARGET);
@@ -19751,8 +19835,9 @@ static void enqueueAndTriggerSeparateLoggingThread (SCUNILOGEVENT *pev)
 		size_t n = EnqueueSCUNILOGEVENT (pev);
 		if (n)
 			triggerSCUNILOGEVENTloggingThread (pev->pSCUNILOGTARGET, n);
+		return n > 0;
 	#else
-		cunilogProcessEventSingleThreaded (pev);
+		return cunilogProcessEventSingleThreaded (pev);
 	#endif
 }
 
@@ -19762,8 +19847,7 @@ static bool cunilogProcessEventSingleThreadedSeparateLoggingThread (SCUNILOGEVEN
 	ubf_assert_non_NULL						(pev->pSCUNILOGTARGET);
 	ubf_assert (cunilogIsTargetInitialised	(pev->pSCUNILOGTARGET));
 
-	enqueueAndTriggerSeparateLoggingThread (pev);
-	return true;
+	return enqueueAndTriggerSeparateLoggingThread (pev);
 }
 
 static bool cunilogProcessEventMultiThreaded (SCUNILOGEVENT *pev)
@@ -19784,8 +19868,7 @@ static bool cunilogProcessEventMultiThreadedSeparateLoggingThread (SCUNILOGEVENT
 	ubf_assert_non_NULL						(pev->pSCUNILOGTARGET);
 	ubf_assert (cunilogIsTargetInitialised	(pev->pSCUNILOGTARGET));
 
-	enqueueAndTriggerSeparateLoggingThread (pev);
-	return true;
+	return enqueueAndTriggerSeparateLoggingThread (pev);
 }
 
 static bool cunilogProcessOrQueueEventMultiProcesses (SCUNILOGEVENT *pev)
@@ -19816,8 +19899,8 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 	ubf_assert (cunilogIsTargetInitialised (put));
 
 	// Sanity check for the type.
+	ubf_assert (put->culogType >= 0);
 	ubf_assert (put->culogType >= cunilogSingleThreaded);
-	ubf_assert (put->culogType <= cunilogMultiProcesses);
 	ubf_assert (put->culogType < cunilogTypeAmountEnumValues);
 
 	#ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
@@ -19851,35 +19934,56 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 #endif
 
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	SCUNILOGEVENT scueShutdown;
+	static SCUNILOGEVENT scueShutdown =
+	{
+		NULL, CUNILOGEVENT_SHUTDOWN, 0, cunilogEvtSeverityNone, cunilogEvtTypeNormalText,
+		NULL, 0, 0
+	};
 #endif
 
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	void ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put)
+	bool queueShutdownEvent (SCUNILOGTARGET *put)
+	{
+		SCUNILOGEVENT *pev = DuplicateSCUNILOGEVENT (&scueShutdown);
+		if (pev)
+		{
+			pev->pSCUNILOGTARGET = put;
+			cunilogSetEventAllocated (pev);
+			cunilogProcessOrQueueEvent (pev);
+			return true;
+		}
+		return false;
+	}
+#endif
+
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	bool ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
 		if (hasSCUNILOGTARGETqueue (put))
 		{
-			FillSCUNILOGEVENT	(
-				&scueShutdown, put, CUNILOGEVENT_SHUTDOWN, 0,
-				cunilogEvtSeverityNone, cunilogEvtTypeNormalText, NULL, 0
-								);
-			cunilogProcessOrQueueEvent (&scueShutdown);
-			WaitForEndOfSeparateLoggingThread (put);
+			if (queueShutdownEvent (put))
+			{
+				WaitForEndOfSeparateLoggingThread (put);
+				return true;
+			}
+			return false;
 		}
+		return true;
 	}
 #else
-	void ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put)
+	bool ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
 		cunilogSetTargetShutdown (put);
+		return true;
 	}
 #endif
 
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	void CancelSCUNILOGTARGET (SCUNILOGTARGET *put)
+	bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
@@ -19895,19 +19999,20 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 			while (pev)
 			{
 				nxt = pev->next;
-				DoneSCUNILOGEVENT (pev);
+				DoneSCUNILOGEVENT (NULL, pev);
 				pev = nxt;
 			}
 
 			// Queue the shutdown command for the separate logging thread and wait
 			//	for it to end.
-			FillSCUNILOGEVENT	(
-				&scueShutdown, put, CUNILOGEVENT_SHUTDOWN, 0,
-				cunilogEvtSeverityNone, cunilogEvtTypeNormalText, NULL, 0
-								);
-			cunilogProcessOrQueueEvent (&scueShutdown);
-			WaitForEndOfSeparateLoggingThread (put);
+			if (queueShutdownEvent (put))
+			{
+				WaitForEndOfSeparateLoggingThread (put);
+				return true;
+			}
+			return false;
 		}
+		return true;
 	}
 #else
 	void CancelSCUNILOGTARGET (SCUNILOGTARGET *put)
@@ -19915,6 +20020,7 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 		ubf_assert_non_NULL (put);
 
 		cunilogSetTargetShutdown (put);
+		return true;
 	}
 #endif
 
@@ -19933,22 +20039,26 @@ enum enCunilogLogPriority
 */
 
 #ifdef OS_IS_WINDOWS
-	int icuWinPrioTable [cunilogPrioInvalid] =
+	int icuWinPrioTable [cunilogPrioAmountEnumValues] =
 	{
-			/* cunilogPrioNormal		*/	THREAD_PRIORITY_NORMAL
-		,	/* cunilogPrioBelowNormal	*/	THREAD_PRIORITY_BELOW_NORMAL
-		,	/* cunilogPrioLow			*/	THREAD_PRIORITY_LOWEST
-		,	/* cunilogPrioIdle			*/	THREAD_PRIORITY_IDLE
+			/* cunilogPrioNormal			*/	THREAD_PRIORITY_NORMAL
+		,	/* cunilogPrioBelowNormal		*/	THREAD_PRIORITY_BELOW_NORMAL
+		,	/* cunilogPrioLow				*/	THREAD_PRIORITY_LOWEST
+		,	/* cunilogPrioIdle				*/	THREAD_PRIORITY_IDLE
+		,	/* cunilogPrioBeginBackground	*/	THREAD_MODE_BACKGROUND_BEGIN
+		,	/* cunilogPrioEndBackground		*/	THREAD_MODE_BACKGROUND_END
 	};
 #else
 	// These values haven't been tested yet! I (Thomas) just made them up in
 	//	the hope they might do well enough.
-	int icuPsxPrioTable [cunilogPrioInvalid] =
+	int icuPsxPrioTable [cunilogPrioAmountEnumValues] =
 	{
-			/* cunilogPrioNormal		*/	0
-		,	/* cunilogPrioBelowNormal	*/	5
-		,	/* cunilogPrioLow			*/	10
-		,	/* cunilogPrioIdle			*/	19
+			/* cunilogPrioNormal			*/	0
+		,	/* cunilogPrioBelowNormal		*/	5
+		,	/* cunilogPrioLow				*/	10
+		,	/* cunilogPrioIdle				*/	19
+		,	/* cunilogPrioBeginBackground	*/	19
+		,	/* cunilogPrioEndBackground		*/	0
 	};
 #endif
 
@@ -19979,15 +20089,19 @@ enum enCunilogLogPriority
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(0 <= prio);
-		ubf_assert			(prio < cunilogPrioInvalid);
+		ubf_assert			(prio < cunilogPrioAmountEnumValues);
 
 		if (hasSeparateLoggingThread (put))
 		{
-			#ifdef PLATFORM_IS_WINDOWS
-				return SetWinLogPriority (put, icuWinPrioTable [prio]);
-			#else
-				return SetPsxLogPriority (put, icuPsxPrioTable [prio]);
-			#endif
+			if (0 <= prio && cunilogPrioAmountEnumValues > prio)
+			{
+				#ifdef PLATFORM_IS_WINDOWS
+					return SetWinLogPriority (put, icuWinPrioTable [prio]);
+				#else
+					return SetPsxLogPriority (put, icuPsxPrioTable [prio]);
+				#endif
+			} else
+				return false;
 		}
 		return true;
 	}

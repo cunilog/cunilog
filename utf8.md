@@ -12,7 +12,7 @@ implicitely.
 
 Cunilog however includes a module/unit called check_utf8 written by
 YASUOKA Masahiko (https://github.com/yasuoka/check_utf8). Since the function
-name is probably relatively common, it has been renamed to c_check_utf8 () in
+name is probably relatively common, it has been renamed to __c_check_utf8 ()__ in
 order to avoid name clashes.
 
 Since checking if text is well-formed and valid UTF-8 is a relatively expensive

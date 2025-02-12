@@ -1,6 +1,8 @@
 
 # Using Cunilog
 
+## Building
+
 This brief introduction assumes that you either add the two combined source code files
 __cunilog_combined.h__ and __cunilog_combined.c__ in folder __src/c/combined__
 to your project and compile them as part of it, or that you build libcunilog, link your application to it, and only add __cunilog_combined.h__ to your project.
@@ -12,57 +14,12 @@ All necessary constants, enumerations, functions, macros, and structures should 
 readily accessible from C and C++. There's currently (January 2025) no bindings
 for other languages.
 
-## Strings
-
-Unless mentioned otherwise, many functions and macros that accept string
-arguments/parameters also expect a length parameter that tells the function/macro
-how long the string is. The length is the length of a string excluding a
-terminating NUL character as if obtained via a call to strlen (). For example,
-"ABC" has a length of 3.
-
-This length argument can be USE_STRLEN, in which case the function/macro calls
-strlen () implicitely on the string. USE_STRLEN is defined as ((size_t) -1).
-
-If the length of a string is provided instead of USE_STRLEN, the function/macro
-will not read beyond this length. This means that most functions/macros can
-be called with string buffers that are not NUL-terminated.
-
-Cunilog treats all strings as UTF-8 strings without actually understanding the
-concept of UTF-8. For instance, a UTF-8 codepoint consisting of 3 octets/bytes
-is worked with as a string that consists of 3 characters. It is the caller's
-responsibility to ensure UTF-8 passed on to Cunilog is correct UTF-8.
-
 ## Logging
 
 We assume that you only intend to log/write to a single log file, from a
 single process, but possibly from different threads. Cunilog supports writing
 to different log files or writing to the same log file from different processes
 but we won't cover those cases in this brief introduction.
-
-In Cunilog terms a log file is called a __target__. In fact, a __target__
-can be anything from console output to log file or both or a database or
-whatever. This is entirely configurable. Whatever the __target__ is, all
-logging functions expect a target.
-
-An application can create an arbitrary number of targets for Cunilog, or just
-use the default (static) __target__. Every __target__, however, needs to be
-configured first so that Cunilog knows what to do with it. This also applies to
-the default (static) __target__.
-
-Each definition, function, structure, constant, and enumeration should be
-self-explanatory in the header file(s). The comments above or next to the
-definition, function, structure, constant, or enumeration should contain enough
-information on their purpose and usage. If the description isn't detailed enough,
-then the function or macro is most likely a variation of one of the functions or
-macros before/above, the comments only contain differences to the previous
-function or macro, and necessary information is found there. If this is not
-the case, though, this is considered a bug.
-
-All logging functions expect as their first parameter a pointer to a __target__
-structure of type __SCUNILOGTARGET__. For the default (static) __target__,
-macros are provided that end in _static. These macros set the __target__ to an
-internal (static) __SCUNILOGTARGET__ structure, which is shared by all these
-macros/functions.
 
 Example for using the internal static structure:
 ```C

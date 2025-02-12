@@ -937,8 +937,10 @@ SCUNILOGTARGET *DoneSCUNILOGTARGET (SCUNILOGTARGET *put)
 	afterwards return false.
 
 	This function should be called just before DoneSCUNILOGTARGET ().
+
+	The function returns true on success, false otherwise.
 */
-void ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
+bool ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
 
 /*
 	ShutdownSCUNILOGTARGETstatic
@@ -948,6 +950,8 @@ void ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
+
+	The function returns true on success, false otherwise.
 */
 #define ShutdownSCUNILOGTARGETstatic()					\
 			ShutdownSCUNILOGTARGET (pSCUNILOGTARGETstatic)
@@ -964,8 +968,10 @@ void ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
+
+	The function returns true on success, false otherwise.
 */
-void CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
+bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 
 /*
 	CancelSCUNILOGTARGETstatic
@@ -974,6 +980,8 @@ void CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
+
+	The function returns true on success, false otherwise.
 */
 #define CancelSCUNILOGTARGETstatic ()					\
 			CancelSCUNILOGTARGET (pSCUNILOGTARGETstatic)
@@ -986,15 +994,29 @@ void CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	
 	The priority levels are based on Windows thread priority levels. See the cunilogprio
 	enum type (parameter prio) for possible values. For POSIX, these have been placed in
-	a table with nice values as approximations (table icuWinPrioTable; see code file).
+	a table with nice values as approximations (table icuWinPrioTable; see code file),
+	although they are not really nice values as the priority is applied to the separate
+	logging thread only.
 	Neither the table nor this function have been tested to ensure the approximations
-	are accurate.
+	for POSIX are accurate.
+
+	Windows systems support cunilogPrioBeginBackground and cunilogPrioEndBackground. These
+	values change the separate logging thread's priority to THREAD_MODE_BACKGROUND_BEGIN and
+	THREAD_MODE_BACKGROUND_END respectively. See
+	https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority
+	for details.
+	Since directly comparable functionality is not available on POSIX,
+	cunilogPrioBeginBackground is identical to cunilogPrioIdle, which sets the thread priority
+	value to 19, and cunilogPrioEndBackground is identical to a value of 0, which means normal
+	priority. See https://www.man7.org/linux/man-pages/man3/pthread_setschedprio.3.html .
 
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
 	to true.
 
 	Returns true on success, false otherwise. If the SCUNILOGTARGET structure doesn't
-	have a separate logging thread, the function returns true.
+	have a separate logging thread, the function returns true. Whether the function
+	returns success or failure depends on the system call that sets the priority. The
+	function also returns false if the value for prio is invalid.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	bool SetLogPrioritySCUNILOGTARGET (SCUNILOGTARGET *put, cunilogprio prio)
@@ -1168,13 +1190,30 @@ SCUNILOGEVENT *CreateSCUNILOGEVENT_Text		(
 ;
 
 /*
+	DuplicateSCUNILOGEVENT
+
+	Creates a copy of the event pev on the heap. If the event has a size other than
+	sizeof (SCUNILOGEVENT) this is taken into consideration. The target of the newly
+	created event is identical to the target of the event pev points to.
+
+	Call DoneSCUNILOGEVENT () to destroy it.
+
+	The function returns a pointer to a newly allocated event, which is an exact copy
+	of pev apart from that the newly allocated event has the option flag CUNILOGEVENT_ALLOCATED
+	set regardless of whether this flag was present in pev.
+*/
+SCUNILOGEVENT *DuplicateSCUNILOGEVENT (SCUNILOGEVENT *pev)
+;
+
+/*
 	DoneSCUNILOGEVENT
 
-	Destroys an SUNILOGEVENT structure including all its resources.
+	Destroys an SUNILOGEVENT structure including all its resources if the event belongs
+	to target put. If put is NULL the event is destroyed regardless.
 
 	The function always returns NULL.
 */
-SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGEVENT *pev)
+SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGTARGET *put, SCUNILOGEVENT *pev)
 ;
 
 /*

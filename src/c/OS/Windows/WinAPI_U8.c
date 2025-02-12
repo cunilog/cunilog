@@ -2110,7 +2110,7 @@ BOOL GetDefaultUserProfileDirectoryU8(
 	if (dw <= WINAPI_U8_HEAP_THRESHOLD)
 		pcProfDir = wcProfDir;
 	else
-		pcProfDir = malloc (dw);
+		pcProfDir = malloc (dw * sizeof (WCHAR));
 	if (pcProfDir)
 	{
 		BOOL b = GetDefaultUserProfileDirectoryW (pcProfDir, &dw);
@@ -2149,7 +2149,7 @@ BOOL GetUserProfileDirectoryU8(
 	if (dw <= WINAPI_U8_HEAP_THRESHOLD)
 		pcProfDir = wcProfDir;
 	else
-		pcProfDir = malloc (dw * sizeof (wchar_t));
+		pcProfDir = malloc (dw * sizeof (WCHAR));
 	if (pcProfDir)
 	{
 		bool b = GetUserProfileDirectoryW (hToken, pcProfDir, &dw);
