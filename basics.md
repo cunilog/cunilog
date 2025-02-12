@@ -25,7 +25,7 @@ To distinguish between functions and macros in the documentation and comments, f
 
 When compiled for release versions Cunilog carries out only the most imporant parameters and bounds checks.
 It is recommended to always test debug builds first. Debug builds contain tons of assertions
-and abort messages that should catch most argument mismatches, buffer overruns, out-of-bound enums, etc.
+and abort messages that should catch most argument mismatches, buffer overruns, out-of-bounds enums, etc.
 
 First, build a debug version of your application and make sure you also use a Cunilog debug
 build, then test it to ensure all function and macro arguments are good and that there are no
