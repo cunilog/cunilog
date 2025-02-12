@@ -19,7 +19,7 @@ to the previous object, function, or macro, and necessary information is found t
 
 If something consistently requires looking at the code in order to understand how to call or use it, though, this is considered a bug and should be rectified.
 
-In the documentation and comments, functions are normally referred to as __function_name ()__ with a single space between name and opening bracket while macros are referred to as __macro_name()__ without space.
+To distinguish between functions and macros in the documentation and comments, functions are normally referred to as __function_name ()__ with a single space between name and opening bracket while macros are referred to as __macro_name()__ without space.
 
 ### Debugging
 
