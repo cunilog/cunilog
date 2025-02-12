@@ -14,7 +14,7 @@ their code. However, this may not always be the case for simplicity reasons and 
 that get straight to the point from a user's/caller's perspective. If in doubt, check the source code.
 
 If the description isn't detailed enough, then the function, macro, or object is most likely a variation
-of one of the functions, macros, or objects before/above. These comments may only contain differences
+of one of the functions, macros, or objects before/above. These comments may contain only differences
 to the previous object, function, or macro, and necessary information is found there.
 
 If something consistently requires looking at the code in order to understand it, though, this is considered a bug and should be rectified.
