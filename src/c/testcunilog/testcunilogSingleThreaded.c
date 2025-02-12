@@ -1,6 +1,6 @@
 /****************************************************************************************
 
-	File:		testcunilog.c
+	File:		testcunilogSingleThreaded.c
 	Why:		Test application for cunilog.
 	OS:			C99.
 	Author:		Thomas
