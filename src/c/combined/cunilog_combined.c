@@ -20730,14 +20730,13 @@ bool logTextWU16sevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t 
 
 	int siz = reqUTF8sizel (cwText, il);
 
-	// We always need at least space for a NUL terminator, hence siz can actually never
-	//	be 0 here.
+	// Case already covered above.
 	ubf_assert_non_0 (siz);
 
-	if (siz <= CUNILOG_STD_MSG_SIZE * 4)
+	if (siz < CUNILOG_STD_MSG_SIZE * 4)
 		p8 = s8;
 	else
-		p8 = malloc (siz);
+		p8 = ubf_malloc ((size_t) siz + 1);
 	if (p8)
 	{
 		UTF8_from_WinU16l (p8, siz, cwText, il);
@@ -20746,7 +20745,7 @@ bool logTextWU16sevl			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t 
 		bool b = logTextU8sevl (put, sev, p8, siz);
 
 		if (p8 != s8)
-			free (p8);
+			ubf_free (p8);
 
 		return b;
 	}

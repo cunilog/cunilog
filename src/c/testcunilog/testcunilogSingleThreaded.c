@@ -19,7 +19,7 @@ When		Who				What
 	This code is public domain.
 */
 
-#include "./testcunilog.h"
+#include "./testcunilogSingleThreaded.h"
 #include "./../cunilog/cunilog.h"
 
 // For testing.
