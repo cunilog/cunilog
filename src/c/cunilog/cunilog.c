@@ -1321,7 +1321,7 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 	ubf_assert_non_NULL (put);
 
 	str_remove_path_navigators (put->mbLogPath.buf.pch, &put->lnLogPath);
-	put->errorCB = NULL;
+	put->errorCB							= NULL;
 	InitSCUNILOGNPI							(&put->scuNPI);
 	DBG_INIT_CNTTRACKER						(put->evtLineTracker);
 	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
@@ -1329,6 +1329,7 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 		put->nPausedEvents					= 0;
 	#endif
 	put->dumpWidth							= enDataDumpWidth16;
+	put->evSeverityType						= cunilogEvtSeverityTypeChars3;
 	initPrevTimestamp						(put);
 	InitSCUNILOGTARGETmbLogFold				(put);
 	InitSCUNILOGTARGETdumpstructs			(put);
@@ -1697,6 +1698,20 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 #ifdef DEBUG
+	void configSCUNILOGTARGETeventSeverityFormatType	(
+			SCUNILOGTARGET				*put,
+			cueventsevtpy				eventSeverityFormatType
+														)
+	{
+		ubf_assert_non_NULL (put);
+		ubf_assert (eventSeverityFormatType > 0);
+		ubf_assert (eventSeverityFormatType <= cunilogEvtSeverityTypeChars9InBrackets);
+
+		put->evSeverityType = eventSeverityFormatType;
+	}
+#endif
+
+#ifdef DEBUG
 	void configSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
 	{
 		ubf_assert_non_NULL	(put);
@@ -1931,12 +1946,15 @@ enum cunilogeventseverity
 	,	cunilogEvtSeverityDebug									// 11
 	,	cunilogEvtSeverityTrace									// 12
 	,	cunilogEvtSeverityDetail								// 13
-	,	cunilogEvtSeverityVerbose = cunilogEvtSeverityDetail	// 13
-	,	cunilogEvtSeverityIllegal								// 14
+	,	cunilogEvtSeverityVerbose								// 14
+	,	cunilogEvtSeverityIllegal								// 15
+	// Do not add anything below this line.
+	,	cunilogEvtSeverityAmountEnumValues						// Used for sanity checks.
+	// Do not add anything below cunilogEvtSeverityAmountEnumValues.
 }
 ;
 */
-const char *EventSeverityTexts []	=
+static const char *EventSeverityTexts3 []	=
 {
 	/*	 0	*/	"",
 	/*	 1	*/	"   ",
@@ -1952,65 +1970,104 @@ const char *EventSeverityTexts []	=
 	/*	11	*/	"DBG",
 	/*	12	*/	"TRC",
 	/*	13	*/	"DET",
-	/*	14	*/	"ILG"
+	/*	14	*/	"VBS",
+	/*	15	*/	"ILG"
+};
+static const char *EventSeverityTexts5 []	=
+{
+	/*	 0	*/	"",
+	/*	 1	*/	"     ",
+	/*	 2	*/	"EMRGY",
+	/*	 3	*/	"NOTE ",
+	/*	 4	*/	"INFO ",
+	/*	 5	*/	"MESSG",
+	/*	 6	*/	"WARN ",
+	/*	 7	*/	"ERROR",
+	/*	 8	*/	"FAIL ",
+	/*	 9	*/	"CRIT ",
+	/*	10	*/	"FATAL",
+	/*	11	*/	"DEBUG",
+	/*	12	*/	"TRACE",
+	/*	13	*/	"DETAI",
+	/*	14	*/	"VERBS",
+	/*	15	*/	"ILLGL"
+};
+static const char *EventSeverityTexts9 []	=
+{
+	/*	 0	*/	"",
+	/*	 1	*/	"         ",
+	/*	 2	*/	"EMERGENCY",
+	/*	 3	*/	"NOTICE   ",
+	/*	 4	*/	"INFO     ",
+	/*	 5	*/	"MESSAGE  ",
+	/*	 6	*/	"WARNING  ",
+	/*	 7	*/	"ERROR    ",
+	/*	 8	*/	"FAIL     ",
+	/*	 9	*/	"CRITICAL ",
+	/*	10	*/	"FATAL    ",
+	/*	11	*/	"DEBUG    ",
+	/*	12	*/	"TRACE    ",
+	/*	13	*/	"DETAIL   ",
+	/*	14	*/	"VERBOSE  ",
+	/*	15	*/	"ILLEGAL  "
 };
 
-static inline const char *unilogTextFromEventSeverity (enum cunilogeventseverity evSeverity)
-{
-	// Check consistency between unilogstruct.h and the declarations here.
-	ubf_assert (0 == cunilogEvtSeverityNone);
-	ubf_assert (1 == cunilogEvtSeverityBlanks);
-	ubf_assert (2 == cunilogEvtSeverityEmergency);
-	ubf_assert (3 == cunilogEvtSeverityNotice);
-	ubf_assert (4 == cunilogEvtSeverityInfo);
-	ubf_assert (5 == cunilogEvtSeverityMessage);
-	ubf_assert (6 == cunilogEvtSeverityWarning);
-	ubf_assert (7 == cunilogEvtSeverityError);
-	ubf_assert (8 == cunilogEvtSeverityFail);
-	ubf_assert (9 == cunilogEvtSeverityCritical);
-	ubf_assert (10 == cunilogEvtSeverityFatal);
-	ubf_assert (11 == cunilogEvtSeverityDebug);
-	ubf_assert (12 == cunilogEvtSeverityTrace);
-	ubf_assert (13 == cunilogEvtSeverityDetail);
-	ubf_assert (13 == cunilogEvtSeverityVerbose);
-	ubf_assert (14 == cunilogEvtSeverityIllegal);
-	ubf_assert (cunilogEvtSeverityIllegal > evSeverity);
-
-	ubf_assert (0 == strlen (EventSeverityTexts [cunilogEvtSeverityNone]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityBlanks]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityEmergency]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityNotice]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityInfo]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityMessage]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityWarning]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityError]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityFail]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityCritical]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityFatal]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityDebug]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityTrace]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityDetail]));
-	ubf_assert (3 == strlen (EventSeverityTexts [cunilogEvtSeverityVerbose]));
-
-	return EventSeverityTexts [evSeverity];
-}
-
-static inline size_t requiredEventSeverityChars (cueventseverity sev)
+static inline size_t requiredEventSeverityChars (cueventseverity sev, cueventsevtpy tpy)
 {
 	// "" or "INF" + " ".
-	return cunilogEvtSeverityNone == sev ? 0 : 3 + 1;
+	if (cunilogEvtSeverityNone == sev)
+			return 0;
+	switch (tpy)
+	{													// The + 1 is for a space character.
+		case cunilogEvtSeverityTypeChars3:				return 3 + 1;
+		case cunilogEvtSeverityTypeChars5:				return 5 + 1;
+		case cunilogEvtSeverityTypeChars9:				return 9 + 1;
+		case cunilogEvtSeverityTypeChars3InBrackets:	return 2 + 3 + 1;
+		case cunilogEvtSeverityTypeChars5InBrackets:	return 2 + 5 + 1;
+		case cunilogEvtSeverityTypeChars9InBrackets:	return 2 + 9 + 1;
+	}
+	ubf_assert_msg (false, "Internal error! We should never get here!");
+	return 0;
 }
 
-static inline size_t writeEventSeverity (char *szOut, cueventseverity sev)
+static inline size_t writeEventSeverity (char *szOut, cueventseverity sev, cueventsevtpy tpy)
 {
 	ubf_assert_non_NULL (szOut);
 
-	if (cunilogEvtSeverityNone != sev)
+	if (cunilogEvtSeverityNone == sev)
+			return 0;
+
+	switch (tpy)
 	{
-		memcpy (szOut, unilogTextFromEventSeverity (sev), 3);
-		szOut [3] = ' ';
-		return 3 + 1;
+		case cunilogEvtSeverityTypeChars3:
+			memcpy (szOut, EventSeverityTexts3 [sev], 3);
+			szOut [3] = ' ';
+			return 3 + 1;
+		case cunilogEvtSeverityTypeChars5:
+			memcpy (szOut, EventSeverityTexts5 [sev], 5);
+			szOut [5] = ' ';
+			return 5 + 1;
+		case cunilogEvtSeverityTypeChars9:
+			memcpy (szOut, EventSeverityTexts9 [sev], 9);
+			szOut [9] = ' ';
+			return 9 + 1;
+		case cunilogEvtSeverityTypeChars3InBrackets:
+			*szOut ++ = '[';
+			memcpy (szOut, EventSeverityTexts3 [sev], 3);
+			memcpy (szOut + 3 + 1, "] ", 2);
+			return 2 + 3 + 1;
+		case cunilogEvtSeverityTypeChars5InBrackets:
+			*szOut ++ = '[';
+			memcpy (szOut, EventSeverityTexts5 [sev], 5);
+			memcpy (szOut + 5 + 1, "] ", 2);
+			return 2 + 5 + 1;
+		case cunilogEvtSeverityTypeChars9InBrackets:
+			*szOut ++ = '[';
+			memcpy (szOut, EventSeverityTexts9 [sev], 9);
+			memcpy (szOut + 9 + 1, "] ", 2);
+			return 2 + 9 + 1;
 	}
+	ubf_assert_msg (false, "Internal error! We should never get here!");
 	return 0;
 }
 
@@ -2131,7 +2188,7 @@ static inline size_t requiredEvtLineTimestampAndSeverityLength (SCUNILOGEVENT *p
 	// "YYYY-MM-DD HH:MI:SS.000+01:00" + " ".
 	r = evtTSFormats [pev->pSCUNILOGTARGET->unilogEvtTSformat].len;
 	// "WRN" + " "
-	r += requiredEventSeverityChars (pev->evSeverity);
+	r += requiredEventSeverityChars (pev->evSeverity, pev->pSCUNILOGTARGET->evSeverityType);
 
 	return r;
 }
@@ -2190,7 +2247,7 @@ static size_t writeEventLineFromSUNILOGEVENTU8 (char *szEventLine, SCUNILOGEVENT
 	//ISO8601_from_UBF_TIMESTAMP (szEventLine, pue->stamp);
 
 	szEventLine += evtTSFormats [pev->pSCUNILOGTARGET->unilogEvtTSformat].len;
-	szEventLine += writeEventSeverity (szEventLine, pev->evSeverity);
+	szEventLine += writeEventSeverity (szEventLine, pev->evSeverity, pev->pSCUNILOGTARGET->evSeverityType);
 	DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, szEventLine - szOrg);
 
 	memcpy (szEventLine, pev->szDataToLog, pev->lenDataToLog);
@@ -2399,7 +2456,7 @@ static size_t createDumpEventLineFromSUNILOGEVENT (SCUNILOGEVENT *pev)
 		// Timestamp + severity.
 		evtTSFormats [put->unilogEvtTSformat].fnc (szOut, pev->stamp);
 		szOut += evtTSFormats [put->unilogEvtTSformat].len;
-		szOut += writeEventSeverity (szOut, pev->evSeverity);
+		szOut += writeEventSeverity (szOut, pev->evSeverity, put->evSeverityType);
 		DBG_TRACK_CHECK_CNTTRACKER (pev->pSCUNILOGTARGET->evtLineTracker, szOut - szOrg);
 
 		// Caption.
@@ -5070,6 +5127,78 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (LEN_ISO8601YEARANDWEEK			== lenDateTimeStampFromPostfix (cunilogPostfixWeek));
 		ubf_assert (LEN_ISO8601YEARANDMONTH			== lenDateTimeStampFromPostfix (cunilogPostfixMonth));
 		ubf_assert (LEN_ISO8601YEAR					== lenDateTimeStampFromPostfix (cunilogPostfixYear));
+
+		/*
+			Check consistency between unilogstruct.h and the declarations in this code file.
+		*/
+
+		ubf_assert (0 == cunilogEvtSeverityNone);
+		ubf_assert (1 == cunilogEvtSeverityBlanks);
+		ubf_assert (2 == cunilogEvtSeverityEmergency);
+		ubf_assert (3 == cunilogEvtSeverityNotice);
+		ubf_assert (4 == cunilogEvtSeverityInfo);
+		ubf_assert (5 == cunilogEvtSeverityMessage);
+		ubf_assert (6 == cunilogEvtSeverityWarning);
+		ubf_assert (7 == cunilogEvtSeverityError);
+		ubf_assert (8 == cunilogEvtSeverityFail);
+		ubf_assert (9 == cunilogEvtSeverityCritical);
+		ubf_assert (10 == cunilogEvtSeverityFatal);
+		ubf_assert (11 == cunilogEvtSeverityDebug);
+		ubf_assert (12 == cunilogEvtSeverityTrace);
+		ubf_assert (13 == cunilogEvtSeverityDetail);
+		ubf_assert (14 == cunilogEvtSeverityVerbose);
+		ubf_assert (15 == cunilogEvtSeverityIllegal);
+
+		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNone]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityBlanks]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityEmergency]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNotice]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityInfo]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityMessage]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityWarning]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityError]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityFail]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityCritical]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityFatal]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityDebug]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityTrace]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityDetail]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityVerbose]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityIllegal]));
+
+		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNone]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityBlanks]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityEmergency]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNotice]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityInfo]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityMessage]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityWarning]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityError]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityFail]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityCritical]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityFatal]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityDebug]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityTrace]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityDetail]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityVerbose]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityIllegal]));
+
+		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNone]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityBlanks]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityEmergency]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNotice]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityInfo]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityMessage]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityWarning]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityError]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityFail]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityCritical]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityFatal]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityDebug]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityTrace]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityDetail]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityVerbose]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityIllegal]));
 
 		#ifdef OS_IS_LINUX
 			bool bTrash = MoveFileToTrashPOSIX ("/home/thomas/FS/OAN/Thomas/cunilog/logs/testcunilog_2024-11-05 20_14.log");

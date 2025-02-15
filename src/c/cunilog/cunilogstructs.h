@@ -659,6 +659,20 @@ typedef errCBretval (*cunilogErrCallback) (int64_t error, CUNILOG_PROCESSOR *cup
 typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 
 /*
+	The type of an event severity level.
+*/
+enum cunilogeventseveritytype
+{
+		cunilogEvtSeverityTypeChars3							// "EMG", "DBG"...
+	,	cunilogEvtSeverityTypeChars5							// "EMRGY", "DEBUG"...
+	,	cunilogEvtSeverityTypeChars9							// "EMERGENCY", "DEBUG    "...
+	,	cunilogEvtSeverityTypeChars3InBrackets					// "[EMG]", "[DBG]"...
+	,	cunilogEvtSeverityTypeChars5InBrackets					// "[EMRGY]", "[DEBUG]"...
+	,	cunilogEvtSeverityTypeChars9InBrackets					// "[EMERGENCY]", "[DEBUG    ]"...
+};
+typedef enum cunilogeventseveritytype cueventsevtpy;
+
+/*
 	SUNILOGTARGET
 
 	The base config structure for using cunilog. Do not alter any of its members directly.
@@ -697,6 +711,10 @@ typedef struct scunilogtarget
 	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
 	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.
 	size_t							lnLogEventLine;			// The current length of the event line.
+	SMEMBUF							mbColEventLine;			// Buffer that holds the coloured
+															//	event line.
+	size_t							lnColEventLine;			// The current length of the coloured
+															//	event line.
 	DBG_DEFINE_CNTTRACKER(evtLineTracker)					// Tracker for the size of the event
 															//	line.
 
@@ -724,6 +742,8 @@ typedef struct scunilogtarget
 	// We're not using the configurable dump anymore.
 	//SCUNILOGDUMP					*psdump;				// Holds the dump parameters.
 	ddumpWidth						dumpWidth;
+
+	cueventsevtpy					evSeverityType;			// Format of the event severity.
 
 	cunilogErrCallback				errorCB;				// Error/fail callback function.
 	CUNILOG_ROTATOR_ARGS			*prargs;				// Current rotator arguments.
@@ -918,8 +938,11 @@ enum cunilogeventseverity
 	,	cunilogEvtSeverityDebug									// 11
 	,	cunilogEvtSeverityTrace									// 12
 	,	cunilogEvtSeverityDetail								// 13
-	,	cunilogEvtSeverityVerbose = cunilogEvtSeverityDetail	// 13
-	,	cunilogEvtSeverityIllegal								// 14
+	,	cunilogEvtSeverityVerbose								// 14
+	,	cunilogEvtSeverityIllegal								// 15
+	// Do not add anything below this line.
+	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
+	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
 };
 typedef enum cunilogeventseverity cueventseverity;
 

@@ -6595,64 +6595,6 @@ When		Who				What
 #endif														// Of #ifdef U_DBGCOUNTANDTRACK_H.
 /****************************************************************************************
 
-	File:		check_utf8.h
-	Why:		Checks for valid UTF-8
-	OS:			C99
-	Author:		Thomas
-	Created:	2025-01-27
-  
-History
--------
-
-When		Who				What
------------------------------------------------------------------------------------------
-2025-01-27	Thomas			This history created.
-							Acquired from https://github.com/yasuoka/check_utf8 .
-							Thanks to YASUOKA Masahiko.
-							Function renamed to c_check_utf8 ().
-
-****************************************************************************************/
-
-/*
- * Copyright (c) 2024 YASUOKA Masahiko <yasuoka@yasuoka.net>
- *
- * Permission to use, copy, modify, and distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
-
-#ifndef U_CHECK_UTF8_H
-#define U_CHECK_UTF8_H
-
-#include <stdbool.h>
-#include <stddef.h>
-
-#ifndef USE_STRLEN
-#define USE_STRLEN						((size_t) -1)
-#endif
-
-#ifdef	__cplusplus
-	extern "C"	{
-#endif
-
-bool c_check_utf8(const char *str, size_t len)
-;
-
-#ifdef	__cplusplus
-				}
-#endif
-
-#endif														// Of #ifndef U_CHECK_UTF8_H.
-/****************************************************************************************
-
 	File:		ubfmem.h
 	Why:		Functions for memory handling.
 	OS:			C99
@@ -11354,6 +11296,231 @@ EXTERN_C_END
 #endif															// Of U_UBF_DEBUG_DEB_H_INCLUDED.
 /****************************************************************************************
 
+	File:		stransi.h
+	Why:		Functions for ANSI escape codes.
+	OS:			C99
+	Author:		Thomas
+	Created:	2025-02-14
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-02-14	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef U_STRANSI_H
+#define U_STRANSI_H
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include <stdarg.h>
+	#include <stdbool.h>
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./ubfmem.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../mem/ubfmem.h"
+	#endif
+
+#endif
+
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
+/*
+	Reset.
+*/
+#ifndef STR_ANSI_RESET
+#define STR_ANSI_RESET					"\033[0m"
+#define SIZ_ANSI_RESET					(sizeof (STR_ANSI_RESET))
+#define LEN_ANSI_RESET					(SIZ_ANSI_RESET - 1)
+#endif
+
+/*
+	Coulrs only. These are not ANSI escape sequences on their own and cannot be used
+	as such!
+*/
+#define STR_ANSI_STDCOL_BLACK			"30m"
+#define STR_ANSI_STDCOL_RED				"31m"
+#define STR_ANSI_STDCOL_GREEN			"32m"
+#define STR_ANSI_STDCOL_YELLOW			"33m"
+#define STR_ANSI_STDCOL_BLUE			"34m"
+#define STR_ANSI_STDCOL_MAGENTA			"35m"
+#define STR_ANSI_STDCOL_CYAN			"36m"
+#define STR_ANSI_STDCOL_WHITE			"37m"
+
+/*
+	Normal foreground colours.
+*/
+#ifndef STR_ANSI_FGCOL_BLACK
+#define STR_ANSI_FGCOL_BLACK			"\033[30m"
+#define STR_ANSI_FGCOL_RED				"\033[31m"
+#define STR_ANSI_FGCOL_GREEN			"\033[32m"
+#define STR_ANSI_FGCOL_YELLOW			"\033[33m"
+#define STR_ANSI_FGCOL_BLUE				"\033[34m"
+#define STR_ANSI_FGCOL_MAGENTA			"\033[35m"
+#define STR_ANSI_FGCOL_CYAN				"\033[36m"
+#define STR_ANSI_FGCOL_WHITE			"\033[37m"
+#endif
+
+/*
+	Bright foreground colours.
+
+	Note that bright black is grey.
+*/
+#ifndef STR_ANSI_FGCOL_BRIGHT_BLACK
+#define STR_ANSI_FGCOL_BRIGHT_BLACK		"\033[90m"
+#define STR_ANSI_FGCOL_GREY				STR_ANSI_FGCOL_BRIGHT_BLACK
+#define STR_ANSI_FGCOL_GRAY				STR_ANSI_FGCOL_BRIGHT_BLACK
+#define STR_ANSI_FGCOL_BRIGHT_RED		"\033[91m"
+#define STR_ANSI_FGCOL_BRIGHT_GREEN		"\033[92m"
+#define STR_ANSI_FGCOL_BRIGHT_YELLOW	"\033[93m"
+#define STR_ANSI_FGCOL_BRIGHT_BLUE		"\033[94m"
+#define STR_ANSI_FGCOL_BRIGHT_MAGENTA	"\033[95m"
+#define STR_ANSI_FGCOL_BRIGHT_CYAN		"\033[96m"
+#define STR_ANSI_FGCOL_BRIGHT_WHITE		"\033[97m"
+#endif
+
+/*
+	Background colours.
+
+	Note that bright black is grey.
+*/
+#ifndef STR_ANSI_BGCOL_BLACK
+#define STR_ANSI_BGCOL_BLACK			"\033[40m"
+#define STR_ANSI_BGCOL_RED				"\033[41m"
+#define STR_ANSI_BGCOL_GREEN			"\033[42m"
+#define STR_ANSI_BGCOL_YELLOW			"\033[43m"
+#define STR_ANSI_BGCOL_BLUE				"\033[44m"
+#define STR_ANSI_BGCOL_MAGENTA			"\033[45m"
+#define STR_ANSI_BGCOL_CYAN				"\033[46m"
+#define STR_ANSI_BGCOL_WHITE			"\033[47m"
+#endif
+
+/*
+	Bright background colours.
+
+	Note that bright black is grey.
+*/
+#ifndef STR_ANSI_BGCOL_BRIGHT_BLACK
+#define STR_ANSI_BGCOL_BRIGHT_BLACK		"\033[100m"
+#define STR_ANSI_BGCOL_GREY				STR_ANSI_FGCOL_BRIGHT_BLACK
+#define STR_ANSI_BGCOL_GRAY				STR_ANSI_FGCOL_BRIGHT_BLACK
+#define STR_ANSI_BGCOL_BRIGHT_RED		"\033[101m"
+#define STR_ANSI_BGCOL_BRIGHT_GREEN		"\033[102m"
+#define STR_ANSI_BGCOL_BRIGHT_YELLOW	"\033[103m"
+#define STR_ANSI_BGCOL_BRIGHT_BLUE		"\033[104m"
+#define STR_ANSI_BGCOL_BRIGHT_MAGENTA	"\033[105m"
+#define STR_ANSI_BGCOL_BRIGHT_CYAN		"\033[106m"
+#define STR_ANSI_BGCOL_BRIGHT_WHITE		"\033[107m"
+#endif
+
+/*
+#define STR_ANSI_TEXT_REGULAR			"\033[0;31m"
+#define STR_ANSI_TEXT_BOLD				"\033[1;31m"
+#define STR_ANSI_TEXT_LOWINTENSITY		"\033[2;31m"
+#define STR_ANSI_TEXT_ITALIC			"\033[3;31m"
+#define STR_ANSI_TEXT_UNDERLINE			"\033[4;31m"
+#define STR_ANSI_TEXT_BLINKING			"\033[5;31m"
+#define STR_ANSI_TEXT_REVERSE			"\033[6;31m"
+#define STR_ANSI_TEXT_BACKGROUND		"\033[7;31m"
+#define STR_ANSI_TEXT_INVISIBLE			"\033[8;31m"
+*/
+
+EXTERN_C_BEGIN
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_STRANSI_H.
+/****************************************************************************************
+
+	File:		check_utf8.h
+	Why:		Checks for valid UTF-8
+	OS:			C99
+	Author:		Thomas
+	Created:	2025-01-27
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-01-27	Thomas			This history created.
+							Acquired from https://github.com/yasuoka/check_utf8 .
+							Thanks to YASUOKA Masahiko.
+							Function renamed to c_check_utf8 ().
+
+****************************************************************************************/
+
+/*
+ * Copyright (c) 2024 YASUOKA Masahiko <yasuoka@yasuoka.net>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+#ifndef U_CHECK_UTF8_H
+#define U_CHECK_UTF8_H
+
+#include <stdbool.h>
+#include <stddef.h>
+
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
+#ifdef	__cplusplus
+	extern "C"	{
+#endif
+
+bool c_check_utf8(const char *str, size_t len)
+;
+
+#ifdef	__cplusplus
+				}
+#endif
+
+#endif														// Of #ifndef U_CHECK_UTF8_H.
+/****************************************************************************************
+
 	File:		strcustomfmt.h
 	Why:		Functions for user-defined format specifiers.
 	OS:			C99
@@ -15372,6 +15539,20 @@ typedef errCBretval (*cunilogErrCallback) (int64_t error, CUNILOG_PROCESSOR *cup
 typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 
 /*
+	The type of an event severity level.
+*/
+enum cunilogeventseveritytype
+{
+		cunilogEvtSeverityTypeChars3							// "EMG", "DBG"...
+	,	cunilogEvtSeverityTypeChars5							// "EMRGY", "DEBUG"...
+	,	cunilogEvtSeverityTypeChars9							// "EMERGENCY", "DEBUG    "...
+	,	cunilogEvtSeverityTypeChars3InBrackets					// "[EMG]", "[DBG]"...
+	,	cunilogEvtSeverityTypeChars5InBrackets					// "[EMRGY]", "[DEBUG]"...
+	,	cunilogEvtSeverityTypeChars9InBrackets					// "[EMERGENCY]", "[DEBUG    ]"...
+};
+typedef enum cunilogeventseveritytype cueventsevtpy;
+
+/*
 	SUNILOGTARGET
 
 	The base config structure for using cunilog. Do not alter any of its members directly.
@@ -15410,6 +15591,10 @@ typedef struct scunilogtarget
 	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
 	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.
 	size_t							lnLogEventLine;			// The current length of the event line.
+	SMEMBUF							mbColEventLine;			// Buffer that holds the coloured
+															//	event line.
+	size_t							lnColEventLine;			// The current length of the coloured
+															//	event line.
 	DBG_DEFINE_CNTTRACKER(evtLineTracker)					// Tracker for the size of the event
 															//	line.
 
@@ -15437,6 +15622,8 @@ typedef struct scunilogtarget
 	// We're not using the configurable dump anymore.
 	//SCUNILOGDUMP					*psdump;				// Holds the dump parameters.
 	ddumpWidth						dumpWidth;
+
+	cueventsevtpy					evSeverityType;			// Format of the event severity.
 
 	cunilogErrCallback				errorCB;				// Error/fail callback function.
 	CUNILOG_ROTATOR_ARGS			*prargs;				// Current rotator arguments.
@@ -15631,8 +15818,11 @@ enum cunilogeventseverity
 	,	cunilogEvtSeverityDebug									// 11
 	,	cunilogEvtSeverityTrace									// 12
 	,	cunilogEvtSeverityDetail								// 13
-	,	cunilogEvtSeverityVerbose = cunilogEvtSeverityDetail	// 13
-	,	cunilogEvtSeverityIllegal								// 14
+	,	cunilogEvtSeverityVerbose								// 14
+	,	cunilogEvtSeverityIllegal								// 15
+	// Do not add anything below this line.
+	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
+	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
 };
 typedef enum cunilogeventseverity cueventseverity;
 
@@ -16668,6 +16858,24 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 /*
+	configSCUNILOGTARGETeventSeverityFormatType
+
+	Sets the format type of event severities for the target structure put. It
+	sets the member evSeverityType of the SCUNILOGTARGET structure put to the
+	value of eventSeverityFormatType.
+*/
+#ifdef DEBUG
+	void configSCUNILOGTARGETeventSeverityFormatType	(
+			SCUNILOGTARGET				*put,
+			cueventsevtpy				eventSeverityFormatType
+														)
+	;
+#else
+	#define configSCUNILOGTARGETeventSeverityFormatType(put, evstpy)	\
+		(put)->evSeverityType = (evstpy)
+#endif
+
+/*
 	configSCUNILOGTARGETprocessorList
 
 	Sets the processors for a SCUNILOGTARGET struture.
@@ -17133,8 +17341,8 @@ bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 	Functions that have U8 in their names are for UTF-8, the ones with a WU16 are intended for
 	Windows UTF-16 encoding. On POSIX systems the WU16 functions are not available.
 
-	Functions ending in l accept a length parameter for the text's length, in octets/bytes. You
-	can use USE_STRLEN for this parameter, in which case the text buffer's length is obtained
+	Function names with an l accept a length parameter for the text's length, in octets/bytes.
+	You can use USE_STRLEN for this parameter, in which case the text buffer's length is obtained
 	via a call to strlen () and the string needs to be NUL-terminated. NUL-termination is not
 	required otherwise. Note that the length parameter denotes the length of the text, in octets,
 	not its size, and also not in characters. The text "abc" has a length of 3 but a size of 4
@@ -17202,8 +17410,8 @@ bool logTextWU16l			(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len);
 bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 #endif
 
-#define logTextU8tsevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
-#define logTextU8tsevlq_static(v, t, l)	logTextU8sevlq		(pSCUNILOGTARGETstatic, (v), (t), (l))
+#define logTextU8sevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
+#define logTextU8sevlq_static(v, t, l)	logTextU8sevlq		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextU8sev_static(v, t)		logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
 #define logTextU8sevq_static(v, t)		logTextU8sevq		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
 #define logTextU8l_static(t, l)			logTextU8l			(pSCUNILOGTARGETstatic, (t), (l))

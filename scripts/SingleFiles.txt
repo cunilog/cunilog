@@ -28,7 +28,6 @@ head
 /extern/ExtCompressors
 /dbg/ubfdebug
 /dbg/dbgcountandtrack
-/string/check_utf8
 /mem/ubfmem
 /mem/bulkmalloc
 /mem/memstrstr
@@ -39,6 +38,8 @@ head
 /datetime/timespecfncts
 /datetime/ISO__DATE__
 /dbg/ubfdebug
+/string/stransi
+/string/check_utf8
 /string/strcustomfmt
 /string/strfilesys
 /string/strhex
@@ -83,6 +84,7 @@ head
 /datetime/ISO__DATE__
 /dbg/ubfdebug
 /dbg/dbgcountandtrack
+/string/stransi
 /string/check_utf8
 /string/strcustomfmt
 /string/strfilesys

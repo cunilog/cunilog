@@ -26,6 +26,7 @@ When		Who				What
 #include "./../datetime/ISO__DATE__.h"
 #include "./../datetime/ubf_date_and_time.h"
 #include "./../dbg/ubfdebug.h"
+#include "./../string/stransi.h"
 #include "./../string/strfilesys.h"
 #include "./../string/strhexdump.h"
 #include "./../string/strintuint.h"
@@ -148,6 +149,7 @@ int main (int argc, char *argv [])
 	logHexDump_static (cData, 20);
 	logHexOrText_static (bData, 6);
 	logHexOrText_static (bData, 12);
+
 	uint64_t	n = 1000;
 	while (n --)
 	{
@@ -167,6 +169,10 @@ int main (int argc, char *argv [])
 
 	logTextU8_static ("This one's in UTF-16 (\xC5\x98), which should be an \"R\" with a flipped roof.");
 	testV (put, "Hello %i", 20);
+	logTextU8sev_static (cunilogEvtSeverityDebug, "This is a debug message");
+
+	Sleep (2000);
+	puts (STR_ANSI_FGCOL_BRIGHT_GREEN "This is the text we test the attributes with." STR_ANSI_RESET);
 
 	/*
 	Sleep (2000);

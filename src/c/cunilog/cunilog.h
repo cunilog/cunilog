@@ -798,6 +798,24 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 /*
+	configSCUNILOGTARGETeventSeverityFormatType
+
+	Sets the format type of event severities for the target structure put. It
+	sets the member evSeverityType of the SCUNILOGTARGET structure put to the
+	value of eventSeverityFormatType.
+*/
+#ifdef DEBUG
+	void configSCUNILOGTARGETeventSeverityFormatType	(
+			SCUNILOGTARGET				*put,
+			cueventsevtpy				eventSeverityFormatType
+														)
+	;
+#else
+	#define configSCUNILOGTARGETeventSeverityFormatType(put, evstpy)	\
+		(put)->evSeverityType = (evstpy)
+#endif
+
+/*
 	configSCUNILOGTARGETprocessorList
 
 	Sets the processors for a SCUNILOGTARGET struture.
@@ -1263,8 +1281,8 @@ bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 	Functions that have U8 in their names are for UTF-8, the ones with a WU16 are intended for
 	Windows UTF-16 encoding. On POSIX systems the WU16 functions are not available.
 
-	Functions ending in l accept a length parameter for the text's length, in octets/bytes. You
-	can use USE_STRLEN for this parameter, in which case the text buffer's length is obtained
+	Function names with an l accept a length parameter for the text's length, in octets/bytes.
+	You can use USE_STRLEN for this parameter, in which case the text buffer's length is obtained
 	via a call to strlen () and the string needs to be NUL-terminated. NUL-termination is not
 	required otherwise. Note that the length parameter denotes the length of the text, in octets,
 	not its size, and also not in characters. The text "abc" has a length of 3 but a size of 4
@@ -1332,8 +1350,8 @@ bool logTextWU16l			(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len);
 bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 #endif
 
-#define logTextU8tsevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
-#define logTextU8tsevlq_static(v, t, l)	logTextU8sevlq		(pSCUNILOGTARGETstatic, (v), (t), (l))
+#define logTextU8sevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
+#define logTextU8sevlq_static(v, t, l)	logTextU8sevlq		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextU8sev_static(v, t)		logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
 #define logTextU8sevq_static(v, t)		logTextU8sevq		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
 #define logTextU8l_static(t, l)			logTextU8l			(pSCUNILOGTARGETstatic, (t), (l))

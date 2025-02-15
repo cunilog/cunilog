@@ -186,6 +186,7 @@
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinAPI_ReadDirFncts.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8.c" />
     <ClCompile Include="..\..\..\..\src\c\string\check_utf8.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\stransi.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strcustomfmt.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strfilesys.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strhex.c" />
@@ -239,6 +240,7 @@
     <ClInclude Include="..\..\..\..\src\c\pre\unref.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\Warnings.h" />
     <ClInclude Include="..\..\..\..\src\c\string\check_utf8.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\stransi.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strcustomfmt.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strfilesys.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strhex.h" />
