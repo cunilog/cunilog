@@ -31,7 +31,7 @@ characteristics:
 - Single and multi-threaded.
 - Available as static library. A dynamic library is planned.
 - Platform independent without build automation system. No cmake or autotools
-	are needed to build the module. At the moment it only builds on Windows.
+	are needed to build the module. Simply build it alongside your application.
 - UTF-8 by default but some UTF-16 functions are available on Windows.
 - Preprocessor definitions to include or remove rarely used features.
 - Bindings for other programming languages. Right now only C is supported, though.
