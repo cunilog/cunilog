@@ -4019,7 +4019,7 @@ When		Who				What
 #endif
 
 #define SetBit(val, bit)	(val | (1 << bit))					// Set.
-#define ClrBit(val, bit)	(val & (~(1 << bit)))				// Clear.
+#define ClrBit(val, bit)	(val & (~ (1 << bit)))				// Clear.
 #define TglBit(val, bit)	(val ^ (1 << bit))					// Toggle.
 #define HasBit(val, bit)	((val >> bit) & 1)					// Check.
 
@@ -15591,10 +15591,14 @@ typedef struct scunilogtarget
 	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
 	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.
 	size_t							lnLogEventLine;			// The current length of the event line.
-	SMEMBUF							mbColEventLine;			// Buffer that holds the coloured
+
+	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+		SMEMBUF						mbColEventLine;			// Buffer that holds the coloured
 															//	event line.
-	size_t							lnColEventLine;			// The current length of the coloured
+		size_t						lnColEventLine;			// The current length of the coloured
 															//	event line.
+	#endif
+
 	DBG_DEFINE_CNTTRACKER(evtLineTracker)					// Tracker for the size of the event
 															//	line.
 
@@ -15614,6 +15618,7 @@ typedef struct scunilogtarget
 		size_t						nPausedEvents;			// Amount of events queued because
 															//	the logging thread is/was paused.
 	#endif
+
 	enum cunilogeventTSformat		unilogEvtTSformat;		// The format of an event timestamp.
 	enum enLineEndings				unilogNewLine;
 	SBULKMEM						sbm;					// Bulk memory block.
@@ -15634,9 +15639,34 @@ typedef struct scunilogtarget
 	but rather the entire line, including timestamp etc. If you know in advance that your
 	texts (including stamp etc) are going to be longer you may override this with a higher
 	value to possibly save some initial heap reallocations.
+
+	This value must be greater than 0.
 */
 #ifndef CUNILOG_INITIAL_EVENTLINE_SIZE
 #define CUNILOG_INITIAL_EVENTLINE_SIZE			(256)
+#endif
+
+/*
+	The default initial size of an event line that contains ANSI colour codes for severity
+	levels plus the event line itself.
+	If you know in advance that your texts (including stamp etc) are going to be longer you
+	may override this with a higher value to possibly save some initial heap reallocations.
+	The default is CUNILOG_INITIAL_EVENTLINE_SIZE.
+
+	This value must be greater than 0.
+
+	If you don't need coloured console output for severity levels you can switch it off by
+	defining CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR or CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR.
+*/
+#ifdef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+#define CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+#endif
+#endif
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	#ifndef CUNILOG_INITIAL_COLEVENTLINE_SIZE
+	#define CUNILOG_INITIAL_COLEVENTLINE_SIZE		(CUNILOG_INITIAL_EVENTLINE_SIZE)
+	#endif
 #endif
 
 /*
@@ -15705,6 +15735,12 @@ typedef struct scunilogtarget
 
 // The processor that writes to the logfile is skipped.
 #define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (15)
+
+// The event line containing colour information.
+#define CUNILOGTARGET_COLEVTLINE_ALLOCATED		SINGLEBIT64 (16)
+
+// Colour information should be used.
+#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (17)
 
 /*
 	Macros for some flags.
@@ -15796,6 +15832,19 @@ typedef struct scunilogtarget
 #define cunilogSetNoWriteToLogfile(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 
+#define cunilogHasColourEventLineAllocated(pt)			\
+	((pt)->uiOpts & CUNILOGTARGET_COLEVTLINE_ALLOCATED)
+#define cunilogClrColourEventLineAllocated(pt)			\
+	((pt)->uiOpts &= ~ CUNILOGTARGET_COLEVTLINE_ALLOCATED)
+#define cunilogSetColourEventLineAllocated(pt)			\
+	((pt)->uiOpts |= CUNILOGTARGET_COLEVTLINE_ALLOCATED)
+
+#define cunilogHasUseColourForEcho(pt)					\
+	((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+#define cunilogClrUseColourForEcho(pt)					\
+	((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+#define cunilogSetUseColourForEcho(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 
 /*
 	Event severities.
