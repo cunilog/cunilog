@@ -1112,9 +1112,17 @@ static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 		// Create name of the found file.
 		copySMEMBUF (&put->mbFilToRotate, &put->mbLogPath);
 
+		ubf_assert (0 < CUNILOG_INITIAL_EVENTLINE_SIZE);
 		initSMEMBUFtoSize (&put->mbLogEventLine, CUNILOG_INITIAL_EVENTLINE_SIZE);
 		if (isUsableSMEMBUF (&put->mbLogEventLine))
 			cunilogSetEvtLineAllocated (put);
+
+		#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+			initSMEMBUFtoSize (&put->mbColEventLine, CUNILOG_INITIAL_COLEVENTLINE_SIZE);
+			if (isUsableSMEMBUF (&put->mbColEventLine))
+				cunilogSetColourEventLineAllocated (put);
+		#endif
+
 		cunilogSetTargetInitialised (put);
 		return true;
 	} else
@@ -1905,6 +1913,12 @@ static void DoneSCUNILOGTARGETmembers (SCUNILOGTARGET *put)
 		freeSMEMBUF (&put->mbFilToRotate);
 	if (cunilogIsEvtLineAllocated (put))
 		freeSMEMBUF (&put->mbLogEventLine);
+
+	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	if (cunilogHasColourEventLineAllocated (put))
+		freeSMEMBUF (&put->mbColEventLine);
+	#endif
+
 	DoneSCUNILOGNPI (&put->scuNPI);
 	DoneCUNILOG_LOCKER (put);
 	DoneSCUNILOGTARGETqueuesemaphore (put);
@@ -2845,15 +2859,30 @@ static bool cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	//		- The length of the event line has been stored correctly.
 	//		- If we require a lock, we have it already.
 
-	int ips;
-	#ifdef PLATFORM_IS_WINDOWS
-		ips = cunilogPutsWin	(
-				pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch,
-				pev->pSCUNILOGTARGET->lnLogEventLine
-								);
+	int		ips;
+	char	*szToOutput;
+	size_t	lnToOutput;
+
+	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+		if (cunilogHasUseColourForEcho (pev->pSCUNILOGTARGET))
+		{
+			szToOutput = pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch;
+			lnToOutput = pev->pSCUNILOGTARGET->lnLogEventLine;
+		} else
+		{
+			szToOutput = pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch;
+			lnToOutput = pev->pSCUNILOGTARGET->lnLogEventLine;
+		}
 	#else
-		if (pev->pSCUNILOGTARGET->lnLogEventLine)
-			ips = puts (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch);
+		szToOutput = pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch;
+		lnToOutput = pev->pSCUNILOGTARGET->lnLogEventLine;
+	#endif
+
+	#ifdef PLATFORM_IS_WINDOWS
+		ips = cunilogPutsWin (szToOutput, lnToOutput);
+	#else
+		if (lnToOutput)
+			ips = puts (szToOutput);
 		else
 			ips = puts ("");
 	#endif

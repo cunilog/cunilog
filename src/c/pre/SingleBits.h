@@ -94,7 +94,7 @@ When		Who				What
 #endif
 
 #define SetBit(val, bit)	(val | (1 << bit))					// Set.
-#define ClrBit(val, bit)	(val & (~(1 << bit)))				// Clear.
+#define ClrBit(val, bit)	(val & (~ (1 << bit)))				// Clear.
 #define TglBit(val, bit)	(val ^ (1 << bit))					// Toggle.
 #define HasBit(val, bit)	((val >> bit) & 1)					// Check.
 
