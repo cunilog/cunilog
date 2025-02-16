@@ -16925,6 +16925,24 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 /*
+	configSCUNILOGTARGETUseColourForEcho
+
+	Switches on/off using colours for console output depending on event severity level.
+*/
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+#ifdef DEBUG
+	void configSCUNILOGTARGETUseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+	;
+#else
+	#define configSCUNILOGTARGETUseColourForEcho(put, b)\
+		if (bUseColour)									\
+			cunilogSetUseColourForEcho (put);			\
+		else											\
+			cunilogClrUseColourForEcho (put)
+#endif
+#endif
+
+/*
 	configSCUNILOGTARGETprocessorList
 
 	Sets the processors for a SCUNILOGTARGET struture.

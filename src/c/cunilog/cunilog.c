@@ -1269,6 +1269,10 @@ static inline void initSCUNILOGTARGEToptionFlags (SCUNILOGTARGET *put, runProces
 	put->uiOpts = CUNILOGTARGET_NO_FLAGS;
 	if (cunilogRunProcessorsOnStartup == rp)
 		cunilogSetRunAllProcessorsOnStartup (put);
+
+	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+		cunilogSetUseColourForEcho (put);
+	#endif
 }
 
 static inline void initFilesListInSCUNILOGTARGET (SCUNILOGTARGET *put)
@@ -1717,6 +1721,20 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 
 		put->evSeverityType = eventSeverityFormatType;
 	}
+#endif
+
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+#ifdef DEBUG
+	void configSCUNILOGTARGETUseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+	{
+		ubf_assert_non_NULL (put);
+
+		if (bUseColour)
+			cunilogSetUseColourForEcho (put);
+		else
+			cunilogClrUseColourForEcho (put);
+	}
+#endif
 #endif
 
 #ifdef DEBUG
