@@ -16902,7 +16902,7 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	void configSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
 	;
 #else
-	#define configSCUNILOGTARGETcunilognewline(put, nl)	\
+	#define configSCUNILOGTARGETcunilognewline(put, nl)			\
 		(put)->unilogNewLine = (nl)
 #endif
 
@@ -16925,21 +16925,21 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 /*
-	configSCUNILOGTARGETUseColourForEcho
+	configSCUNILOGTARGETuseColourForEcho
 
 	Switches on/off using colours for console output depending on event severity level.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-#ifdef DEBUG
-	void configSCUNILOGTARGETUseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
-	;
-#else
-	#define configSCUNILOGTARGETUseColourForEcho(put, b)\
-		if (bUseColour)									\
-			cunilogSetUseColourForEcho (put);			\
-		else											\
-			cunilogClrUseColourForEcho (put)
-#endif
+	#ifdef DEBUG
+		void configSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+		;
+	#else
+		#define configSCUNILOGTARGETuseColourForEcho(put, b)	\
+			if (bUseColour)										\
+				cunilogSetUseColourForEcho (put);				\
+			else												\
+				cunilogClrUseColourForEcho (put)
+	#endif
 #endif
 
 /*

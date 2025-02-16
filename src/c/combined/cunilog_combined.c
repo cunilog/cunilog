@@ -17566,17 +17566,17 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-#ifdef DEBUG
-	void configSCUNILOGTARGETUseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
-	{
-		ubf_assert_non_NULL (put);
+	#ifdef DEBUG
+		void configSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+		{
+			ubf_assert_non_NULL (put);
 
-		if (bUseColour)
-			cunilogSetUseColourForEcho (put);
-		else
-			cunilogClrUseColourForEcho (put);
-	}
-#endif
+			if (bUseColour)
+				cunilogSetUseColourForEcho (put);
+			else
+				cunilogClrUseColourForEcho (put);
+		}
+	#endif
 #endif
 
 #ifdef DEBUG
