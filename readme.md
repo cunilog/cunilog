@@ -18,7 +18,7 @@ While the module is being tested, interfaces might also still change as long as 
 
 ## Characteristics
 
-Although at the moment most of its features either haven't been completed or
+Although at the moment many of its features either haven't been completed or
 aren't available at all yet, the module is meant to have the following
 characteristics:
 
