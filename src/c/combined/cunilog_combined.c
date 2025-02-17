@@ -16660,6 +16660,7 @@ char *CreateLogPathInSUNILOGTARGET	(
 {
 	ubf_assert_non_NULL (put);
 
+	initSMEMBUF (&put->mbLogPath);
 	if (szLogPath)
 	{
 		ubf_assert (0 != len);
@@ -16702,10 +16703,11 @@ static inline const char *RemoveSlashesFromStart (const char *szAppName, size_t 
 	return szAppName;
 }
 
-static void CreateAppNameInSUNILOGTARGET (SCUNILOGTARGET *put, const char *szAppName, size_t len)
+char *CreateAppNameInSUNILOGTARGET (SCUNILOGTARGET *put, const char *szAppName, size_t len)
 {
 	ubf_assert_non_NULL (put);
 
+	initSMEMBUF (&put->mbAppName);
 	if (szAppName && len)
 	{
 		size_t l = len;
@@ -16718,9 +16720,16 @@ static void CreateAppNameInSUNILOGTARGET (SCUNILOGTARGET *put, const char *szApp
 			SMEMBUFfromStr (&put->mbAppName, szAppName, l);
 			str_correct_dir_separators (put->mbAppName.buf.pch, l);
 			put->lnAppName = l;
-		}
+		} else
+			return NULL;
 	} else
+	{
 		put->lnAppName = ObtainAppNameFromExecutableModule (&put->mbAppName);
+		if (0 == put->lnAppName)
+			return NULL;
+	}
+	put->uiOpts |= CUNILOGTARGET_APPNAME_ALLOCATED;
+	return put->mbAppName.buf.pch;
 }
 
 /*
@@ -16913,6 +16922,21 @@ static void prepareProcessors (SCUNILOGTARGET *put, CUNILOG_PROCESSOR **cp, unsi
 	defaultFrequenciesAndMaxToRotate (put);
 }
 
+static void prepareSCUNILOGTARGETinitFilenameBuffers (SCUNILOGTARGET *put, size_t lnTotal)
+{
+	ubf_assert_non_NULL (put);
+
+	initSMEMBUFtoSize (&put->mbLogfileName, lnTotal);		// The actual log file.
+	if (isUsableSMEMBUF (&put->mbLogfileName))
+		cunilogSetLogFileAllocated (put);
+	initSMEMBUFtoSize (&put->mbLogFileMask, lnTotal);		// Mask for logfile rotation.
+	if (isUsableSMEMBUF (&put->mbLogFileMask))
+		cunilogSetLogFileMaskAllocated (put);
+	initSMEMBUFtoSize (&put->mbFilToRotate, lnTotal);
+	if (isUsableSMEMBUF (&put->mbFilToRotate))
+		cunilogSetFileToRotateAllocated (put);
+}
+
 static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
@@ -16941,9 +16965,8 @@ static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 				+ lenCunilogLogFileNameExtension
 				+ 1;	// A terminating NUL character so that we can use the log file's
 						//	name directly in OS APIs.
-	growToSizeSMEMBUF (&put->mbLogfileName, lnTotal);
-	growToSizeSMEMBUF (&put->mbLogFileMask, lnTotal);
-	growToSizeSMEMBUF (&put->mbFilToRotate, lnTotal);
+	prepareSCUNILOGTARGETinitFilenameBuffers (put, lnTotal);
+
 	if (isUsableSMEMBUF (&put->mbLogfileName) && isUsableSMEMBUF (&put->mbLogFileMask))
 	{
 		// Remember the position of the timestamp for quick and easy update.
@@ -16987,6 +17010,13 @@ static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 
 		// Create name of the found file.
 		copySMEMBUF (&put->mbFilToRotate, &put->mbLogPath);
+
+		ubf_assert (0 < CUNILOG_INITIAL_EVENTLINE_SIZE);
+		initSMEMBUFtoSize (&put->mbLogEventLine, CUNILOG_INITIAL_EVENTLINE_SIZE);
+
+		#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+			initSMEMBUFtoSize (&put->mbColEventLine, CUNILOG_INITIAL_COLEVENTLINE_SIZE);
+		#endif
 
 		cunilogSetTargetInitialised (put);
 		return true;
@@ -17140,28 +17170,6 @@ static inline void initSCUNILOGTARGEToptionFlags (SCUNILOGTARGET *put, runProces
 	#endif
 }
 
-static void initSCUNILOGTARGETsmembufs (SCUNILOGTARGET *put)
-{
-	ubf_assert_non_NULL (put);
-
-	initSMEMBUF (&put->mbLogPath);
-	initSMEMBUF (&put->mbAppName);
-	#ifdef PLATFORM_IS_POSIX
-		initSMEMBUF (&put->mbLogFold);
-	#endif
-	initSMEMBUF (&put->mbLogfileName);
-	initSMEMBUF (&put->mbLogFileMask);
-	initSMEMBUF (&put->mbFilToRotate);
-
-	ubf_assert (0 < CUNILOG_INITIAL_EVENTLINE_SIZE);
-	initSMEMBUFtoSize (&put->mbLogEventLine, CUNILOG_INITIAL_EVENTLINE_SIZE);
-
-	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-		initSMEMBUFtoSize (&put->mbColEventLine, CUNILOG_INITIAL_COLEVENTLINE_SIZE);
-	#endif
-
-}
-
 static inline void initFilesListInSCUNILOGTARGET (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
@@ -17292,7 +17300,6 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	size_t			lnLogPath		= (size_t) -1 != lenLogPath	? lenLogPath : strlen (szLogPath);
 	size_t			lnAppName		= (size_t) -1 != lenAppName	? lenAppName : strlen (szAppName);
 
-	initSCUNILOGTARGETsmembufs (put);
 	initSCUNILOGTARGEToptionFlags (put, rp);
 	put->culogPostfix		= postfix;
 	put->culogType			= unilogTypeFromArgument (type);
@@ -17421,9 +17428,9 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	pu = ubf_malloc (lnTotal);
 	if (pu)
 	{
-		initSCUNILOGTARGETsmembufs (pu);
 		initSCUNILOGTARGEToptionFlags (pu, rp);
 		pu->uiOpts |= CUNILOGTARGET_ALLOCATED;
+		initSMEMBUF (&pu->mbLogPath);
 		pu->mbLogPath.buf.pcc = (char *) pu + ALIGNED_SIZE (lnUNILOGTARGET, CUNILOG_DEFAULT_ALIGNMENT);
 		memcpy (pu->mbLogPath.buf.pch, szLogPath, lnLogPath + 1);
 		if (!isDirSep (szLogPath [lnLogPath -1]))
@@ -17561,7 +17568,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 								);
 }
 
-const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
+const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert (cunilogIsTargetInitialised (put));
@@ -17576,7 +17583,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 }
 
 #ifdef DEBUG
-	void ConfigSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
+	void configSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(0 <= tsf);
@@ -17587,7 +17594,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 #ifdef DEBUG
-	void ConfigSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
+	void configSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(0 <= nl);
@@ -17598,7 +17605,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 #ifdef DEBUG
-	void ConfigSCUNILOGTARGETeventSeverityFormatType	(
+	void configSCUNILOGTARGETeventSeverityFormatType	(
 			SCUNILOGTARGET				*put,
 			cueventsevtpy				eventSeverityFormatType
 														)
@@ -17613,7 +17620,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#ifdef DEBUG
-		void ConfigSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+		void configSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
 		{
 			ubf_assert_non_NULL (put);
 
@@ -17626,7 +17633,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 #ifdef DEBUG
-	void ConfigSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
+	void configSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(
@@ -17650,7 +17657,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 #ifdef DEBUG
-	void ConfigSCUNILOGTARGETprocessorList	(
+	void configSCUNILOGTARGETprocessorList	(
 					SCUNILOGTARGET			*put
 				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
 				,	unsigned int			nProcessors			// Number of processors.
@@ -17662,7 +17669,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	}
 #endif
 
-void ConfigSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
+void configSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL (put->cprocessors);
@@ -17676,7 +17683,7 @@ void ConfigSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilo
 	}
 }
 
-void ConfigSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
+void configSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL (put->cprocessors);
@@ -17690,37 +17697,35 @@ void ConfigSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilog
 	}
 }
 
-void ConfigSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put)
+void configSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL (put->cprocessors);
 
-	ConfigSCUNILOGTARGETdisableTaskProcessors (put, cunilogProcessEchoToConsole);
+	configSCUNILOGTARGETdisableTaskProcessors (put, cunilogProcessEchoToConsole);
 }
 
-void ConfigSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put)
+void configSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL (put->cprocessors);
 
-	ConfigSCUNILOGTARGETenableTaskProcessors (put, cunilogProcessEchoToConsole);
+	configSCUNILOGTARGETenableTaskProcessors (put, cunilogProcessEchoToConsole);
 }
 
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
-	{
-		ubf_assert_non_NULL (put);
+void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
+{
+	ubf_assert_non_NULL (put);
 
-		EnterCUNILOG_LOCKER (put);
-	}
+	EnterCUNILOG_LOCKER (put);
+}
 
-	void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
-	{
-		ubf_assert_non_NULL (put);
+void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
+{
+	ubf_assert_non_NULL (put);
 
-		LeaveCUNILOG_LOCKER (put);
-	}
-#endif
+	LeaveCUNILOG_LOCKER (put);
+}
 
 static void CloseCUNILOG_LOGFILEifOpen (CUNILOG_LOGFILE *cl)
 {
@@ -17809,11 +17814,17 @@ static void DoneSCUNILOGTARGETmembers (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
-	freeSMEMBUF (&put->mbLogPath);
-	freeSMEMBUF (&put->mbAppName);
-	freeSMEMBUF (&put->mbLogfileName);
-	freeSMEMBUF (&put->mbLogFileMask);
-	freeSMEMBUF (&put->mbFilToRotate);
+	if (cunilogIsLogPathAllocated (put))
+		freeSMEMBUF (&put->mbLogPath);
+	if (cunilogIsAppNameAllocated (put))
+		freeSMEMBUF (&put->mbAppName);
+	if (cunilogIsLogFileAllocated (put))
+		freeSMEMBUF (&put->mbLogfileName);
+	if (cunilogIsLogFileMaskAllocated (put))
+		freeSMEMBUF (&put->mbLogFileMask);
+	if (cunilogIsFileToRotateAllocated (put))
+		freeSMEMBUF (&put->mbFilToRotate);
+
 	freeSMEMBUF (&put->mbLogEventLine);
 
 	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
@@ -21257,7 +21268,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
 
 		size_t lnAbsLogPath;
-		const char *szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		const char *szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21286,7 +21297,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 			ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "sub/Unilog", SCUNILOGTARGETstatic.lnAppName));
 		#endif
 
-		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21311,7 +21322,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (6 == SCUNILOGTARGETstatic.lnAppName);
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
 
-		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21354,7 +21365,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		// Should be NUL-terminated.
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName + 1));
 
-		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21378,7 +21389,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (6 == SCUNILOGTARGETstatic.lnAppName);
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName + 1));
 
-		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21410,7 +21421,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				cunilogDontRunProcessorsOnStartup
 										);
 
-		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21450,7 +21461,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (6 == pt->lnAppName);
 		ubf_assert (!memcmp (pt->mbAppName.buf.pch, "Unilog", pt->lnAppName));
 
-		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21500,7 +21511,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 						)
 					);
 
-		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);

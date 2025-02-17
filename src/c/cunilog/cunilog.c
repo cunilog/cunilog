@@ -763,6 +763,7 @@ char *CreateLogPathInSUNILOGTARGET	(
 {
 	ubf_assert_non_NULL (put);
 
+	initSMEMBUF (&put->mbLogPath);
 	if (szLogPath)
 	{
 		ubf_assert (0 != len);
@@ -805,10 +806,11 @@ static inline const char *RemoveSlashesFromStart (const char *szAppName, size_t 
 	return szAppName;
 }
 
-static void CreateAppNameInSUNILOGTARGET (SCUNILOGTARGET *put, const char *szAppName, size_t len)
+char *CreateAppNameInSUNILOGTARGET (SCUNILOGTARGET *put, const char *szAppName, size_t len)
 {
 	ubf_assert_non_NULL (put);
 
+	initSMEMBUF (&put->mbAppName);
 	if (szAppName && len)
 	{
 		size_t l = len;
@@ -821,9 +823,16 @@ static void CreateAppNameInSUNILOGTARGET (SCUNILOGTARGET *put, const char *szApp
 			SMEMBUFfromStr (&put->mbAppName, szAppName, l);
 			str_correct_dir_separators (put->mbAppName.buf.pch, l);
 			put->lnAppName = l;
-		}
+		} else
+			return NULL;
 	} else
+	{
 		put->lnAppName = ObtainAppNameFromExecutableModule (&put->mbAppName);
+		if (0 == put->lnAppName)
+			return NULL;
+	}
+	put->uiOpts |= CUNILOGTARGET_APPNAME_ALLOCATED;
+	return put->mbAppName.buf.pch;
 }
 
 /*
@@ -1016,6 +1025,21 @@ static void prepareProcessors (SCUNILOGTARGET *put, CUNILOG_PROCESSOR **cp, unsi
 	defaultFrequenciesAndMaxToRotate (put);
 }
 
+static void prepareSCUNILOGTARGETinitFilenameBuffers (SCUNILOGTARGET *put, size_t lnTotal)
+{
+	ubf_assert_non_NULL (put);
+
+	initSMEMBUFtoSize (&put->mbLogfileName, lnTotal);		// The actual log file.
+	if (isUsableSMEMBUF (&put->mbLogfileName))
+		cunilogSetLogFileAllocated (put);
+	initSMEMBUFtoSize (&put->mbLogFileMask, lnTotal);		// Mask for logfile rotation.
+	if (isUsableSMEMBUF (&put->mbLogFileMask))
+		cunilogSetLogFileMaskAllocated (put);
+	initSMEMBUFtoSize (&put->mbFilToRotate, lnTotal);
+	if (isUsableSMEMBUF (&put->mbFilToRotate))
+		cunilogSetFileToRotateAllocated (put);
+}
+
 static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
@@ -1044,9 +1068,8 @@ static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 				+ lenCunilogLogFileNameExtension
 				+ 1;	// A terminating NUL character so that we can use the log file's
 						//	name directly in OS APIs.
-	growToSizeSMEMBUF (&put->mbLogfileName, lnTotal);
-	growToSizeSMEMBUF (&put->mbLogFileMask, lnTotal);
-	growToSizeSMEMBUF (&put->mbFilToRotate, lnTotal);
+	prepareSCUNILOGTARGETinitFilenameBuffers (put, lnTotal);
+
 	if (isUsableSMEMBUF (&put->mbLogfileName) && isUsableSMEMBUF (&put->mbLogFileMask))
 	{
 		// Remember the position of the timestamp for quick and easy update.
@@ -1090,6 +1113,13 @@ static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 
 		// Create name of the found file.
 		copySMEMBUF (&put->mbFilToRotate, &put->mbLogPath);
+
+		ubf_assert (0 < CUNILOG_INITIAL_EVENTLINE_SIZE);
+		initSMEMBUFtoSize (&put->mbLogEventLine, CUNILOG_INITIAL_EVENTLINE_SIZE);
+
+		#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+			initSMEMBUFtoSize (&put->mbColEventLine, CUNILOG_INITIAL_COLEVENTLINE_SIZE);
+		#endif
 
 		cunilogSetTargetInitialised (put);
 		return true;
@@ -1243,28 +1273,6 @@ static inline void initSCUNILOGTARGEToptionFlags (SCUNILOGTARGET *put, runProces
 	#endif
 }
 
-static void initSCUNILOGTARGETsmembufs (SCUNILOGTARGET *put)
-{
-	ubf_assert_non_NULL (put);
-
-	initSMEMBUF (&put->mbLogPath);
-	initSMEMBUF (&put->mbAppName);
-	#ifdef PLATFORM_IS_POSIX
-		initSMEMBUF (&put->mbLogFold);
-	#endif
-	initSMEMBUF (&put->mbLogfileName);
-	initSMEMBUF (&put->mbLogFileMask);
-	initSMEMBUF (&put->mbFilToRotate);
-
-	ubf_assert (0 < CUNILOG_INITIAL_EVENTLINE_SIZE);
-	initSMEMBUFtoSize (&put->mbLogEventLine, CUNILOG_INITIAL_EVENTLINE_SIZE);
-
-	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-		initSMEMBUFtoSize (&put->mbColEventLine, CUNILOG_INITIAL_COLEVENTLINE_SIZE);
-	#endif
-
-}
-
 static inline void initFilesListInSCUNILOGTARGET (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
@@ -1395,7 +1403,6 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	size_t			lnLogPath		= (size_t) -1 != lenLogPath	? lenLogPath : strlen (szLogPath);
 	size_t			lnAppName		= (size_t) -1 != lenAppName	? lenAppName : strlen (szAppName);
 
-	initSCUNILOGTARGETsmembufs (put);
 	initSCUNILOGTARGEToptionFlags (put, rp);
 	put->culogPostfix		= postfix;
 	put->culogType			= unilogTypeFromArgument (type);
@@ -1524,9 +1531,9 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	pu = ubf_malloc (lnTotal);
 	if (pu)
 	{
-		initSCUNILOGTARGETsmembufs (pu);
 		initSCUNILOGTARGEToptionFlags (pu, rp);
 		pu->uiOpts |= CUNILOGTARGET_ALLOCATED;
+		initSMEMBUF (&pu->mbLogPath);
 		pu->mbLogPath.buf.pcc = (char *) pu + ALIGNED_SIZE (lnUNILOGTARGET, CUNILOG_DEFAULT_ALIGNMENT);
 		memcpy (pu->mbLogPath.buf.pch, szLogPath, lnLogPath + 1);
 		if (!isDirSep (szLogPath [lnLogPath -1]))
@@ -1912,11 +1919,17 @@ static void DoneSCUNILOGTARGETmembers (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
-	freeSMEMBUF (&put->mbLogPath);
-	freeSMEMBUF (&put->mbAppName);
-	freeSMEMBUF (&put->mbLogfileName);
-	freeSMEMBUF (&put->mbLogFileMask);
-	freeSMEMBUF (&put->mbFilToRotate);
+	if (cunilogIsLogPathAllocated (put))
+		freeSMEMBUF (&put->mbLogPath);
+	if (cunilogIsAppNameAllocated (put))
+		freeSMEMBUF (&put->mbAppName);
+	if (cunilogIsLogFileAllocated (put))
+		freeSMEMBUF (&put->mbLogfileName);
+	if (cunilogIsLogFileMaskAllocated (put))
+		freeSMEMBUF (&put->mbLogFileMask);
+	if (cunilogIsFileToRotateAllocated (put))
+		freeSMEMBUF (&put->mbFilToRotate);
+
 	freeSMEMBUF (&put->mbLogEventLine);
 
 	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR

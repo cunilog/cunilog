@@ -776,16 +776,16 @@ typedef struct scunilogtarget
 #define CUNILOGTARGET_LOGPATH_ALLOCATED			SINGLEBIT64 (3)
 
 // The application name has been allocated on the heap.
-//#define CUNILOGTARGET_APPNAME_ALLOCATED			SINGLEBIT64 (4)
+#define CUNILOGTARGET_APPNAME_ALLOCATED			SINGLEBIT64 (4)
 
 // The entire path plus name of the logfile has been allocated on the heap.
-//#define CUNILOGTARGET_LOGFILE_ALLOCATED			SINGLEBIT64 (5)
+#define CUNILOGTARGET_LOGFILE_ALLOCATED			SINGLEBIT64 (5)
 
 // The file mask.
-//#define CUNILOGTARGET_LOGF_MASK_ALLOCATED		SINGLEBIT64 (6)
+#define CUNILOGTARGET_LOGF_MASK_ALLOCATED		SINGLEBIT64 (6)
 
 // The (complete) filename of the file to rotate.
-//#define CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED	SINGLEBIT64 (7)
+#define CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED	SINGLEBIT64 (7)
 
 // The array of pointers to processors.
 #define CUNILOGTARGET_PROCESSORS_ALLOCATED		SINGLEBIT64 (8)
@@ -839,40 +839,30 @@ typedef struct scunilogtarget
 #define cunilogIsTargetAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_ALLOCATED)
 
-/*
 #define cunilogSetLogPathAllocated(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_LOGPATH_ALLOCATED)
 #define cunilogIsLogPathAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_LOGPATH_ALLOCATED)
-*/
 
-/*
 #define cunilogSetAppNameAllocated(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_APPNAME_ALLOCATED)
 #define cunilogIsAppNameAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_APPNAME_ALLOCATED)
-*/
 
-/*
 #define cunilogSetLogFileAllocated(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_LOGFILE_ALLOCATED)
 #define cunilogIsLogFileAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_LOGFILE_ALLOCATED)
-*/
 
-/*
 #define cunilogSetLogFileMaskAllocated(pt)				\
 	((pt)->uiOpts |= CUNILOGTARGET_LOGF_MASK_ALLOCATED)
 #define cunilogIsLogFileMaskAllocated(pt)				\
 	((pt)->uiOpts & CUNILOGTARGET_LOGF_MASK_ALLOCATED)
-*/
 
-/*
 #define cunilogSetFileToRotateAllocated(pt)				\
 	((pt)->uiOpts |= CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
 #define cunilogIsFileToRotateAllocated(pt)				\
 	((pt)->uiOpts & CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
-*/
 
 #define cunilogSetProcessorsAllocated(pt)				\
 	((pt)->uiOpts |= CUNILOGTARGET_PROCESSORS_ALLOCATED)
@@ -915,6 +905,7 @@ typedef struct scunilogtarget
 	((pt)->uiOpts &= ~ CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 #define cunilogSetNoWriteToLogfile(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
+
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 
