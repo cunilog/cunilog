@@ -17568,7 +17568,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 								);
 }
 
-const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
+const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert (cunilogIsTargetInitialised (put));
@@ -17583,7 +17583,7 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 }
 
 #ifdef DEBUG
-	void configSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
+	void ConfigSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(0 <= tsf);
@@ -17594,7 +17594,7 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 #ifdef DEBUG
-	void configSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
+	void ConfigSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(0 <= nl);
@@ -17605,7 +17605,7 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 #ifdef DEBUG
-	void configSCUNILOGTARGETeventSeverityFormatType	(
+	void ConfigSCUNILOGTARGETeventSeverityFormatType	(
 			SCUNILOGTARGET				*put,
 			cueventsevtpy				eventSeverityFormatType
 														)
@@ -17620,7 +17620,7 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#ifdef DEBUG
-		void configSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+		void ConfigSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
 		{
 			ubf_assert_non_NULL (put);
 
@@ -17633,7 +17633,7 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 #ifdef DEBUG
-	void configSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
+	void ConfigSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(
@@ -17657,7 +17657,7 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 #ifdef DEBUG
-	void configSCUNILOGTARGETprocessorList	(
+	void ConfigSCUNILOGTARGETprocessorList	(
 					SCUNILOGTARGET			*put
 				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
 				,	unsigned int			nProcessors			// Number of processors.
@@ -17669,7 +17669,7 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	}
 #endif
 
-void configSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
+void ConfigSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL (put->cprocessors);
@@ -17683,7 +17683,7 @@ void configSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilo
 	}
 }
 
-void configSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
+void ConfigSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL (put->cprocessors);
@@ -17697,35 +17697,37 @@ void configSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilog
 	}
 }
 
-void configSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put)
+void ConfigSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL (put->cprocessors);
 
-	configSCUNILOGTARGETdisableTaskProcessors (put, cunilogProcessEchoToConsole);
+	ConfigSCUNILOGTARGETdisableTaskProcessors (put, cunilogProcessEchoToConsole);
 }
 
-void configSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put)
+void ConfigSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL (put->cprocessors);
 
-	configSCUNILOGTARGETenableTaskProcessors (put, cunilogProcessEchoToConsole);
+	ConfigSCUNILOGTARGETenableTaskProcessors (put, cunilogProcessEchoToConsole);
 }
 
-void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
-{
-	ubf_assert_non_NULL (put);
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
+	{
+		ubf_assert_non_NULL (put);
 
-	EnterCUNILOG_LOCKER (put);
-}
+		EnterCUNILOG_LOCKER (put);
+	}
 
-void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
-{
-	ubf_assert_non_NULL (put);
+	void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
+	{
+		ubf_assert_non_NULL (put);
 
-	LeaveCUNILOG_LOCKER (put);
-}
+		LeaveCUNILOG_LOCKER (put);
+	}
+#endif
 
 static void CloseCUNILOG_LOGFILEifOpen (CUNILOG_LOGFILE *cl)
 {
@@ -21268,7 +21270,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
 
 		size_t lnAbsLogPath;
-		const char *szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		const char *szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21297,7 +21299,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 			ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "sub/Unilog", SCUNILOGTARGETstatic.lnAppName));
 		#endif
 
-		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21322,7 +21324,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (6 == SCUNILOGTARGETstatic.lnAppName);
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName));
 
-		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21365,7 +21367,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		// Should be NUL-terminated.
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName + 1));
 
-		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21389,7 +21391,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (6 == SCUNILOGTARGETstatic.lnAppName);
 		ubf_assert (!memcmp (SCUNILOGTARGETstatic.mbAppName.buf.pch, "Unilog", SCUNILOGTARGETstatic.lnAppName + 1));
 
-		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21421,7 +21423,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				cunilogDontRunProcessorsOnStartup
 										);
 
-		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21461,7 +21463,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (6 == pt->lnAppName);
 		ubf_assert (!memcmp (pt->mbAppName.buf.pch, "Unilog", pt->lnAppName));
 
-		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
@@ -21511,7 +21513,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 						)
 					);
 
-		szAbsLogPath = getAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
