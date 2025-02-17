@@ -129,6 +129,48 @@ When		Who				What
 #define CUNILOG_DEFAULT_SFMT_SIZE		(256)
 #endif
 
+/*
+	The default initial size of an event line. Note that this is not the space for the text
+	but rather the entire line, including timestamp etc. If you know in advance that your
+	texts (including stamp etc) are going to be longer you may override this with a higher
+	value to possibly save some initial heap reallocations.
+
+	This value must be greater than 0.
+*/
+#ifndef CUNILOG_INITIAL_EVENTLINE_SIZE
+#define CUNILOG_INITIAL_EVENTLINE_SIZE			(256)
+#endif
+
+#if CUNILOG_INITIAL_EVENTLINE_SIZE <= 0
+	#error CUNILOG_INITIAL_EVENTLINE_SIZE must be greater than zero
+#endif
+
+/*
+	The default initial size of an event line that contains ANSI colour codes for severity
+	levels plus the event line itself.
+	If you know in advance that your texts (including stamp etc) are going to be longer you
+	may override this with a higher value to possibly save some initial heap reallocations.
+	The default is CUNILOG_INITIAL_EVENTLINE_SIZE.
+
+	This value must be greater than 0.
+
+	If you don't need coloured console output for severity levels you can switch it off by
+	defining CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR or CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR.
+*/
+#ifdef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+#define CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+#endif
+#endif
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	#ifndef CUNILOG_INITIAL_COLEVENTLINE_SIZE
+	#define CUNILOG_INITIAL_COLEVENTLINE_SIZE		(CUNILOG_INITIAL_EVENTLINE_SIZE)
+	#endif
+	#if CUNILOG_INITIAL_COLEVENTLINE_SIZE <= 0
+		#error CUNILOG_INITIAL_COLEVENTLINE_SIZE must be greater than zero
+	#endif
+#endif
+
 // Literally an arbitray character. This is used to find buffer overruns in debug
 //	versions.
 #ifndef CUNILOG_DEFAULT_DBG_CHAR
@@ -728,7 +770,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 ;
 
 /*
-	getAbsoluteLogPathSCUNILOGTARGET
+	GetAbsoluteLogPathSCUNILOGTARGET
 
 	Returns the absolute path to the folder logfiles are written to, including a directory
 	separator. If plen is not NULL, the function returns the length of the path at the address
@@ -740,35 +782,35 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	The function returns NULL if it fails. In this case it will not have changed the address
 	plen points to.
 */
-const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
+const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 ;
 
 /*
-	configSCUNILOGTARGETcunilogpostfix
+	ConfigSCUNILOGTARGETcunilogpostfix
 
 	Sets the member unilogEvtTSformat of the SCUNILOGTARGET structure put points to to the
 	value of tsf.
 */
 #ifdef DEBUG
-	void configSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
+	void ConfigSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
 	;
 #else
-	#define configSCUNILOGTARGETcunilogpostfix(put, f)	\
+	#define ConfigSCUNILOGTARGETcunilogpostfix(put, f)	\
 				(put)->unilogEvtTSformat = (f)
 #endif
 
 /*
-	configSCUNILOGTARGETrunProcessorsOnStartup
+	ConfigSCUNILOGTARGETrunProcessorsOnStartup
 
 	Sets the flag CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP of the uiOpts member of the
 	SCUNILOGTARGET structure put points to according to the value of the runProcessorsOnStartup
 	enumeration rp.
 */
 #ifdef DEBUG
-	void configSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
+	void ConfigSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
 	;
 #else
-	#define configSCUNILOGTARGETrunProcessorsOnStartup(put, rp)	\
+	#define ConfigSCUNILOGTARGETrunProcessorsOnStartup(put, rp)	\
 		switch (rp)												\
 		{														\
 			case cunilogRunProcessorsOnStartup:					\
@@ -784,48 +826,48 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 /*
-	configSCUNILOGTARGETcunilognewline
+	ConfigSCUNILOGTARGETcunilognewline
 
 	Sets the member unilogNewLine of the SCUNILOGTARGET structure put points to to the
 	value of nl.
 */
 #ifdef DEBUG
-	void configSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
+	void ConfigSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
 	;
 #else
-	#define configSCUNILOGTARGETcunilognewline(put, nl)			\
+	#define ConfigSCUNILOGTARGETcunilognewline(put, nl)			\
 		(put)->unilogNewLine = (nl)
 #endif
 
 /*
-	configSCUNILOGTARGETeventSeverityFormatType
+	ConfigSCUNILOGTARGETeventSeverityFormatType
 
 	Sets the format type of event severities for the target structure put. It
 	sets the member evSeverityType of the SCUNILOGTARGET structure put to the
 	value of eventSeverityFormatType.
 */
 #ifdef DEBUG
-	void configSCUNILOGTARGETeventSeverityFormatType	(
+	void ConfigSCUNILOGTARGETeventSeverityFormatType	(
 			SCUNILOGTARGET				*put,
 			cueventsevtpy				eventSeverityFormatType
 														)
 	;
 #else
-	#define configSCUNILOGTARGETeventSeverityFormatType(put, evstpy)	\
+	#define ConfigSCUNILOGTARGETeventSeverityFormatType(put, evstpy)	\
 		(put)->evSeverityType = (evstpy)
 #endif
 
 /*
-	configSCUNILOGTARGETuseColourForEcho
+	ConfigSCUNILOGTARGETuseColourForEcho
 
 	Switches on/off using colours for console output depending on event severity level.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#ifdef DEBUG
-		void configSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+		void ConfigSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
 		;
 	#else
-		#define configSCUNILOGTARGETuseColourForEcho(put, b)	\
+		#define ConfigSCUNILOGTARGETuseColourForEcho(put, b)	\
 			if (bUseColour)										\
 				cunilogSetUseColourForEcho (put);				\
 			else												\
@@ -834,7 +876,7 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 /*
-	configSCUNILOGTARGETprocessorList
+	ConfigSCUNILOGTARGETprocessorList
 
 	Sets the processors for a SCUNILOGTARGET struture.
 
@@ -856,36 +898,36 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 
 */
 #ifdef DEBUG
-	void configSCUNILOGTARGETprocessorList	(
+	void ConfigSCUNILOGTARGETprocessorList	(
 					SCUNILOGTARGET			*put
 				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
 				,	unsigned int			nProcessors			// Number of processors.
 											)
 	;
 #else
-	#define configSCUNILOGTARGETprocessorList (put,		\
+	#define ConfigSCUNILOGTARGETprocessorList(put,		\
 				cup, n)									\
 				prepareProcessors (put, cuProcessorList, nProcessors)
 #endif
 
 /*
-	configSCUNILOGTARGETdisableTaskProcessors
-	configSCUNILOGTARGETenableTaskProcessors
+	ConfigSCUNILOGTARGETdisableTaskProcessors
+	ConfigSCUNILOGTARGETenableTaskProcessors
 
 	Disables/enables processors for task task.
 */
-void configSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
-void configSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+void ConfigSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+void ConfigSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
 
 /*
-	configSCUNILOGTARGETdisableEchoProcessor
-	configSCUNILOGTARGETenableEchoProcessor
+	ConfigSCUNILOGTARGETdisableEchoProcessor
+	ConfigSCUNILOGTARGETenableEchoProcessor
 
 	Disables/enables echo (console output) processors. Echo or console output processors
 	are processors whose task is cunilogProcessEchoToConsole.
 */
-void configSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put);
-void configSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
+void ConfigSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put);
+void ConfigSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
 
 /*
 	EnterSCUNILOGTARGET
@@ -914,22 +956,33 @@ void configSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
 
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, these macros/functions do nothing.
 */
-void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
-;
-void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
-;
-#define LockSCUNILOGTARGET(put)							\
-			EnterSCUNILOGTARGET (put)
-#define UnlockSCUNILOGTARGET(put)						\
-			LeaveSCUNILOGTARGET (put)
-#define EnterSCUNILOGTARGETstatic()						\
-			LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
-#define LeaveSCUNILOGTARGETstatic()						\
-			EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
-#define LockSCUNILOGTARGETstatic()						\
-			EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
-#define UnlockSCUNILOGTARGETstatic()					\
-			LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
+	;
+	void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
+	;
+	#define LockSCUNILOGTARGET(put)						\
+				EnterSCUNILOGTARGET (put)
+	#define UnlockSCUNILOGTARGET(put)					\
+				LeaveSCUNILOGTARGET (put)
+	#define EnterSCUNILOGTARGETstatic()					\
+				LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+	#define LeaveSCUNILOGTARGETstatic()					\
+				EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+	#define LockSCUNILOGTARGETstatic()					\
+				EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+	#define UnlockSCUNILOGTARGETstatic()				\
+				LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#else
+	#define EnterSCUNILOGTARGET(put)
+	#define LeaveSCUNILOGTARGET(put)
+	#define LockSCUNILOGTARGET(put)
+	#define UnlockSCUNILOGTARGET(put)
+	#define EnterSCUNILOGTARGETstatic()
+	#define LeaveSCUNILOGTARGETstatic()
+	#define LockSCUNILOGTARGETstatic()
+	#define UnlockSCUNILOGTARGETstatic()
+#endif
 
 /*
 	DoneSCUNILOGTARGET

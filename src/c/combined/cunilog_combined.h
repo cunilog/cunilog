@@ -11382,14 +11382,39 @@ When		Who				What
 	Normal foreground colours.
 */
 #ifndef STR_ANSI_FGCOL_BLACK
+
 #define STR_ANSI_FGCOL_BLACK			"\033[30m"
+#define SIZ_ANSI_FGCOL_BLACK			(sizeof (STR_ANSI_FGCOL_BLACK))
+#define LEN_ANSI_FGCOL_BLACK			(SIZ_ANSI_FGCOL_BLACK - 1)
+
 #define STR_ANSI_FGCOL_RED				"\033[31m"
+#define SIZ_ANSI_FGCOL_RED				(sizeof (STR_ANSI_FGCOL_RED))
+#define LEN_ANSI_FGCOL_RED				(SIZ_ANSI_FGCOL_RED - 1)
+
 #define STR_ANSI_FGCOL_GREEN			"\033[32m"
+#define SIZ_ANSI_FGCOL_GREEN			(sizeof (STR_ANSI_FGCOL_GREEN))
+#define LEN_ANSI_FGCOL_GREEN			(SIZ_ANSI_FGCOL_GREEN - 1)
+
 #define STR_ANSI_FGCOL_YELLOW			"\033[33m"
+#define SIZ_ANSI_FGCOL_YELLOW			(sizeof (STR_ANSI_FGCOL_YELLOW))
+#define LEN_ANSI_FGCOL_YELLOW			(SIZ_ANSI_FGCOL_YELLOW - 1)
+
 #define STR_ANSI_FGCOL_BLUE				"\033[34m"
+#define SIZ_ANSI_FGCOL_BLUE				(sizeof (STR_ANSI_FGCOL_BLUE))
+#define LEN_ANSI_FGCOL_BLUE				(SIZ_ANSI_FGCOL_BLUE - 1)
+
 #define STR_ANSI_FGCOL_MAGENTA			"\033[35m"
+#define SIZ_ANSI_FGCOL_MAGENTA			(sizeof (STR_ANSI_FGCOL_MAGENTA))
+#define LEN_ANSI_FGCOL_MAGENTA			(SIZ_ANSI_FGCOL_MAGENTA - 1)
+
 #define STR_ANSI_FGCOL_CYAN				"\033[36m"
+#define SIZ_ANSI_FGCOL_CYAN				(sizeof (STR_ANSI_FGCOL_CYAN))
+#define LEN_ANSI_FGCOL_CYAN				(SIZ_ANSI_FGCOL_CYAN - 1)
+
 #define STR_ANSI_FGCOL_WHITE			"\033[37m"
+#define SIZ_ANSI_FGCOL_WHITE			(sizeof (STR_ANSI_FGCOL_WHITE))
+#define LEN_ANSI_FGCOL_WHITE			(SIZ_ANSI_FGCOL_WHITE - 1)
+
 #endif
 
 /*
@@ -11398,16 +11423,47 @@ When		Who				What
 	Note that bright black is grey.
 */
 #ifndef STR_ANSI_FGCOL_BRIGHT_BLACK
+
 #define STR_ANSI_FGCOL_BRIGHT_BLACK		"\033[90m"
+#define SIZ_ANSI_FGCOL_BRIGHT_BLACK		(sizeof (STR_ANSI_FGCOL_BRIGHT_BLACK))
+#define LEN_ANSI_FGCOL_BRIGHT_BLACK		(SIZ_ANSI_FGCOL_BRIGHT_BLACK - 1)
+
 #define STR_ANSI_FGCOL_GREY				STR_ANSI_FGCOL_BRIGHT_BLACK
+#define SIZ_ANSI_FGCOL_GREY				(sizeof (STR_ANSI_FGCOL_GREY))
+#define LEN_ANSI_FGCOL_GREY				(SIZ_ANSI_FGCOL_GREY - 1)
+
 #define STR_ANSI_FGCOL_GRAY				STR_ANSI_FGCOL_BRIGHT_BLACK
+#define SIZ_ANSI_FGCOL_GRAY				(sizeof (STR_ANSI_FGCOL_GRAY))
+#define LEN_ANSI_FGCOL_GRAY				(SIZ_ANSI_FGCOL_GRAY - 1)
+
 #define STR_ANSI_FGCOL_BRIGHT_RED		"\033[91m"
+#define SIZ_ANSI_FGCOL_BRIGHT_RED		(sizeof (STR_ANSI_FGCOL_BRIGHT_RED))
+#define LEN_ANSI_FGCOL_BRIGHT_RED		(SIZ_ANSI_FGCOL_BRIGHT_RED - 1)
+
 #define STR_ANSI_FGCOL_BRIGHT_GREEN		"\033[92m"
+#define SIZ_ANSI_FGCOL_BRIGHT_GREEN		(sizeof (STR_ANSI_FGCOL_BRIGHT_GREEN))
+#define LEN_ANSI_FGCOL_BRIGHT_GREEN		(SIZ_ANSI_FGCOL_BRIGHT_GREEN - 1)
+
 #define STR_ANSI_FGCOL_BRIGHT_YELLOW	"\033[93m"
+#define SIZ_ANSI_FGCOL_BRIGHT_YELLOW	(sizeof (STR_ANSI_FGCOL_BRIGHT_YELLOW))
+#define LEN_ANSI_FGCOL_BRIGHT_YELLOW	(SIZ_ANSI_FGCOL_BRIGHT_YELLOW - 1)
+
 #define STR_ANSI_FGCOL_BRIGHT_BLUE		"\033[94m"
+#define SIZ_ANSI_FGCOL_BRIGHT_BLUE		(sizeof (STR_ANSI_FGCOL_BRIGHT_BLUE))
+#define LEN_ANSI_FGCOL_BRIGHT_BLUE		(SIZ_ANSI_FGCOL_BRIGHT_BLUE - 1)
+
 #define STR_ANSI_FGCOL_BRIGHT_MAGENTA	"\033[95m"
+#define SIZ_ANSI_FGCOL_BRIGHT_MAGENTA	(sizeof (STR_ANSI_FGCOL_BRIGHT_MAGENTA))
+#define LEN_ANSI_FGCOL_BRIGHT_MAGENTA	(SIZ_ANSI_FGCOL_BRIGHT_MAGENTA - 1)
+
 #define STR_ANSI_FGCOL_BRIGHT_CYAN		"\033[96m"
+#define SIZ_ANSI_FGCOL_BRIGHT_CYAN		(sizeof (STR_ANSI_FGCOL_BRIGHT_CYAN))
+#define LEN_ANSI_FGCOL_BRIGHT_CYAN		(SIZ_ANSI_FGCOL_BRIGHT_CYAN - 1)
+
 #define STR_ANSI_FGCOL_BRIGHT_WHITE		"\033[97m"
+#define SIZ_ANSI_FGCOL_BRIGHT_WHITE		(sizeof (STR_ANSI_FGCOL_BRIGHT_WHITE))
+#define LEN_ANSI_FGCOL_BRIGHT_WHITE		(SIZ_ANSI_FGCOL_BRIGHT_WHITE - 1)
+
 #endif
 
 /*
@@ -11457,6 +11513,13 @@ When		Who				What
 */
 
 EXTERN_C_BEGIN
+
+typedef struct stransicoloursequence
+{
+	char	*szColSequence;
+	size_t	lnColSequence;
+} STRANSICOLOURSEQUENCE;
+
 
 EXTERN_C_END
 
@@ -15635,41 +15698,6 @@ typedef struct scunilogtarget
 } SCUNILOGTARGET;
 
 /*
-	The default initial size of an event line. Note that this is not the space for the text
-	but rather the entire line, including timestamp etc. If you know in advance that your
-	texts (including stamp etc) are going to be longer you may override this with a higher
-	value to possibly save some initial heap reallocations.
-
-	This value must be greater than 0.
-*/
-#ifndef CUNILOG_INITIAL_EVENTLINE_SIZE
-#define CUNILOG_INITIAL_EVENTLINE_SIZE			(256)
-#endif
-
-/*
-	The default initial size of an event line that contains ANSI colour codes for severity
-	levels plus the event line itself.
-	If you know in advance that your texts (including stamp etc) are going to be longer you
-	may override this with a higher value to possibly save some initial heap reallocations.
-	The default is CUNILOG_INITIAL_EVENTLINE_SIZE.
-
-	This value must be greater than 0.
-
-	If you don't need coloured console output for severity levels you can switch it off by
-	defining CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR or CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR.
-*/
-#ifdef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR
-#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-#define CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-#endif
-#endif
-#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-	#ifndef CUNILOG_INITIAL_COLEVENTLINE_SIZE
-	#define CUNILOG_INITIAL_COLEVENTLINE_SIZE		(CUNILOG_INITIAL_EVENTLINE_SIZE)
-	#endif
-#endif
-
-/*
 	Option flags for the uiOpts member of a SCUNILOGTARGET structure.
 */
 
@@ -15691,36 +15719,33 @@ typedef struct scunilogtarget
 #define CUNILOGTARGET_LOGPATH_ALLOCATED			SINGLEBIT64 (3)
 
 // The application name has been allocated on the heap.
-#define CUNILOGTARGET_APPNAME_ALLOCATED			SINGLEBIT64 (4)
+//#define CUNILOGTARGET_APPNAME_ALLOCATED			SINGLEBIT64 (4)
 
 // The entire path plus name of the logfile has been allocated on the heap.
-#define CUNILOGTARGET_LOGFILE_ALLOCATED			SINGLEBIT64 (5)
+//#define CUNILOGTARGET_LOGFILE_ALLOCATED			SINGLEBIT64 (5)
 
 // The file mask.
-#define CUNILOGTARGET_LOGF_MASK_ALLOCATED		SINGLEBIT64 (6)
+//#define CUNILOGTARGET_LOGF_MASK_ALLOCATED		SINGLEBIT64 (6)
 
 // The (complete) filename of the file to rotate.
-#define CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED	SINGLEBIT64 (7)
-
-// The single event line.
-#define CUNILOGTARGET_EVTLINE_ALLOCATED			SINGLEBIT64 (8)
+//#define CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED	SINGLEBIT64 (7)
 
 // The array of pointers to processors.
-#define CUNILOGTARGET_PROCESSORS_ALLOCATED		SINGLEBIT64 (9)
+#define CUNILOGTARGET_PROCESSORS_ALLOCATED		SINGLEBIT64 (8)
 
 // Run all processors on startup, independent of their individual flags.
-#define CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP	SINGLEBIT64 (10)
+#define CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP	SINGLEBIT64 (9)
 
 // The filesystem that holds the log files doesn't return filenames in
 //	descending alphabetic order.
-#define CUNILOGTARGET_FS_NEEDS_SORTING			SINGLEBIT64 (11)
+#define CUNILOGTARGET_FS_NEEDS_SORTING			SINGLEBIT64 (10)
 
 // The separate logging thread, if one exists, is paused.
-#define CUNILOGTARGET_PAUSED					SINGLEBIT64 (12)
+#define CUNILOGTARGET_PAUSED					SINGLEBIT64 (11)
 
 // Debug versions ensure that one of the initialisation functions has been called.
 #ifdef DEBUG
-	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (13)
+	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (12)
 	#define cunilogSetTargetInitialised(pt)				\
 			((pt)->uiOpts |= CUNILOGTARGET_INITIALISED)
 	#define cunilogIsTargetInitialised(pt)				\
@@ -15731,16 +15756,13 @@ typedef struct scunilogtarget
 #endif
 
 // The echo/console output processor is skipped.
-#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (14)
+#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (13)
 
 // The processor that writes to the logfile is skipped.
-#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (15)
-
-// The event line containing colour information.
-#define CUNILOGTARGET_COLEVTLINE_ALLOCATED		SINGLEBIT64 (16)
+#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (14)
 
 // Colour information should be used.
-#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (17)
+#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (15)
 
 /*
 	Macros for some flags.
@@ -15760,35 +15782,40 @@ typedef struct scunilogtarget
 #define cunilogIsTargetAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_ALLOCATED)
 
+/*
 #define cunilogSetLogPathAllocated(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_LOGPATH_ALLOCATED)
 #define cunilogIsLogPathAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_LOGPATH_ALLOCATED)
+*/
 
+/*
 #define cunilogSetAppNameAllocated(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_APPNAME_ALLOCATED)
 #define cunilogIsAppNameAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_APPNAME_ALLOCATED)
+*/
 
+/*
 #define cunilogSetLogFileAllocated(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_LOGFILE_ALLOCATED)
 #define cunilogIsLogFileAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_LOGFILE_ALLOCATED)
+*/
 
+/*
 #define cunilogSetLogFileMaskAllocated(pt)				\
 	((pt)->uiOpts |= CUNILOGTARGET_LOGF_MASK_ALLOCATED)
 #define cunilogIsLogFileMaskAllocated(pt)				\
 	((pt)->uiOpts & CUNILOGTARGET_LOGF_MASK_ALLOCATED)
+*/
 
+/*
 #define cunilogSetFileToRotateAllocated(pt)				\
 	((pt)->uiOpts |= CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
 #define cunilogIsFileToRotateAllocated(pt)				\
 	((pt)->uiOpts & CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
-
-#define cunilogSetEvtLineAllocated(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_EVTLINE_ALLOCATED)
-#define cunilogIsEvtLineAllocated(pt)					\
-	((pt)->uiOpts & CUNILOGTARGET_EVTLINE_ALLOCATED)
+*/
 
 #define cunilogSetProcessorsAllocated(pt)				\
 	((pt)->uiOpts |= CUNILOGTARGET_PROCESSORS_ALLOCATED)
@@ -15832,12 +15859,7 @@ typedef struct scunilogtarget
 #define cunilogSetNoWriteToLogfile(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 
-#define cunilogHasColourEventLineAllocated(pt)			\
-	((pt)->uiOpts & CUNILOGTARGET_COLEVTLINE_ALLOCATED)
-#define cunilogClrColourEventLineAllocated(pt)			\
-	((pt)->uiOpts &= ~ CUNILOGTARGET_COLEVTLINE_ALLOCATED)
-#define cunilogSetColourEventLineAllocated(pt)			\
-	((pt)->uiOpts |= CUNILOGTARGET_COLEVTLINE_ALLOCATED)
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 
 #define cunilogHasUseColourForEcho(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
@@ -15845,6 +15867,8 @@ typedef struct scunilogtarget
 	((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 #define cunilogSetUseColourForEcho(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+
+#endif
 
 /*
 	Event severities.
@@ -15854,21 +15878,23 @@ typedef struct scunilogtarget
 enum cunilogeventseverity
 {
 		cunilogEvtSeverityNone									//  0
-	,	cunilogEvtSeverityBlanks								//  1
-	,	cunilogEvtSeverityEmergency								//	2
-	,	cunilogEvtSeverityNotice								//	3
-	,	cunilogEvtSeverityInfo									//  4
-	,	cunilogEvtSeverityMessage								//  5
-	,	cunilogEvtSeverityWarning								//  6
-	,	cunilogEvtSeverityError									//  7
-	,	cunilogEvtSeverityFail									//  8
-	,	cunilogEvtSeverityCritical								//  9
-	,	cunilogEvtSeverityFatal									// 10
-	,	cunilogEvtSeverityDebug									// 11
-	,	cunilogEvtSeverityTrace									// 12
-	,	cunilogEvtSeverityDetail								// 13
-	,	cunilogEvtSeverityVerbose								// 14
-	,	cunilogEvtSeverityIllegal								// 15
+	,	cunilogEvtSeverityNonePass								//  1
+	,	cunilogEvtSevertiyNoneFail								//  2
+	,	cunilogEvtSeverityBlanks								//  3
+	,	cunilogEvtSeverityEmergency								//	4
+	,	cunilogEvtSeverityNotice								//	5
+	,	cunilogEvtSeverityInfo									//  6
+	,	cunilogEvtSeverityMessage								//  7
+	,	cunilogEvtSeverityWarning								//  8
+	,	cunilogEvtSeverityError									//  9
+	,	cunilogEvtSeverityFail									// 10
+	,	cunilogEvtSeverityCritical								// 11
+	,	cunilogEvtSeverityFatal									// 12
+	,	cunilogEvtSeverityDebug									// 13
+	,	cunilogEvtSeverityTrace									// 14
+	,	cunilogEvtSeverityDetail								// 15
+	,	cunilogEvtSeverityVerbose								// 16
+	,	cunilogEvtSeverityIllegal								// 17
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
@@ -15878,9 +15904,10 @@ typedef enum cunilogeventseverity cueventseverity;
 enum cunilogeventtype
 {
 		cunilogEvtTypeNormalText							// Normal UTF-8 text.
+	,	cunilogEvtTypeCommand								// Event is config/command event.
 
 		/*
-			Caption + hex dump.The number specifies the bit width of the caption's length.
+			Caption + hex dump. The number specifies the bit width of the caption's length.
 			The caption text follows its length. The caption is not NUL-terminated.
 			Member lenDataToLog only counts the amount of data to dump out, excluding
 			caption and its length.
@@ -16109,6 +16136,75 @@ END_C_DECLS
 #endif														// Of #ifndef CUNILOGSTRUCTS_H.
 /****************************************************************************************
 
+	File		cunilogevtcmds.h
+	Why:		Cunilog helper functions for event commands.
+	OS:			C99
+	Created:	2025-02-17
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-02-17	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef U_CUNILOGEVTCMDS_H
+#define U_CUNILOGEVTCMDS_H
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include <stdbool.h>
+	#include <inttypes.h>
+	#include "./cunilogstructs.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./ubfmem.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../mem/ubfmem.h"
+	#endif
+
+#endif
+
+EXTERN_C_BEGIN
+
+enum cunilogEvtCmd
+{
+
+};
+
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_CUNILOGEVTCMDS_H.
+/****************************************************************************************
+
 	File:		cunilog.h
 	Why:		Interface functions for cunilog.
 	OS:			C99.
@@ -16236,6 +16332,48 @@ When		Who				What
 // The stack/heap threshold for the ...sfmt type logging functions.
 #ifndef CUNILOG_DEFAULT_SFMT_SIZE
 #define CUNILOG_DEFAULT_SFMT_SIZE		(256)
+#endif
+
+/*
+	The default initial size of an event line. Note that this is not the space for the text
+	but rather the entire line, including timestamp etc. If you know in advance that your
+	texts (including stamp etc) are going to be longer you may override this with a higher
+	value to possibly save some initial heap reallocations.
+
+	This value must be greater than 0.
+*/
+#ifndef CUNILOG_INITIAL_EVENTLINE_SIZE
+#define CUNILOG_INITIAL_EVENTLINE_SIZE			(256)
+#endif
+
+#if CUNILOG_INITIAL_EVENTLINE_SIZE <= 0
+	#error CUNILOG_INITIAL_EVENTLINE_SIZE must be greater than zero
+#endif
+
+/*
+	The default initial size of an event line that contains ANSI colour codes for severity
+	levels plus the event line itself.
+	If you know in advance that your texts (including stamp etc) are going to be longer you
+	may override this with a higher value to possibly save some initial heap reallocations.
+	The default is CUNILOG_INITIAL_EVENTLINE_SIZE.
+
+	This value must be greater than 0.
+
+	If you don't need coloured console output for severity levels you can switch it off by
+	defining CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR or CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR.
+*/
+#ifdef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+#define CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+#endif
+#endif
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	#ifndef CUNILOG_INITIAL_COLEVENTLINE_SIZE
+	#define CUNILOG_INITIAL_COLEVENTLINE_SIZE		(CUNILOG_INITIAL_EVENTLINE_SIZE)
+	#endif
+	#if CUNILOG_INITIAL_COLEVENTLINE_SIZE <= 0
+		#error CUNILOG_INITIAL_COLEVENTLINE_SIZE must be greater than zero
+	#endif
 #endif
 
 // Literally an arbitray character. This is used to find buffer overruns in debug
@@ -16837,7 +16975,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 ;
 
 /*
-	getAbsoluteLogPathSCUNILOGTARGET
+	GetAbsoluteLogPathSCUNILOGTARGET
 
 	Returns the absolute path to the folder logfiles are written to, including a directory
 	separator. If plen is not NULL, the function returns the length of the path at the address
@@ -16849,35 +16987,35 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	The function returns NULL if it fails. In this case it will not have changed the address
 	plen points to.
 */
-const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
+const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 ;
 
 /*
-	configSCUNILOGTARGETcunilogpostfix
+	ConfigSCUNILOGTARGETcunilogpostfix
 
 	Sets the member unilogEvtTSformat of the SCUNILOGTARGET structure put points to to the
 	value of tsf.
 */
 #ifdef DEBUG
-	void configSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
+	void ConfigSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
 	;
 #else
-	#define configSCUNILOGTARGETcunilogpostfix(put, f)	\
+	#define ConfigSCUNILOGTARGETcunilogpostfix(put, f)	\
 				(put)->unilogEvtTSformat = (f)
 #endif
 
 /*
-	configSCUNILOGTARGETrunProcessorsOnStartup
+	ConfigSCUNILOGTARGETrunProcessorsOnStartup
 
 	Sets the flag CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP of the uiOpts member of the
 	SCUNILOGTARGET structure put points to according to the value of the runProcessorsOnStartup
 	enumeration rp.
 */
 #ifdef DEBUG
-	void configSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
+	void ConfigSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
 	;
 #else
-	#define configSCUNILOGTARGETrunProcessorsOnStartup(put, rp)	\
+	#define ConfigSCUNILOGTARGETrunProcessorsOnStartup(put, rp)	\
 		switch (rp)												\
 		{														\
 			case cunilogRunProcessorsOnStartup:					\
@@ -16893,48 +17031,48 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 /*
-	configSCUNILOGTARGETcunilognewline
+	ConfigSCUNILOGTARGETcunilognewline
 
 	Sets the member unilogNewLine of the SCUNILOGTARGET structure put points to to the
 	value of nl.
 */
 #ifdef DEBUG
-	void configSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
+	void ConfigSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
 	;
 #else
-	#define configSCUNILOGTARGETcunilognewline(put, nl)			\
+	#define ConfigSCUNILOGTARGETcunilognewline(put, nl)			\
 		(put)->unilogNewLine = (nl)
 #endif
 
 /*
-	configSCUNILOGTARGETeventSeverityFormatType
+	ConfigSCUNILOGTARGETeventSeverityFormatType
 
 	Sets the format type of event severities for the target structure put. It
 	sets the member evSeverityType of the SCUNILOGTARGET structure put to the
 	value of eventSeverityFormatType.
 */
 #ifdef DEBUG
-	void configSCUNILOGTARGETeventSeverityFormatType	(
+	void ConfigSCUNILOGTARGETeventSeverityFormatType	(
 			SCUNILOGTARGET				*put,
 			cueventsevtpy				eventSeverityFormatType
 														)
 	;
 #else
-	#define configSCUNILOGTARGETeventSeverityFormatType(put, evstpy)	\
+	#define ConfigSCUNILOGTARGETeventSeverityFormatType(put, evstpy)	\
 		(put)->evSeverityType = (evstpy)
 #endif
 
 /*
-	configSCUNILOGTARGETuseColourForEcho
+	ConfigSCUNILOGTARGETuseColourForEcho
 
 	Switches on/off using colours for console output depending on event severity level.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#ifdef DEBUG
-		void configSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+		void ConfigSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
 		;
 	#else
-		#define configSCUNILOGTARGETuseColourForEcho(put, b)	\
+		#define ConfigSCUNILOGTARGETuseColourForEcho(put, b)	\
 			if (bUseColour)										\
 				cunilogSetUseColourForEcho (put);				\
 			else												\
@@ -16943,7 +17081,7 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 /*
-	configSCUNILOGTARGETprocessorList
+	ConfigSCUNILOGTARGETprocessorList
 
 	Sets the processors for a SCUNILOGTARGET struture.
 
@@ -16965,36 +17103,36 @@ const char *getAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 
 */
 #ifdef DEBUG
-	void configSCUNILOGTARGETprocessorList	(
+	void ConfigSCUNILOGTARGETprocessorList	(
 					SCUNILOGTARGET			*put
 				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
 				,	unsigned int			nProcessors			// Number of processors.
 											)
 	;
 #else
-	#define configSCUNILOGTARGETprocessorList (put,		\
+	#define ConfigSCUNILOGTARGETprocessorList(put,		\
 				cup, n)									\
 				prepareProcessors (put, cuProcessorList, nProcessors)
 #endif
 
 /*
-	configSCUNILOGTARGETdisableTaskProcessors
-	configSCUNILOGTARGETenableTaskProcessors
+	ConfigSCUNILOGTARGETdisableTaskProcessors
+	ConfigSCUNILOGTARGETenableTaskProcessors
 
 	Disables/enables processors for task task.
 */
-void configSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
-void configSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+void ConfigSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+void ConfigSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
 
 /*
-	configSCUNILOGTARGETdisableEchoProcessor
-	configSCUNILOGTARGETenableEchoProcessor
+	ConfigSCUNILOGTARGETdisableEchoProcessor
+	ConfigSCUNILOGTARGETenableEchoProcessor
 
 	Disables/enables echo (console output) processors. Echo or console output processors
 	are processors whose task is cunilogProcessEchoToConsole.
 */
-void configSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put);
-void configSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
+void ConfigSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put);
+void ConfigSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
 
 /*
 	EnterSCUNILOGTARGET
@@ -17023,22 +17161,33 @@ void configSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
 
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, these macros/functions do nothing.
 */
-void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
-;
-void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
-;
-#define LockSCUNILOGTARGET(put)							\
-			EnterSCUNILOGTARGET (put)
-#define UnlockSCUNILOGTARGET(put)						\
-			LeaveSCUNILOGTARGET (put)
-#define EnterSCUNILOGTARGETstatic()						\
-			LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
-#define LeaveSCUNILOGTARGETstatic()						\
-			EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
-#define LockSCUNILOGTARGETstatic()						\
-			EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
-#define UnlockSCUNILOGTARGETstatic()					\
-			LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
+	;
+	void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
+	;
+	#define LockSCUNILOGTARGET(put)						\
+				EnterSCUNILOGTARGET (put)
+	#define UnlockSCUNILOGTARGET(put)					\
+				LeaveSCUNILOGTARGET (put)
+	#define EnterSCUNILOGTARGETstatic()					\
+				LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+	#define LeaveSCUNILOGTARGETstatic()					\
+				EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+	#define LockSCUNILOGTARGETstatic()					\
+				EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+	#define UnlockSCUNILOGTARGETstatic()				\
+				LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#else
+	#define EnterSCUNILOGTARGET(put)
+	#define LeaveSCUNILOGTARGET(put)
+	#define LockSCUNILOGTARGET(put)
+	#define UnlockSCUNILOGTARGET(put)
+	#define EnterSCUNILOGTARGETstatic()
+	#define LeaveSCUNILOGTARGETstatic()
+	#define LockSCUNILOGTARGETstatic()
+	#define UnlockSCUNILOGTARGETstatic()
+#endif
 
 /*
 	DoneSCUNILOGTARGET

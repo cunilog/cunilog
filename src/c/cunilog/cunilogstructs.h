@@ -755,41 +755,6 @@ typedef struct scunilogtarget
 } SCUNILOGTARGET;
 
 /*
-	The default initial size of an event line. Note that this is not the space for the text
-	but rather the entire line, including timestamp etc. If you know in advance that your
-	texts (including stamp etc) are going to be longer you may override this with a higher
-	value to possibly save some initial heap reallocations.
-
-	This value must be greater than 0.
-*/
-#ifndef CUNILOG_INITIAL_EVENTLINE_SIZE
-#define CUNILOG_INITIAL_EVENTLINE_SIZE			(256)
-#endif
-
-/*
-	The default initial size of an event line that contains ANSI colour codes for severity
-	levels plus the event line itself.
-	If you know in advance that your texts (including stamp etc) are going to be longer you
-	may override this with a higher value to possibly save some initial heap reallocations.
-	The default is CUNILOG_INITIAL_EVENTLINE_SIZE.
-
-	This value must be greater than 0.
-
-	If you don't need coloured console output for severity levels you can switch it off by
-	defining CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR or CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR.
-*/
-#ifdef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR
-#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-#define CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-#endif
-#endif
-#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-	#ifndef CUNILOG_INITIAL_COLEVENTLINE_SIZE
-	#define CUNILOG_INITIAL_COLEVENTLINE_SIZE		(CUNILOG_INITIAL_EVENTLINE_SIZE)
-	#endif
-#endif
-
-/*
 	Option flags for the uiOpts member of a SCUNILOGTARGET structure.
 */
 
@@ -811,36 +776,33 @@ typedef struct scunilogtarget
 #define CUNILOGTARGET_LOGPATH_ALLOCATED			SINGLEBIT64 (3)
 
 // The application name has been allocated on the heap.
-#define CUNILOGTARGET_APPNAME_ALLOCATED			SINGLEBIT64 (4)
+//#define CUNILOGTARGET_APPNAME_ALLOCATED			SINGLEBIT64 (4)
 
 // The entire path plus name of the logfile has been allocated on the heap.
-#define CUNILOGTARGET_LOGFILE_ALLOCATED			SINGLEBIT64 (5)
+//#define CUNILOGTARGET_LOGFILE_ALLOCATED			SINGLEBIT64 (5)
 
 // The file mask.
-#define CUNILOGTARGET_LOGF_MASK_ALLOCATED		SINGLEBIT64 (6)
+//#define CUNILOGTARGET_LOGF_MASK_ALLOCATED		SINGLEBIT64 (6)
 
 // The (complete) filename of the file to rotate.
-#define CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED	SINGLEBIT64 (7)
-
-// The single event line.
-#define CUNILOGTARGET_EVTLINE_ALLOCATED			SINGLEBIT64 (8)
+//#define CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED	SINGLEBIT64 (7)
 
 // The array of pointers to processors.
-#define CUNILOGTARGET_PROCESSORS_ALLOCATED		SINGLEBIT64 (9)
+#define CUNILOGTARGET_PROCESSORS_ALLOCATED		SINGLEBIT64 (8)
 
 // Run all processors on startup, independent of their individual flags.
-#define CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP	SINGLEBIT64 (10)
+#define CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP	SINGLEBIT64 (9)
 
 // The filesystem that holds the log files doesn't return filenames in
 //	descending alphabetic order.
-#define CUNILOGTARGET_FS_NEEDS_SORTING			SINGLEBIT64 (11)
+#define CUNILOGTARGET_FS_NEEDS_SORTING			SINGLEBIT64 (10)
 
 // The separate logging thread, if one exists, is paused.
-#define CUNILOGTARGET_PAUSED					SINGLEBIT64 (12)
+#define CUNILOGTARGET_PAUSED					SINGLEBIT64 (11)
 
 // Debug versions ensure that one of the initialisation functions has been called.
 #ifdef DEBUG
-	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (13)
+	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (12)
 	#define cunilogSetTargetInitialised(pt)				\
 			((pt)->uiOpts |= CUNILOGTARGET_INITIALISED)
 	#define cunilogIsTargetInitialised(pt)				\
@@ -851,16 +813,13 @@ typedef struct scunilogtarget
 #endif
 
 // The echo/console output processor is skipped.
-#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (14)
+#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (13)
 
 // The processor that writes to the logfile is skipped.
-#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (15)
-
-// The event line containing colour information.
-#define CUNILOGTARGET_COLEVTLINE_ALLOCATED		SINGLEBIT64 (16)
+#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (14)
 
 // Colour information should be used.
-#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (17)
+#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (15)
 
 /*
 	Macros for some flags.
@@ -880,35 +839,40 @@ typedef struct scunilogtarget
 #define cunilogIsTargetAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_ALLOCATED)
 
+/*
 #define cunilogSetLogPathAllocated(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_LOGPATH_ALLOCATED)
 #define cunilogIsLogPathAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_LOGPATH_ALLOCATED)
+*/
 
+/*
 #define cunilogSetAppNameAllocated(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_APPNAME_ALLOCATED)
 #define cunilogIsAppNameAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_APPNAME_ALLOCATED)
+*/
 
+/*
 #define cunilogSetLogFileAllocated(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_LOGFILE_ALLOCATED)
 #define cunilogIsLogFileAllocated(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_LOGFILE_ALLOCATED)
+*/
 
+/*
 #define cunilogSetLogFileMaskAllocated(pt)				\
 	((pt)->uiOpts |= CUNILOGTARGET_LOGF_MASK_ALLOCATED)
 #define cunilogIsLogFileMaskAllocated(pt)				\
 	((pt)->uiOpts & CUNILOGTARGET_LOGF_MASK_ALLOCATED)
+*/
 
+/*
 #define cunilogSetFileToRotateAllocated(pt)				\
 	((pt)->uiOpts |= CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
 #define cunilogIsFileToRotateAllocated(pt)				\
 	((pt)->uiOpts & CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
-
-#define cunilogSetEvtLineAllocated(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_EVTLINE_ALLOCATED)
-#define cunilogIsEvtLineAllocated(pt)					\
-	((pt)->uiOpts & CUNILOGTARGET_EVTLINE_ALLOCATED)
+*/
 
 #define cunilogSetProcessorsAllocated(pt)				\
 	((pt)->uiOpts |= CUNILOGTARGET_PROCESSORS_ALLOCATED)
@@ -952,12 +916,7 @@ typedef struct scunilogtarget
 #define cunilogSetNoWriteToLogfile(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 
-#define cunilogHasColourEventLineAllocated(pt)			\
-	((pt)->uiOpts & CUNILOGTARGET_COLEVTLINE_ALLOCATED)
-#define cunilogClrColourEventLineAllocated(pt)			\
-	((pt)->uiOpts &= ~ CUNILOGTARGET_COLEVTLINE_ALLOCATED)
-#define cunilogSetColourEventLineAllocated(pt)			\
-	((pt)->uiOpts |= CUNILOGTARGET_COLEVTLINE_ALLOCATED)
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 
 #define cunilogHasUseColourForEcho(pt)					\
 	((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
@@ -965,6 +924,8 @@ typedef struct scunilogtarget
 	((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 #define cunilogSetUseColourForEcho(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+
+#endif
 
 /*
 	Event severities.
@@ -974,21 +935,23 @@ typedef struct scunilogtarget
 enum cunilogeventseverity
 {
 		cunilogEvtSeverityNone									//  0
-	,	cunilogEvtSeverityBlanks								//  1
-	,	cunilogEvtSeverityEmergency								//	2
-	,	cunilogEvtSeverityNotice								//	3
-	,	cunilogEvtSeverityInfo									//  4
-	,	cunilogEvtSeverityMessage								//  5
-	,	cunilogEvtSeverityWarning								//  6
-	,	cunilogEvtSeverityError									//  7
-	,	cunilogEvtSeverityFail									//  8
-	,	cunilogEvtSeverityCritical								//  9
-	,	cunilogEvtSeverityFatal									// 10
-	,	cunilogEvtSeverityDebug									// 11
-	,	cunilogEvtSeverityTrace									// 12
-	,	cunilogEvtSeverityDetail								// 13
-	,	cunilogEvtSeverityVerbose								// 14
-	,	cunilogEvtSeverityIllegal								// 15
+	,	cunilogEvtSeverityNonePass								//  1
+	,	cunilogEvtSevertiyNoneFail								//  2
+	,	cunilogEvtSeverityBlanks								//  3
+	,	cunilogEvtSeverityEmergency								//	4
+	,	cunilogEvtSeverityNotice								//	5
+	,	cunilogEvtSeverityInfo									//  6
+	,	cunilogEvtSeverityMessage								//  7
+	,	cunilogEvtSeverityWarning								//  8
+	,	cunilogEvtSeverityError									//  9
+	,	cunilogEvtSeverityFail									// 10
+	,	cunilogEvtSeverityCritical								// 11
+	,	cunilogEvtSeverityFatal									// 12
+	,	cunilogEvtSeverityDebug									// 13
+	,	cunilogEvtSeverityTrace									// 14
+	,	cunilogEvtSeverityDetail								// 15
+	,	cunilogEvtSeverityVerbose								// 16
+	,	cunilogEvtSeverityIllegal								// 17
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
@@ -998,9 +961,10 @@ typedef enum cunilogeventseverity cueventseverity;
 enum cunilogeventtype
 {
 		cunilogEvtTypeNormalText							// Normal UTF-8 text.
+	,	cunilogEvtTypeCommand								// Event is config/command event.
 
 		/*
-			Caption + hex dump.The number specifies the bit width of the caption's length.
+			Caption + hex dump. The number specifies the bit width of the caption's length.
 			The caption text follows its length. The caption is not NUL-terminated.
 			Member lenDataToLog only counts the amount of data to dump out, excluding
 			caption and its length.

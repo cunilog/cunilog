@@ -147,6 +147,9 @@
     <ClCompile Include="..\..\..\..\src\c\string\stransi.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogevtcmds.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogstructs.h">
@@ -303,6 +306,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\c\string\stransi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogevtcmds.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

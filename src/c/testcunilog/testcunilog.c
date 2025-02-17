@@ -171,8 +171,10 @@ int main (int argc, char *argv [])
 	testV (put, "Hello %i", 20);
 	logTextU8sev_static (cunilogEvtSeverityDebug, "This is a debug message");
 
+	/*
 	Sleep (2000);
 	puts (STR_ANSI_FGCOL_BRIGHT_GREEN "This is the text we test the attributes with." STR_ANSI_RESET);
+	*/
 
 	/*
 	Sleep (2000);
