@@ -176,6 +176,7 @@ When		Who				What
 	Note that bright black is grey.
 */
 #ifndef STR_ANSI_BGCOL_BLACK
+
 #define STR_ANSI_BGCOL_BLACK			"\033[40m"
 #define STR_ANSI_BGCOL_RED				"\033[41m"
 #define STR_ANSI_BGCOL_GREEN			"\033[42m"
@@ -184,6 +185,7 @@ When		Who				What
 #define STR_ANSI_BGCOL_MAGENTA			"\033[45m"
 #define STR_ANSI_BGCOL_CYAN				"\033[46m"
 #define STR_ANSI_BGCOL_WHITE			"\033[47m"
+
 #endif
 
 /*
@@ -192,6 +194,7 @@ When		Who				What
 	Note that bright black is grey.
 */
 #ifndef STR_ANSI_BGCOL_BRIGHT_BLACK
+
 #define STR_ANSI_BGCOL_BRIGHT_BLACK		"\033[100m"
 #define STR_ANSI_BGCOL_GREY				STR_ANSI_FGCOL_BRIGHT_BLACK
 #define STR_ANSI_BGCOL_GRAY				STR_ANSI_FGCOL_BRIGHT_BLACK
@@ -202,6 +205,7 @@ When		Who				What
 #define STR_ANSI_BGCOL_BRIGHT_MAGENTA	"\033[105m"
 #define STR_ANSI_BGCOL_BRIGHT_CYAN		"\033[106m"
 #define STR_ANSI_BGCOL_BRIGHT_WHITE		"\033[107m"
+
 #endif
 
 /*

@@ -47,6 +47,8 @@ When		Who				What
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
+	#include "./cunilogdefs.h"
+
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./SingleBits.h"
@@ -624,37 +626,38 @@ typedef struct scunilognpi
 															//	needs to start from scratch.
 } SCUNILOGNPI;
 
+#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+	/*
+		Possible return values of the error/fail callback function.
 
-/*
-	Possible return values of the error/fail callback function.
+		cunilogErrCB_next_processor			The error/fail callback function is called again for
+											the next processor that fails, even for the same event.
 
-	cunilogErrCB_next_processor			The error/fail callback function is called again for
-										the next processor that fails, even for the same event.
+		cunilogErrCB_next_event				The error/fail callback function is called again if the
+											next event fails. It is not called for failing
+											processors of this event.
 
-	cunilogErrCB_next_event				The error/fail callback function is called again if the
-										next event fails. It is not called for failing
-										processors of this event.
+		cunilogErrCB_shutdown				The Cunilog target is shutdown.
 
-	cunilogErrCB_shutdown				The Cunilog target is shutdown.
+		cunilogErrCB_cancel					The Cunilog target is cancelled.
+	*/
+	enum enErrCBretval
+	{
+			cunilogErrCB_next_processor
+		,	cunilogErrCB_next_event
+		,	cunilogErrCB_shutdown
+		,	cunilogErrCB_cancel
+		// Do not add anything below this line.
+		,	cunilogErrCB_AmountEnumValues						// Used for sanity checks.
+		// Do not add anything below cunilogErrCB_AmountEnumValues.
+	};
+	typedef enum enErrCBretval errCBretval;
 
-	cunilogErrCB_cancel					The Cunilog target is cancelled.
-*/
-enum enErrCBretval
-{
-		cunilogErrCB_next_processor
-	,	cunilogErrCB_next_event
-	,	cunilogErrCB_shutdown
-	,	cunilogErrCB_cancel
-	// Do not add anything below this line.
-	,	cunilogErrCB_AmountEnumValues						// Used for sanity checks.
-	// Do not add anything below cunilogErrCB_AmountEnumValues.
-};
-typedef enum enErrCBretval errCBretval;
-
-/*
-	Error/fail callback function.
-*/
-typedef errCBretval (*cunilogErrCallback) (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev);
+	/*
+		Error/fail callback function.
+	*/
+	typedef errCBretval (*cunilogErrCallback) (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev);
+#endif
 
 typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 
@@ -750,7 +753,9 @@ typedef struct scunilogtarget
 
 	cueventsevtpy					evSeverityType;			// Format of the event severity.
 
-	cunilogErrCallback				errorCB;				// Error/fail callback function.
+	#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+		cunilogErrCallback			errorCB;				// Error/fail callback function.
+	#endif
 	CUNILOG_ROTATOR_ARGS			*prargs;				// Current rotator arguments.
 } SCUNILOGTARGET;
 
@@ -820,6 +825,9 @@ typedef struct scunilogtarget
 
 // Colour information should be used.
 #define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (15)
+
+// Colour information should be used.
+#define CUNILOGTARGET_DEBUG_QUEUE_LOCKED		SINGLEBIT64 (16)
 
 /*
 	Macros for some flags.
@@ -908,14 +916,25 @@ typedef struct scunilogtarget
 
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	#define cunilogHasUseColourForEcho(pt)				\
+		((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#define cunilogClrUseColourForEcho(pt)				\
+		((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#define cunilogSetUseColourForEcho(pt)				\
+		((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+#endif
 
-#define cunilogHasUseColourForEcho(pt)					\
-	((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
-#define cunilogClrUseColourForEcho(pt)					\
-	((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
-#define cunilogSetUseColourForEcho(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
-
+#if defined (DEBUG) && !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
+	#define cunilogHasDebugQueueLocked(pt)				\
+		((pt)->uiOpts & CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+	#define cunilogClrDebugQueueLocked(pt)				\
+		((pt)->uiOpts &= ~ CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+	#define cunilogSetDebugQueueLocked(pt)				\
+		((pt)->uiOpts |= CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+#else
+	#define cunilogHasDebugQueueLocked(pt)
+	#define cunilogClrDebugQueueLocked(pt)
+	#define cunilogSetDebugQueueLocked(pt)
 #endif
 
 /*

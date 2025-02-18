@@ -54,6 +54,7 @@ head
 /string/strwildcards
 /string/ubfcharscountsandchecks
 /cunilog/cunilogstructs
+/cunilog/cunilogevtcmdsstructs
 /cunilog/cunilogevtcmds
 /cunilog/cunilog
 bottom
@@ -101,6 +102,7 @@ head
 /string/strwildcards
 /string/ubfcharscountsandchecks
 /cunilog/cunilogstructs
+/cunilog/cunilogevtcmdsstructs
 /cunilog/cunilogevtcmds
 /cunilog/cunilog
 bottom

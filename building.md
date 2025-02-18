@@ -20,6 +20,7 @@ To build the software as part of your application, you got two choices:
 	changes. Updates might require files to be removed or added. The list with the files to add to your project can be found in the file __SingleFiles.txt__ in the __scripts__ directory. Alternatively you can follow these instructions:
   - Add all files from the folders __cunilog__, __datetime__, __dbg__, __extern__, __mem__, __pre__, and __string__.
   - Add all files from the folder __OS__ and its subfolders, which are __Apple__, __POSIX__, and __Windows__.
+  - If you're on Windows, create the followoing preprocessor definitions: ___CRT_SECURE_NO_WARNINGS__, __HAVE_STRWILDCARDS__, __HAVE_SHELLAPI__, and __HAVE_USERENV__.
 
 ## Android
 

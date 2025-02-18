@@ -1,16 +1,16 @@
 /****************************************************************************************
 
-	File		cunilogevtcmds.c
+	File		cunilogevtcmdsstructs.h
 	Why:		Cunilog helper functions for event commands.
 	OS:			C99
-	Created:	2025-02-17
+	Created:	2025-02-18
 
 History
 -------
 
 When		Who				What
 -----------------------------------------------------------------------------------------
-2025-02-17	Thomas			Created.
+2025-02-18	Thomas			Created.
 
 ****************************************************************************************/
 
@@ -37,12 +37,14 @@ When		Who				What
 	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#ifndef U_CUNILOGEVTCMDSSTRUCTS_H
+#define U_CUNILOGEVTCMDSSTRUCTS_H
+
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
 	#include <stdbool.h>
 	#include <inttypes.h>
-	#include "./cunilogevtcmdsstructs.h"
-	#include "./cunilogevtcmds.h"
+	#include "./cunilogstructs.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
@@ -54,3 +56,14 @@ When		Who				What
 
 #endif
 
+EXTERN_C_BEGIN
+
+enum cunilogEvtCmd
+{
+
+};
+
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_CUNILOGEVTCMDSSTRUCTS_H.

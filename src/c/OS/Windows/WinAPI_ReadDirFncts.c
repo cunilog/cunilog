@@ -211,76 +211,76 @@ uint64_t ReleaseDirectoryEntriesSDIRW_cnt (SDIRW *swd)
 }
 
 #ifdef HAVE_MEMBUF
-uint64_t ForEachDirectoryEntryU8_Ex	(
-				const char				*strPathU8,
-				pForEachDirEntryU8		fedEnt,
-				void					*pCustom,
-				unsigned int			*pnSubLevels,
-				SMEMBUF                 *pmb
-									)
-{
-	HANDLE				hFind;
-	WIN32_FIND_DATAW	wfdW;
-	uint64_t			uiEnts				= 0;			// The return value.
-	SRDIRONEENTRYSTRUCT	sdOneEntry;
-	DWORD				dwErrToReturn;
-
-	sdOneEntry.UTF8orUTF16.pstrPathWorU8	= strPathU8;
-	sdOneEntry.pwfd							= &wfdW;
-	sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
-	sdOneEntry.pCustom						= pCustom;
-	hFind = FindFirstFileU8 (strPathU8, &wfdW);
-	if (INVALID_HANDLE_VALUE == hFind)
-	{	// Maybe no files or whatever. Remember the system error code here.
-		dwErrToReturn = GetLastError ();
-		goto Return;
-	}
-	do
+	uint64_t ForEachDirectoryEntryU8_Ex	(
+					const char				*strPathU8,
+					pForEachDirEntryU8		fedEnt,
+					void					*pCustom,
+					unsigned int			*pnSubLevels,
+					SMEMBUF                 *pmb
+										)
 	{
-		// Go through the folder and pick up each entry.
-		if (!isDotOrDotDotW (wfdW.cFileName))
-		{
-			++ uiEnts;
-			if (fedEnt)
-			{
-				if (!fedEnt (&sdOneEntry))
-					break;
-			}
-			if	(
-						wfdW.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY
-					&&	pnSubLevels
-					&&	*pnSubLevels
-				)
-			{
-				*pnSubLevels -= 1;
-				bool bSubpath = U8pathSMEMBUF_from_U8path_and_WinU16FileName    (
-                                    pmb, strPathU8, USE_STRLEN, wfdW.cFileName
-                                                                                );
-				if (bSubpath)
-				{	// Recursively invoke us again.
-					unsigned int nSubLevels = *pnSubLevels;
-					uiEnts += ForEachDirectoryEntryU8_Ex	(
-                                            pmb->buf.pch,
-                                            fedEnt,
-                                            pCustom,
-                                            &nSubLevels,
-                                            pmb
-                                                            );
-				}
-				*pnSubLevels += 1;
-			}
+		HANDLE				hFind;
+		WIN32_FIND_DATAW	wfdW;
+		uint64_t			uiEnts				= 0;			// The return value.
+		SRDIRONEENTRYSTRUCT	sdOneEntry;
+		DWORD				dwErrToReturn;
+
+		sdOneEntry.UTF8orUTF16.pstrPathWorU8	= strPathU8;
+		sdOneEntry.pwfd							= &wfdW;
+		sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
+		sdOneEntry.pCustom						= pCustom;
+		hFind = FindFirstFileU8 (strPathU8, &wfdW);
+		if (INVALID_HANDLE_VALUE == hFind)
+		{	// Maybe no files or whatever. Remember the system error code here.
+			dwErrToReturn = GetLastError ();
+			goto Return;
 		}
-	} while (FindNextFileW (hFind, &wfdW) != 0);
+		do
+		{
+			// Go through the folder and pick up each entry.
+			if (!isDotOrDotDotW (wfdW.cFileName))
+			{
+				++ uiEnts;
+				if (fedEnt)
+				{
+					if (!fedEnt (&sdOneEntry))
+						break;
+				}
+				if	(
+							wfdW.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY
+						&&	pnSubLevels
+						&&	*pnSubLevels
+					)
+				{
+					*pnSubLevels -= 1;
+					bool bSubpath = U8pathSMEMBUF_from_U8path_and_WinU16FileName    (
+										pmb, strPathU8, USE_STRLEN, wfdW.cFileName
+																					);
+					if (bSubpath)
+					{	// Recursively invoke us again.
+						unsigned int nSubLevels = *pnSubLevels;
+						uiEnts += ForEachDirectoryEntryU8_Ex	(
+												pmb->buf.pch,
+												fedEnt,
+												pCustom,
+												&nSubLevels,
+												pmb
+																);
+					}
+					*pnSubLevels += 1;
+				}
+			}
+		} while (FindNextFileW (hFind, &wfdW) != 0);
 
-	// We want the caller to be able to obtain the last error produced by FindNextFileW ()
-	//	instead of FindClose ().
-	dwErrToReturn = GetLastError ();
-	FindClose (hFind);
+		// We want the caller to be able to obtain the last error produced by FindNextFileW ()
+		//	instead of FindClose ().
+		dwErrToReturn = GetLastError ();
+		FindClose (hFind);
 
-Return:
-	SetLastError (dwErrToReturn);
-	return uiEnts;
-}
+	Return:
+		SetLastError (dwErrToReturn);
+		return uiEnts;
+	}
 #endif
 
 uint64_t ForEachDirectoryEntryU8	(

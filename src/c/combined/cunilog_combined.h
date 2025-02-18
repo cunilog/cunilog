@@ -20,6 +20,23 @@ When		Who				What
 #endif
 
 /*
+	These definitions are only required for Windows but defining them
+	unconditionally won't do any harm.
+*/
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+#ifndef HAVE_STRWILDCARDS
+#define HAVE_STRWILDCARDS
+#endif
+#ifndef HAVE_SHELLAPI
+#define HAVE_SHELLAPI
+#endif
+#ifndef HAVE_USERENV
+#define HAVE_USERENV
+#endif
+
+/*
 	Our include guard.
 	The #endif is in bottom.h.
 */
@@ -163,33 +180,55 @@ When		Who				What
 #ifndef U_CUNILOGDEFS_H
 #define U_CUNILOGDEFS_H
 
-/*
-	Suppresses the MSVC warnings for strcpy (), memcpy (), etc.
-*/
-#ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./platform.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/platform.h"
+	#endif
+
 #endif
 
 /*
-	Probably not required.
+	Suppresses the MSVC warnings for strcpy (), memcpy (), etc.
 */
-#ifndef HAVE_STRWILDCARDS
-#define HAVE_STRWILDCARDS
+#ifdef PLATFORM_IS_WINDOWS
+	#ifndef _CRT_SECURE_NO_WARNINGS
+	#define _CRT_SECURE_NO_WARNINGS
+	//#warning _CRT_SECURE_NO_WARNINGS should be defined for Cunilog to build.
+	#endif
+#endif
+
+/*
+	Wildcard support
+*/
+#ifdef PLATFORM_IS_WINDOWS
+	#ifndef HAVE_STRWILDCARDS
+	#define HAVE_STRWILDCARDS
+	#endif
 #endif
 
 /*
 	For MoveToRecycleBinU8 ().
 */
-#ifndef HAVE_SHELLAPI
-#define HAVE_SHELLAPI
+#ifdef PLATFORM_IS_WINDOWS
+	#ifndef HAVE_SHELLAPI
+	#define HAVE_SHELLAPI
+	#endif
 #endif
 
 /*
 	For GetDefaultUserProfileDirectoryU8 ().
 */
-#ifndef HAVE_USERENV
-#define HAVE_USERENV
+#ifdef PLATFORM_IS_WINDOWS
+	#ifndef HAVE_USERENV
+	#define HAVE_USERENV
+	#endif
 #endif
+
 
 #endif														// Of #ifndef U_CUNILOGDEFS_H.
 /****************************************************************************************
@@ -11472,6 +11511,7 @@ When		Who				What
 	Note that bright black is grey.
 */
 #ifndef STR_ANSI_BGCOL_BLACK
+
 #define STR_ANSI_BGCOL_BLACK			"\033[40m"
 #define STR_ANSI_BGCOL_RED				"\033[41m"
 #define STR_ANSI_BGCOL_GREEN			"\033[42m"
@@ -11480,6 +11520,7 @@ When		Who				What
 #define STR_ANSI_BGCOL_MAGENTA			"\033[45m"
 #define STR_ANSI_BGCOL_CYAN				"\033[46m"
 #define STR_ANSI_BGCOL_WHITE			"\033[47m"
+
 #endif
 
 /*
@@ -11488,6 +11529,7 @@ When		Who				What
 	Note that bright black is grey.
 */
 #ifndef STR_ANSI_BGCOL_BRIGHT_BLACK
+
 #define STR_ANSI_BGCOL_BRIGHT_BLACK		"\033[100m"
 #define STR_ANSI_BGCOL_GREY				STR_ANSI_FGCOL_BRIGHT_BLACK
 #define STR_ANSI_BGCOL_GRAY				STR_ANSI_FGCOL_BRIGHT_BLACK
@@ -11498,6 +11540,7 @@ When		Who				What
 #define STR_ANSI_BGCOL_BRIGHT_MAGENTA	"\033[105m"
 #define STR_ANSI_BGCOL_BRIGHT_CYAN		"\033[106m"
 #define STR_ANSI_BGCOL_BRIGHT_WHITE		"\033[107m"
+
 #endif
 
 /*
@@ -14990,6 +15033,8 @@ When		Who				What
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
+	#include "./cunilogdefs.h"
+
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./SingleBits.h"
@@ -15567,37 +15612,38 @@ typedef struct scunilognpi
 															//	needs to start from scratch.
 } SCUNILOGNPI;
 
+#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+	/*
+		Possible return values of the error/fail callback function.
 
-/*
-	Possible return values of the error/fail callback function.
+		cunilogErrCB_next_processor			The error/fail callback function is called again for
+											the next processor that fails, even for the same event.
 
-	cunilogErrCB_next_processor			The error/fail callback function is called again for
-										the next processor that fails, even for the same event.
+		cunilogErrCB_next_event				The error/fail callback function is called again if the
+											next event fails. It is not called for failing
+											processors of this event.
 
-	cunilogErrCB_next_event				The error/fail callback function is called again if the
-										next event fails. It is not called for failing
-										processors of this event.
+		cunilogErrCB_shutdown				The Cunilog target is shutdown.
 
-	cunilogErrCB_shutdown				The Cunilog target is shutdown.
+		cunilogErrCB_cancel					The Cunilog target is cancelled.
+	*/
+	enum enErrCBretval
+	{
+			cunilogErrCB_next_processor
+		,	cunilogErrCB_next_event
+		,	cunilogErrCB_shutdown
+		,	cunilogErrCB_cancel
+		// Do not add anything below this line.
+		,	cunilogErrCB_AmountEnumValues						// Used for sanity checks.
+		// Do not add anything below cunilogErrCB_AmountEnumValues.
+	};
+	typedef enum enErrCBretval errCBretval;
 
-	cunilogErrCB_cancel					The Cunilog target is cancelled.
-*/
-enum enErrCBretval
-{
-		cunilogErrCB_next_processor
-	,	cunilogErrCB_next_event
-	,	cunilogErrCB_shutdown
-	,	cunilogErrCB_cancel
-	// Do not add anything below this line.
-	,	cunilogErrCB_AmountEnumValues						// Used for sanity checks.
-	// Do not add anything below cunilogErrCB_AmountEnumValues.
-};
-typedef enum enErrCBretval errCBretval;
-
-/*
-	Error/fail callback function.
-*/
-typedef errCBretval (*cunilogErrCallback) (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev);
+	/*
+		Error/fail callback function.
+	*/
+	typedef errCBretval (*cunilogErrCallback) (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev);
+#endif
 
 typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 
@@ -15693,7 +15739,9 @@ typedef struct scunilogtarget
 
 	cueventsevtpy					evSeverityType;			// Format of the event severity.
 
-	cunilogErrCallback				errorCB;				// Error/fail callback function.
+	#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+		cunilogErrCallback			errorCB;				// Error/fail callback function.
+	#endif
 	CUNILOG_ROTATOR_ARGS			*prargs;				// Current rotator arguments.
 } SCUNILOGTARGET;
 
@@ -15763,6 +15811,9 @@ typedef struct scunilogtarget
 
 // Colour information should be used.
 #define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (15)
+
+// Colour information should be used.
+#define CUNILOGTARGET_DEBUG_QUEUE_LOCKED		SINGLEBIT64 (16)
 
 /*
 	Macros for some flags.
@@ -15851,14 +15902,25 @@ typedef struct scunilogtarget
 
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	#define cunilogHasUseColourForEcho(pt)				\
+		((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#define cunilogClrUseColourForEcho(pt)				\
+		((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#define cunilogSetUseColourForEcho(pt)				\
+		((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+#endif
 
-#define cunilogHasUseColourForEcho(pt)					\
-	((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
-#define cunilogClrUseColourForEcho(pt)					\
-	((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
-#define cunilogSetUseColourForEcho(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
-
+#if defined (DEBUG) && !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
+	#define cunilogHasDebugQueueLocked(pt)				\
+		((pt)->uiOpts & CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+	#define cunilogClrDebugQueueLocked(pt)				\
+		((pt)->uiOpts &= ~ CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+	#define cunilogSetDebugQueueLocked(pt)				\
+		((pt)->uiOpts |= CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+#else
+	#define cunilogHasDebugQueueLocked(pt)
+	#define cunilogClrDebugQueueLocked(pt)
+	#define cunilogSetDebugQueueLocked(pt)
 #endif
 
 /*
@@ -16127,6 +16189,75 @@ END_C_DECLS
 #endif														// Of #ifndef CUNILOGSTRUCTS_H.
 /****************************************************************************************
 
+	File		cunilogevtcmdsstructs.h
+	Why:		Cunilog helper functions for event commands.
+	OS:			C99
+	Created:	2025-02-18
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-02-18	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef U_CUNILOGEVTCMDSSTRUCTS_H
+#define U_CUNILOGEVTCMDSSTRUCTS_H
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include <stdbool.h>
+	#include <inttypes.h>
+	#include "./cunilogstructs.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./ubfmem.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../mem/ubfmem.h"
+	#endif
+
+#endif
+
+EXTERN_C_BEGIN
+
+enum cunilogEvtCmd
+{
+
+};
+
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_CUNILOGEVTCMDSSTRUCTS_H.
+/****************************************************************************************
+
 	File		cunilogevtcmds.h
 	Why:		Cunilog helper functions for event commands.
 	OS:			C99
@@ -16185,10 +16316,6 @@ When		Who				What
 
 EXTERN_C_BEGIN
 
-enum cunilogEvtCmd
-{
-
-};
 
 
 EXTERN_C_END
@@ -16354,9 +16481,9 @@ When		Who				What
 	defining CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR or CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR.
 */
 #ifdef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOR
-#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-#define CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-#endif
+	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	#define CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	#endif
 #endif
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#ifndef CUNILOG_INITIAL_COLEVENTLINE_SIZE

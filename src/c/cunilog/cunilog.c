@@ -434,6 +434,7 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 		#else
 			pthread_mutex_lock (&put->cl.mt);
 		#endif
+		cunilogSetDebugQueueLocked (put);
 	}
 #else
 	#define EnterCUNILOG_LOCKER(x)
@@ -448,6 +449,7 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 			ubf_assert_true (put->cl.bInitialised);
 
 			LeaveCriticalSection (&put->cl.cs);
+			cunilogClrDebugQueueLocked (put);
 		}
 	#else
 		static inline void LeaveCUNILOG_LOCKER (SCUNILOGTARGET *put)
@@ -457,6 +459,7 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 			ubf_assert_true (put->cl.bInitialised);
 
 			pthread_mutex_unlock (&put->cl.mt);
+			cunilogClrDebugQueueLocked (put);
 		}
 	#endif
 #else
@@ -1331,7 +1334,9 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 	ubf_assert_non_NULL (put);
 
 	str_remove_path_navigators (put->mbLogPath.buf.pch, &put->lnLogPath);
-	put->errorCB							= NULL;
+	#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+		put->errorCB						= NULL;
+	#endif
 	InitSCUNILOGNPI							(&put->scuNPI);
 	DBG_INIT_CNTTRACKER						(put->evtLineTracker);
 	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
@@ -2368,11 +2373,7 @@ static inline size_t widthOfCaptionLengthFromCunilogEventType (cueventtype type)
 	switch (type)
 	{
 		case cunilogEvtTypeNormalText:				return 0;
-	#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-		case cunilogEvtTypeCommand:
-			ubf_assert_msg (false, "Cunilog bug! This function is not to be called in this case!");
-													return 0;
-	#endif
+		case cunilogEvtTypeCommand:					return 0;
 		case cunilogEvtTypeHexDumpWithCaption8:		return 1;
 		case cunilogEvtTypeHexDumpWithCaption16:	return 2;
 		case cunilogEvtTypeHexDumpWithCaption32:	return 4;
@@ -2817,49 +2818,53 @@ SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGTARGET *put, SCUNILOGEVENT *pev)
 	return NULL;
 }
 
-void cunilogInvokeErrorCallback (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
-{
-	ubf_assert_non_NULL (cup);
-	ubf_assert_non_NULL (pev);
-	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
-
-	if (CUNILOG_UNKNOWN_ERROR == error)
+#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+	void cunilogInvokeErrorCallback (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	{
-		#ifdef PLATFORM_IS_WINDOWS
-			error = GetLastError ();
-		#else
-			error = errno;
-		#endif
-	}
+		ubf_assert_non_NULL (cup);
+		ubf_assert_non_NULL (pev);
+		ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
 
-	if (pev->pSCUNILOGTARGET->errorCB)
-	{
-		errCBretval rv = pev->pSCUNILOGTARGET->errorCB (error, cup, pev);
-		ubf_assert (0 <= rv);
-		ubf_assert (cunilogErrCB_AmountEnumValues > rv);
-
-		switch (rv)
+		if (CUNILOG_UNKNOWN_ERROR == error)
 		{
-			case cunilogErrCB_next_processor:
-				break;
-			case cunilogErrCB_next_event:
-				cunilogSetEventStopProcessing (pev);
-				break;
+			#ifdef PLATFORM_IS_WINDOWS
+				error = GetLastError ();
+			#else
+				error = errno;
+			#endif
+		}
 
-			// To do!!!
-			case cunilogErrCB_shutdown:
-				ubf_assert (false);
-				break;
+		if (pev->pSCUNILOGTARGET->errorCB)
+		{
+			errCBretval rv = pev->pSCUNILOGTARGET->errorCB (error, cup, pev);
+			ubf_assert (0 <= rv);
+			ubf_assert (cunilogErrCB_AmountEnumValues > rv);
 
-			// To do!!!
-			// Default is to cancel the target.
-			case cunilogErrCB_cancel:
-			default:
-				ubf_assert (false);
-				break;
+			switch (rv)
+			{
+				case cunilogErrCB_next_processor:
+					break;
+				case cunilogErrCB_next_event:
+					cunilogSetEventStopProcessing (pev);
+					break;
+
+				// To do!!!
+				case cunilogErrCB_shutdown:
+					ubf_assert (false);
+					break;
+
+				// To do!!!
+				// Default is to cancel the target.
+				case cunilogErrCB_cancel:
+				default:
+					ubf_assert (false);
+					break;
+			}
 		}
 	}
-}
+#else
+	#define cunilogInvokeErrorCallback(error, cup, pev)
+#endif
 
 /*
 	The dummy/no-operation processor.
@@ -3773,6 +3778,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 	static inline size_t nToTrigger (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
+		ubf_assert (cunilogHasDebugQueueLocked (put));
 
 		if (cunilogIsPaused (put))
 		{

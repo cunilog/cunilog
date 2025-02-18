@@ -45,32 +45,54 @@ When		Who				What
 #ifndef U_CUNILOGDEFS_H
 #define U_CUNILOGDEFS_H
 
-/*
-	Suppresses the MSVC warnings for strcpy (), memcpy (), etc.
-*/
-#ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./platform.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/platform.h"
+	#endif
+
 #endif
 
 /*
-	Probably not required.
+	Suppresses the MSVC warnings for strcpy (), memcpy (), etc.
 */
-#ifndef HAVE_STRWILDCARDS
-#define HAVE_STRWILDCARDS
+#ifdef PLATFORM_IS_WINDOWS
+	#ifndef _CRT_SECURE_NO_WARNINGS
+	#define _CRT_SECURE_NO_WARNINGS
+	//#warning _CRT_SECURE_NO_WARNINGS should be defined for Cunilog to build.
+	#endif
+#endif
+
+/*
+	Wildcard support
+*/
+#ifdef PLATFORM_IS_WINDOWS
+	#ifndef HAVE_STRWILDCARDS
+	#define HAVE_STRWILDCARDS
+	#endif
 #endif
 
 /*
 	For MoveToRecycleBinU8 ().
 */
-#ifndef HAVE_SHELLAPI
-#define HAVE_SHELLAPI
+#ifdef PLATFORM_IS_WINDOWS
+	#ifndef HAVE_SHELLAPI
+	#define HAVE_SHELLAPI
+	#endif
 #endif
 
 /*
 	For GetDefaultUserProfileDirectoryU8 ().
 */
-#ifndef HAVE_USERENV
-#define HAVE_USERENV
+#ifdef PLATFORM_IS_WINDOWS
+	#ifndef HAVE_USERENV
+	#define HAVE_USERENV
+	#endif
 #endif
+
 
 #endif														// Of #ifndef U_CUNILOGDEFS_H.

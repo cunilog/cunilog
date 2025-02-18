@@ -20,6 +20,23 @@ When		Who				What
 #endif
 
 /*
+	These definitions are only required for Windows but defining them
+	unconditionally won't do any harm.
+*/
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+#ifndef HAVE_STRWILDCARDS
+#define HAVE_STRWILDCARDS
+#endif
+#ifndef HAVE_SHELLAPI
+#define HAVE_SHELLAPI
+#endif
+#ifndef HAVE_USERENV
+#define HAVE_USERENV
+#endif
+
+/*
 	Our include guard.
 	The #endif is in bottom.h.
 */

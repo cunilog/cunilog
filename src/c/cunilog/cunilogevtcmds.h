@@ -58,10 +58,6 @@ When		Who				What
 
 EXTERN_C_BEGIN
 
-enum cunilogEvtCmd
-{
-
-};
 
 
 EXTERN_C_END
