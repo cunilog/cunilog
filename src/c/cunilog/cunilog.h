@@ -448,7 +448,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 
 	Simplified version of InitSCUNILOGTARGETex ().
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	SCUNILOGTARGET *InitSCUNILOGTARGET
 	(
 		  SCUNILOGTARGET			*put				// Must not be NULL.
@@ -791,7 +791,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	Sets the member unilogEvtTSformat of the SCUNILOGTARGET structure put points to to the
 	value of tsf.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
 	;
 #else
@@ -806,7 +806,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	SCUNILOGTARGET structure put points to according to the value of the runProcessorsOnStartup
 	enumeration rp.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
 	;
 #else
@@ -835,7 +835,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	before any of the logging functions has been called unless
 	CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
 	;
 #else
@@ -850,7 +850,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	sets the member evSeverityType of the SCUNILOGTARGET structure put to the
 	value of eventSeverityFormatType.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETeventSeverityFormatType	(
 			SCUNILOGTARGET				*put,
 			cueventsevtpy				eventSeverityFormatType

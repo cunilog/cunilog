@@ -82,6 +82,7 @@ StyleCopReport.xml
 *_h.h
 *.ilk
 *.dll
+*.exp
 *.lib
 *.meta
 *.obj

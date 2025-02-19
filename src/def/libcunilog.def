@@ -1,0 +1,19 @@
+LIBRARY libcunilog
+EXPORTS
+szCunilogLogFileNameExtension					@100
+wcCunilogLogFileNameExtension					@101
+lenCunilogLogFileNameExtension					@102
+sizCunilogLogFileNameExtension					@103
+
+CunilogSetConsoleTo								@200
+InitSCUNILOGTARGETex							@201
+InitSCUNILOGTARGET								@202
+CreateNewSCUNILOGTARGET							@203
+InitOrCreateSCUNILOGTARGET						@204
+InitSCUNILOGTARGETstaticEx						@205
+InitSCUNILOGTARGETstatic						@206
+GetAbsoluteLogPathSCUNILOGTARGET				@207
+ConfigSCUNILOGTARGETcunilogpostfix				@208
+ConfigSCUNILOGTARGETrunProcessorsOnStartup		@209
+ConfigSCUNILOGTARGETcunilognewline				@210
+ConfigSCUNILOGTARGETeventSeverityFormatType		@211
