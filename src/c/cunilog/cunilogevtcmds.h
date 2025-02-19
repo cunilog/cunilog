@@ -44,7 +44,8 @@ When		Who				What
 
 	#include <stdbool.h>
 	#include <inttypes.h>
-	#include "./cunilogstructs.h"
+
+	#include "./cunilogevtcmdsstructs.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
@@ -56,9 +57,65 @@ When		Who				What
 
 #endif
 
+#ifndef CUNILOG_CMD_INVALID_SIZE
+#define CUNILOG_CMD_INVALID_SIZE			(0)
+#endif
+
 EXTERN_C_BEGIN
 
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 
+/*
+	culIsValidCmd
+
+	Returns true if cmd is a valid Cunilog command.
+*/
+#ifdef DEBUG
+	bool culIsValidCmd (enum cunilogEvtCmd cmd)
+	;
+#else
+	#define culIsValidCmd(cmd)							\
+		((cmd) && (cmd) < cunilogCmdConfigXAmountEnumValues)
+#endif
+
+/*
+	culCmdRequiredSize
+
+	Returns the required data size for the Cunilog event command cmd.
+	The returned size includes space for the command itself plus the space required for
+	additional parameters/arguments.
+*/
+size_t culCmdRequiredSize (enum cunilogEvtCmd cmd)
+;
+
+/*
+	culCmdStoreCmdConfigUseColourForEcho
+
+	Stores the boolean bUseColour in the buffer szOut points to.
+*/
+void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour)
+;
+
+/*
+	culCmdStoreCmdConfigCunilognewline
+
+	Stores the value of nl in the buffer szOut points to.
+*/
+void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
+;
+
+/*
+	culCmdChangeCmdConfigFromCommand
+
+	Changes members/flags of the SCUNILOGTARGET structure pev->pSCUNILOGTARGET points to
+	for event type cunilogEvtTypeCommand (member pev->evType).
+
+	This function must only be called for events of type cunilogEvtTypeCommand.
+*/
+void culCmdChangeCmdConfigFromCommand (SCUNILOGEVENT *pev)
+;
+
+#endif														// Of #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS.
 
 EXTERN_C_END
 

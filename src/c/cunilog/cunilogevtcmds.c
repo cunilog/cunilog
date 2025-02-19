@@ -39,18 +39,135 @@ When		Who				What
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
-	#include <stdbool.h>
-	#include <inttypes.h>
-	#include "./cunilogevtcmdsstructs.h"
+	//#include <stdbool.h>
+	//#include <inttypes.h>
+	//#include "./cunilogevtcmdsstructs.h"
+	#include "./cunilogstructs.h"
 	#include "./cunilogevtcmds.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./ArrayMacros.h"
 		#include "./ubfmem.h"
+		#include "./ubfdebug.h"
 	#else
 		#include "./../pre/externC.h"
+		#include "./../pre/ArrayMacros.h"
 		#include "./../mem/ubfmem.h"
+		#include "./../dbg/ubfdebug.h"
 	#endif
 
 #endif
 
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+
+#define SIZCMDENUM	(sizeof (enum cunilogEvtCmd))
+
+typedef struct sculCmdArr
+{
+	size_t		siz;
+} SCULCMDARR;
+
+SCULCMDARR culCmdSizes [] =
+{
+		SIZCMDENUM + sizeof (bool)							// cunilogCmdConfigUseColourForEcho
+	,	SIZCMDENUM + sizeof (cueventsevtpy)					// cunilogCmdConfigEventSeverityFormatType
+	,	SIZCMDENUM + sizeof (newline_t)						// cunilogCmdConfigCunilognewline
+	,	SIZCMDENUM + sizeof (enum cunilogprocesstask)		// cunilogCmdConfigDisableTaskProcessors
+	,	SIZCMDENUM + sizeof (enum cunilogprocesstask)		// cunilogCmdConfigEnableTaskProcessors
+	,	SIZCMDENUM											// cunilogConfigDisableEchoProcessor
+	,	SIZCMDENUM											// cunilogConfigEnableEchoProcessor
+};
+
+#ifdef DEBUG
+	bool culIsValidCmd (enum cunilogEvtCmd cmd)
+	{
+		ubf_assert (GET_ARRAY_LEN (culCmdSizes) == cunilogCmdConfigXAmountEnumValues);
+
+		return 0 <= cmd && cunilogCmdConfigXAmountEnumValues > cmd;
+	}
+#endif
+
+size_t culCmdRequiredSize (enum cunilogEvtCmd cmd)
+{
+	ubf_assert (0 <= cmd);
+	ubf_assert (cunilogCmdConfigXAmountEnumValues > cmd);
+	ubf_assert (GET_ARRAY_LEN (culCmdSizes) == cunilogCmdConfigXAmountEnumValues);
+
+	if (culIsValidCmd (cmd))
+		return culCmdSizes [cmd].siz;
+	return CUNILOG_CMD_INVALID_SIZE;
+}
+
+void culCmdStoreEventCommand (unsigned char *szOut, enum cunilogEvtCmd cmd)
+{
+	ubf_assert_non_NULL (szOut);
+	ubf_assert (sizeof (enum cunilogEvtCmd) == sizeof (cmd));
+
+	memcpy (szOut, &cmd, sizeof (cmd));
+}
+
+void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour)
+{
+	ubf_assert_non_NULL (szOut);
+
+	culCmdStoreEventCommand (szOut, cunilogCmdConfigUseColourForEcho);
+	memcpy (szOut + sizeof (enum cunilogEvtCmd), &bUseColour, sizeof (bool));
+}
+
+void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
+{
+	ubf_assert_non_NULL (szOut);
+	ubf_assert (sizeof (newline_t) == sizeof (nl));
+
+	culCmdStoreEventCommand (szOut, cunilogCmdConfigCunilognewline);
+	memcpy (szOut + sizeof (enum cunilogEvtCmd), &nl, sizeof (nl));
+}
+
+void culCmdChangeCmdConfigFromCommand (SCUNILOGEVENT *pev)
+{
+	ubf_assert_non_NULL (pev);
+	ubf_assert_non_NULL (pev->szDataToLog);
+	ubf_assert_non_0	(pev->lenDataToLog);
+	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
+	ubf_assert			(cunilogEvtTypeCommand == pev->evType);
+
+	SCUNILOGTARGET *put = pev->pSCUNILOGTARGET;
+	ubf_assert_non_NULL (put);
+
+	unsigned char		*szData = pev->szDataToLog;
+	enum cunilogEvtCmd	cmd;
+
+	memcpy (&cmd, szData, sizeof (enum cunilogEvtCmd));
+	szData += sizeof (enum cunilogEvtCmd);
+
+	bool boolVal;
+
+	switch (cmd)
+	{
+		case cunilogCmdConfigUseColourForEcho:
+			memcpy (&boolVal, szData, sizeof (bool));
+			if (boolVal)
+				cunilogSetUseColourForEcho (put);
+			else
+				cunilogClrUseColourForEcho (put);
+			break;
+		case cunilogCmdConfigEventSeverityFormatType:
+			break;
+		case cunilogCmdConfigCunilognewline:
+			memcpy (&put->unilogNewLine, szData, sizeof (newline_t));
+			ubf_assert (0 <=put->unilogNewLine);
+			ubf_assert (cunilogNewLineAmountEnumValues > put->unilogNewLine);
+			break;
+		case cunilogCmdConfigDisableTaskProcessors:
+			break;
+		case cunilogCmdConfigEnableTaskProcessors:
+			break;
+		case cunilogConfigDisableEchoProcessor:
+			break;
+		case cunilogConfigEnableEchoProcessor:
+			break;
+	}
+}
+
+#endif														// Of #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS.

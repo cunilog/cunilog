@@ -63,11 +63,9 @@ When		Who				What
 /*
 	Reset.
 */
-#ifndef STR_ANSI_RESET
 #define STR_ANSI_RESET					"\033[0m"
 #define SIZ_ANSI_RESET					(sizeof (STR_ANSI_RESET))
 #define LEN_ANSI_RESET					(SIZ_ANSI_RESET - 1)
-#endif
 
 /*
 	Coulrs only. These are not ANSI escape sequences on their own and cannot be used
@@ -85,8 +83,6 @@ When		Who				What
 /*
 	Normal foreground colours.
 */
-#ifndef STR_ANSI_FGCOL_BLACK
-
 #define STR_ANSI_FGCOL_BLACK			"\033[30m"
 #define SIZ_ANSI_FGCOL_BLACK			(sizeof (STR_ANSI_FGCOL_BLACK))
 #define LEN_ANSI_FGCOL_BLACK			(SIZ_ANSI_FGCOL_BLACK - 1)
@@ -119,15 +115,11 @@ When		Who				What
 #define SIZ_ANSI_FGCOL_WHITE			(sizeof (STR_ANSI_FGCOL_WHITE))
 #define LEN_ANSI_FGCOL_WHITE			(SIZ_ANSI_FGCOL_WHITE - 1)
 
-#endif
-
 /*
 	Bright foreground colours.
 
 	Note that bright black is grey.
 */
-#ifndef STR_ANSI_FGCOL_BRIGHT_BLACK
-
 #define STR_ANSI_FGCOL_BRIGHT_BLACK		"\033[90m"
 #define SIZ_ANSI_FGCOL_BRIGHT_BLACK		(sizeof (STR_ANSI_FGCOL_BRIGHT_BLACK))
 #define LEN_ANSI_FGCOL_BRIGHT_BLACK		(SIZ_ANSI_FGCOL_BRIGHT_BLACK - 1)
@@ -168,15 +160,11 @@ When		Who				What
 #define SIZ_ANSI_FGCOL_BRIGHT_WHITE		(sizeof (STR_ANSI_FGCOL_BRIGHT_WHITE))
 #define LEN_ANSI_FGCOL_BRIGHT_WHITE		(SIZ_ANSI_FGCOL_BRIGHT_WHITE - 1)
 
-#endif
-
 /*
 	Background colours.
 
 	Note that bright black is grey.
 */
-#ifndef STR_ANSI_BGCOL_BLACK
-
 #define STR_ANSI_BGCOL_BLACK			"\033[40m"
 #define STR_ANSI_BGCOL_RED				"\033[41m"
 #define STR_ANSI_BGCOL_GREEN			"\033[42m"
@@ -186,15 +174,11 @@ When		Who				What
 #define STR_ANSI_BGCOL_CYAN				"\033[46m"
 #define STR_ANSI_BGCOL_WHITE			"\033[47m"
 
-#endif
-
 /*
 	Bright background colours.
 
 	Note that bright black is grey.
 */
-#ifndef STR_ANSI_BGCOL_BRIGHT_BLACK
-
 #define STR_ANSI_BGCOL_BRIGHT_BLACK		"\033[100m"
 #define STR_ANSI_BGCOL_GREY				STR_ANSI_FGCOL_BRIGHT_BLACK
 #define STR_ANSI_BGCOL_GRAY				STR_ANSI_FGCOL_BRIGHT_BLACK
@@ -205,8 +189,6 @@ When		Who				What
 #define STR_ANSI_BGCOL_BRIGHT_MAGENTA	"\033[105m"
 #define STR_ANSI_BGCOL_BRIGHT_CYAN		"\033[106m"
 #define STR_ANSI_BGCOL_BRIGHT_WHITE		"\033[107m"
-
-#endif
 
 /*
 #define STR_ANSI_TEXT_REGULAR			"\033[0;31m"

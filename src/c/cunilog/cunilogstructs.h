@@ -743,7 +743,7 @@ typedef struct scunilogtarget
 	#endif
 
 	enum cunilogeventTSformat		unilogEvtTSformat;		// The format of an event timestamp.
-	enum enLineEndings				unilogNewLine;
+	newline_t						unilogNewLine;
 	SBULKMEM						sbm;					// Bulk memory block.
 	vec_cunilog_fls					fls;					// The vector with str pointers to
 															//	the files to rotate within sbm.

@@ -44,6 +44,7 @@ When		Who				What
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
 	#include "./cunilog.h"
+	#include "./cunilogevtcmds.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 	
@@ -1998,7 +1999,7 @@ static const char *EventSeverityTexts3 [] =
 	,	""				// cunilogEvtSevertiyNoneFail	 2
 	,	"   "			// cunilogEvtSeverityBlanks		 3
 	,	"EMG"			// cunilogEvtSeverityEmergency	 4
-	,	"NTC"			// cunilogEvtSeverityNotice		 5
+	,	"NOT"			// cunilogEvtSeverityNotice		 5
 	,	"INF"
 	,	"MSG"
 	,	"WRN"
@@ -2030,8 +2031,8 @@ static const char *EventSeverityTexts5 [] =
 	,	"DEBUG"
 	,	"TRACE"
 	,	"DETAI"
-	,	"VERBS"
-	,	"ILLGL"			// cunilogEvtSeverityIllegal	17
+	,	"VERBO"
+	,	"ILLEG"			// cunilogEvtSeverityIllegal	17
 };
 static const char *EventSeverityTexts9 [] =
 {
@@ -2665,6 +2666,10 @@ static inline void storeCaptionLength (unsigned char **pData, size_t ui, size_t 
 	*pData += ui;
 }
 
+/*
+	Note that ccData can be NULL for event type cunilogEvtTypeCommand,
+	in which case a buffer of siz octets is reserved but not initialised!
+*/
 static SCUNILOGEVENT *CreateSCUNILOGEVENTandData	(
 					SCUNILOGTARGET				*put,
 					cueventseverity				sev,
@@ -2676,7 +2681,10 @@ static SCUNILOGEVENT *CreateSCUNILOGEVENTandData	(
 													)
 {
 	ubf_assert_non_NULL	(put);
-	ubf_assert_non_NULL	(ccData);
+	if (ccData)
+		ubf_assert (cunilogEvtTypeCommand != type && NULL != ccData);
+	else
+		ubf_assert (cunilogEvtTypeCommand == type && NULL == ccData);
 	ubf_assert			(USE_STRLEN != siz);
 	ubf_assert			(0 <= type);
 	ubf_assert			(cunilogEvtTypeAmountEnumValues > type);
@@ -2703,7 +2711,10 @@ static SCUNILOGEVENT *CreateSCUNILOGEVENTandData	(
 			memcpy (pData, ccCapt, lenCapt);
 			pData += lenCapt;
 		}
-		memcpy (pData, ccData, siz);
+		if (ccData)
+			memcpy (pData, ccData, siz);
+		else
+			ubf_assert (cunilogEvtTypeCommand == type);
 	}
 	return pev;
 }
@@ -4205,9 +4216,16 @@ static void cunilogProcessProcessors (SCUNILOGEVENT *pev)
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 	static bool cunilogProcessEvtCommand (SCUNILOGEVENT *pev)
 	{
-		UNUSED (pev);
-
-		return false;
+		ubf_assert (pev->lenDataToLog >= sizeof (enum cunilogEvtCmd));
+		#ifdef DEBUG
+			enum cunilogEvtCmd cmd;
+			memcpy (&cmd, pev->szDataToLog, sizeof (enum cunilogEvtCmd));
+			ubf_assert (0 <= cmd);
+			ubf_assert (cunilogCmdConfigXAmountEnumValues > cmd);
+		#endif
+		culCmdChangeCmdConfigFromCommand (pev);
+		DoneSCUNILOGEVENT (NULL, pev);
+		return true;
 	}
 #endif
 
@@ -5227,6 +5245,52 @@ bool logTextWU16				(SCUNILOGTARGET *put, const wchar_t *cwText)
 }
 #endif
 
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	static inline SCUNILOGEVENT *CreateSCUNILOGEVENTforCommand (SCUNILOGTARGET *put, size_t siz)
+	{
+		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTandData	(
+								put, cunilogEvtSeverityNone, NULL, 0, cunilogEvtTypeCommand, NULL,
+								siz
+														);
+		return pev;
+	}
+#endif
+
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+	{
+		ubf_assert_non_NULL	(put);
+
+		size_t rs = culCmdRequiredSize (cunilogCmdConfigUseColourForEcho);
+		ubf_assert (CUNILOG_CMD_INVALID_SIZE != rs);
+		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand (put, rs);
+		if (pev)
+		{
+			culCmdStoreCmdConfigUseColourForEcho (pev->szDataToLog, bUseColour);
+			return cunilogProcessOrQueueEvent (pev);
+		}
+		return false;
+	}
+#endif
+
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
+	{
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(0 <= nl);
+		ubf_assert			(cunilogNewLineAmountEnumValues > nl);
+
+		size_t rs = culCmdRequiredSize (cunilogCmdConfigCunilognewline);
+		ubf_assert (CUNILOG_CMD_INVALID_SIZE != rs);
+		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand (put, rs);
+		if (pev)
+		{
+			culCmdStoreCmdConfigCunilognewline (pev->szDataToLog, nl);
+			return cunilogProcessOrQueueEvent (pev);
+		}
+		return false;
+	}
+#endif
 
 const uint64_t	uiCunilogVersion	=		((uint64_t) CUNILOG_VERSION_MAJOR	<< 48)
 										|	((uint64_t) CUNILOG_VERSION_MINOR	<< 32)

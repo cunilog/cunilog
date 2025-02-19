@@ -78,6 +78,8 @@ HEADERS += \
     ../../src/c/cunilog/cunilog.h \
     ../../src/c/cunilog/cunilogcfgparser.h \
     ../../src/c/cunilog/cunilogdefs.h \
+    ../../src/c/cunilog/cunilogevtcmds.h \
+    ../../src/c/cunilog/cunilogevtcmdsstructs.h \
     ../../src/c/cunilog/cunilogstructs.h \
     ../../src/c/datetime/ISO__DATE__.h \
     ../../src/c/datetime/shortmonths.h \
@@ -98,6 +100,7 @@ HEADERS += \
     ../../src/c/pre/platform.h \
     ../../src/c/pre/unref.h \
     ../../src/c/string/check_utf8.h \
+    ../../src/c/string/stransi.h \
     ../../src/c/string/strcustomfmt.h \
     ../../src/c/string/strfilesys.h \
     ../../src/c/string/strhex.h \
@@ -128,6 +131,8 @@ SOURCES += \
     ../../src/c/OS/Windows/WinExeFileName.c \
     ../../src/c/cunilog/cunilog.c \
     ../../src/c/cunilog/cunilogcfgparser.c \
+    ../../src/c/cunilog/cunilogevtcmds.c \
+    ../../src/c/cunilog/cunilogevtcmdsstructs.c \
     ../../src/c/cunilog/cunilogstructs.c \
     ../../src/c/datetime/ISO__DATE__.c \
     ../../src/c/datetime/shortmonths.c \
@@ -142,6 +147,7 @@ SOURCES += \
     ../../src/c/mem/memstrstr.c \
     ../../src/c/mem/ubfmem.c \
     ../../src/c/string/check_utf8.c \
+    ../../src/c/string/stransi.c \
     ../../src/c/string/strcustomfmt.c \
     ../../src/c/string/strfilesys.c \
     ../../src/c/string/strhex.c \

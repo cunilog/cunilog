@@ -830,6 +830,10 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 
 	Sets the member unilogNewLine of the SCUNILOGTARGET structure put points to to the
 	value of nl.
+
+	This function should only be called directly after the target has been initialised and
+	before any of the logging functions has been called unless
+	CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined.
 */
 #ifdef DEBUG
 	void ConfigSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
@@ -1448,6 +1452,44 @@ bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 #define logTextWU16sev_static(v, t)		logTextWU16sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
 #define logTextWU16l_static(t, l)		logTextWU16l		(pSCUNILOGTARGETstatic, (t), (l))
 #define logTextWU16_static(t)			logTextWU16l		(pSCUNILOGTARGETstatic, (t), USE_STRLEN);
+#endif
+
+/*
+	ChangeSCUNILOGTARGETuseColourForEcho
+	ChangeSCUNILOGTARGETuseColorForEcho
+	ChangeSCUNILOGTARGETuseColourForEcho_static
+	ChangeSCUNILOGTARGETuseColorForEcho_static
+
+	Creates and queues an event that changes the colour output of event severity
+	types. A value of false for bUseColour disables coloured output. A value of true
+	switches it on.
+
+	The _static versions of the function/macros use the internal static SCUNILOGTARGET
+	structure.
+*/
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+	;
+	#define ChangeSCUNILOGTARGETuseColourForEcho_static(bc)	\
+				ChangeSCUNILOGTARGETuseColourForEcho (pSCUNILOGTARGETstatic, (bc))
+	#define ChangeSCUNILOGTARGETuseColorForEcho(p, bc)		\
+				ChangeSCUNILOGTARGETuseColourForEcho ((p), (bc))
+	#define ChangeSCUNILOGTARGETuseColorForEcho_static(bc)	\
+				ChangeSCUNILOGTARGETuseColourForEcho (pSCUNILOGTARGETstatic, (bc))
+#endif
+
+/*
+	ChangeSCUNILOGTARGETcunilognewline
+	ChangeSCUNILOGTARGETcunilognewline_static
+
+	Creates and queues an event that changes the member unilogNewLine of the SCUNILOGTARGET
+	structure put points to to the value of nl.
+*/
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
+	;
+	#define ChangeSCUNILOGTARGETcunilognewline_static(nl)	\
+				ChangeSCUNILOGTARGETcunilognewline (pSCUNILOGTARGETstatic, (nl))
 #endif
 
 /*

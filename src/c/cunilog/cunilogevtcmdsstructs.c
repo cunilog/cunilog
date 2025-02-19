@@ -39,8 +39,8 @@ When		Who				What
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
-	#include <stdbool.h>
-	#include <inttypes.h>
+	//#include <stdbool.h>
+	//#include <inttypes.h>
 	#include "./cunilogevtcmdsstructs.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
@@ -52,4 +52,3 @@ When		Who				What
 	#endif
 
 #endif
-

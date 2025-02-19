@@ -6693,9 +6693,9 @@ When		Who				What
 	#endif
 #endif
 
-#include <malloc.h>
-
 #ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include <malloc.h>
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
@@ -11398,11 +11398,9 @@ When		Who				What
 /*
 	Reset.
 */
-#ifndef STR_ANSI_RESET
 #define STR_ANSI_RESET					"\033[0m"
 #define SIZ_ANSI_RESET					(sizeof (STR_ANSI_RESET))
 #define LEN_ANSI_RESET					(SIZ_ANSI_RESET - 1)
-#endif
 
 /*
 	Coulrs only. These are not ANSI escape sequences on their own and cannot be used
@@ -11420,8 +11418,6 @@ When		Who				What
 /*
 	Normal foreground colours.
 */
-#ifndef STR_ANSI_FGCOL_BLACK
-
 #define STR_ANSI_FGCOL_BLACK			"\033[30m"
 #define SIZ_ANSI_FGCOL_BLACK			(sizeof (STR_ANSI_FGCOL_BLACK))
 #define LEN_ANSI_FGCOL_BLACK			(SIZ_ANSI_FGCOL_BLACK - 1)
@@ -11454,15 +11450,11 @@ When		Who				What
 #define SIZ_ANSI_FGCOL_WHITE			(sizeof (STR_ANSI_FGCOL_WHITE))
 #define LEN_ANSI_FGCOL_WHITE			(SIZ_ANSI_FGCOL_WHITE - 1)
 
-#endif
-
 /*
 	Bright foreground colours.
 
 	Note that bright black is grey.
 */
-#ifndef STR_ANSI_FGCOL_BRIGHT_BLACK
-
 #define STR_ANSI_FGCOL_BRIGHT_BLACK		"\033[90m"
 #define SIZ_ANSI_FGCOL_BRIGHT_BLACK		(sizeof (STR_ANSI_FGCOL_BRIGHT_BLACK))
 #define LEN_ANSI_FGCOL_BRIGHT_BLACK		(SIZ_ANSI_FGCOL_BRIGHT_BLACK - 1)
@@ -11503,15 +11495,11 @@ When		Who				What
 #define SIZ_ANSI_FGCOL_BRIGHT_WHITE		(sizeof (STR_ANSI_FGCOL_BRIGHT_WHITE))
 #define LEN_ANSI_FGCOL_BRIGHT_WHITE		(SIZ_ANSI_FGCOL_BRIGHT_WHITE - 1)
 
-#endif
-
 /*
 	Background colours.
 
 	Note that bright black is grey.
 */
-#ifndef STR_ANSI_BGCOL_BLACK
-
 #define STR_ANSI_BGCOL_BLACK			"\033[40m"
 #define STR_ANSI_BGCOL_RED				"\033[41m"
 #define STR_ANSI_BGCOL_GREEN			"\033[42m"
@@ -11521,15 +11509,11 @@ When		Who				What
 #define STR_ANSI_BGCOL_CYAN				"\033[46m"
 #define STR_ANSI_BGCOL_WHITE			"\033[47m"
 
-#endif
-
 /*
 	Bright background colours.
 
 	Note that bright black is grey.
 */
-#ifndef STR_ANSI_BGCOL_BRIGHT_BLACK
-
 #define STR_ANSI_BGCOL_BRIGHT_BLACK		"\033[100m"
 #define STR_ANSI_BGCOL_GREY				STR_ANSI_FGCOL_BRIGHT_BLACK
 #define STR_ANSI_BGCOL_GRAY				STR_ANSI_FGCOL_BRIGHT_BLACK
@@ -11540,8 +11524,6 @@ When		Who				What
 #define STR_ANSI_BGCOL_BRIGHT_MAGENTA	"\033[105m"
 #define STR_ANSI_BGCOL_BRIGHT_CYAN		"\033[106m"
 #define STR_ANSI_BGCOL_BRIGHT_WHITE		"\033[107m"
-
-#endif
 
 /*
 #define STR_ANSI_TEXT_REGULAR			"\033[0;31m"
@@ -15729,7 +15711,7 @@ typedef struct scunilogtarget
 	#endif
 
 	enum cunilogeventTSformat		unilogEvtTSformat;		// The format of an event timestamp.
-	enum enLineEndings				unilogNewLine;
+	newline_t						unilogNewLine;
 	SBULKMEM						sbm;					// Bulk memory block.
 	vec_cunilog_fls					fls;					// The vector with str pointers to
 															//	the files to rotate within sbm.
@@ -16233,14 +16215,13 @@ When		Who				What
 
 	#include <stdbool.h>
 	#include <inttypes.h>
-	#include "./cunilogstructs.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
-		#include "./ubfmem.h"
+		//#include "./ubfmem.h"
 	#else
 		#include "./../pre/externC.h"
-		#include "./../mem/ubfmem.h"
+		//#include "./../mem/ubfmem.h"
 	#endif
 
 #endif
@@ -16249,7 +16230,16 @@ EXTERN_C_BEGIN
 
 enum cunilogEvtCmd
 {
-
+		cunilogCmdConfigUseColourForEcho
+	,	cunilogCmdConfigEventSeverityFormatType
+	,	cunilogCmdConfigCunilognewline
+	,	cunilogCmdConfigDisableTaskProcessors
+	,	cunilogCmdConfigEnableTaskProcessors
+	,	cunilogConfigDisableEchoProcessor
+	,	cunilogConfigEnableEchoProcessor
+	// Do not add anything below this line.
+	,	cunilogCmdConfigXAmountEnumValues						// Used for sanity checks.
+	// Do not add anything below cunilogCmdConfigXAmountEnumValues.
 };
 
 
@@ -16302,7 +16292,8 @@ When		Who				What
 
 	#include <stdbool.h>
 	#include <inttypes.h>
-	#include "./cunilogstructs.h"
+
+	#include "./cunilogevtcmdsstructs.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
@@ -16314,9 +16305,65 @@ When		Who				What
 
 #endif
 
+#ifndef CUNILOG_CMD_INVALID_SIZE
+#define CUNILOG_CMD_INVALID_SIZE			(0)
+#endif
+
 EXTERN_C_BEGIN
 
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 
+/*
+	culIsValidCmd
+
+	Returns true if cmd is a valid Cunilog command.
+*/
+#ifdef DEBUG
+	bool culIsValidCmd (enum cunilogEvtCmd cmd)
+	;
+#else
+	#define culIsValidCmd(cmd)							\
+		((cmd) && (cmd) < cunilogCmdConfigXAmountEnumValues)
+#endif
+
+/*
+	culCmdRequiredSize
+
+	Returns the required data size for the Cunilog event command cmd.
+	The returned size includes space for the command itself plus the space required for
+	additional parameters/arguments.
+*/
+size_t culCmdRequiredSize (enum cunilogEvtCmd cmd)
+;
+
+/*
+	culCmdStoreCmdConfigUseColourForEcho
+
+	Stores the boolean bUseColour in the buffer szOut points to.
+*/
+void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour)
+;
+
+/*
+	culCmdStoreCmdConfigCunilognewline
+
+	Stores the value of nl in the buffer szOut points to.
+*/
+void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
+;
+
+/*
+	culCmdChangeCmdConfigFromCommand
+
+	Changes members/flags of the SCUNILOGTARGET structure pev->pSCUNILOGTARGET points to
+	for event type cunilogEvtTypeCommand (member pev->evType).
+
+	This function must only be called for events of type cunilogEvtTypeCommand.
+*/
+void culCmdChangeCmdConfigFromCommand (SCUNILOGEVENT *pev)
+;
+
+#endif														// Of #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS.
 
 EXTERN_C_END
 
@@ -17153,6 +17200,10 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 
 	Sets the member unilogNewLine of the SCUNILOGTARGET structure put points to to the
 	value of nl.
+
+	This function should only be called directly after the target has been initialised and
+	before any of the logging functions has been called unless
+	CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined.
 */
 #ifdef DEBUG
 	void ConfigSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
@@ -17771,6 +17822,44 @@ bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 #define logTextWU16sev_static(v, t)		logTextWU16sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
 #define logTextWU16l_static(t, l)		logTextWU16l		(pSCUNILOGTARGETstatic, (t), (l))
 #define logTextWU16_static(t)			logTextWU16l		(pSCUNILOGTARGETstatic, (t), USE_STRLEN);
+#endif
+
+/*
+	ChangeSCUNILOGTARGETuseColourForEcho
+	ChangeSCUNILOGTARGETuseColorForEcho
+	ChangeSCUNILOGTARGETuseColourForEcho_static
+	ChangeSCUNILOGTARGETuseColorForEcho_static
+
+	Creates and queues an event that changes the colour output of event severity
+	types. A value of false for bUseColour disables coloured output. A value of true
+	switches it on.
+
+	The _static versions of the function/macros use the internal static SCUNILOGTARGET
+	structure.
+*/
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+	;
+	#define ChangeSCUNILOGTARGETuseColourForEcho_static(bc)	\
+				ChangeSCUNILOGTARGETuseColourForEcho (pSCUNILOGTARGETstatic, (bc))
+	#define ChangeSCUNILOGTARGETuseColorForEcho(p, bc)		\
+				ChangeSCUNILOGTARGETuseColourForEcho ((p), (bc))
+	#define ChangeSCUNILOGTARGETuseColorForEcho_static(bc)	\
+				ChangeSCUNILOGTARGETuseColourForEcho (pSCUNILOGTARGETstatic, (bc))
+#endif
+
+/*
+	ChangeSCUNILOGTARGETcunilognewline
+	ChangeSCUNILOGTARGETcunilognewline_static
+
+	Creates and queues an event that changes the member unilogNewLine of the SCUNILOGTARGET
+	structure put points to to the value of nl.
+*/
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
+	;
+	#define ChangeSCUNILOGTARGETcunilognewline_static(nl)	\
+				ChangeSCUNILOGTARGETcunilognewline (pSCUNILOGTARGETstatic, (nl))
 #endif
 
 /*

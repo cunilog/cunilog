@@ -44,14 +44,13 @@ When		Who				What
 
 	#include <stdbool.h>
 	#include <inttypes.h>
-	#include "./cunilogstructs.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
-		#include "./ubfmem.h"
+		//#include "./ubfmem.h"
 	#else
 		#include "./../pre/externC.h"
-		#include "./../mem/ubfmem.h"
+		//#include "./../mem/ubfmem.h"
 	#endif
 
 #endif
@@ -60,7 +59,16 @@ EXTERN_C_BEGIN
 
 enum cunilogEvtCmd
 {
-
+		cunilogCmdConfigUseColourForEcho
+	,	cunilogCmdConfigEventSeverityFormatType
+	,	cunilogCmdConfigCunilognewline
+	,	cunilogCmdConfigDisableTaskProcessors
+	,	cunilogCmdConfigEnableTaskProcessors
+	,	cunilogConfigDisableEchoProcessor
+	,	cunilogConfigEnableEchoProcessor
+	// Do not add anything below this line.
+	,	cunilogCmdConfigXAmountEnumValues						// Used for sanity checks.
+	// Do not add anything below cunilogCmdConfigXAmountEnumValues.
 };
 
 

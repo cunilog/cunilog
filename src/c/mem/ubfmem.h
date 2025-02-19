@@ -59,9 +59,9 @@ When		Who				What
 	#endif
 #endif
 
-#include <malloc.h>
-
 #ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include <malloc.h>
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"

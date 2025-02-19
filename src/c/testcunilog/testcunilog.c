@@ -170,6 +170,9 @@ int main (int argc, char *argv [])
 	logTextU8_static ("This one's in UTF-16 (\xC5\x98), which should be an \"R\" with a flipped roof.");
 	testV (put, "Hello %i", 20);
 	logTextU8sev_static (cunilogEvtSeverityDebug, "This is a debug message");
+	logTextU8sev_static (cunilogEvtSeverityCritical, "This is a critical message");
+	ChangeSCUNILOGTARGETuseColourForEcho_static (false);
+	logTextU8sev_static (cunilogEvtSeverityCritical, "This is also a critical message");
 
 	/*
 	Sleep (2000);
