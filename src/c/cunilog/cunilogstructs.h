@@ -153,7 +153,7 @@ BEGIN_C_DECLS
 	The constant lenCunilogLogFileNameExtension is the length in characters (not octets!).
 */
 CUNILOG_DLL_IMPORT extern const char		*szCunilogLogFileNameExtension;			// ".log"
-CUNILOG_DLL_IMPORT extern const wchar_t	*wcCunilogLogFileNameExtension;			// ".log"
+CUNILOG_DLL_IMPORT extern const wchar_t		*wcCunilogLogFileNameExtension;			// ".log"
 CUNILOG_DLL_IMPORT extern const size_t		lenCunilogLogFileNameExtension;			// ".log"
 CUNILOG_DLL_IMPORT extern const size_t		sizCunilogLogFileNameExtension;
 

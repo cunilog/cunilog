@@ -1,3 +1,8 @@
+;
+; See
+;	https://learn.microsoft.com/en-us/cpp/build/reference/exports?view=msvc-170
+;
+
 LIBRARY libcunilog
 EXPORTS
 	szCunilogLogFileNameExtension					@100	DATA
