@@ -1,7 +1,7 @@
 
 # Building Cunilog
 
-There's two options to build Cunilog. It can be built as part of your application or as a static or dynamically linked library.
+There's two options to build Cunilog. It can be built as part of your application or as a static or dynamically linked library. Dynamically linked libraries on Windows are called DLLs.
 
 ## Building Cunilog as part of your application
 
