@@ -29,7 +29,7 @@ characteristics:
 - Small footprint. The goal is to keep it below 50 KiB of binary code and below
 	20 KiB when rarely used features are removed.
 - Single and multi-threaded.
-- Available as drop-in module, and as static library and dynamic library.
+- Available as drop-in module, or as static or dynamic library.
 - Platform independent without build automation system. No cmake or autotools
 	are needed to build the module. Simply build it alongside your application.
 - UTF-8 by default but some UTF-16 functions are available on Windows.
