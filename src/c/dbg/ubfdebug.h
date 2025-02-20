@@ -88,12 +88,12 @@ When		Who				What
 //	ABORT() macro is used. It is not recommended to uncomment this
 //	definition. Rather define UBF_DONT_USE_DBG_ABRT_OUTPUT_FNCTS
 //	in the development environment or project file.
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#ifndef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
 	#define UBF_USE_DBG_ABRT_OUTPUT_FNCTS
 	#endif
 #endif
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#ifdef UBF_DONT_USE_DBG_ABRT_OUTPUT_FNCTS
 		#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
 		#undef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
@@ -302,9 +302,9 @@ EXTERN_C_BEGIN
 	outputs "Arbitrary message" when the assertion fails instead of the actual
 	assertion.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	// Debug version.
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ubf_debug_assert		(
 						bool			bAssert,
 						const char		*chDebugMessage,
@@ -315,7 +315,7 @@ EXTERN_C_BEGIN
 		#define ubf_debug_assert(b, c, p, n)			\
 			ASSERT (b)
 	#endif
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ubf_debug_assert_pass	(
 						bool			bAssert,
 						const char		*chDebugMessage,

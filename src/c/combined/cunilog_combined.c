@@ -135,7 +135,26 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 	return pb->buf.pvoid;
 }
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	void freeSMEMBUF (SMEMBUF *pb)
+	{
+		ubf_assert_non_NULL (pb);
+		ubf_assert_non_NULL (pb->buf.pvoid);
+
+		if (pb->buf.pvoid)
+		{
+			ubf_assert (0 < pb->size);
+
+			ubf_free (pb->buf.pvoid);
+		}
+		#ifdef DEBUG
+			// Anything is Ok apart from 'A'.
+			pb->initComplete = '#';
+		#endif
+	}
+#endif
+
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb)
 	{
 		ubf_assert_non_NULL (pb);
@@ -148,23 +167,6 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 			ubf_free (pb->buf.pvoid);
 			initSMEMBUF (pb);
 		}
-	}
-#endif
-
-#ifdef DEBUG
-	void freeSMEMBUF (SMEMBUF *pb)
-	{
-		ubf_assert_non_NULL (pb);
-		ubf_assert_non_NULL (pb->buf.pvoid);
-
-		if (pb->buf.pvoid)
-		{
-			ubf_assert (0 < pb->size);
-
-			ubf_free (pb->buf.pvoid);
-		}
-		// Anything is Ok apart from 'A'.
-		pb->initComplete = '#';
 	}
 #endif
 
@@ -289,42 +291,42 @@ const char	ccLongFileNamePrefix [] = "\\\\?\\";				// The ASCII/UTF-8 version.
 	#error This module can only be used in Windows applications compiled for unicode (Use Unicode Character Set)
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqUTF8size (const WCHAR *wcU16)
 	{
 		return WideCharToMultiByte (CP_UTF8, 0, wcU16, -1, NULL, 0, NULL, NULL);
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqUTF8sizel (const WCHAR *wcU16, int lenU16)
 	{
 		return WideCharToMultiByte (CP_UTF8, 0, wcU16, lenU16, NULL, 0, NULL, NULL);
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int UTF8_from_WinU16 (char *chU8, int sizeU8, const WCHAR *wcU16)
 	{
 		return WideCharToMultiByte (CP_UTF8, 0, wcU16, -1, chU8, sizeU8, NULL, NULL);
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int UTF8_from_WinU16l (char *chU8, int sizeU8, const WCHAR *wcU16, int lenU16)
 	{
 		return WideCharToMultiByte (CP_UTF8, 0, wcU16, lenU16, chU8, sizeU8, NULL, NULL);
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqWinU16wchars (const char *chU8)
 	{
 		return MultiByteToWideChar (CP_UTF8, 0, chU8, -1, NULL, 0);
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int WinU16_from_UTF8 (WCHAR *wcU16, int sizeU16, const char *chU8)
 	{
 		return MultiByteToWideChar (CP_UTF8, 0, chU8, -1, wcU16, sizeU16);
@@ -342,7 +344,7 @@ int reqWinU16wcharsFileName (const char *ccU8FileName)
 	}
 }
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	BOOL HasLongFileNamePrefixW (const WCHAR *wcFileName)
 	{
 		ASSERT (NULL != wcFileName);
@@ -354,7 +356,7 @@ int reqWinU16wcharsFileName (const char *ccU8FileName)
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	BOOL HasLongFileNamePrefixU8 (const char *ccFileName)
 	{
 		ASSERT (NULL != ccFileName);
@@ -444,7 +446,7 @@ WCHAR *AllocWinU16_from_UTF8_FileName (const char *ccU8FileName)
 	return pwc;
 }
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneWinU16 (WCHAR *pwc)
 	{
 		if (pwc)
@@ -585,7 +587,7 @@ char *AllocU8path_from_U8path_and_WinU16FileName (const char *ccPath, WCHAR *wcF
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneU8 (char *pch)
 	{
 		if (pch)
@@ -693,7 +695,7 @@ void DoneU8Args (int argc, char *args [])
 }
 
 #ifdef HAVE_SHELLAPI
-	#ifdef DEBUG
+	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		WCHAR **CmdLineArgsW (int *nArgs)
 		{
 			return CommandLineToArgvW (GetCommandLineW (), nArgs);
@@ -9999,7 +10001,7 @@ const char *szBuild_ISO__DATE__ (void)
 	return szISO__DATE__;
 }
 
-#ifdef DEBUG
+#if defined (DEBUG) && !defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	const char *szBuild_ISO__TIME__ (void)
 	{
 		ubf_assert (8 == strlen (cc__TIME__));
@@ -10134,8 +10136,8 @@ When		Who				What
 
 #endif
 
-#ifdef DEBUG
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		const char	szDbgMsgM01	[]	= "ubf_debug_assert () - Failed \"";
 		size_t		lnDbgMsgM01		= sizeof (szDbgMsgM01) - 1;
 		const char	szDbgMsgM02 []	= "\" in \"";
@@ -10152,7 +10154,7 @@ When		Who				What
 		size_t		lnDbgMsgM07		= sizeof (szDbgMsgM07) - 1;
 	#endif
 
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ubf_debug_assert		(
 						bool			bAssert,
 						const char		*chDebugMessage,
@@ -10225,7 +10227,7 @@ When		Who				What
 		}
 	#endif
 
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ubf_debug_assert_pass	(
 						bool			bAssert,
 						const char		*chDebugMessage,
@@ -16020,6 +16022,17 @@ void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
 	memcpy (szOut + sizeof (enum cunilogEvtCmd), &nl, sizeof (nl));
 }
 
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevtpy sevTpy)
+	{
+		ubf_assert_non_NULL (szOut);
+		ubf_assert (sizeof (cueventsevtpy) == sizeof (sevTpy));
+
+		culCmdStoreEventCommand (szOut, cunilogCmdConfigEventSeverityFormatType);
+		memcpy (szOut + sizeof (enum cunilogEvtCmd), &sevTpy, sizeof (sevTpy));
+	}
+#endif
+
 void culCmdChangeCmdConfigFromCommand (SCUNILOGEVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
@@ -16042,13 +16055,18 @@ void culCmdChangeCmdConfigFromCommand (SCUNILOGEVENT *pev)
 	switch (cmd)
 	{
 		case cunilogCmdConfigUseColourForEcho:
-			memcpy (&boolVal, szData, sizeof (bool));
-			if (boolVal)
-				cunilogSetUseColourForEcho (put);
-			else
-				cunilogClrUseColourForEcho (put);
+			#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+				memcpy (&boolVal, szData, sizeof (bool));
+				if (boolVal)
+					cunilogSetUseColourForEcho (put);
+				else
+					cunilogClrUseColourForEcho (put);
+			#endif
 			break;
 		case cunilogCmdConfigEventSeverityFormatType:
+			#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+				memcpy (&put->evSeverityType, szData, sizeof (cueventsevtpy));
+			#endif
 			break;
 		case cunilogCmdConfigCunilognewline:
 			memcpy (&put->unilogNewLine, szData, sizeof (newline_t));
@@ -16497,7 +16515,9 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 	{
 		ubf_assert_non_NULL (put);
 		ubf_assert (needsOrHasLocker (put));
-		ubf_assert_true (put->cl.bInitialised);
+		#ifdef DEBUG
+			ubf_assert_true (put->cl.bInitialised);
+		#endif
 
 		#ifdef OS_IS_WINDOWS
 			EnterCriticalSection (&put->cl.cs);
@@ -16516,7 +16536,9 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 		{
 			ubf_assert_non_NULL (put);
 			ubf_assert (needsOrHasLocker (put));
-			ubf_assert_true (put->cl.bInitialised);
+			#ifdef DEBUG
+				ubf_assert_true (put->cl.bInitialised);
+			#endif
 
 			LeaveCriticalSection (&put->cl.cs);
 			cunilogClrDebugQueueLocked (put);
@@ -16526,7 +16548,9 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 		{
 			ubf_assert_non_NULL (put);
 			ubf_assert (needsOrHasLocker (put));
-			ubf_assert_true (put->cl.bInitialised);
+			#ifdef DEBUG
+				ubf_assert_true (put->cl.bInitialised);
+			#endif
 
 			pthread_mutex_unlock (&put->cl.mt);
 			cunilogClrDebugQueueLocked (put);
@@ -16554,7 +16578,9 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 	static inline void DoneCUNILOG_LOCKER (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
-		ubf_assert_true (put->cl.bInitialised);
+		#ifdef DEBUG
+			ubf_assert_true (put->cl.bInitialised);
+		#endif
 
 		if (needsOrHasLocker (put))
 			DestroyCriticalSection (put);
@@ -17797,7 +17823,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #endif
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-	#ifdef DEBUG
+	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ConfigSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
 		{
 			ubf_assert_non_NULL (put);
@@ -17834,7 +17860,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETprocessorList	(
 					SCUNILOGTARGET			*put
 				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
@@ -21360,6 +21386,28 @@ bool logTextWU16				(SCUNILOGTARGET *put, const wchar_t *cwText)
 		return false;
 	}
 #endif
+
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+	bool ChangeSCUNILOGTARGETeventSeverityType (SCUNILOGTARGET *put, cueventsevtpy sevTpy)
+	{
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(0 <= sevTpy);
+		ubf_assert			(cunilogEvtSeverityTypeXAmountEnumValues > sevTpy);
+
+		size_t rs = culCmdRequiredSize (cunilogCmdConfigEventSeverityFormatType);
+		ubf_assert (CUNILOG_CMD_INVALID_SIZE != rs);
+		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand (put, rs);
+		if (pev)
+		{
+			culCmdStoreConfigEventSeverityFormatType (pev->szDataToLog, sevTpy);
+			return cunilogProcessOrQueueEvent (pev);
+		}
+		return false;
+	}
+#endif
+#endif
+
 
 const uint64_t	uiCunilogVersion	=		((uint64_t) CUNILOG_VERSION_MAJOR	<< 48)
 										|	((uint64_t) CUNILOG_VERSION_MINOR	<< 32)

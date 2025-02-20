@@ -91,7 +91,8 @@ size_t culCmdRequiredSize (enum cunilogEvtCmd cmd)
 /*
 	culCmdStoreCmdConfigUseColourForEcho
 
-	Stores the boolean bUseColour in the buffer szOut points to.
+	Stores the command to change whether colours are used or not plus the boolean bUseColour
+	in the buffer szOut points to.
 */
 void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour)
 ;
@@ -99,10 +100,22 @@ void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour
 /*
 	culCmdStoreCmdConfigCunilognewline
 
-	Stores the value of nl in the buffer szOut points to.
+	Stores the command to change the newline representation and the value of nl in the
+	buffer szOut points to.
 */
 void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
 ;
+
+/*
+	culCmdStoreConfigEventSeverityFormatType
+
+	Stores the command to change the event severity type and the value of sevTpy in the
+	buffer szOut points to.
+*/
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevtpy sevTpy)
+	;
+#endif
 
 /*
 	culCmdChangeCmdConfigFromCommand

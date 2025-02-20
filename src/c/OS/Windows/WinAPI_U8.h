@@ -298,7 +298,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 	This is a function in debug versions and a macro in release builds.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqUTF8size (const WCHAR *wcU16);
 #else
 	#define reqUTF8size(wcU16)							\
@@ -313,7 +313,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 	This is a function in debug versions and a macro in release builds.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqUTF8sizel (const WCHAR *wcU16, int lenU16);
 #else
 	#define reqUTF8sizel(wcU16, lenU16)					\
@@ -328,7 +328,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 	This is a function in debug versions and a macro in release builds.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int UTF8_from_WinU16 (char *chU8, int sizeU8, const WCHAR *wcU16);
 #else
 	#define UTF8_from_WinU16(chU8, sizeU8, wcU16)		\
@@ -344,7 +344,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 	This is a function in debug versions and a macro in release builds.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int UTF8_from_WinU16l (char *chU8, int sizeU8, const WCHAR *wcU16, int lenU16);
 #else
 	#define UTF8_from_WinU16l(chU8, sizeU8, wcU16,		\
@@ -362,7 +362,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 	This is a function in debug versions and a macro in release builds.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqWinU16wchars (const char *chU8);
 #else
 	#define reqWinU16wchars(chU8)						\
@@ -382,7 +382,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 	2021-02-05: Function/macro renamed to make it clearer that it does NOT return the
 	amount of bytes but the amount of WCHARs required.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int WinU16_from_UTF8 (WCHAR *wcU16, int sizeU16, const char *chU8);
 #else
 	#define WinU16_from_UTF8(wcU16, sizeU16, chU8)		\
@@ -413,7 +413,7 @@ int reqWinU16wcharsFileName (const char *ccU8FileName);
 	Returns or evaluates to TRUE if wcFileName starts with a long file name prefix,
 	FALSE if not.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	BOOL HasLongFileNamePrefixW (const WCHAR *wcFileName);
 #else
 	#define HasLongFileNamePrefixW(wcfn)				\
@@ -426,7 +426,7 @@ int reqWinU16wcharsFileName (const char *ccU8FileName);
 	Returns or evaluates to TRUE if ccFileName starts with a long file name prefix,
 	FALSE if not.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	BOOL HasLongFileNamePrefixU8 (const char *ccFileName);
 #else
 	#define HasLongFileNamePrefixU8(ccfn)				\
@@ -489,7 +489,7 @@ WCHAR *AllocWinU16_from_UTF8_FileName (const char *ccU8FileName);
 	...
 	DoneWinU16 (pwc);
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneWinU16 (WCHAR *pwc);
 #else
 	#define DoneWinU16(p)								\
@@ -582,7 +582,7 @@ char *AllocU8_from_WinU16 (const WCHAR *wc16);
 	exists for aesthetic reasons only but this might change in the future if the
 	allcoation method is changed.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneU8 (char *pch);
 #else
 	#define DoneU8(p)									\
@@ -694,7 +694,7 @@ void DoneU8Args (int argc, char *args []);
 	Define HAVE_SHELLAPI to use this function and link to Shell32.lib.
 */
 #ifdef HAVE_SHELLAPI
-	#ifdef DEBUG
+	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		WCHAR **CmdLineArgsW (int *nArgs);
 	#else
 		#define CmdLineArgsW(n)							\
@@ -704,6 +704,8 @@ void DoneU8Args (int argc, char *args []);
 	#endif
 #endif
 
+/*
+*/
 BOOL CopyFileU8(
 	LPCSTR	lpExistingFileNameU8,
 	LPCSTR	lpNewFileNameU8,
@@ -711,6 +713,8 @@ BOOL CopyFileU8(
 )
 ;
 
+/*
+*/
 BOOL CopyFileU8long(
 	LPCSTR	lpExistingFileNameU8,
 	LPCSTR	lpNewFileNameU8,

@@ -124,6 +124,17 @@ void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
 	memcpy (szOut + sizeof (enum cunilogEvtCmd), &nl, sizeof (nl));
 }
 
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevtpy sevTpy)
+	{
+		ubf_assert_non_NULL (szOut);
+		ubf_assert (sizeof (cueventsevtpy) == sizeof (sevTpy));
+
+		culCmdStoreEventCommand (szOut, cunilogCmdConfigEventSeverityFormatType);
+		memcpy (szOut + sizeof (enum cunilogEvtCmd), &sevTpy, sizeof (sevTpy));
+	}
+#endif
+
 void culCmdChangeCmdConfigFromCommand (SCUNILOGEVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
@@ -146,13 +157,18 @@ void culCmdChangeCmdConfigFromCommand (SCUNILOGEVENT *pev)
 	switch (cmd)
 	{
 		case cunilogCmdConfigUseColourForEcho:
-			memcpy (&boolVal, szData, sizeof (bool));
-			if (boolVal)
-				cunilogSetUseColourForEcho (put);
-			else
-				cunilogClrUseColourForEcho (put);
+			#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+				memcpy (&boolVal, szData, sizeof (bool));
+				if (boolVal)
+					cunilogSetUseColourForEcho (put);
+				else
+					cunilogClrUseColourForEcho (put);
+			#endif
 			break;
 		case cunilogCmdConfigEventSeverityFormatType:
+			#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+				memcpy (&put->evSeverityType, szData, sizeof (cueventsevtpy));
+			#endif
 			break;
 		case cunilogCmdConfigCunilognewline:
 			memcpy (&put->unilogNewLine, szData, sizeof (newline_t));

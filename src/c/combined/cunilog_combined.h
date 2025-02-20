@@ -323,6 +323,32 @@ When		Who				What
 #endif														// Of #ifndef EXTERN_C_H.
 /****************************************************************************************
 
+	File		DLLimport.h
+	Why:		The definition for DLL imports for Windows
+	OS:			Windows
+	Created:	2025-02-20
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-02-20	Thomas			Created.
+
+****************************************************************************************/
+
+#ifndef U_DLL_IMPORT_H
+#define U_DLL_IMPORT_H
+
+#if defined (_WIN32) && defined (CUNILOG_IMPORT_FROM_DLL)
+	#define CUNILOG_DLL_IMPORT		__declspec(dllimport)
+#else
+	#define CUNILOG_DLL_IMPORT
+#endif
+
+#endif														// Of #ifndef U_DLL_IMPORT_H.
+/****************************************************************************************
+
 	File		membuf.h
 	Why:		Helpers for memory buffers
 	OS:			C99
@@ -575,7 +601,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 	This function/macro is probably a few CPU cycles faster than doneSMEMBUF ()
 	for structures that won't be re-used.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUF (SMEMBUF *pb);
 #else
 	#define freeSMEMBUF(pb)								\
@@ -590,7 +616,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 
 	Not to be called on structures that do not have any buffer allocated.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb);
 #else
 	#define doneSMEMBUF(p)								\
@@ -606,7 +632,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 
 	Not to be called on structures that do not have any buffer allocated.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#define DONESMEMBUF(s) doneSMEMBUF (&(s))
 #else
 	#define DONESMEMBUF(s)								\
@@ -965,7 +991,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 	This is a function in debug versions and a macro in release builds.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqUTF8size (const WCHAR *wcU16);
 #else
 	#define reqUTF8size(wcU16)							\
@@ -980,7 +1006,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 	This is a function in debug versions and a macro in release builds.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqUTF8sizel (const WCHAR *wcU16, int lenU16);
 #else
 	#define reqUTF8sizel(wcU16, lenU16)					\
@@ -995,7 +1021,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 	This is a function in debug versions and a macro in release builds.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int UTF8_from_WinU16 (char *chU8, int sizeU8, const WCHAR *wcU16);
 #else
 	#define UTF8_from_WinU16(chU8, sizeU8, wcU16)		\
@@ -1011,7 +1037,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 	This is a function in debug versions and a macro in release builds.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int UTF8_from_WinU16l (char *chU8, int sizeU8, const WCHAR *wcU16, int lenU16);
 #else
 	#define UTF8_from_WinU16l(chU8, sizeU8, wcU16,		\
@@ -1029,7 +1055,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 	This is a function in debug versions and a macro in release builds.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqWinU16wchars (const char *chU8);
 #else
 	#define reqWinU16wchars(chU8)						\
@@ -1049,7 +1075,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 	2021-02-05: Function/macro renamed to make it clearer that it does NOT return the
 	amount of bytes but the amount of WCHARs required.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int WinU16_from_UTF8 (WCHAR *wcU16, int sizeU16, const char *chU8);
 #else
 	#define WinU16_from_UTF8(wcU16, sizeU16, chU8)		\
@@ -1080,7 +1106,7 @@ int reqWinU16wcharsFileName (const char *ccU8FileName);
 	Returns or evaluates to TRUE if wcFileName starts with a long file name prefix,
 	FALSE if not.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	BOOL HasLongFileNamePrefixW (const WCHAR *wcFileName);
 #else
 	#define HasLongFileNamePrefixW(wcfn)				\
@@ -1093,7 +1119,7 @@ int reqWinU16wcharsFileName (const char *ccU8FileName);
 	Returns or evaluates to TRUE if ccFileName starts with a long file name prefix,
 	FALSE if not.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	BOOL HasLongFileNamePrefixU8 (const char *ccFileName);
 #else
 	#define HasLongFileNamePrefixU8(ccfn)				\
@@ -1156,7 +1182,7 @@ WCHAR *AllocWinU16_from_UTF8_FileName (const char *ccU8FileName);
 	...
 	DoneWinU16 (pwc);
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneWinU16 (WCHAR *pwc);
 #else
 	#define DoneWinU16(p)								\
@@ -1249,7 +1275,7 @@ char *AllocU8_from_WinU16 (const WCHAR *wc16);
 	exists for aesthetic reasons only but this might change in the future if the
 	allcoation method is changed.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneU8 (char *pch);
 #else
 	#define DoneU8(p)									\
@@ -1361,7 +1387,7 @@ void DoneU8Args (int argc, char *args []);
 	Define HAVE_SHELLAPI to use this function and link to Shell32.lib.
 */
 #ifdef HAVE_SHELLAPI
-	#ifdef DEBUG
+	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		WCHAR **CmdLineArgsW (int *nArgs);
 	#else
 		#define CmdLineArgsW(n)							\
@@ -1371,6 +1397,8 @@ void DoneU8Args (int argc, char *args []);
 	#endif
 #endif
 
+/*
+*/
 BOOL CopyFileU8(
 	LPCSTR	lpExistingFileNameU8,
 	LPCSTR	lpNewFileNameU8,
@@ -1378,6 +1406,8 @@ BOOL CopyFileU8(
 )
 ;
 
+/*
+*/
 BOOL CopyFileU8long(
 	LPCSTR	lpExistingFileNameU8,
 	LPCSTR	lpNewFileNameU8,
@@ -5836,12 +5866,12 @@ When		Who				What
 //	ABORT() macro is used. It is not recommended to uncomment this
 //	definition. Rather define UBF_DONT_USE_DBG_ABRT_OUTPUT_FNCTS
 //	in the development environment or project file.
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#ifndef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
 	#define UBF_USE_DBG_ABRT_OUTPUT_FNCTS
 	#endif
 #endif
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#ifdef UBF_DONT_USE_DBG_ABRT_OUTPUT_FNCTS
 		#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
 		#undef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
@@ -6050,9 +6080,9 @@ EXTERN_C_BEGIN
 	outputs "Arbitrary message" when the assertion fails instead of the actual
 	assertion.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	// Debug version.
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ubf_debug_assert		(
 						bool			bAssert,
 						const char		*chDebugMessage,
@@ -6063,7 +6093,7 @@ EXTERN_C_BEGIN
 		#define ubf_debug_assert(b, c, p, n)			\
 			ASSERT (b)
 	#endif
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ubf_debug_assert_pass	(
 						bool			bAssert,
 						const char		*chDebugMessage,
@@ -10673,7 +10703,7 @@ const char *szBuild_ISO__DATE__ (void)
 	completeness, because the predefinded macro __TIME__ serves the very same
 	purpose, which is in fact precisely what the function/macro returns.
 */
-#ifdef DEBUG
+#if defined (DEBUG) && !defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	const char *szBuild_ISO__TIME__ (void);
 #else
 	#define szBuild_ISO__TIME__()	__TIME__
@@ -10803,12 +10833,12 @@ When		Who				What
 //	ABORT() macro is used. It is not recommended to uncomment this
 //	definition. Rather define UBF_DONT_USE_DBG_ABRT_OUTPUT_FNCTS
 //	in the development environment or project file.
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#ifndef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
 	#define UBF_USE_DBG_ABRT_OUTPUT_FNCTS
 	#endif
 #endif
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#ifdef UBF_DONT_USE_DBG_ABRT_OUTPUT_FNCTS
 		#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
 		#undef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
@@ -11017,9 +11047,9 @@ EXTERN_C_BEGIN
 	outputs "Arbitrary message" when the assertion fails instead of the actual
 	assertion.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	// Debug version.
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ubf_debug_assert		(
 						bool			bAssert,
 						const char		*chDebugMessage,
@@ -11030,7 +11060,7 @@ EXTERN_C_BEGIN
 		#define ubf_debug_assert(b, c, p, n)			\
 			ASSERT (b)
 	#endif
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ubf_debug_assert_pass	(
 						bool			bAssert,
 						const char		*chDebugMessage,
@@ -15019,6 +15049,7 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./DLLimport.h"
 		#include "./SingleBits.h"
 		#include "./ubf_times.h"
 		#include "./membuf.h"
@@ -15031,6 +15062,7 @@ When		Who				What
 		#include "./dbgcountandtrack.h"
 	#else
 		#include "./../pre/externC.h"
+		#include "./../pre/DLLimport.h"
 		#include "./../pre/SingleBits.h"
 		#include "./../datetime/ubf_times.h"
 		#include "./../mem/membuf.h"
@@ -15085,6 +15117,32 @@ When		Who				What
 #endif
 */
 
+/*
+	If we're building a Windows DLL we got to turn all our features on.
+	Otherwise we'd have to maintain different .def files depending on the build
+	options defined.
+*/
+#ifdef CUNILOG_BUILD_SHARED_LIBRARY
+
+	#ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#undef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#endif
+
+	#ifdef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	#undef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	#endif
+
+	#ifdef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	#undef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	#endif
+
+	#ifdef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+	#undef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+	#endif
+
+#endif
+
+
 BEGIN_C_DECLS
 
 /*
@@ -15092,10 +15150,10 @@ BEGIN_C_DECLS
 	(szCunilogLogFileNameExtension) and Windows UTF-16 (wcCunilogLogFileNameExtension).
 	The constant lenCunilogLogFileNameExtension is the length in characters (not octets!).
 */
-extern const char		*szCunilogLogFileNameExtension;			// ".log"
-extern const wchar_t	*wcCunilogLogFileNameExtension;			// ".log"
-extern const size_t		lenCunilogLogFileNameExtension;			// ".log"
-extern const size_t		sizCunilogLogFileNameExtension;
+CUNILOG_DLL_IMPORT extern const char		*szCunilogLogFileNameExtension;			// ".log"
+CUNILOG_DLL_IMPORT extern const wchar_t	*wcCunilogLogFileNameExtension;			// ".log"
+CUNILOG_DLL_IMPORT extern const size_t		lenCunilogLogFileNameExtension;			// ".log"
+CUNILOG_DLL_IMPORT extern const size_t		sizCunilogLogFileNameExtension;
 
 /*
 	enum unilogtype
@@ -15640,6 +15698,9 @@ enum cunilogeventseveritytype
 	,	cunilogEvtSeverityTypeChars3InBrackets					// "[EMG]", "[DBG]"...
 	,	cunilogEvtSeverityTypeChars5InBrackets					// "[EMRGY]", "[DEBUG]"...
 	,	cunilogEvtSeverityTypeChars9InBrackets					// "[EMERGENCY]", "[DEBUG    ]"...
+	// Do not add anything below this line.
+	,	cunilogEvtSeverityTypeXAmountEnumValues					// Used for sanity checks.
+	// Do not add anything below cunilogEvtSeverityTypeXAmountEnumValues.
 };
 typedef enum cunilogeventseveritytype cueventsevtpy;
 
@@ -15884,12 +15945,18 @@ typedef struct scunilogtarget
 
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-	#define cunilogHasUseColourForEcho(pt)				\
-		((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
-	#define cunilogClrUseColourForEcho(pt)				\
-		((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
-	#define cunilogSetUseColourForEcho(pt)				\
-		((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#ifndef cunilogHasUseColourForEcho
+		#define cunilogHasUseColourForEcho(pt)				\
+			((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#endif
+	#ifndef cunilogClrUseColourForEcho
+		#define cunilogClrUseColourForEcho(pt)				\
+			((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#endif
+	#ifndef cunilogSetUseColourForEcho
+		#define cunilogSetUseColourForEcho(pt)				\
+			((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#endif
 #endif
 
 #if defined (DEBUG) && !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
@@ -15900,7 +15967,7 @@ typedef struct scunilogtarget
 	#define cunilogSetDebugQueueLocked(pt)				\
 		((pt)->uiOpts |= CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
 #else
-	#define cunilogHasDebugQueueLocked(pt)
+	#define cunilogHasDebugQueueLocked(pt)	(true)
 	#define cunilogClrDebugQueueLocked(pt)
 	#define cunilogSetDebugQueueLocked(pt)
 #endif
@@ -16339,7 +16406,8 @@ size_t culCmdRequiredSize (enum cunilogEvtCmd cmd)
 /*
 	culCmdStoreCmdConfigUseColourForEcho
 
-	Stores the boolean bUseColour in the buffer szOut points to.
+	Stores the command to change whether colours are used or not plus the boolean bUseColour
+	in the buffer szOut points to.
 */
 void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour)
 ;
@@ -16347,10 +16415,22 @@ void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour
 /*
 	culCmdStoreCmdConfigCunilognewline
 
-	Stores the value of nl in the buffer szOut points to.
+	Stores the command to change the newline representation and the value of nl in the
+	buffer szOut points to.
 */
 void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
 ;
+
+/*
+	culCmdStoreConfigEventSeverityFormatType
+
+	Stores the command to change the event severity type and the value of sevTpy in the
+	buffer szOut points to.
+*/
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevtpy sevTpy)
+	;
+#endif
 
 /*
 	culCmdChangeCmdConfigFromCommand
@@ -16577,7 +16657,7 @@ EXTERN_C_BEGIN
 	The pointer to the module's internal static SCUNILOGTARGET structure.
 	The _static versions of the logging functions operate on this structure.
 */
-extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
+CUNILOG_DLL_IMPORT extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 
 /*
 	Functions
@@ -17237,7 +17317,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	Switches on/off using colours for console output depending on event severity level.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-	#ifdef DEBUG
+	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ConfigSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
 		;
 	#else
@@ -17271,7 +17351,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	nProcessors			The amount of processors cuProcessorList points to.
 
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETprocessorList	(
 					SCUNILOGTARGET			*put
 				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
@@ -17621,7 +17701,7 @@ bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	Allocates a buffer that points to a new event structure SCUNILOGEVENT plus data,
 	initialises it with the function parameters, and returns a pointer to the newly
 	created and initialised structure and data buffer. The event is written out as binary
-	data.
+	data, which results in a hex dump.
 
 	Note that you can NOT use USE_STRLEN as the parameter siz.
 

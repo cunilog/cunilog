@@ -1,19 +1,138 @@
 LIBRARY libcunilog
 EXPORTS
-szCunilogLogFileNameExtension					@100
-wcCunilogLogFileNameExtension					@101
-lenCunilogLogFileNameExtension					@102
-sizCunilogLogFileNameExtension					@103
+	szCunilogLogFileNameExtension					@100	DATA
+	wcCunilogLogFileNameExtension					@101	DATA
+	lenCunilogLogFileNameExtension					@102	DATA
+	sizCunilogLogFileNameExtension					@103	DATA
+	pSCUNILOGTARGETstatic							@104	DATA
 
-CunilogSetConsoleTo								@200
-InitSCUNILOGTARGETex							@201
-InitSCUNILOGTARGET								@202
-CreateNewSCUNILOGTARGET							@203
-InitOrCreateSCUNILOGTARGET						@204
-InitSCUNILOGTARGETstaticEx						@205
-InitSCUNILOGTARGETstatic						@206
-GetAbsoluteLogPathSCUNILOGTARGET				@207
-ConfigSCUNILOGTARGETcunilogpostfix				@208
-ConfigSCUNILOGTARGETrunProcessorsOnStartup		@209
-ConfigSCUNILOGTARGETcunilognewline				@210
-ConfigSCUNILOGTARGETeventSeverityFormatType		@211
+	CunilogSetConsoleTo								@200
+	InitSCUNILOGTARGETex							@201
+	InitSCUNILOGTARGET								@202
+	CreateNewSCUNILOGTARGET							@203
+	InitOrCreateSCUNILOGTARGET						@204
+	InitSCUNILOGTARGETstaticEx						@205
+	InitSCUNILOGTARGETstatic						@206
+	GetAbsoluteLogPathSCUNILOGTARGET				@207
+	ConfigSCUNILOGTARGETcunilogpostfix				@208
+	ConfigSCUNILOGTARGETrunProcessorsOnStartup		@209
+	ConfigSCUNILOGTARGETcunilognewline				@210
+	ConfigSCUNILOGTARGETeventSeverityFormatType		@211
+	ConfigSCUNILOGTARGETuseColourForEcho			@212
+	ConfigSCUNILOGTARGETprocessorList				@213
+	ConfigSCUNILOGTARGETdisableTaskProcessors		@214
+	ConfigSCUNILOGTARGETenableTaskProcessors		@215
+	ConfigSCUNILOGTARGETdisableEchoProcessor		@216
+	ConfigSCUNILOGTARGETenableEchoProcessor			@217
+;	EnterSCUNILOGTARGET								@218	Should not be used.
+;	LeaveSCUNILOGTARGET								@219	Should not be used.
+	DoneSCUNILOGTARGET								@220
+	ShutdownSCUNILOGTARGET							@221
+	CancelSCUNILOGTARGET							@222
+	SetLogPrioritySCUNILOGTARGET					@223
+	PauseLogSCUNILOGTARGET							@224
+	ResumeLogSCUNILOGTARGET							@225
+	CreateSCUNILOGEVENT_Data						@226
+	CreateSCUNILOGEVENT_Text						@227
+	DuplicateSCUNILOGEVENT							@228
+	DoneSCUNILOGEVENT								@229
+	ChangeSCUNILOGTARGETuseColourForEcho			@230
+	ChangeSCUNILOGTARGETcunilognewline				@231
+
+	cunilogCheckVersionIntChk						@250
+
+	logEv											@300
+	logTextU8sevl									@301
+	logTextU8sevlq									@302
+	logTextU8sev									@303
+	logTextU8sevq									@304
+	logTextU8l										@305
+	logTextU8lq										@306
+	logTextU8										@307
+	logTextU8q										@308
+	logTextU8vfmt									@309
+	logTextU8fmt									@310
+	logTextU8qvfmt									@311
+	logTextU8qfmt									@312
+	logTextU8svfmt									@313
+	logTextU8sfmt									@314
+	logTextU8sqvfmt									@315
+	logTextU8sqfmt									@316
+	logTextU8svfmtsev								@317
+	logTextU8sfmtsev								@318
+	logTextU8smbvfmtsev								@319
+	logTextU8smbfmtsev								@320
+	logTextU8smbvfmt								@321
+	logTextU8smbfmt									@322
+	logHexDumpU8sevl								@323
+	logHexDumpU8l									@324
+	logHexDump										@325
+	logHexDumpq										@326
+	logHexOrText									@327
+	logHexOrTextq									@328
+	logHexOrTextU8									@329
+
+	logTextWU16sevl									@330
+	logTextWU16sev									@331
+	logTextWU16l									@332
+	logTextWU16										@333
+
+	; membuf
+	setToSizeSMEMBUF								@400
+	growToSizeSMEMBUF								@401
+	growToSizeSMEMBUF64aligned						@402
+	freeSMEMBUF										@403
+	doneSMEMBUF										@404
+	copySMEMBUF										@405
+	copySMEMBUFsiz									@406
+
+	; strmembuf
+	SMEMBUFfromStrReserveBytes						@407
+	SMEMBUFfromStr									@408
+	SMEMBUFstrFromUINT64							@409
+
+	; ISO__DATE__
+	szBuild_ISO__DATE__								@410
+	szBuild_ISO__DATE__TIME__						@411
+	replace_ISO_DATE_								@412
+
+	ubf_debug_assert								@413
+	ubf_debug_assert_pass							@414
+
+	memstrstr										@415
+	memstrstrn										@416
+	memchrreplace									@417
+	memstrchr										@418
+	memstrrchr										@419
+
+	; WinAPI_U8
+	reqUTF8size										@420
+	reqUTF8sizel									@421
+	UTF8_from_WinU16								@422
+	UTF8_from_WinU16l								@423
+	reqWinU16wchars									@424
+	WinU16_from_UTF8								@425
+	reqWinU16wcharsFileName							@426
+	HasLongFileNamePrefixW							@427
+	HasLongFileNamePrefixU8							@428
+	WinU16_from_UTF8_FileName						@429
+	AllocWinU16_from_UTF8							@430
+	AllocWinU16_from_UTF8_00						@431
+	AllocWinU16_from_UTF8_FileName					@432
+	DoneWinU16										@433
+	AllocU8_from_WinU16								@434
+	AllocU8path_from_U8path_and_WinU16FileName		@435
+	DoneU8											@436
+	AllocWinU16fromU8orUseThreshold					@437
+	AllocWinU16fromU8orUseThresholdLongFileName		@438
+	DoneWinU16fromU8orUseThreshold					@439
+	AllocU8ArgsFromWinU16							@440
+	DoneU8Args										@441
+	CmdLineArgsW									@442
+	CopyFileU8										@443
+	CopyFileU8long									@444
+	CreateAllFoldersW								@445
+	CreateAllFoldersU8								@446
+
+	SetCurrentDirectoryU8							@470
+

@@ -115,7 +115,26 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 	return pb->buf.pvoid;
 }
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	void freeSMEMBUF (SMEMBUF *pb)
+	{
+		ubf_assert_non_NULL (pb);
+		ubf_assert_non_NULL (pb->buf.pvoid);
+
+		if (pb->buf.pvoid)
+		{
+			ubf_assert (0 < pb->size);
+
+			ubf_free (pb->buf.pvoid);
+		}
+		#ifdef DEBUG
+			// Anything is Ok apart from 'A'.
+			pb->initComplete = '#';
+		#endif
+	}
+#endif
+
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb)
 	{
 		ubf_assert_non_NULL (pb);
@@ -128,23 +147,6 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 			ubf_free (pb->buf.pvoid);
 			initSMEMBUF (pb);
 		}
-	}
-#endif
-
-#ifdef DEBUG
-	void freeSMEMBUF (SMEMBUF *pb)
-	{
-		ubf_assert_non_NULL (pb);
-		ubf_assert_non_NULL (pb->buf.pvoid);
-
-		if (pb->buf.pvoid)
-		{
-			ubf_assert (0 < pb->size);
-
-			ubf_free (pb->buf.pvoid);
-		}
-		// Anything is Ok apart from 'A'.
-		pb->initComplete = '#';
 	}
 #endif
 

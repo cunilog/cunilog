@@ -97,7 +97,7 @@ const char *szBuild_ISO__DATE__ (void)
 	completeness, because the predefinded macro __TIME__ serves the very same
 	purpose, which is in fact precisely what the function/macro returns.
 */
-#ifdef DEBUG
+#if defined (DEBUG) && !defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	const char *szBuild_ISO__TIME__ (void);
 #else
 	#define szBuild_ISO__TIME__()	__TIME__

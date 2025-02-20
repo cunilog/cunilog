@@ -317,5 +317,8 @@
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogevtcmdsstructs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\src\c\pre\DLLimport.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

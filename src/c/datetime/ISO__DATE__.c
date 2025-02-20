@@ -108,7 +108,7 @@ const char *szBuild_ISO__DATE__ (void)
 	return szISO__DATE__;
 }
 
-#ifdef DEBUG
+#if defined (DEBUG) && !defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	const char *szBuild_ISO__TIME__ (void)
 	{
 		ubf_assert (8 == strlen (cc__TIME__));

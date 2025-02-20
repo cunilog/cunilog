@@ -238,6 +238,7 @@
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinAPI_ReadDirFncts.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\ArrayMacros.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\DLLimport.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\externC.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\platform.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\SingleBits.h" />

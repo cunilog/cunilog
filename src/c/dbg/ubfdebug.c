@@ -71,8 +71,8 @@ When		Who				What
 
 #endif
 
-#ifdef DEBUG
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		const char	szDbgMsgM01	[]	= "ubf_debug_assert () - Failed \"";
 		size_t		lnDbgMsgM01		= sizeof (szDbgMsgM01) - 1;
 		const char	szDbgMsgM02 []	= "\" in \"";
@@ -89,7 +89,7 @@ When		Who				What
 		size_t		lnDbgMsgM07		= sizeof (szDbgMsgM07) - 1;
 	#endif
 
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ubf_debug_assert		(
 						bool			bAssert,
 						const char		*chDebugMessage,
@@ -162,7 +162,7 @@ When		Who				What
 		}
 	#endif
 
-	#ifdef UBF_USE_DBG_ABRT_OUTPUT_FNCTS
+	#if defined (UBF_USE_DBG_ABRT_OUTPUT_FNCTS) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ubf_debug_assert_pass	(
 						bool			bAssert,
 						const char		*chDebugMessage,

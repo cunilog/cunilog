@@ -51,6 +51,7 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./DLLimport.h"
 		#include "./SingleBits.h"
 		#include "./ubf_times.h"
 		#include "./membuf.h"
@@ -63,6 +64,7 @@ When		Who				What
 		#include "./dbgcountandtrack.h"
 	#else
 		#include "./../pre/externC.h"
+		#include "./../pre/DLLimport.h"
 		#include "./../pre/SingleBits.h"
 		#include "./../datetime/ubf_times.h"
 		#include "./../mem/membuf.h"
@@ -117,6 +119,32 @@ When		Who				What
 #endif
 */
 
+/*
+	If we're building a Windows DLL we got to turn all our features on.
+	Otherwise we'd have to maintain different .def files depending on the build
+	options defined.
+*/
+#ifdef CUNILOG_BUILD_SHARED_LIBRARY
+
+	#ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#undef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#endif
+
+	#ifdef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	#undef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	#endif
+
+	#ifdef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	#undef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	#endif
+
+	#ifdef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+	#undef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+	#endif
+
+#endif
+
+
 BEGIN_C_DECLS
 
 /*
@@ -124,10 +152,10 @@ BEGIN_C_DECLS
 	(szCunilogLogFileNameExtension) and Windows UTF-16 (wcCunilogLogFileNameExtension).
 	The constant lenCunilogLogFileNameExtension is the length in characters (not octets!).
 */
-extern const char		*szCunilogLogFileNameExtension;			// ".log"
-extern const wchar_t	*wcCunilogLogFileNameExtension;			// ".log"
-extern const size_t		lenCunilogLogFileNameExtension;			// ".log"
-extern const size_t		sizCunilogLogFileNameExtension;
+CUNILOG_DLL_IMPORT extern const char		*szCunilogLogFileNameExtension;			// ".log"
+CUNILOG_DLL_IMPORT extern const wchar_t	*wcCunilogLogFileNameExtension;			// ".log"
+CUNILOG_DLL_IMPORT extern const size_t		lenCunilogLogFileNameExtension;			// ".log"
+CUNILOG_DLL_IMPORT extern const size_t		sizCunilogLogFileNameExtension;
 
 /*
 	enum unilogtype
@@ -672,6 +700,9 @@ enum cunilogeventseveritytype
 	,	cunilogEvtSeverityTypeChars3InBrackets					// "[EMG]", "[DBG]"...
 	,	cunilogEvtSeverityTypeChars5InBrackets					// "[EMRGY]", "[DEBUG]"...
 	,	cunilogEvtSeverityTypeChars9InBrackets					// "[EMERGENCY]", "[DEBUG    ]"...
+	// Do not add anything below this line.
+	,	cunilogEvtSeverityTypeXAmountEnumValues					// Used for sanity checks.
+	// Do not add anything below cunilogEvtSeverityTypeXAmountEnumValues.
 };
 typedef enum cunilogeventseveritytype cueventsevtpy;
 
@@ -916,12 +947,18 @@ typedef struct scunilogtarget
 
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-	#define cunilogHasUseColourForEcho(pt)				\
-		((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
-	#define cunilogClrUseColourForEcho(pt)				\
-		((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
-	#define cunilogSetUseColourForEcho(pt)				\
-		((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#ifndef cunilogHasUseColourForEcho
+		#define cunilogHasUseColourForEcho(pt)				\
+			((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#endif
+	#ifndef cunilogClrUseColourForEcho
+		#define cunilogClrUseColourForEcho(pt)				\
+			((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#endif
+	#ifndef cunilogSetUseColourForEcho
+		#define cunilogSetUseColourForEcho(pt)				\
+			((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#endif
 #endif
 
 #if defined (DEBUG) && !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
@@ -932,7 +969,7 @@ typedef struct scunilogtarget
 	#define cunilogSetDebugQueueLocked(pt)				\
 		((pt)->uiOpts |= CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
 #else
-	#define cunilogHasDebugQueueLocked(pt)
+	#define cunilogHasDebugQueueLocked(pt)	(true)
 	#define cunilogClrDebugQueueLocked(pt)
 	#define cunilogSetDebugQueueLocked(pt)
 #endif

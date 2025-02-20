@@ -207,7 +207,7 @@ EXTERN_C_BEGIN
 	The pointer to the module's internal static SCUNILOGTARGET structure.
 	The _static versions of the logging functions operate on this structure.
 */
-extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
+CUNILOG_DLL_IMPORT extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 
 /*
 	Functions
@@ -867,7 +867,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	Switches on/off using colours for console output depending on event severity level.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-	#ifdef DEBUG
+	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ConfigSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
 		;
 	#else
@@ -901,7 +901,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	nProcessors			The amount of processors cuProcessorList points to.
 
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETprocessorList	(
 					SCUNILOGTARGET			*put
 				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
@@ -1251,7 +1251,7 @@ bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	Allocates a buffer that points to a new event structure SCUNILOGEVENT plus data,
 	initialises it with the function parameters, and returns a pointer to the newly
 	created and initialised structure and data buffer. The event is written out as binary
-	data.
+	data, which results in a hex dump.
 
 	Note that you can NOT use USE_STRLEN as the parameter siz.
 

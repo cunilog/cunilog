@@ -92,42 +92,42 @@ const char	ccLongFileNamePrefix [] = "\\\\?\\";				// The ASCII/UTF-8 version.
 	#error This module can only be used in Windows applications compiled for unicode (Use Unicode Character Set)
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqUTF8size (const WCHAR *wcU16)
 	{
 		return WideCharToMultiByte (CP_UTF8, 0, wcU16, -1, NULL, 0, NULL, NULL);
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqUTF8sizel (const WCHAR *wcU16, int lenU16)
 	{
 		return WideCharToMultiByte (CP_UTF8, 0, wcU16, lenU16, NULL, 0, NULL, NULL);
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int UTF8_from_WinU16 (char *chU8, int sizeU8, const WCHAR *wcU16)
 	{
 		return WideCharToMultiByte (CP_UTF8, 0, wcU16, -1, chU8, sizeU8, NULL, NULL);
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int UTF8_from_WinU16l (char *chU8, int sizeU8, const WCHAR *wcU16, int lenU16)
 	{
 		return WideCharToMultiByte (CP_UTF8, 0, wcU16, lenU16, chU8, sizeU8, NULL, NULL);
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqWinU16wchars (const char *chU8)
 	{
 		return MultiByteToWideChar (CP_UTF8, 0, chU8, -1, NULL, 0);
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int WinU16_from_UTF8 (WCHAR *wcU16, int sizeU16, const char *chU8)
 	{
 		return MultiByteToWideChar (CP_UTF8, 0, chU8, -1, wcU16, sizeU16);
@@ -145,7 +145,7 @@ int reqWinU16wcharsFileName (const char *ccU8FileName)
 	}
 }
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	BOOL HasLongFileNamePrefixW (const WCHAR *wcFileName)
 	{
 		ASSERT (NULL != wcFileName);
@@ -157,7 +157,7 @@ int reqWinU16wcharsFileName (const char *ccU8FileName)
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	BOOL HasLongFileNamePrefixU8 (const char *ccFileName)
 	{
 		ASSERT (NULL != ccFileName);
@@ -247,7 +247,7 @@ WCHAR *AllocWinU16_from_UTF8_FileName (const char *ccU8FileName)
 	return pwc;
 }
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneWinU16 (WCHAR *pwc)
 	{
 		if (pwc)
@@ -388,7 +388,7 @@ char *AllocU8path_from_U8path_and_WinU16FileName (const char *ccPath, WCHAR *wcF
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneU8 (char *pch)
 	{
 		if (pch)
@@ -496,7 +496,7 @@ void DoneU8Args (int argc, char *args [])
 }
 
 #ifdef HAVE_SHELLAPI
-	#ifdef DEBUG
+	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		WCHAR **CmdLineArgsW (int *nArgs)
 		{
 			return CommandLineToArgvW (GetCommandLineW (), nArgs);

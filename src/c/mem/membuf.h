@@ -252,7 +252,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 	This function/macro is probably a few CPU cycles faster than doneSMEMBUF ()
 	for structures that won't be re-used.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUF (SMEMBUF *pb);
 #else
 	#define freeSMEMBUF(pb)								\
@@ -267,7 +267,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 
 	Not to be called on structures that do not have any buffer allocated.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb);
 #else
 	#define doneSMEMBUF(p)								\
@@ -283,7 +283,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 
 	Not to be called on structures that do not have any buffer allocated.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#define DONESMEMBUF(s) doneSMEMBUF (&(s))
 #else
 	#define DONESMEMBUF(s)								\
