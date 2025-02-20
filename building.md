@@ -1,11 +1,11 @@
 
 # Building Cunilog
 
-There's currently two options to build Cunilog. It can be built as part of your application or as a static library. Although it is planned to have a dynamically linked library in the future too, it is not readily available at the moment unless you create your own.
+There's two options to build Cunilog. It can be built as part of your application or as a static or dynamically linked library.
 
 ## Building Cunilog as part of your application
 
-It is recommended that Cunilog is compiled and built together with your application. Since this is not always possible, a static library is an alternative.
+It is recommended that Cunilog is compiled and built together with your application. Since this is not always possible, static and shared libraries are alternatives.
 
 To build the software as part of your application, you got two choices:
 
@@ -39,13 +39,13 @@ Apart from the correct character set there's nothing special to consider for Win
 On Windows, Cunilog requires to be built with __Character Set__ set to __Use Unicode Character Set__. This means it can only be compiled as part of your application if your application is compiled with the same character set. Note that __Unicode Character Set__ on Windows means UTF-16, not UTF-8, which is fine because Cunilog converts all strings/texts to UTF-16 before it calls any Windows API, and it converts strings/texts coming back from Windows APIs to UTF-8 before returning them to the caller.
 In Visual Studio, the character set an application is built with can be found under __Project__, __Properties__, __Configuration Properties__, then __Advanced__. If your application needs to be built differently, include Cunilog as a static library.
 
-### Building Cunilog as a Windows static library
+### Building Cunilog as a Windows static or dynamic (shared) library (DLL)
 
 Open the MSVC solution __libcunilog.sln__ in folder __proj\msvc2019\libcunilog__ with MSVC 2019 and build it. There's currently only solution/project files for MSVC 2019.
 
-In Visual Studio, go to __Build__, then __Batch Build...__*. Select the versions of the static libraries you intend to use (see below) or press __Select All__, then __Rebuild__. You should get a completion message for the amount of project configurations you selected:
+In Visual Studio, go to __Build__, then __Batch Build...__*. Select the type of the static or shared (DLL) libraries you intend to use (see below) or press __Select All__, then __Rebuild__. You should get a completion message for the amount of project configurations you selected:
 ```
-========== Rebuild All: 8 succeeded, 0 failed, 0 skipped ==========
+========== Rebuild All: 16 succeeded, 0 failed, 0 skipped ==========
 ```
 
 Which version of the Cunilog library you should link your application to depends on the method your application is built with. See [/MD, /MT, /LD (Use Run-Time Library)](https://learn.microsoft.com/en-us/cpp/build/reference/md-mt-ld-use-run-time-library?view=msvc-170).
