@@ -138,6 +138,89 @@ EXPORTS
 	CopyFileU8long									@444
 	CreateAllFoldersW								@445
 	CreateAllFoldersU8								@446
+	CreateDirectoryIfNotExistsU8					@447
+	CreateDirectoryU8								@448
+	CreateDirectoryU8long							@449
+	CreateEventU8									@450
+	CreateEventExU8									@451
+	CreateFileMappingU8								@452
+	CreateFileU8									@453
+	CreateFileU8long								@454
+	STARTUPINFOW_from_STARTUPINFOA					@455
+	DoneSTARTUPINFOW								@456
+	CloseHandleAndInvalidate						@457
+	CreateMutexU8									@458
+	CreateMutexExU8									@459
+	CreateProcessU8EnvW								@460
+	CreateProcessU8									@461
+	CreateSemaphoreU8								@462
+;	CreateServiceU8									@463	Not exported
+	CreateWin16tringArrayFromU8						@464
+	DoneWin16StringArray							@465
+	CreateWinU16EnvironmentFromU8					@466
+	DoneWinU16Environment							@467
+;	DecryptFileU8									@468	Not exported
+	DeleteFileU8									@469
+	DeleteFileU8long								@470
+;	EncryptFileU8									@471	Not exported
+;	FileEncryptionStatusU8							@472	Not exported
+	FileExistsU8									@473
+	FileExistsU8long								@474
+	FileOrPathExistsU8								@475
+	FindFirstChangeNotificationU8					@476
+	FindFirstChangeNotificationU8long				@477
+	FindFirstFileExU8								@478
+	FindFirstFileExU8long							@479
+	FindFirstFileU8									@480
+	FindFirstFileU8long								@481
+	WIN32_FIND_DATAU8_from_WIN32_FIND_DATAW			@482
+	copyWIN32_FIND_DATAW							@483
+	copyWIN32_FIND_DATAU8							@484
+;	FindProcessByNameU8								@485	Not exported
+	GetComputerNameExU8								@486
+	GetComputerNameU8								@487
+	GetEnvironmentVariableU8						@488
+	GetFileAttributesU8								@489
+	GetFileAttributesU8long							@490
+	GetFilePointerEx								@491
+;	GetFileSecurityU8								@492	Not exported
+	GetFileSystemType								@493
+	GetFullPathNameU8								@494
+	GetModuleFileNameU8								@495
+	GetModuleHandleU8								@496
+	GetPrivateProfileStringU8						@497
+;	GetUserNameU8									@498	Not exported
+	GetDefaultUserProfileDirectoryU8				@499
+	GetUserProfileDirectoryU8						@500
+	GetVolumeInformationU8							@501
+	GetWinErrorTextU8								@502
+;	InitiateSystemShutdownExU8						@503	Not exported
+;	InitiateShutdownU8								@504	Not exported
+	IsCmdArgumentSwitchW							@505
+	IsEqualUpToW									@506
+	IsPathDirectoryU8								@507
+	IsPathDirectoryW								@508
+	LoadLibraryU8									@509
+;	LookupAccountNameU8								@510	Not exported
+;	LookupAccountSidU8								@511	Not exported
+;	MessageBoxU8									@512	Not exported
+;	MessageBoxExU8									@513	Not exported
+;	MaxiMiseThisConsoleWindow						@514	Not exported
+;	MiniMiseThisConsoleWindow						@515	Not exported
+;	RestoreThisConsoleWindow						@516	Not exported
+	MoveFileU8										@517
+	MoveFileExU8									@518
+	MoveFileExU8long								@519
+	MoveFileWithProgressU8							@520
+	MoveFileWithProgressU8long						@521
+	MoveToRecycleBinU8								@522
+	MoveToRecycleBinW								@523
+;	NetUserEnumU8									@523	Not exported
+	OpenEventU8										@524
+;	OpenEventLogU8									@525	Not exported
+;	ClearEventLogU8									@526	Not exported
+	OpenFileMappingU8								@527
+	OpenMutexU8										@528
 
-	SetCurrentDirectoryU8							@470
+	SetCurrentDirectoryU8							@590
 

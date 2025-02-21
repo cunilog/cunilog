@@ -8,6 +8,7 @@ head
 /cunilog/cunilogdefs
 /pre/externC
 /pre/DLLimport
+/pre/functionptrtpydef
 /mem/membuf
 /OS/Windows/WinAPI_U8
 /pre/platform

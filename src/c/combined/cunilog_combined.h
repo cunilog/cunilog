@@ -349,6 +349,42 @@ When		Who				What
 #endif														// Of #ifndef U_DLL_IMPORT_H.
 /****************************************************************************************
 
+	File		functionptrtpydef.h
+	Why:		Helper macro to create a typedef for a function pointer.
+	OS:			Windows
+	Created:	2025-02-20
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-02-20	Thomas			Created.
+
+****************************************************************************************/
+
+#ifndef U_FUNCTIONPTRTPYDEF_H
+#define U_FUNCTIONPTRTPYDEF_H
+
+/*
+	TYPEDEF_FNCT_PTR
+
+	Creates a function pointer type definition.
+*/
+#define TYPEDEF_FNCT_PTR(rettpy, fnctname)						\
+			typedef rettpy (*fncpt_ ## fnctname)
+
+/*
+	TYPEDEF_FNCT_PTR_ARGS
+
+	Creates a function pointer type definition including its arguments.
+*/
+#define TYPEDEF_FNCT_PTR_ARGS(rettpy, fnctname, ...)			\
+			typedef rettpy (*fncpt_ ## fnctname) (__VA_ARGS__)
+
+#endif														// Of #ifndef U_FUNCTIONPTRTPYDEF_H.
+/****************************************************************************************
+
 	File		membuf.h
 	Why:		Helpers for memory buffers
 	OS:			C99
@@ -401,9 +437,11 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./functionptrtpydef.h"
 		#include "./ubfmem.h"
 	#else
 		#include "./../pre/externC.h"
+		#include "./../pre/functionptrtpydef.h"
 		#include "./../mem/ubfmem.h"
 	#endif
 
@@ -562,6 +600,7 @@ typedef struct smembuf
 	make it unusable. Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
+TYPEDEF_FNCT_PTR (void *, setToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 
 /*
 	growToSizeSMEMBUF
@@ -577,6 +616,7 @@ void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
+TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 
 /*
 	growToSizeSMEMBUF64aligned
@@ -587,7 +627,8 @@ void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
 	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
-void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
+void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz);
+TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF64aligned) (SMEMBUF *pb, size_t siz);
 
 /*
 	freeSMEMBUF
@@ -603,6 +644,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUF (SMEMBUF *pb);
+	TYPEDEF_FNCT_PTR (void, freeSMEMBUF) (SMEMBUF *pb);
 #else
 	#define freeSMEMBUF(pb)								\
 		ubf_free ((pb)->buf.pvoid)
@@ -618,6 +660,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb);
+	TYPEDEF_FNCT_PTR (void, doneSMEMBUF) (SMEMBUF *pb);
 #else
 	#define doneSMEMBUF(p)								\
 		freeSMEMBUF (p);								\
@@ -675,6 +718,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 */
 void copySMEMBUF (SMEMBUF *dst, SMEMBUF *src)
 ;
+TYPEDEF_FNCT_PTR (void, copySMEMBUF) (SMEMBUF *dst, SMEMBUF *src);
 
 /*
 	copySMEMBUFsiz
@@ -687,6 +731,8 @@ void copySMEMBUF (SMEMBUF *dst, SMEMBUF *src)
 */
 void copySMEMBUFsiz (SMEMBUF *dst, SMEMBUF *src, size_t siz)
 ;
+TYPEDEF_FNCT_PTR (void, copySMEMBUFsiz) (SMEMBUF *dst, SMEMBUF *src, size_t siz);
+
 
 EXTERN_C_END
 
@@ -780,8 +826,10 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./functionptrtpydef.h"
 	#else
 		#include "./../../pre/externC.h"
+		#include "./../../pre/functionptrtpydef.h"
 	#endif
 
 #endif
@@ -993,6 +1041,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqUTF8size (const WCHAR *wcU16);
+	TYPEDEF_FNCT_PTR (int, reqUTF8size) (const WCHAR *wcU16);
 #else
 	#define reqUTF8size(wcU16)							\
 		WideCharToMultiByte (CP_UTF8, 0, wcU16, -1, NULL, 0, NULL, NULL)
@@ -1008,6 +1057,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqUTF8sizel (const WCHAR *wcU16, int lenU16);
+	TYPEDEF_FNCT_PTR (int, reqUTF8sizel) (const WCHAR *wcU16, int lenU16);
 #else
 	#define reqUTF8sizel(wcU16, lenU16)					\
 		WideCharToMultiByte (CP_UTF8, 0, wcU16, lenU16, NULL, 0, NULL, NULL)
@@ -1023,6 +1073,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int UTF8_from_WinU16 (char *chU8, int sizeU8, const WCHAR *wcU16);
+	TYPEDEF_FNCT_PTR (int, UTF8_from_WinU16) (char *chU8, int sizeU8, const WCHAR *wcU16);
 #else
 	#define UTF8_from_WinU16(chU8, sizeU8, wcU16)		\
 		WideCharToMultiByte (CP_UTF8, 0, wcU16, -1, chU8, sizeU8, NULL, NULL)
@@ -1039,6 +1090,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int UTF8_from_WinU16l (char *chU8, int sizeU8, const WCHAR *wcU16, int lenU16);
+	TYPEDEF_FNCT_PTR (int, UTF8_from_WinU16l) (char *chU8, int sizeU8, const WCHAR *wcU16, int lenU16);
 #else
 	#define UTF8_from_WinU16l(chU8, sizeU8, wcU16,		\
 				lenU16)									\
@@ -1057,6 +1109,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int reqWinU16wchars (const char *chU8);
+	TYPEDEF_FNCT_PTR (int, reqWinU16wchars) (const char *chU8);
 #else
 	#define reqWinU16wchars(chU8)						\
 		MultiByteToWideChar (CP_UTF8, 0, chU8, -1, NULL, 0)
@@ -1077,6 +1130,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	int WinU16_from_UTF8 (WCHAR *wcU16, int sizeU16, const char *chU8);
+	TYPEDEF_FNCT_PTR (int, WinU16_from_UTF8) (WCHAR *wcU16, int sizeU16, const char *chU8);
 #else
 	#define WinU16_from_UTF8(wcU16, sizeU16, chU8)		\
 		MultiByteToWideChar (CP_UTF8, 0, chU8, -1, wcU16, sizeU16)
@@ -1097,6 +1151,7 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 	amount of bytes but the amount of WCHARs required.
 */
 int reqWinU16wcharsFileName (const char *ccU8FileName);
+TYPEDEF_FNCT_PTR (int, reqWinU16wcharsFileName) (const char *ccU8FileName);
 #define reqWinU16sizeFileName()							\
 	error Function renamed to reqWinU16FileNameWCHARs () because it returns the amount of WCHARs required
 
@@ -1108,6 +1163,7 @@ int reqWinU16wcharsFileName (const char *ccU8FileName);
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	BOOL HasLongFileNamePrefixW (const WCHAR *wcFileName);
+	TYPEDEF_FNCT_PTR (BOOL, HasLongFileNamePrefixW) (const WCHAR *wcFileName);
 #else
 	#define HasLongFileNamePrefixW(wcfn)				\
 		(!wcsncmp (wcfn, wcLongFileNamePrefix, LENOF_LONGFILENAMEPREFIX))
@@ -1121,6 +1177,7 @@ int reqWinU16wcharsFileName (const char *ccU8FileName);
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	BOOL HasLongFileNamePrefixU8 (const char *ccFileName);
+	TYPEDEF_FNCT_PTR (BOOL, HasLongFileNamePrefixU8) (const char *ccFileName);
 #else
 	#define HasLongFileNamePrefixU8(ccfn)				\
 		(!strncmp (ccfn, ccLongFileNamePrefix, LENOF_LONGFILENAMEPREFIX))
@@ -1136,6 +1193,7 @@ int reqWinU16wcharsFileName (const char *ccU8FileName);
 	Returns the number of characters written to wcU16FileName.
 */
 int WinU16_from_UTF8_FileName (WCHAR *wcU16FileName, int sizeU16, const char *ccU8FileName);
+TYPEDEF_FNCT_PTR (int, WinU16_from_UTF8_FileName) (WCHAR *wcU16FileName, int sizeU16, const char *ccU8FileName);
 
 /*
 	AllocWinU16_from_UTF8
@@ -1155,7 +1213,9 @@ int WinU16_from_UTF8_FileName (WCHAR *wcU16FileName, int sizeU16, const char *cc
 	and check the members pFrom and pTo. Both need to be terminated with two NUL characters.
 */
 WCHAR *AllocWinU16_from_UTF8 (const char *ccU8);
+TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16_from_UTF8) (const char *ccU8);
 WCHAR *AllocWinU16_from_UTF8_00 (const char *ccU8);
+TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16_from_UTF8_00) (const char *ccU8);
 
 /*
 	AllocWinU16_from_UTF8_FileName
@@ -1170,6 +1230,7 @@ WCHAR *AllocWinU16_from_UTF8_00 (const char *ccU8);
 	is not needed anymore.
 */
 WCHAR *AllocWinU16_from_UTF8_FileName (const char *ccU8FileName);
+TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16_from_UTF8_FileName) (const char *ccU8FileName);
 
 /*
 	DoneWinU16
@@ -1184,6 +1245,7 @@ WCHAR *AllocWinU16_from_UTF8_FileName (const char *ccU8FileName);
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneWinU16 (WCHAR *pwc);
+	TYPEDEF_FNCT_PTR_ARGS (void, DoneWinU16, WCHAR *pwc);
 #else
 	#define DoneWinU16(p)								\
 		if (p)											\
@@ -1201,6 +1263,7 @@ WCHAR *AllocWinU16_from_UTF8_FileName (const char *ccU8FileName);
 	is not needed anymore to deallocate the memory associated with it.
 */
 char *AllocU8_from_WinU16 (const WCHAR *wc16);
+TYPEDEF_FNCT_PTR_ARGS (char *, AllocU8_from_WinU16, const WCHAR *wc16);
 
 /*
 	AllocU8path_from_U8path_and_WinU16FileName
@@ -1235,6 +1298,7 @@ char *AllocU8_from_WinU16 (const WCHAR *wc16);
 */
 #ifdef HAVE_STRWILDCARDS
 	char *AllocU8path_from_U8path_and_WinU16FileName (const char *ccPath, WCHAR *wcFileName);
+	TYPEDEF_FNCT_PTR (char *, AllocU8path_from_U8path_and_WinU16FileName) (const char *ccPath, WCHAR *wcFileName);
 #endif
 
 /*
@@ -1277,6 +1341,7 @@ char *AllocU8_from_WinU16 (const WCHAR *wc16);
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneU8 (char *pch);
+	TYPEDEF_FNCT_PTR (void, DoneU8) (char *pch);
 #else
 	#define DoneU8(p)									\
 		if (p)											\
@@ -1325,10 +1390,10 @@ char *AllocU8_from_WinU16 (const WCHAR *wc16);
 		DoneWinU16fromU8orUseThreshold (pwcFileName, wcFileName);
 	}
 */
-WCHAR *AllocWinU16fromU8orUseThreshold (WCHAR *pwcStackVar, const char *pchU8)
-;
-WCHAR *AllocWinU16fromU8orUseThreshold_00 (WCHAR *pwcStackVar, const char *pchU8)
-;
+WCHAR *AllocWinU16fromU8orUseThreshold (WCHAR *pwcStackVar, const char *pchU8);
+TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16fromU8orUseThreshold) (WCHAR *pwcStackVar, const char *pchU8);
+WCHAR *AllocWinU16fromU8orUseThreshold_00 (WCHAR *pwcStackVar, const char *pchU8);
+TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16fromU8orUseThreshold_00) (WCHAR *pwcStackVar, const char *pchU8);
 
 /*
 	AllocWinU16fromU8orUseThresholdLongFileName
@@ -1340,8 +1405,8 @@ WCHAR *AllocWinU16fromU8orUseThreshold_00 (WCHAR *pwcStackVar, const char *pchU8
 	Call DoneWinU16fromU8orUseThreshold with the returned pointer and the same
 	pwcStackVar variable to conditionally deallocate the buffer again.
 */
-WCHAR *AllocWinU16fromU8orUseThresholdLongFileName (WCHAR *pwcStackVar, const char *pchU8)
-;
+WCHAR *AllocWinU16fromU8orUseThresholdLongFileName (WCHAR *pwcStackVar, const char *pchU8);
+TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16fromU8orUseThresholdLongFileName) (WCHAR *pwcStackVar, const char *pchU8);
 
 /*
 	DoneWinU16fromU8orUseThreshold
@@ -1357,8 +1422,8 @@ WCHAR *AllocWinU16fromU8orUseThresholdLongFileName (WCHAR *pwcStackVar, const ch
 	Debug versions abort if one of the parameters is NULL. This would indicate
 	a bug somewhere.
 */
-void DoneWinU16fromU8orUseThreshold (WCHAR *pwcHeapVar, WCHAR *pwcStackVar)
-;
+void DoneWinU16fromU8orUseThreshold (WCHAR *pwcHeapVar, WCHAR *pwcStackVar);
+TYPEDEF_FNCT_PTR (void, DoneWinU16fromU8orUseThreshold) (WCHAR *pwcHeapVar, WCHAR *pwcStackVar);
 
 /*
 	AllocU8ArgsFromWinU16
@@ -1369,6 +1434,7 @@ void DoneWinU16fromU8orUseThreshold (WCHAR *pwcHeapVar, WCHAR *pwcStackVar)
 	To free the the allocated array again, call DoneU8Args ().
 */
 char **AllocU8ArgsFromWinU16 (int argc, WCHAR *argvw []);
+TYPEDEF_FNCT_PTR (char **, AllocU8ArgsFromWinU16) (int argc, WCHAR *argvw []);
 
 /*
 	DoneU8Args
@@ -1376,6 +1442,7 @@ char **AllocU8ArgsFromWinU16 (int argc, WCHAR *argvw []);
 	Deallocates the memory allocated by AllocU8ArgsFromWinU16 ().
 */
 void DoneU8Args (int argc, char *args []);
+TYPEDEF_FNCT_PTR (void, DoneU8Args) (int argc, char *args []);
 
 /*
 	CmdLineArgsW
@@ -1389,6 +1456,7 @@ void DoneU8Args (int argc, char *args []);
 #ifdef HAVE_SHELLAPI
 	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		WCHAR **CmdLineArgsW (int *nArgs);
+		TYPEDEF_FNCT_PTR (WCHAR **, CmdLineArgsW) (int *nArgs);
 	#else
 		#define CmdLineArgsW(n)							\
 			CommandLineToArgvW	(						\
@@ -1398,6 +1466,11 @@ void DoneU8Args (int argc, char *args []);
 #endif
 
 /*
+	CopyFileU8
+
+	UTF-8 version of the CopyFileW () Windows API. See
+	https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-copyfilew
+	for details.
 */
 BOOL CopyFileU8(
 	LPCSTR	lpExistingFileNameU8,
@@ -1405,10 +1478,32 @@ BOOL CopyFileU8(
 	BOOL	bFailIfExists
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, CopyFileU8)
+(
+	LPCSTR	lpExistingFileNameU8,
+	LPCSTR	lpNewFileNameU8,
+	BOOL	bFailIfExists
+)
+;
 
 /*
+	CopyFileU8long
+
+	UTF-8 version of the CopyFileW () Windows API. See
+	https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-copyfilew
+	for details.
+
+	The function adds long filename prefixes to the string parameters if they're not
+	prefixed yet.
 */
 BOOL CopyFileU8long(
+	LPCSTR	lpExistingFileNameU8,
+	LPCSTR	lpNewFileNameU8,
+	BOOL	bFailIfExists
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, CopyFileU8long)
+(
 	LPCSTR	lpExistingFileNameU8,
 	LPCSTR	lpNewFileNameU8,
 	BOOL	bFailIfExists
@@ -1423,14 +1518,15 @@ BOOL CopyFileU8long(
 	it existed already prior to invoking the function.
 */
 BOOL CreateAllFoldersW (WCHAR *wcPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+TYPEDEF_FNCT_PTR (BOOL, CreateAllFoldersW) (WCHAR *wcPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
 /*
 	CreateAllFoldersU8
 	
 	UTF-8 version of CreateAllFoldersW (). See above.
 */
-BOOL CreateAllFoldersU8 (const char *szPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes)
-;
+BOOL CreateAllFoldersU8 (const char *szPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+TYPEDEF_FNCT_PTR (BOOL, CreateAllFoldersU8) (const char *szPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
 /*
 	CreateDirectoryIfNotExistsW
@@ -1447,6 +1543,8 @@ BOOL CreateDirectoryIfNotExistsW (WCHAR *wcDir, LPSECURITY_ATTRIBUTES lpSecurity
 	the directory exists already.
 */
 BOOL CreateDirectoryIfNotExistsU8 (const char *ccPathU8, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+TYPEDEF_FNCT_PTR (BOOL, CreateDirectoryIfNotExistsU8)
+	(const char *ccPathU8, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
 /*
 	CreateDirectoryU8
@@ -1456,6 +1554,12 @@ BOOL CreateDirectoryIfNotExistsU8 (const char *ccPathU8, LPSECURITY_ATTRIBUTES l
 	for reference.
 */
 BOOL CreateDirectoryU8(
+  LPCSTR                lpPathNameU8,
+  LPSECURITY_ATTRIBUTES lpSecurityAttributes
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, CreateDirectoryU8)
+(
   LPCSTR                lpPathNameU8,
   LPSECURITY_ATTRIBUTES lpSecurityAttributes
 )
@@ -1473,6 +1577,12 @@ BOOL CreateDirectoryU8long(
   LPSECURITY_ATTRIBUTES lpSecurityAttributes
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, CreateDirectoryU8long)
+(
+  LPCSTR                lpPathNameU8,
+  LPSECURITY_ATTRIBUTES lpSecurityAttributes
+)
+;
 
 /*
 	CreateEventU8
@@ -1482,6 +1592,14 @@ BOOL CreateDirectoryU8long(
 	for more information.
 */
 HANDLE CreateEventU8(
+  LPSECURITY_ATTRIBUTES lpEventAttributes,
+  BOOL                  bManualReset,
+  BOOL                  bInitialState,
+  LPCSTR                lpName
+)
+;
+TYPEDEF_FNCT_PTR (HANDLE, CreateEventU8)
+(
   LPSECURITY_ATTRIBUTES lpEventAttributes,
   BOOL                  bManualReset,
   BOOL                  bInitialState,
@@ -1502,6 +1620,13 @@ HANDLE CreateEventExU8(
   DWORD                 dwFlags,
   DWORD                 dwDesiredAccess
 );
+TYPEDEF_FNCT_PTR (HANDLE, CreateEventExU8)
+(
+  LPSECURITY_ATTRIBUTES lpEventAttributes,
+  LPCSTR                lpName,
+  DWORD                 dwFlags,
+  DWORD                 dwDesiredAccess
+);
 
 /*
 	CreateFileMappingU8
@@ -1511,6 +1636,16 @@ HANDLE CreateEventExU8(
 	for reference.
 */
 HANDLE CreateFileMappingU8(
+  HANDLE                hFile,
+  LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
+  DWORD                 flProtect,
+  DWORD                 dwMaximumSizeHigh,
+  DWORD                 dwMaximumSizeLow,
+  LPCSTR                lpName
+)
+;
+TYPEDEF_FNCT_PTR (HANDLE, CreateFileMappingU8)
+(
   HANDLE                hFile,
   LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
   DWORD                 flProtect,
@@ -1535,6 +1670,17 @@ HANDLE CreateFileMappingU8(
 	INVALID_HANDLE_VALUE.
 */
 HANDLE CreateFileU8(
+  LPCSTR                lpFileNameU8,
+  DWORD                 dwDesiredAccess,
+  DWORD                 dwShareMode,
+  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  DWORD                 dwCreationDisposition,
+  DWORD                 dwFlagsAndAttributes,
+  HANDLE                hTemplateFile
+)
+;
+TYPEDEF_FNCT_PTR (HANDLE, CreateFileU8)
+(
   LPCSTR                lpFileNameU8,
   DWORD                 dwDesiredAccess,
   DWORD                 dwShareMode,
@@ -1579,6 +1725,17 @@ HANDLE CreateFileU8long(
   HANDLE                hTemplateFile
 )
 ;
+TYPEDEF_FNCT_PTR (HANDLE, CreateFileU8long)
+(
+  LPCSTR                lpFileNameU8,
+  DWORD                 dwDesiredAccess,
+  DWORD                 dwShareMode,
+  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+  DWORD                 dwCreationDisposition,
+  DWORD                 dwFlagsAndAttributes,
+  HANDLE                hTemplateFile
+)
+;
 
 /*
 	STARTUPINFOW_from_STARTUPINFOA
@@ -1592,6 +1749,7 @@ HANDLE CreateFileU8long(
 	memory leaks.
 */
 void STARTUPINFOW_from_STARTUPINFOA (STARTUPINFOW *siw, STARTUPINFOA *sia);
+TYPEDEF_FNCT_PTR (void, STARTUPINFOW_from_STARTUPINFOA) (STARTUPINFOW *siw, STARTUPINFOA *sia);
 
 /*
 	DoneSTARTUPINFOW
@@ -1603,6 +1761,7 @@ void STARTUPINFOW_from_STARTUPINFOA (STARTUPINFOW *siw, STARTUPINFOA *sia);
 	function STARTUPINFOW_from_STARTUPINFOA () to avoid memory leaks.
 */
 void DoneSTARTUPINFOW (STARTUPINFOW *siw);
+TYPEDEF_FNCT_PTR (void, DoneSTARTUPINFOW) (STARTUPINFOW *siw);
 
 /*
 	CloseHandleAndInvalidate
@@ -1613,6 +1772,7 @@ void DoneSTARTUPINFOW (STARTUPINFOW *siw);
 	The function returns the return value of the Windows API CloseHandle ().
 */
 BOOL CloseHandleAndInvalidate (HANDLE *phHandle);
+TYPEDEF_FNCT_PTR (BOOL, CloseHandleAndInvalidate) (HANDLE *phHandle);
 
 /*
 	CreateMutexU8
@@ -1630,6 +1790,14 @@ HANDLE CreateMutexU8(
   LPCSTR                lpName
 )
 ;
+TYPEDEF_FNCT_PTR (HANDLE, CreateMutexU8)
+(
+  LPSECURITY_ATTRIBUTES lpMutexAttributes,
+  BOOL                  bInitialOwner,
+  LPCSTR                lpName
+)
+;
+
 
 /*
 	CreateMutexExU8
@@ -1642,6 +1810,13 @@ HANDLE CreateMutexU8(
 	occurred.
 */
 HANDLE CreateMutexExU8(
+  LPSECURITY_ATTRIBUTES lpMutexAttributes,
+  LPCSTR                lpName,
+  DWORD                 dwFlags,
+  DWORD                 dwDesiredAccess
+);
+TYPEDEF_FNCT_PTR (HANDLE, CreateMutexExU8)
+(
   LPSECURITY_ATTRIBUTES lpMutexAttributes,
   LPCSTR                lpName,
   DWORD                 dwFlags,
@@ -1672,6 +1847,21 @@ BOOL CreateProcessU8EnvW(
   LPPROCESS_INFORMATION lpProcessInformation
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, CreateProcessU8EnvW)
+(
+  LPCSTR                lpApplicationName,
+  LPSTR                 lpCommandLine,
+  LPSECURITY_ATTRIBUTES lpProcessAttributes,
+  LPSECURITY_ATTRIBUTES lpThreadAttributes,
+  BOOL                  bInheritHandles,
+  DWORD                 dwCreationFlags,
+  LPVOID                lpEnvironment,
+  LPCSTR                lpCurrentDirectory,
+  LPSTARTUPINFOA        lpStartupInfo,
+  LPPROCESS_INFORMATION lpProcessInformation
+)
+;
+
 /*
 	CreateProcessU8
 	
@@ -1699,6 +1889,20 @@ BOOL CreateProcessU8(
   LPPROCESS_INFORMATION lpProcessInformation
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, CreateProcessU8)
+(
+  LPCSTR                lpApplicationName,
+  LPSTR                 lpCommandLine,
+  LPSECURITY_ATTRIBUTES lpProcessAttributes,
+  LPSECURITY_ATTRIBUTES lpThreadAttributes,
+  BOOL                  bInheritHandles,
+  DWORD                 dwCreationFlags,
+  LPVOID                lpEnvironment,
+  LPCSTR                lpCurrentDirectory,
+  LPSTARTUPINFOA        lpStartupInfo,
+  LPPROCESS_INFORMATION lpProcessInformation
+)
+;
 
 /*
 	CreateSemaphoreU8
@@ -1711,6 +1915,14 @@ BOOL CreateProcessU8(
 	which is a handle to the semaphore or NULL if it fails.
 */
 HANDLE CreateSemaphoreU8(
+  LPSECURITY_ATTRIBUTES lpSemaphoreAttributes,
+  LONG                  lInitialCount,
+  LONG                  lMaximumCount,
+  LPCSTR                lpNameU8
+)
+;
+TYPEDEF_FNCT_PTR (HANDLE, CreateSemaphoreU8)
+(
   LPSECURITY_ATTRIBUTES lpSemaphoreAttributes,
   LONG                  lInitialCount,
   LONG                  lMaximumCount,
@@ -1744,6 +1956,23 @@ SC_HANDLE CreateServiceU8(
   LPCSTR    lpPassword
 )
 ;
+TYPEDEF_FNCT_PTR (SC_HANDLE, CreateServiceU8)
+(
+  SC_HANDLE hSCManager,
+  LPCSTR    lpServiceName,
+  LPCSTR    lpDisplayName,
+  DWORD     dwDesiredAccess,
+  DWORD     dwServiceType,
+  DWORD     dwStartType,
+  DWORD     dwErrorControl,
+  LPCSTR    lpBinaryPathName,
+  LPCSTR    lpLoadOrderGroup,
+  LPDWORD   lpdwTagId,
+  LPCSTR    lpDependencies,
+  LPCSTR    lpServiceStartName,
+  LPCSTR    lpPassword
+)
+;
 #endif
 
 /*
@@ -1756,6 +1985,7 @@ SC_HANDLE CreateServiceU8(
 	required anymore to deallocate its resources.
 */
 WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, WORD numStrings);
+TYPEDEF_FNCT_PTR (WCHAR **, CreateWin16tringArrayFromU8) (const char **pu8, WORD numStrings);
 
 
 /*
@@ -1765,6 +1995,7 @@ WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, WORD numStrings);
 	CreateWin16tringArrayFromU8 ().
 */
 void DoneWin16StringArray (WCHAR **pwcStringArray, WORD numStrings);
+TYPEDEF_FNCT_PTR (void, DoneWin16StringArray) (WCHAR **pwcStringArray, WORD numStrings);
 
 /*
 	CreateWinU16EnvironmentFromU8
@@ -1785,6 +2016,7 @@ void DoneWin16StringArray (WCHAR **pwcStringArray, WORD numStrings);
 	again, which is a wrapper for free ().
 */
 WCHAR *CreateWinU16EnvironmentFromU8 (const char *szU8Environment);
+TYPEDEF_FNCT_PTR (WCHAR *, CreateWinU16EnvironmentFromU8) (const char *szU8Environment);
 
 /*
 	DoneWinU16Environment
@@ -1797,8 +2029,9 @@ WCHAR *CreateWinU16EnvironmentFromU8 (const char *szU8Environment);
 	...
 	DoneWinU16Environment (pe);
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneWinU16Environment (WCHAR *wcEnvironment);
+	TYPEDEF_FNCT_PTR (void, DoneWinU16Environment) (WCHAR *wcEnvironment);
 #else
 	#define DoneWinU16Environment(p)					\
 		free (p)
@@ -1819,6 +2052,12 @@ BOOL DecryptFileU8(
   DWORD  dwReserved
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, DecryptFileU8)
+(
+  LPCSTR lpFileName,
+  DWORD  dwReserved
+)
+;
 #endif
 
 /*
@@ -1829,6 +2068,11 @@ BOOL DecryptFileU8(
 	for reference.
 */
 BOOL DeleteFileU8(
+  LPCSTR lpFileNameU8
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, DeleteFileU8)
+(
   LPCSTR lpFileNameU8
 )
 ;
@@ -1847,6 +2091,11 @@ BOOL DeleteFileU8long(
   LPCSTR lpFileNameU8
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, DeleteFileU8long)
+(
+  LPCSTR lpFileNameU8
+)
+;
 
 /*
 	EncryptFileU8
@@ -1859,6 +2108,11 @@ BOOL DeleteFileU8long(
 */
 #ifdef HAVE_ADVAPI32
 BOOL EncryptFileU8(
+  LPCSTR lpFileNameU8
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, EncryptFileU8)
+(
   LPCSTR lpFileNameU8
 )
 ;
@@ -1879,6 +2133,12 @@ BOOL FileEncryptionStatusU8(
   LPDWORD lpStatus
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, FileEncryptionStatusU8)
+(
+  LPCSTR  lpFileNameU8,
+  LPDWORD lpStatus
+)
+;
 #endif
 
 /*
@@ -1893,6 +2153,7 @@ BOOL FileEncryptionStatusU8(
 	instance be a network resource that is only temporarily not available.
 */
 BOOL FileExistsU8 (const char *lpszFilenameU8);
+TYPEDEF_FNCT_PTR (BOOL, FileExistsU8) (const char *lpszFilenameU8);
 
 /*
 	FileExistsU8long
@@ -1909,6 +2170,7 @@ BOOL FileExistsU8 (const char *lpszFilenameU8);
 	this version does not support paths that contain "." or ".." path components.
 */
 BOOL FileExistsU8long (const char *lpszFilenameU8);
+TYPEDEF_FNCT_PTR (BOOL, FileExistsU8long) (const char *lpszFilenameU8);
 
 /*
 	FileOrPathExists
@@ -1921,6 +2183,7 @@ BOOL FileExistsU8long (const char *lpszFilenameU8);
 	for instance be a network resource that is only temporarily not available.
 */
 BOOL FileOrPathExistsU8 (const char *lpszFilenameU8);
+TYPEDEF_FNCT_PTR (BOOL, FileOrPathExistsU8) (const char *lpszFilenameU8);
 #define FileOrDirExistsU8(fn)	FileOrPathExistsU8 (fn)
 
 /*
@@ -1931,6 +2194,13 @@ BOOL FileOrPathExistsU8 (const char *lpszFilenameU8);
 	for more information.
 */
 HANDLE FindFirstChangeNotificationU8(
+  LPCSTR lpPathNameU8,
+  BOOL   bWatchSubtree,
+  DWORD  dwNotifyFilter
+)
+;
+TYPEDEF_FNCT_PTR (HANDLE, FindFirstChangeNotificationU8)
+(
   LPCSTR lpPathNameU8,
   BOOL   bWatchSubtree,
   DWORD  dwNotifyFilter
@@ -1953,6 +2223,13 @@ HANDLE FindFirstChangeNotificationU8long(
   DWORD  dwNotifyFilter
 )
 ;
+TYPEDEF_FNCT_PTR (HANDLE, FindFirstChangeNotificationU8long)
+(
+  LPCSTR lpPathNameU8,
+  BOOL   bWatchSubtree,
+  DWORD  dwNotifyFilter
+)
+;
 
 /*
 	FindFirstFileExU8
@@ -1965,6 +2242,16 @@ HANDLE FindFirstChangeNotificationU8long(
 	UTF-8 version called FindNextFileU8 ().
 */
 HANDLE FindFirstFileExU8(
+  LPCSTR             lpFileNameU8,
+  FINDEX_INFO_LEVELS fInfoLevelId,
+  LPVOID             lpFindFileData,
+  FINDEX_SEARCH_OPS  fSearchOp,
+  LPVOID             lpSearchFilter,
+  DWORD              dwAdditionalFlags
+)
+;
+TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileExU8)
+(
   LPCSTR             lpFileNameU8,
   FINDEX_INFO_LEVELS fInfoLevelId,
   LPVOID             lpFindFileData,
@@ -1997,6 +2284,16 @@ HANDLE FindFirstFileExU8long(
   DWORD              dwAdditionalFlags
 )
 ;
+TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileExU8long)
+(
+  LPCSTR             lpFileNameU8,
+  FINDEX_INFO_LEVELS fInfoLevelId,
+  LPVOID             lpFindFileData,
+  FINDEX_SEARCH_OPS  fSearchOp,
+  LPVOID             lpSearchFilter,
+  DWORD              dwAdditionalFlags
+)
+;
 
 /*
 	FindFirstFileU8
@@ -2017,6 +2314,12 @@ HANDLE FindFirstFileU8(
   LPWIN32_FIND_DATAW lpFindFileData
 )
 ;
+TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileU8)
+(
+  LPCSTR             lpFileNameU8,
+  LPWIN32_FIND_DATAW lpFindFileData
+)
+;
 
 /*
 	FindFirstFileU8long
@@ -2032,6 +2335,12 @@ HANDLE FindFirstFileU8(
 	does not support relative paths.
 */
 HANDLE FindFirstFileU8long(
+  LPCSTR             lpFileNameU8,
+  LPWIN32_FIND_DATAW lpFindFileData
+)
+;
+TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileU8long)
+(
   LPCSTR             lpFileNameU8,
   LPWIN32_FIND_DATAW lpFindFileData
 )
@@ -2079,6 +2388,8 @@ typedef struct win32_find_dataU8
 	member. See the definition of UTF8_MAX_PATH.
 */
 void WIN32_FIND_DATAU8_from_WIN32_FIND_DATAW (WIN32_FIND_DATAU8 *pwfdU8, WIN32_FIND_DATAW *pwfdW);
+TYPEDEF_FNCT_PTR (void, WIN32_FIND_DATAU8_from_WIN32_FIND_DATAW)
+	(WIN32_FIND_DATAU8 *pwfdU8, WIN32_FIND_DATAW *pwfdW);
 
 /*
 	copyWIN32_FIND_DATAW
@@ -2087,6 +2398,8 @@ void WIN32_FIND_DATAU8_from_WIN32_FIND_DATAW (WIN32_FIND_DATAU8 *pwfdU8, WIN32_F
 	pwfdDest points to.
 */
 void copyWIN32_FIND_DATAW (WIN32_FIND_DATAW *pwfdDest, WIN32_FIND_DATAW *pwfdSrc);
+TYPEDEF_FNCT_PTR (void, copyWIN32_FIND_DATAW)
+	(WIN32_FIND_DATAW *pwfdDest, WIN32_FIND_DATAW *pwfdSrc);
 
 /*
 	copyWIN32_FIND_DATAU8
@@ -2095,6 +2408,8 @@ void copyWIN32_FIND_DATAW (WIN32_FIND_DATAW *pwfdDest, WIN32_FIND_DATAW *pwfdSrc
 	pu8fdDest points to.
 */
 void copyWIN32_FIND_DATAU8 (WIN32_FIND_DATAU8 *pu8fdDest, WIN32_FIND_DATAU8 *pu8fdSrc);
+TYPEDEF_FNCT_PTR (void, copyWIN32_FIND_DATAU8)
+	(WIN32_FIND_DATAU8 *pu8fdDest, WIN32_FIND_DATAU8 *pu8fdSrc);
 
 /*
 	FindProcessByNameU8
@@ -2110,6 +2425,7 @@ void copyWIN32_FIND_DATAU8 (WIN32_FIND_DATAU8 *pu8fdDest, WIN32_FIND_DATAU8 *pu8
 */
 #ifdef HAVE_KERNEL32
 	HANDLE FindProcessByNameU8 (const char *szProcessName);
+	TYPEDEF_FNCT_PTR (HANDLE, FindProcessByNameU8) (const char *szProcessName);
 #endif
 
 /*
@@ -2120,6 +2436,13 @@ void copyWIN32_FIND_DATAU8 (WIN32_FIND_DATAU8 *pu8fdDest, WIN32_FIND_DATAU8 *pu8
 	for reference.
 */
 BOOL GetComputerNameExU8(
+  COMPUTER_NAME_FORMAT NameType,
+  LPSTR                lpBuffer,
+  LPDWORD              lpnSize
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, GetComputerNameExU8)
+(
   COMPUTER_NAME_FORMAT NameType,
   LPSTR                lpBuffer,
   LPDWORD              lpnSize
@@ -2138,6 +2461,12 @@ BOOL GetComputerNameU8(
   LPDWORD lpnSize
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, GetComputerNameU8)
+(
+  LPSTR   lpBuffer,
+  LPDWORD lpnSize
+)
+;
 
 /*
 	GetEnvironmentVariableU8
@@ -2147,6 +2476,13 @@ BOOL GetComputerNameU8(
 	for more information.
 */
 DWORD GetEnvironmentVariableU8(
+  char		*szNameU8,
+  char		*szOut,
+  DWORD		nSize
+)
+;
+TYPEDEF_FNCT_PTR (DWORD, GetEnvironmentVariableU8)
+(
   char		*szNameU8,
   char		*szOut,
   DWORD		nSize
@@ -2172,6 +2508,11 @@ DWORD GetEnvironmentVariableU8(
 	INVALID_FILE_ATTRIBUTES.
 */
 DWORD GetFileAttributesU8(
+  LPCSTR lpFileNameU8
+)
+;
+TYPEDEF_FNCT_PTR (DWORD, GetFileAttributesU8)
+(
   LPCSTR lpFileNameU8
 )
 ;
@@ -2201,6 +2542,11 @@ DWORD GetFileAttributesU8long(
   LPCSTR lpFileNameU8
 )
 ;
+TYPEDEF_FNCT_PTR (DWORD, GetFileAttributesU8long)
+(
+  LPCSTR lpFileNameU8
+)
+;
 
 /*
 	GetFilePointerEx
@@ -2215,6 +2561,7 @@ DWORD GetFileAttributesU8long(
 	for more information.
 */
 BOOL GetFilePointerEx (LARGE_INTEGER *liCurrFilePointer, HANDLE hFile);
+TYPEDEF_FNCT_PTR (BOOL, GetFilePointerEx) (LARGE_INTEGER *liCurrFilePointer, HANDLE hFile);
 
 /*
 	GetFileSecurityU8
@@ -2227,6 +2574,15 @@ BOOL GetFilePointerEx (LARGE_INTEGER *liCurrFilePointer, HANDLE hFile);
 */
 #ifdef HAVE_ADVAPI32
 BOOL GetFileSecurityU8(
+		LPCSTR					lpFileName,
+		SECURITY_INFORMATION	RequestedInformation,
+		PSECURITY_DESCRIPTOR	pSecurityDescriptor,
+		DWORD					nLength,
+		LPDWORD					lpnLengthNeeded
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, GetFileSecurityU8)
+(
 		LPCSTR					lpFileName,
 		SECURITY_INFORMATION	RequestedInformation,
 		PSECURITY_DESCRIPTOR	pSecurityDescriptor,
@@ -2249,11 +2605,60 @@ enum en_wapi_fs_type
 
 /*
 	GetFileSystemType
+
+	Returns the type of the file system of the specified root drive.
 */
 enum en_wapi_fs_type GetFileSystemType (const char *chDriveRoot);
-BOOL IsFileSystemFAT (const char *chDriveRoot);
-BOOL IsFileSystemFAT32 (const char *chDriveRoot);
-BOOL IsFileSystemFATorFAT32 (const char *chDriveRoot);
+TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemType) (const char *chDriveRoot);
+
+/*
+	IsFileSystemFAT
+
+	Returns or evaluates to TRUE if the file system of chDriveRoot is FAT.
+*/
+#if defined (DEBUG)
+	BOOL IsFileSystemFAT (const char *chDriveRoot);
+#else
+	#define IsFileSystemFAT(drv)						\
+		(FS_TYPE_FAT == GetFileSystemType (drv))
+#endif
+
+/*
+	IsFileSystemFAT32
+
+	Returns or evaluates to TRUE if the file system of chDriveRoot is FAT32.
+*/
+#if defined (DEBUG)
+	BOOL IsFileSystemFAT32 (const char *chDriveRoot);
+#else
+	#define IsFileSystemFAT32(drv)						\
+		(FS_TYPE_FAT32 == GetFileSystemType (drv))
+#endif
+
+/*
+	IsFileSystemFATorFAT32
+
+	Returns or evaluates to TRUE if the file system of chDriveRoot is either FAT or
+	FAT32
+*/
+#ifdef DEBUG
+	BOOL IsFileSystemFATorFAT32 (const char *chDriveRoot);
+#else
+	#define IsFileSystemFATorFAT32(drv)						\
+		(IsFileSystemFAT32 (drv) || IsFileSystemFAT (drv))
+#endif
+
+/*
+	IsFileSystemNTFS
+
+	Returns or evaluates to TRUE if the file system of chDriveRoot is NTFS.
+*/
+#ifdef DEBUG
+	BOOL IsFileSystemNTFS (const char *chDriveRoot);
+#else
+	#define IsFileSystemNTFS(drv)						\
+		(FS_TYPE_NTFS == GetFileSystemType (drv))
+#endif
 
 /*
 	GetFullPathNameU8
@@ -2277,6 +2682,14 @@ DWORD GetFullPathNameU8(
   LPSTR  *lpFilePart
 )
 ;
+TYPEDEF_FNCT_PTR (DWORD, GetFullPathNameU8)
+(
+  LPCSTR lpFileName,
+  DWORD  nBufferLength,
+  LPSTR  lpBuffer,
+  LPSTR  *lpFilePart
+)
+;
 
 /*
 	GetModuleFileNameU8
@@ -2294,6 +2707,13 @@ DWORD GetModuleFileNameU8(
 		DWORD	nSize
 )
 ;
+TYPEDEF_FNCT_PTR (DWORD, GetModuleFileNameU8)
+(
+		HMODULE	hModule,
+		LPSTR	lpFilenameU8,
+		DWORD	nSize
+)
+;
 
 /*
 	GetModuleHandleU8
@@ -2303,6 +2723,10 @@ DWORD GetModuleFileNameU8(
 	for more info.
 */
 HMODULE GetModuleHandleU8(
+  LPCSTR lpModuleName
+);
+TYPEDEF_FNCT_PTR (HMODULE, GetModuleHandleU8)
+(
   LPCSTR lpModuleName
 );
 
@@ -2318,6 +2742,16 @@ HMODULE GetModuleHandleU8(
 	characters but the number of octets written instead.
 */
 DWORD GetPrivateProfileStringU8(
+	LPCSTR lpAppName,
+	LPCSTR lpKeyName,
+	LPCSTR lpDefault,
+	LPSTR  lpReturnedString,
+	DWORD  nSize,
+	LPCSTR lpFileName
+)
+;
+TYPEDEF_FNCT_PTR (DWORD, GetPrivateProfileStringU8)
+(
 	LPCSTR lpAppName,
 	LPCSTR lpKeyName,
 	LPCSTR lpDefault,
@@ -2343,11 +2777,17 @@ DWORD GetPrivateProfileStringU8(
 	Define HAVE_ADVAPI32 to build this function and link to Advapi32.lib.
 */
 #ifdef HAVE_ADVAPI32
-BOOL GetUserNameU8(
-  LPSTR   lpBuffer,
-  LPDWORD pcbBuffer
-)
-;
+	BOOL GetUserNameU8(
+	  LPSTR   lpBuffer,
+	  LPDWORD pcbBuffer
+	)
+	;
+	TYPEDEF_FNCT_PTR (BOOL, GetUserNameU8)
+	(
+	  LPSTR   lpBuffer,
+	  LPDWORD pcbBuffer
+	)
+	;
 #endif
 
 /*
@@ -2368,10 +2808,15 @@ BOOL GetUserNameU8(
 	Define HAVE_USERENV to build this function and link to Userenv.lib.
 */
 #ifdef HAVE_USERENV
-BOOL GetDefaultUserProfileDirectoryU8(
-	LPSTR   lpProfileDirU8,
-	LPDWORD lpcchSize
-);
+	BOOL GetDefaultUserProfileDirectoryU8(
+		LPSTR   lpProfileDirU8,
+		LPDWORD lpcchSize
+	);
+	TYPEDEF_FNCT_PTR (BOOL, GetDefaultUserProfileDirectoryU8)
+	(
+		LPSTR   lpProfileDirU8,
+		LPDWORD lpcchSize
+	);
 #endif
 
 /*
@@ -2390,11 +2835,17 @@ BOOL GetDefaultUserProfileDirectoryU8(
 	Define HAVE_USERENV to build this function and link to Userenv.lib.
 */
 #ifdef HAVE_USERENV
-BOOL GetUserProfileDirectoryU8(
-	HANDLE  hToken,
-	LPSTR   lpProfileDirU8,
-	LPDWORD lpcchSize
-);
+	BOOL GetUserProfileDirectoryU8(
+		HANDLE  hToken,
+		LPSTR   lpProfileDirU8,
+		LPDWORD lpcchSize
+	);
+	TYPEDEF_FNCT_PTR (BOOL, GetUserProfileDirectoryU8)
+	(
+		HANDLE  hToken,
+		LPSTR   lpProfileDirU8,
+		LPDWORD lpcchSize
+	);
 #endif
 
 /*
@@ -2424,6 +2875,18 @@ BOOL GetVolumeInformationU8(
   DWORD   nFileSystemNameSize
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, GetVolumeInformationU8)
+(
+  LPCSTR  lpRootPathName,
+  LPSTR   lpVolumeNameBuffer,
+  DWORD   nVolumeNameSize,
+  LPDWORD lpVolumeSerialNumber,
+  LPDWORD lpMaximumComponentLength,
+  LPDWORD lpFileSystemFlags,
+  LPSTR   lpFileSystemNameBuffer,
+  DWORD   nFileSystemNameSize
+)
+;
 
 /*
 	GetWinErrorTextU8
@@ -2435,6 +2898,7 @@ BOOL GetVolumeInformationU8(
 	FALSE usually means that a buffer size limit has been exceeded.
 */
 BOOL GetWinErrorTextU8 (char *lpszBuf, DWORD dwSize, DWORD dwError);
+TYPEDEF_FNCT_PTR (BOOL, GetWinErrorTextU8) (char *lpszBuf, DWORD dwSize, DWORD dwError);
 
 /*
 	InitiateSystemShutdownExU8
@@ -2447,6 +2911,16 @@ BOOL GetWinErrorTextU8 (char *lpszBuf, DWORD dwSize, DWORD dwError);
 */
 #ifdef HAVE_ADVAPI32
 	BOOL InitiateSystemShutdownExU8(
+		const char *lpMachineNameU8,
+		const char *lpMessageU8,
+		DWORD  dwTimeout,
+		BOOL   bForceAppsClosed,
+		BOOL   bRebootAfterShutdown,
+		DWORD  dwReason
+	)
+	;
+	TYPEDEF_FNCT_PTR (BOOL, InitiateSystemShutdownExU8)
+	(
 		const char *lpMachineNameU8,
 		const char *lpMessageU8,
 		DWORD  dwTimeout,
@@ -2468,6 +2942,15 @@ BOOL GetWinErrorTextU8 (char *lpszBuf, DWORD dwSize, DWORD dwError);
 */
 #ifdef HAVE_ADVAPI32
 	DWORD InitiateShutdownU8(
+		const char *lpMachineNameU8,
+		const char *lpMessageU8,
+		DWORD  dwGracePeriod,
+		DWORD  dwShutdownFlags,
+		DWORD  dwReason
+	)
+	;
+	TYPEDEF_FNCT_PTR (DWORD, InitiateShutdownU8)
+	(
 		const char *lpMachineNameU8,
 		const char *lpMessageU8,
 		DWORD  dwGracePeriod,
@@ -2529,6 +3012,15 @@ BOOL IsCmdArgumentSwitchW	(
 			enum en_is_cmd_case_sensitive	enCase
 							)
 ;
+TYPEDEF_FNCT_PTR (BOOL, IsCmdArgumentSwitchW)
+							(
+			WCHAR							*wcArgument,
+			const WCHAR						*wcConstIs,
+			size_t							nRelevant,
+			enum en_is_cmd_argument			enHow,
+			enum en_is_cmd_case_sensitive	enCase
+							)
+;
 
 /*
 	IsEqualUpToW
@@ -2555,6 +3047,14 @@ BOOL IsEqualUpToW	(
 			enum en_is_cmd_case_sensitive	cse
 					)
 ;
+TYPEDEF_FNCT_PTR (BOOL, IsEqualUpToW)
+					(
+			const WCHAR						*wc1,				// Argument.
+			const WCHAR						*wc2,				// What we expect.
+			size_t							n,					// Minimum length that must fit.
+			enum en_is_cmd_case_sensitive	cse
+					)
+;
 
 /*
 	IsPathDirectoryU8
@@ -2563,6 +3063,7 @@ BOOL IsEqualUpToW	(
 	UTF-8 version.
 */
 BOOL IsPathDirectoryU8 (const char *szPath);
+TYPEDEF_FNCT_PTR (BOOL, IsPathDirectoryU8) (const char *szPath);
 
 /*
 	IsPathDirectoryW
@@ -2571,6 +3072,7 @@ BOOL IsPathDirectoryU8 (const char *szPath);
 	Windows UTF-16 version.
 */
 BOOL IsPathDirectoryW (const WCHAR *wcPath);
+TYPEDEF_FNCT_PTR (BOOL, IsPathDirectoryW) (const WCHAR *wcPath);
 
 /*
 	LoadLibraryU8
@@ -2580,6 +3082,11 @@ BOOL IsPathDirectoryW (const WCHAR *wcPath);
 	for more information.
 */
 HMODULE LoadLibraryU8(
+  char *chLibFileNameU8
+)
+;
+TYPEDEF_FNCT_PTR (HMODULE, LoadLibraryU8)
+(
   char *chLibFileNameU8
 )
 ;
@@ -2595,6 +3102,17 @@ HMODULE LoadLibraryU8(
 */
 #ifdef HAVE_ADVAPI32
 BOOL LookupAccountNameU8(
+  LPCSTR        lpSystemName,
+  LPCSTR        lpAccountName,
+  PSID          Sid,
+  LPDWORD       cbSid,
+  LPSTR         ReferencedDomainName,
+  LPDWORD       cchReferencedDomainName,
+  PSID_NAME_USE peUse
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, LookupAccountNameU8)
+(
   LPCSTR        lpSystemName,
   LPCSTR        lpAccountName,
   PSID          Sid,
@@ -2626,6 +3144,17 @@ BOOL LookupAccountSidU8(
 	PSID_NAME_USE peUse
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, LookupAccountSidU8)
+(
+	LPCSTR        lpSystemNameU8,
+	PSID          Sid,
+	LPSTR         NameU8,
+	LPDWORD       cchNameU8,
+	LPSTR         ReferencedDomainNameU8,
+	LPDWORD       cchReferencedDomainNameU8,
+	PSID_NAME_USE peUse
+)
+;
 #endif
 
 /*
@@ -2642,6 +3171,14 @@ BOOL LookupAccountSidU8(
 */
 #ifdef HAVE_USER32
 int MessageBoxU8(
+  HWND   hWnd,
+  LPCSTR lpText,
+  LPCSTR lpCaption,
+  UINT   uType
+)
+;
+TYPEDEF_FNCT_PTR (int, MessageBoxU8)
+(
   HWND   hWnd,
   LPCSTR lpText,
   LPCSTR lpCaption,
@@ -2668,6 +3205,15 @@ int MessageBoxExU8(
   WORD   wLanguageId
 )
 ;
+TYPEDEF_FNCT_PTR (int, MessageBoxExU8)
+(
+  HWND   hWnd,
+  LPCSTR lpText,
+  LPCSTR lpCaption,
+  UINT   uType,
+  WORD   wLanguageId
+)
+;
 #endif
 
 /*
@@ -2686,6 +3232,7 @@ int MessageBoxExU8(
 */
 #ifdef HAVE_WINUSER
 	BOOL MaxiMiseThisConsoleWindow (void);
+	TYPEDEF_FNCT_PTR (BOOL, MaxiMiseThisConsoleWindow) (void);
 	#define MaxiMizeThisConsoleWindow()						\
 				MaxiMiseThisConsoleWindow ()
 	#define MaximiseThisConsoleWindow()						\
@@ -2710,6 +3257,7 @@ int MessageBoxExU8(
 */
 #ifdef HAVE_WINUSER
 	BOOL MiniMiseThisConsoleWindow (void);
+	TYPEDEF_FNCT_PTR (BOOL, MiniMiseThisConsoleWindow) (void);
 	#define MiniMizeThisConsoleWindow()						\
 				MiniMiseThisConsoleWindow ()
 	#define MinimiseThisConsoleWindow()						\
@@ -2732,6 +3280,7 @@ int MessageBoxExU8(
 */
 #ifdef HAVE_WINUSER
 	BOOL RestoreThisConsoleWindow (void);
+	TYPEDEF_FNCT_PTR (BOOL, RestoreThisConsoleWindow) (void);
 #endif
 
 /*
@@ -2740,6 +3289,11 @@ int MessageBoxExU8(
 	for details.
 */
 BOOL MoveFileU8(
+  const char *lpExistingFileNameU8,
+  const char *lpNewFileNameU8
+);
+TYPEDEF_FNCT_PTR (BOOL, MoveFileU8)
+(
   const char *lpExistingFileNameU8,
   const char *lpNewFileNameU8
 );
@@ -2758,6 +3312,11 @@ BOOL MoveFileU8long(
   const char *lpExistingFileNameU8,
   const char *lpNewFileNameU8
 );
+TYPEDEF_FNCT_PTR (BOOL, MoveFileU8long)
+(
+  const char *lpExistingFileNameU8,
+  const char *lpNewFileNameU8
+);
 
 /*
 	MoveFileExU8
@@ -2767,6 +3326,13 @@ BOOL MoveFileU8long(
 	for more information.
 */
 BOOL MoveFileExU8(
+  const char *lpExistingFileNameU8,
+  const char *lpNewFileNameU8,
+  DWORD dwFlags
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, MoveFileExU8)
+(
   const char *lpExistingFileNameU8,
   const char *lpNewFileNameU8,
   DWORD dwFlags
@@ -2788,6 +3354,13 @@ BOOL MoveFileExU8long(
   DWORD dwFlags
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, MoveFileExU8long)
+(
+  const char *lpExistingFileNameU8,
+  const char *lpNewFileNameU8,
+  DWORD dwFlags
+)
+;
 
 /*
 	MoveFileWithProgressU8
@@ -2797,6 +3370,15 @@ BOOL MoveFileExU8long(
 	for details.
 */
 BOOL MoveFileWithProgressU8(
+  const char			*lpExistingFileNameU8,
+  const char			*lpNewFileNameU8,
+  LPPROGRESS_ROUTINE	lpProgressRoutine,
+  LPVOID				lpData,
+  DWORD					dwFlags
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, MoveFileWithProgressU8)
+(
   const char			*lpExistingFileNameU8,
   const char			*lpNewFileNameU8,
   LPPROGRESS_ROUTINE	lpProgressRoutine,
@@ -2815,6 +3397,15 @@ BOOL MoveFileWithProgressU8(
 	for details.
 */
 BOOL MoveFileWithProgressU8long(
+  const char			*lpExistingFileNameU8,
+  const char			*lpNewFileNameU8,
+  LPPROGRESS_ROUTINE	lpProgressRoutine,
+  LPVOID				lpData,
+  DWORD					dwFlags
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, MoveFileWithProgressU8long)
+(
   const char			*lpExistingFileNameU8,
   const char			*lpNewFileNameU8,
   LPPROGRESS_ROUTINE	lpProgressRoutine,
@@ -2844,9 +3435,11 @@ BOOL MoveFileWithProgressU8long(
 */
 #ifdef HAVE_SHELLAPI
 	BOOL MoveToRecycleBinU8 (const char *chFileName);
+	TYPEDEF_FNCT_PTR (BOOL, MoveToRecycleBinU8) (const char *chFileName);
 #endif
 #ifdef HAVE_SHELLAPI
 	BOOL MoveToRecycleBinW (const WCHAR *wcFileName);
+	TYPEDEF_FNCT_PTR (BOOL, MoveToRecycleBinW) (const WCHAR *wcFileName);
 #endif
 
 /*
@@ -2859,6 +3452,17 @@ BOOL MoveFileWithProgressU8long(
 */
 #ifdef HAVE_NETAPI32
 	NET_API_STATUS NET_API_FUNCTION NetUserEnumU8(
+		LPCSTR  servernameU8,
+		DWORD   level,
+		DWORD   filter,
+		LPBYTE  *bufptr,
+		DWORD   prefmaxlen,
+		LPDWORD entriesread,
+		LPDWORD totalentries,
+		PDWORD  resume_handle
+	);
+	TYPEDEF_FNCT_PTR (NET_API_STATUS NET_API_FUNCTION, NetUserEnumU8
+	(
 		LPCSTR  servernameU8,
 		DWORD   level,
 		DWORD   filter,
@@ -2883,6 +3487,13 @@ HANDLE OpenEventU8(
 	LPCSTR lpName
 )
 ;
+TYPEDEF_FNCT_PTR (HANDLE, OpenEventU8)
+(
+	DWORD  dwDesiredAccess,
+	BOOL   bInheritHandle,
+	LPCSTR lpName
+)
+;
 
 /*
 	OpenEventLogU8
@@ -2894,11 +3505,17 @@ HANDLE OpenEventU8(
 	Define HAVE_ADVAPI32 to build this function and link to Advapi32.lib.
 */
 #ifdef HAVE_ADVAPI32
-HANDLE OpenEventLogU8(
-	LPCSTR lpUNCServerNameU8,
-	LPCSTR lpSourceNameU8
-)
-;
+	HANDLE OpenEventLogU8(
+		LPCSTR lpUNCServerNameU8,
+		LPCSTR lpSourceNameU8
+	)
+	;
+	TYPEDEF_FNCT_PTR (HANDLE, OpenEventLogU8)
+	(
+		LPCSTR lpUNCServerNameU8,
+		LPCSTR lpSourceNameU8
+	)
+	;
 #endif
 
 /*
@@ -2911,11 +3528,17 @@ HANDLE OpenEventLogU8(
 	Define HAVE_ADVAPI32 to build this function and link to Advapi32.lib.
 */
 #ifdef HAVE_ADVAPI32
-BOOL ClearEventLogU8(
-  HANDLE  hEventLog,
-  LPCSTR lpBackupFileNameU8
-)
-;
+	BOOL ClearEventLogU8(
+	  HANDLE  hEventLog,
+	  LPCSTR lpBackupFileNameU8
+	)
+	;
+	TYPEDEF_FNCT_PTR (BOOL, ClearEventLogU8)
+	(
+	  HANDLE  hEventLog,
+	  LPCSTR lpBackupFileNameU8
+	)
+	;
 #endif
 
 /*
@@ -2931,6 +3554,13 @@ HANDLE OpenFileMappingU8(
 	LPCSTR lpName
 )
 ;
+TYPEDEF_FNCT_PTR (HANDLE, OpenFileMappingU8)
+(
+	DWORD  dwDesiredAccess,
+	BOOL   bInheritHandle,
+	LPCSTR lpName
+)
+;
 
 /*
 	OpenMutexU8
@@ -2940,6 +3570,13 @@ HANDLE OpenFileMappingU8(
 	for details.
 */
 HANDLE OpenMutexU8(
+  DWORD		dwDesiredAccess,
+  BOOL		bInheritHandle,
+  LPCSTR	lpNameU8
+)
+;
+TYPEDEF_FNCT_PTR (HANDLE, OpenMutexU8)
+(
   DWORD		dwDesiredAccess,
   BOOL		bInheritHandle,
   LPCSTR	lpNameU8
@@ -15140,6 +15777,10 @@ When		Who				What
 	#undef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
 	#endif
 
+	#ifdef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+	#undef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+	#endif
+
 #endif
 
 
@@ -15151,7 +15792,7 @@ BEGIN_C_DECLS
 	The constant lenCunilogLogFileNameExtension is the length in characters (not octets!).
 */
 CUNILOG_DLL_IMPORT extern const char		*szCunilogLogFileNameExtension;			// ".log"
-CUNILOG_DLL_IMPORT extern const wchar_t	*wcCunilogLogFileNameExtension;			// ".log"
+CUNILOG_DLL_IMPORT extern const wchar_t		*wcCunilogLogFileNameExtension;			// ".log"
 CUNILOG_DLL_IMPORT extern const size_t		lenCunilogLogFileNameExtension;			// ".log"
 CUNILOG_DLL_IMPORT extern const size_t		sizCunilogLogFileNameExtension;
 

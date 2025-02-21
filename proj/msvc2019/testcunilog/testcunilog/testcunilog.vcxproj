@@ -240,6 +240,7 @@
     <ClInclude Include="..\..\..\..\src\c\pre\ArrayMacros.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\DLLimport.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\externC.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\functionptrtpydef.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\platform.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\SingleBits.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\unref.h" />

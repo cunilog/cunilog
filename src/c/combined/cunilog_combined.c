@@ -1325,7 +1325,7 @@ WCHAR *CreateWinU16EnvironmentFromU8 (const char *szU8Environment)
 #pragma warning (default: 4706)									// Assignment within condition.
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void DoneWinU16Environment (WCHAR *wcEnvironment)
 	{
 		ubf_free (wcEnvironment);
@@ -1896,20 +1896,33 @@ enum en_wapi_fs_type GetFileSystemType (const char *chDriveRoot)
 	return FS_TYPE_ERROR;
 }
 
-BOOL IsFileSystemFAT (const char *chDriveRoot)
-{
-	return FS_TYPE_FAT == GetFileSystemType (chDriveRoot);
-}
+#ifdef DEBUG
+	BOOL IsFileSystemFAT (const char *chDriveRoot)
+	{
+		return FS_TYPE_FAT == GetFileSystemType (chDriveRoot);
+	}
+#endif
 
-BOOL IsFileSystemFAT32 (const char *chDriveRoot)
-{
-	return FS_TYPE_FAT32 == GetFileSystemType (chDriveRoot);
-}
+#ifdef DEBUG
+	BOOL IsFileSystemFAT32 (const char *chDriveRoot)
+	{
+		return FS_TYPE_FAT32 == GetFileSystemType (chDriveRoot);
+	}
+#endif
 
-BOOL IsFileSystemFATorFAT32 (const char *chDriveRoot)
-{
-	return IsFileSystemFAT32 (chDriveRoot) || IsFileSystemFAT (chDriveRoot);
-}
+#ifdef DEBUG
+	BOOL IsFileSystemFATorFAT32 (const char *chDriveRoot)
+	{
+		return IsFileSystemFAT32 (chDriveRoot) || IsFileSystemFAT (chDriveRoot);
+	}
+#endif
+
+#ifdef DEBUG
+	BOOL IsFileSystemNTFS (const char *chDriveRoot)
+	{
+		return FS_TYPE_NTFS == GetFileSystemType (chDriveRoot);
+	}
+#endif
 
 DWORD GetFullPathNameU8(
   LPCSTR lpFileName,
@@ -2247,49 +2260,49 @@ DWORD GetPrivateProfileStringU8(
 }
 
 #ifdef HAVE_ADVAPI32
-BOOL GetUserNameU8(
-  LPSTR   lpBuffer,
-  LPDWORD pcbBuffer
-)
-{
-	BOOL	bRet;
-	DWORD	dwLen;
+	BOOL GetUserNameU8(
+	  LPSTR   lpBuffer,
+	  LPDWORD pcbBuffer
+	)
+	{
+		BOOL	bRet;
+		DWORD	dwLen;
 	
-	ASSERT (NULL != lpBuffer);
-	ASSERT (NULL != pcbBuffer);
-	// As of 2021-01-24 and Windows 10 SDK UNLEN is 256. See
-	//	https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getusernamew
-	//	for more information.
-	#if UNLEN < WINAPI_U8_HEAP_THRESHOLD
-		WCHAR	wcUserName [UNLEN + 1];
-		dwLen = UNLEN + 1;
-		#ifdef DEBUG
-			bRet = GetUserNameW (wcUserName, &dwLen);
+		ASSERT (NULL != lpBuffer);
+		ASSERT (NULL != pcbBuffer);
+		// As of 2021-01-24 and Windows 10 SDK UNLEN is 256. See
+		//	https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getusernamew
+		//	for more information.
+		#if UNLEN < WINAPI_U8_HEAP_THRESHOLD
+			WCHAR	wcUserName [UNLEN + 1];
+			dwLen = UNLEN + 1;
+			#ifdef DEBUG
+				bRet = GetUserNameW (wcUserName, &dwLen);
+			#else
+				GetUserNameW (wcUserName, &dwLen);
+			#endif
+			ASSERT (FALSE != bRet);
+			ASSERT (UNLEN >= dwLen);
+			int iReq = reqUTF8size (wcUserName);
+			ASSERT (INT_MAX > *pcbBuffer);
+			if (iReq <= (int) *pcbBuffer)
+			{
+				UTF8_from_WinU16 (lpBuffer, iReq, wcUserName);
+				bRet = TRUE;
+			} else
+			{
+				SetLastError (ERROR_INSUFFICIENT_BUFFER);
+				bRet = FALSE;
+			}
+			*pcbBuffer = (DWORD) iReq;
+			return bRet;
 		#else
-			GetUserNameW (wcUserName, &dwLen);
+			// Not supported.
+			#error UNLEN > WINAPI_U8_HEAP_THRESHOLD not supported
+			ASSERT (FALSE);
+			return FALSE;
 		#endif
-		ASSERT (FALSE != bRet);
-		ASSERT (UNLEN >= dwLen);
-		int iReq = reqUTF8size (wcUserName);
-		ASSERT (INT_MAX > *pcbBuffer);
-		if (iReq <= (int) *pcbBuffer)
-		{
-			UTF8_from_WinU16 (lpBuffer, iReq, wcUserName);
-			bRet = TRUE;
-		} else
-		{
-			SetLastError (ERROR_INSUFFICIENT_BUFFER);
-			bRet = FALSE;
-		}
-		*pcbBuffer = (DWORD) iReq;
-		return bRet;
-	#else
-		// Not supported.
-		#error UNLEN > WINAPI_U8_HEAP_THRESHOLD not supported
-		ASSERT (FALSE);
-		return FALSE;
-	#endif
-}
+	}
 #endif
 
 #ifdef HAVE_USERENV

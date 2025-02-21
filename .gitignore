@@ -82,6 +82,7 @@ StyleCopReport.xml
 *_h.h
 *.ilk
 *.dll
+*.exe
 *.exp
 *.lib
 *.meta
@@ -110,6 +111,7 @@ StyleCopReport.xml
 *.svclog
 *.scc
 *.dll.recipe
+*.exe.recipe
 *.lib.recipe
 *.vcxproj.FileListAbsolute.txt
 
