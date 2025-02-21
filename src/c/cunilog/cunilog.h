@@ -308,6 +308,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	typedef enum enclconsoleoutpCP culogconcp;
 
 	void CunilogSetConsoleTo (culogconcp cp);
+	TYPEDEF_FNCT_PTR (void, CunilogSetConsoleTo) (culogconcp cp);
 #endif
 
 /*
@@ -442,6 +443,23 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 ;
+TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETex)
+(
+	  SCUNILOGTARGET			*put				// Must not be NULL.
+	, const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szAppName			// Application name.
+	, size_t					lenAppName			// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
+	, enum cunilogpostfix		postfix
+	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
+	, unsigned int				nProcessors			// Number of processors.
+	, enum cunilogeventTSformat	unilogTSformat		// The format of an event timestamp.
+	, enum enLineEndings		unilogNewLine
+	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
+)
+;
 
 /*
 	InitSCUNILOGTARGET
@@ -450,6 +468,17 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	SCUNILOGTARGET *InitSCUNILOGTARGET
+	(
+		  SCUNILOGTARGET			*put				// Must not be NULL.
+		, const char				*szLogPath			// Path to the logging information.
+		, size_t					lenLogPath			// Length of szLogPath
+		, const char				*szAppName			// Application name.
+		, size_t					lenAppName			// Length of szApplication.
+		, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+		, enum cunilogtype			type
+	)
+	;
+	TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGET)
 	(
 		  SCUNILOGTARGET			*put				// Must not be NULL.
 		, const char				*szLogPath			// Path to the logging information.
@@ -573,6 +602,22 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 ;
+TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, CreateNewSCUNILOGTARGET)
+(
+	  const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szAppName			// Application name.
+	, size_t					lenAppName			// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
+	, enum cunilogpostfix		postfix
+	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
+	, unsigned int				nProcessors			// Number of processors.
+	, enum cunilogeventTSformat	unilogTSformat		// The format of an event timestamp.
+	, enum enLineEndings		unilogNewLine
+	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
+)
+;
 
 /*
 	InitOrCreateSCUNILOGTARGET
@@ -601,6 +646,23 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	has been created on the heap or provided as the parameter psu.
 */
 SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
+(
+	  SCUNILOGTARGET			*put				// If NULL, a new structure is allocated.
+	, const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szAppName			// Application name.
+	, size_t					lenAppName			// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
+	, enum cunilogpostfix		postfix
+	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
+	, unsigned int				nProcessors			// Number of processors.
+	, enum cunilogeventTSformat	unilogTSformat		// The format of an event timestamp.
+	, enum enLineEndings		unilogNewLine
+	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
+)
+;
+TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitOrCreateSCUNILOGTARGET)
 (
 	  SCUNILOGTARGET			*put				// If NULL, a new structure is allocated.
 	, const char				*szLogPath			// Path to the logging information.
@@ -709,6 +771,22 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 ;
+TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstaticEx)
+(
+	  const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szApplication		// Application name.
+	, size_t					lenApplication		// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
+	, enum cunilogpostfix		postfix
+	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
+	, unsigned int				nProcessors			// Number of processors.
+	, enum cunilogeventTSformat	unilogTSformat		// The format of an event timestamp.
+	, enum enLineEndings		unilogNewLine
+	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
+)
+;
 
 /*
 	InitSCUNILOGTARGETstatic
@@ -768,6 +846,16 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	, enum cunilogtype			type
 )
 ;
+TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstatic)
+(
+	  const char				*szLogPath			// Path to the logging information.
+	, size_t					lenLogPath			// Length of szLogPath
+	, const char				*szApplication		// Application name.
+	, size_t					lenApplication		// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enum cunilogtype			type
+)
+;
 
 /*
 	GetAbsoluteLogPathSCUNILOGTARGET
@@ -782,8 +870,9 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	The function returns NULL if it fails. In this case it will not have changed the address
 	plen points to.
 */
-const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
-;
+const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen);
+TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET)
+	(SCUNILOGTARGET *put, size_t *plen);
 
 /*
 	ConfigSCUNILOGTARGETcunilogpostfix
@@ -794,6 +883,8 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
 	;
+	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETcunilogpostfix)
+		(SCUNILOGTARGET *put, enum cunilogeventTSformat tsf);
 #else
 	#define ConfigSCUNILOGTARGETcunilogpostfix(put, f)	\
 				(put)->unilogEvtTSformat = (f)
@@ -809,6 +900,8 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
 	;
+	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETrunProcessorsOnStartup)
+		(SCUNILOGTARGET *put, runProcessorsOnStartup rp);
 #else
 	#define ConfigSCUNILOGTARGETrunProcessorsOnStartup(put, rp)	\
 		switch (rp)												\
@@ -838,6 +931,8 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
 	;
+	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETcunilognewline)
+		(SCUNILOGTARGET *put, newline_t nl);
 #else
 	#define ConfigSCUNILOGTARGETcunilognewline(put, nl)			\
 		(put)->unilogNewLine = (nl)
@@ -856,6 +951,12 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 			cueventsevtpy				eventSeverityFormatType
 														)
 	;
+	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETeventSeverityFormatType)
+														(
+			SCUNILOGTARGET				*put,
+			cueventsevtpy				eventSeverityFormatType
+														)
+	;
 #else
 	#define ConfigSCUNILOGTARGETeventSeverityFormatType(put, evstpy)	\
 		(put)->evSeverityType = (evstpy)
@@ -870,6 +971,8 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 		void ConfigSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
 		;
+		TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETuseColourForEcho)
+			(SCUNILOGTARGET *put, bool bUseColour);
 	#else
 		#define ConfigSCUNILOGTARGETuseColourForEcho(put, b)	\
 			if (bUseColour)										\
@@ -908,6 +1011,13 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 				,	unsigned int			nProcessors			// Number of processors.
 											)
 	;
+	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETprocessorList)
+											(
+					SCUNILOGTARGET			*put
+				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
+				,	unsigned int			nProcessors			// Number of processors.
+											)
+	;
 #else
 	#define ConfigSCUNILOGTARGETprocessorList(put,		\
 				cup, n)									\
@@ -923,6 +1033,11 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 void ConfigSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
 void ConfigSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
 
+TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETdisableTaskProcessors)
+	(SCUNILOGTARGET *put, enum cunilogprocesstask task);
+TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETenableTaskProcessors)
+	(SCUNILOGTARGET *put, enum cunilogprocesstask task);
+
 /*
 	ConfigSCUNILOGTARGETdisableEchoProcessor
 	ConfigSCUNILOGTARGETenableEchoProcessor
@@ -930,8 +1045,11 @@ void ConfigSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilog
 	Disables/enables echo (console output) processors. Echo or console output processors
 	are processors whose task is cunilogProcessEchoToConsole.
 */
-void ConfigSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put);
-void ConfigSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
+void ConfigSCUNILOGTARGETdisableEchoProcessor	(SCUNILOGTARGET *put);
+void ConfigSCUNILOGTARGETenableEchoProcessor	(SCUNILOGTARGET *put);
+
+TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETdisableEchoProcessor)	(SCUNILOGTARGET *put);
+TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETenableEchoProcessor)	(SCUNILOGTARGET *put);
 
 /*
 	EnterSCUNILOGTARGET
@@ -961,10 +1079,8 @@ void ConfigSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, these macros/functions do nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	void EnterSCUNILOGTARGET (SCUNILOGTARGET *put)
-	;
-	void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put)
-	;
+	void EnterSCUNILOGTARGET (SCUNILOGTARGET *put);
+	void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put);
 	#define LockSCUNILOGTARGET(put)						\
 				EnterSCUNILOGTARGET (put)
 	#define UnlockSCUNILOGTARGET(put)					\
@@ -977,6 +1093,9 @@ void ConfigSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
 				EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 	#define UnlockSCUNILOGTARGETstatic()				\
 				LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+	
+	TYPEDEF_FNCT_PTR (void, EnterSCUNILOGTARGET) (SCUNILOGTARGET *put);
+	TYPEDEF_FNCT_PTR (void, LeaveSCUNILOGTARGET) (SCUNILOGTARGET *put);
 #else
 	#define EnterSCUNILOGTARGET(put)
 	#define LeaveSCUNILOGTARGET(put)
@@ -1000,8 +1119,8 @@ void ConfigSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
 
 	The function always returns NULL.
 */
-SCUNILOGTARGET *DoneSCUNILOGTARGET (SCUNILOGTARGET *put)
-;
+SCUNILOGTARGET *DoneSCUNILOGTARGET (SCUNILOGTARGET *put);
+TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, DoneSCUNILOGTARGET) (SCUNILOGTARGET *put);
 
 /*
 	DoneSCUNILOGTARGETstatic
@@ -1034,6 +1153,7 @@ SCUNILOGTARGET *DoneSCUNILOGTARGET (SCUNILOGTARGET *put)
 	The function returns true on success, false otherwise.
 */
 bool ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
+TYPEDEF_FNCT_PTR (bool, ShutdownSCUNILOGTARGET) (SCUNILOGTARGET *put);
 
 /*
 	ShutdownSCUNILOGTARGETstatic
@@ -1065,6 +1185,7 @@ bool ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
 	The function returns true on success, false otherwise.
 */
 bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
+TYPEDEF_FNCT_PTR (bool, CancelSCUNILOGTARGET) (SCUNILOGTARGET *put);
 
 /*
 	CancelSCUNILOGTARGETstatic
@@ -1112,8 +1233,8 @@ bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	function also returns false if the value for prio is invalid.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	bool SetLogPrioritySCUNILOGTARGET (SCUNILOGTARGET *put, cunilogprio prio)
-	;
+	bool SetLogPrioritySCUNILOGTARGET (SCUNILOGTARGET *put, cunilogprio prio);
+	TYPEDEF_FNCT_PTR (bool, SetLogPrioritySCUNILOGTARGET) (SCUNILOGTARGET *put, cunilogprio prio);
 #else
 	#define SetLogPrioritySCUNILOGTARGET(put, prio) (true)
 #endif
@@ -1160,8 +1281,8 @@ bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	void PauseLogSCUNILOGTARGET (SCUNILOGTARGET *put)
-	;
+	void PauseLogSCUNILOGTARGET (SCUNILOGTARGET *put);
+	TYPEDEF_FNCT_PTR (void, PauseLogSCUNILOGTARGET) (SCUNILOGTARGET *put);
 #else
 	#define PauseLogSCUNILOGTARGET(put)
 #endif
@@ -1211,8 +1332,8 @@ bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
 	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	size_t ResumeLogSCUNILOGTARGET (SCUNILOGTARGET *put)
-	;
+	size_t ResumeLogSCUNILOGTARGET (SCUNILOGTARGET *put);
+	TYPEDEF_FNCT_PTR (size_t, ResumeLogSCUNILOGTARGET) (SCUNILOGTARGET *put);
 #else
 	#define ResumeLogSCUNILOGTARGET(put)
 #endif
@@ -1266,6 +1387,16 @@ SCUNILOGEVENT *CreateSCUNILOGEVENT_Data	(
 					size_t						lenCapt
 											)
 ;
+TYPEDEF_FNCT_PTR (SCUNILOGEVENT *, CreateSCUNILOGEVENT_Data)
+(
+					SCUNILOGTARGET				*put,
+					cueventseverity				sev,
+					const char					*ccData,
+					size_t						siz,
+					const char					*ccCapt,
+					size_t						lenCapt
+											)
+;
 
 /*
 	CreateSCUNILOGEVENT_Text
@@ -1275,6 +1406,14 @@ SCUNILOGEVENT *CreateSCUNILOGEVENT_Data	(
 	obtain its length.
 */
 SCUNILOGEVENT *CreateSCUNILOGEVENT_Text		(
+					SCUNILOGTARGET				*put,
+					cueventseverity				sev,
+					const char					*ccText,
+					size_t						len
+											)
+;
+TYPEDEF_FNCT_PTR (SCUNILOGEVENT *, CreateSCUNILOGEVENT_Text)
+(
 					SCUNILOGTARGET				*put,
 					cueventseverity				sev,
 					const char					*ccText,
@@ -1295,8 +1434,8 @@ SCUNILOGEVENT *CreateSCUNILOGEVENT_Text		(
 	of pev apart from that the newly allocated event has the option flag CUNILOGEVENT_ALLOCATED
 	set regardless of whether this flag was present in pev.
 */
-SCUNILOGEVENT *DuplicateSCUNILOGEVENT (SCUNILOGEVENT *pev)
-;
+SCUNILOGEVENT *DuplicateSCUNILOGEVENT (SCUNILOGEVENT *pev);
+TYPEDEF_FNCT_PTR (SCUNILOGEVENT *, DuplicateSCUNILOGEVENT) (SCUNILOGEVENT *pev);
 
 /*
 	DoneSCUNILOGEVENT
@@ -1306,8 +1445,8 @@ SCUNILOGEVENT *DuplicateSCUNILOGEVENT (SCUNILOGEVENT *pev)
 
 	The function always returns NULL.
 */
-SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGTARGET *put, SCUNILOGEVENT *pev)
-;
+SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
+TYPEDEF_FNCT_PTR (SCUNILOGEVENT *, DoneSCUNILOGEVENT) (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 
 /*
 	Logging functions.
@@ -1325,6 +1464,8 @@ SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGTARGET *put, SCUNILOGEVENT *pev)
 	or CancelSCUNILOGTARGET () have been called on the SCUNILOGTARGET structure put points to.
 */
 bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
+TYPEDEF_FNCT_PTR (bool, logEv) (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
+
 
 /*
 	logEv_static

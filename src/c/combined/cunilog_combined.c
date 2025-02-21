@@ -2622,17 +2622,40 @@ BOOL IsPathDirectoryW (const WCHAR *wcPath)
 			);
 }
 
+HMODULE LoadLibraryExU8(
+	char	*szLibFileNameU8,
+	HANDLE	hFile,
+	DWORD	dwFlags
+)
+{
+	HANDLE	hModule	= NULL;
+
+	WCHAR	wcLibName	[WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pwcLibName	= NULL;
+
+	pwcLibName	= AllocWinU16fromU8orUseThreshold (wcLibName, szLibFileNameU8);
+	if (pwcLibName)
+	{
+		hModule = LoadLibraryExW (pwcLibName, hFile, dwFlags);
+		DoneWinU16fromU8orUseThreshold (pwcLibName, wcLibName);
+	}
+	return hModule;
+}
+
 HMODULE LoadLibraryU8(
   char *chLibFileNameU8
 )
 {
 	HANDLE	hModule	= NULL;
 
-	WCHAR *pwc = AllocWinU16_from_UTF8 (chLibFileNameU8);
-	if (pwc)
+	WCHAR	wcLibName	[WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pwcLibName	= NULL;
+
+	pwcLibName	= AllocWinU16fromU8orUseThreshold (wcLibName, chLibFileNameU8);
+	if (pwcLibName)
 	{
-		hModule = LoadLibraryW (pwc);
-		DoneWinU16 (pwc);
+		hModule = LoadLibraryW (pwcLibName);
+		DoneWinU16fromU8orUseThreshold (pwcLibName, wcLibName);
 	}
 	return hModule;
 }

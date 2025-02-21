@@ -5,10 +5,13 @@
 
 LIBRARY libcunilog
 EXPORTS
+	; cunilogstructs
 	szCunilogLogFileNameExtension					@100	DATA
 	wcCunilogLogFileNameExtension					@101	DATA
 	lenCunilogLogFileNameExtension					@102	DATA
 	sizCunilogLogFileNameExtension					@103	DATA
+
+	; cunilog
 	pSCUNILOGTARGETstatic							@104	DATA
 
 	CunilogSetConsoleTo								@200
@@ -200,27 +203,54 @@ EXPORTS
 	IsEqualUpToW									@506
 	IsPathDirectoryU8								@507
 	IsPathDirectoryW								@508
-	LoadLibraryU8									@509
-;	LookupAccountNameU8								@510	Not exported
-;	LookupAccountSidU8								@511	Not exported
-;	MessageBoxU8									@512	Not exported
-;	MessageBoxExU8									@513	Not exported
-;	MaxiMiseThisConsoleWindow						@514	Not exported
-;	MiniMiseThisConsoleWindow						@515	Not exported
-;	RestoreThisConsoleWindow						@516	Not exported
-	MoveFileU8										@517
-	MoveFileExU8									@518
-	MoveFileExU8long								@519
-	MoveFileWithProgressU8							@520
-	MoveFileWithProgressU8long						@521
-	MoveToRecycleBinU8								@522
-	MoveToRecycleBinW								@523
-;	NetUserEnumU8									@523	Not exported
-	OpenEventU8										@524
-;	OpenEventLogU8									@525	Not exported
-;	ClearEventLogU8									@526	Not exported
-	OpenFileMappingU8								@527
-	OpenMutexU8										@528
-
-	SetCurrentDirectoryU8							@590
+	LoadLibraryExU8									@509
+	LoadLibraryU8									@510
+;	LookupAccountNameU8								@511	Not exported
+;	LookupAccountSidU8								@512	Not exported
+;	MessageBoxU8									@513	Not exported
+;	MessageBoxExU8									@514	Not exported
+;	MaxiMiseThisConsoleWindow						@515	Not exported
+;	MiniMiseThisConsoleWindow						@516	Not exported
+;	RestoreThisConsoleWindow						@517	Not exported
+	MoveFileU8										@518
+	MoveFileExU8									@519
+	MoveFileExU8long								@520
+	MoveFileWithProgressU8							@521
+	MoveFileWithProgressU8long						@522
+	MoveToRecycleBinU8								@523
+	MoveToRecycleBinW								@524
+;	NetUserEnumU8									@525	Not exported
+	OpenEventU8										@526
+;	OpenEventLogU8									@527	Not exported
+;	ClearEventLogU8									@528	Not exported
+	OpenFileMappingU8								@529
+	OpenMutexU8										@530
+;	OpenSCManagerU8									@531	Not exported
+;	OpenServiceU8									@532	Not exported
+	PathsEqualfromEndW								@532
+;	PathIsUNCU8										@533	Not exported
+;	PathIsNetworkPathU8								@534	Not exported
+;	PathFindNextComponentU8							@535	Not exported
+;	RegisterEventSourceU8							@536	Not exported
+;	RegisterServiceCtrlHandlerU8					@537	Not exported
+;	RegisterServiceCtrlHandlerExU8					@538	Not exported
+	RemoveDirectoryU8								@539
+	RemoveDirectoryU8long							@540
+;	ReportEventU8									@541	Not exported
+	SetConsoleCodePageToANSI						@542
+	SetConsoleCodePageToUTF8						@543
+	WinSetStdoutToUTF16								@544
+	WinSetStdinToUTF16								@545
+	SetCurrentDirectoryU8							@546
+	SetCurrentDirectoryU8long						@547
+	SetFileAttributesU8								@548
+	SetFileAttributesU8long							@549
+;	SetFileSecurityU8								@550	Not exported
+	IsFirstArgumentExeArgumentW						@551
+	SwallowExeArgumentW								@552
+	InsertExeArgumentIfMissingW						@553
+;	WNetGetUniversalNameU8							@554	Not exported
+	WritePrivateProfileStringU8						@555
+	fprintfU8										@556
+	putsU8											@557
 

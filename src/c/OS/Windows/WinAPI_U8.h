@@ -2336,6 +2336,27 @@ BOOL IsPathDirectoryW (const WCHAR *wcPath);
 TYPEDEF_FNCT_PTR (BOOL, IsPathDirectoryW) (const WCHAR *wcPath);
 
 /*
+	LoadLibraryExU8
+
+	UTF-8 version of the Windows API LoadLibraryW (). See
+	https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibraryexw
+	for more information.
+*/
+HMODULE LoadLibraryExU8(
+	char	*szLibFileNameU8,
+	HANDLE	hFile,
+	DWORD	dwFlags
+)
+;
+TYPEDEF_FNCT_PTR (HMODULE, LoadLibraryExU8)
+(
+	char	*szLibFileNameU8,
+	HANDLE	hFile,
+	DWORD	dwFlags
+)
+;
+
+/*
 	LoadLibraryU8
 
 	UTF-8 version of the Windows API LoadLibraryW (). See
@@ -2861,12 +2882,19 @@ TYPEDEF_FNCT_PTR (HANDLE, OpenMutexU8)
 	Define HAVE_ADVAPI32 to build this function and link to Advapi32.lib.
 */
 #ifdef HAVE_ADVAPI32
-SC_HANDLE OpenSCManagerU8(
-  LPCSTR lpMachineName,
-  LPCSTR lpDatabaseName,
-  DWORD  dwDesiredAccess
-)
-;
+	SC_HANDLE OpenSCManagerU8(
+	  LPCSTR lpMachineName,
+	  LPCSTR lpDatabaseName,
+	  DWORD  dwDesiredAccess
+	)
+	;
+	TYPEDEF_FNCT_PTR (SC_HANDLE, OpenSCManagerU8)
+	(
+	  LPCSTR lpMachineName,
+	  LPCSTR lpDatabaseName,
+	  DWORD  dwDesiredAccess
+	)
+	;
 #endif
 
 /*
@@ -2879,12 +2907,19 @@ SC_HANDLE OpenSCManagerU8(
 	Define HAVE_ADVAPI32 to build this function and link to Advapi32.lib.
 */
 #ifdef HAVE_ADVAPI32
-SC_HANDLE OpenServiceU8(
-  SC_HANDLE hSCManager,
-  LPCSTR    lpServiceName,
-  DWORD     dwDesiredAccess
-)
-;
+	SC_HANDLE OpenServiceU8(
+	  SC_HANDLE hSCManager,
+	  LPCSTR    lpServiceName,
+	  DWORD     dwDesiredAccess
+	)
+	;
+	TYPEDEF_FNCT_PTR (SC_HANDLE, OpenServiceU8)
+	(
+	  SC_HANDLE hSCManager,
+	  LPCSTR    lpServiceName,
+	  DWORD     dwDesiredAccess
+	)
+	;
 #endif
 
 /*
@@ -2896,6 +2931,7 @@ SC_HANDLE OpenServiceU8(
 	file.
 */
 BOOL PathsEqualfromEndW (WCHAR *exe, WCHAR *arg);
+TYPEDEF_FNCT_PTR (BOOL, PathsEqualfromEndW) (WCHAR *exe, WCHAR *arg);
 
 /*
 	PathIsUNCU8
@@ -2907,10 +2943,15 @@ BOOL PathsEqualfromEndW (WCHAR *exe, WCHAR *arg);
 	To use this function, define HAVE_SHLWAPI and link to Shlwapi.lib.
 */
 #ifdef HAVE_SHLWAPI
-BOOL PathIsUNCU8(
-	LPSTR	pszPathU8
-)
-;
+	BOOL PathIsUNCU8(
+		LPSTR	pszPathU8
+	)
+	;
+	TYPEDEF_FNCT_PTR (BOOL, PathIsUNCU8)
+	(
+		LPSTR	pszPathU8
+	)
+	;
 #endif
 
 /*
@@ -2923,10 +2964,15 @@ BOOL PathIsUNCU8(
 	To use this function, define HAVE_SHLWAPI and link to Shlwapi.lib.
 */
 #ifdef HAVE_SHLWAPI
-BOOL PathIsNetworkPathU8(
-	LPSTR	pszPathU8
-)
-;
+	BOOL PathIsNetworkPathU8(
+		LPSTR	pszPathU8
+	)
+	;
+	TYPEDEF_FNCT_PTR (BOOL, PathIsNetworkPathU8)
+	(
+		LPSTR	pszPathU8
+	)
+	;
 #endif
 
 /*
@@ -2942,10 +2988,15 @@ BOOL PathIsNetworkPathU8(
 	PathFindNextComponenW (), it is recommended to define HAVE_SHLWAPI and link to Shlwapi.lib.
 */
 #ifdef HAVE_SHLWAPI
-LPCSTR PathFindNextComponentU8(
-	LPSTR pszPathU8
-)
-;
+	LPCSTR PathFindNextComponentU8(
+		LPSTR pszPathU8
+	)
+	;
+	TYPEDEF_FNCT_PTR (LPCSTR, PathFindNextComponentU8)
+	(
+		LPSTR pszPathU8
+	)
+	;
 #endif
 
 /*
@@ -2958,11 +3009,17 @@ LPCSTR PathFindNextComponentU8(
 	Define HAVE_ADVAPI32 to build this function and link to Advapi32.lib.
 */
 #ifdef HAVE_ADVAPI32
-HANDLE RegisterEventSourceU8(
-  LPCSTR lpUNCServerName,
-  LPCSTR lpSourceName
-)
-;
+	HANDLE RegisterEventSourceU8(
+	  LPCSTR lpUNCServerName,
+	  LPCSTR lpSourceName
+	)
+	;
+	TYPEDEF_FNCT_PTR (HANDLE, RegisterEventSourceU8)
+	(
+	  LPCSTR lpUNCServerName,
+	  LPCSTR lpSourceName
+	)
+	;
 #endif
 
 /*
@@ -2975,11 +3032,17 @@ HANDLE RegisterEventSourceU8(
 	To use this function, define HAVE_ADVAPI32 and link to Advapi32.lib.
 */
 #ifdef HAVE_ADVAPI32
-SERVICE_STATUS_HANDLE RegisterServiceCtrlHandlerU8(
-  LPCSTR             lpServiceName,
-  LPHANDLER_FUNCTION lpHandlerProc
-)
-;
+	SERVICE_STATUS_HANDLE RegisterServiceCtrlHandlerU8(
+	  LPCSTR             lpServiceName,
+	  LPHANDLER_FUNCTION lpHandlerProc
+	)
+	;
+	TYPEDEF_FNCT_PTR (SERVICE_STATUS_HANDLE, RegisterServiceCtrlHandlerU8)
+	(
+	  LPCSTR             lpServiceName,
+	  LPHANDLER_FUNCTION lpHandlerProc
+	)
+	;
 #endif
 
 /*
@@ -2992,12 +3055,19 @@ SERVICE_STATUS_HANDLE RegisterServiceCtrlHandlerU8(
 	Define HAVE_ADVAPI32 to build this function and link to Advapi32.lib.
 */
 #ifdef HAVE_ADVAPI32
-SERVICE_STATUS_HANDLE RegisterServiceCtrlHandlerExU8(
-  LPCSTR                lpServiceName,
-  LPHANDLER_FUNCTION_EX lpHandlerProc,
-  LPVOID                lpContext
-)
-;
+	SERVICE_STATUS_HANDLE RegisterServiceCtrlHandlerExU8(
+	  LPCSTR                lpServiceName,
+	  LPHANDLER_FUNCTION_EX lpHandlerProc,
+	  LPVOID                lpContext
+	)
+	;
+	TYPEDEF_FNCT_PTR (SERVICE_STATUS_HANDLE, RegisterServiceCtrlHandlerExU8)
+	(
+	  LPCSTR                lpServiceName,
+	  LPHANDLER_FUNCTION_EX lpHandlerProc,
+	  LPVOID                lpContext
+	)
+	;
 #endif
 
 /*
@@ -3008,6 +3078,11 @@ SERVICE_STATUS_HANDLE RegisterServiceCtrlHandlerExU8(
 	for details.
 */
 BOOL RemoveDirectoryU8(
+	LPCSTR lpPathNameU8
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, RemoveDirectoryU8)
+(
 	LPCSTR lpPathNameU8
 )
 ;
@@ -3028,6 +3103,11 @@ BOOL RemoveDirectoryU8long(
 	LPCSTR lpPathNameU8
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, RemoveDirectoryU8long)
+(
+	LPCSTR lpPathNameU8
+)
+;
 
 /*
 	ReportEventU8
@@ -3039,18 +3119,31 @@ BOOL RemoveDirectoryU8long(
 	Define HAVE_ADVAPI32 to build this function and link to Advapi32.lib.
 */
 #ifdef HAVE_ADVAPI32
-BOOL ReportEventU8(
-  HANDLE hEventLog,
-  WORD   wType,
-  WORD   wCategory,
-  DWORD  dwEventID,
-  PSID   lpUserSid,
-  WORD   wNumStrings,
-  DWORD  dwDataSize,
-  LPCSTR *lpStrings,
-  LPVOID lpRawData
-)
-;
+	BOOL ReportEventU8(
+	  HANDLE hEventLog,
+	  WORD   wType,
+	  WORD   wCategory,
+	  DWORD  dwEventID,
+	  PSID   lpUserSid,
+	  WORD   wNumStrings,
+	  DWORD  dwDataSize,
+	  LPCSTR *lpStrings,
+	  LPVOID lpRawData
+	)
+	;
+	TYPEDEF_FNCT_PTR (BOOL, ReportEventU8)
+	(
+	  HANDLE hEventLog,
+	  WORD   wType,
+	  WORD   wCategory,
+	  DWORD  dwEventID,
+	  PSID   lpUserSid,
+	  WORD   wNumStrings,
+	  DWORD  dwDataSize,
+	  LPCSTR *lpStrings,
+	  LPVOID lpRawData
+	)
+	;
 #endif
 
 /*
@@ -3060,6 +3153,7 @@ BOOL ReportEventU8(
 	to switch the console to ANSI Latin I (Western).
 */
 void SetConsoleCodePageToANSI (void);
+TYPEDEF_FNCT_PTR (void, SetConsoleCodePageToANSI) (void);
 
 /*
 	SetConsoleCodePageToUTF8
@@ -3068,6 +3162,7 @@ void SetConsoleCodePageToANSI (void);
 	to switch the console to UTF-8.
 */
 void SetConsoleCodePageToUTF8 (void);
+TYPEDEF_FNCT_PTR (void, SetConsoleCodePageToUTF8) (void);
 
 /*
 	WinSetStdoutToUTF16
@@ -3080,6 +3175,7 @@ void SetConsoleCodePageToUTF8 (void);
 	The function returns the return value of _setmode ().
 */
 int WinSetStdoutToUTF16 (void);
+TYPEDEF_FNCT_PTR (int, WinSetStdoutToUTF16) (void);
 
 /*
 	WinSetStdinToUTF16
@@ -3092,6 +3188,7 @@ int WinSetStdoutToUTF16 (void);
 	The function returns the return value of _setmode ().
 */
 int WinSetStdinToUTF16 (void);
+TYPEDEF_FNCT_PTR (int, WinSetStdinToUTF16) (void);
 
 /*
 	SetCurrentDirectoryU8
@@ -3099,6 +3196,11 @@ int WinSetStdinToUTF16 (void);
 	UTF-8 version of SetCurrentDirectoryW ().
 */
 BOOL SetCurrentDirectoryU8(
+  const char *lpPathName
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, SetCurrentDirectoryU8)
+(
   const char *lpPathName
 )
 ;
@@ -3113,6 +3215,11 @@ BOOL SetCurrentDirectoryU8long(
   const char *lpPathNameU8
 )
 ;
+TYPEDEF_FNCT_PTR (BOOL, SetCurrentDirectoryU8long)
+(
+  const char *lpPathNameU8
+)
+;
 
 /*
 	SetFileAttributesU8
@@ -3123,12 +3230,24 @@ DWORD SetFileAttributesU8(
   DWORD		dwFileAttributes
 )
 ;
+TYPEDEF_FNCT_PTR (DWORD, SetFileAttributesU8)
+(
+  LPCSTR	lpFileNameU8,
+  DWORD		dwFileAttributes
+)
+;
 
 /*
 	SetFileAttributesU8long
 	
 */
 DWORD SetFileAttributesU8long(
+  LPCSTR	lpFileNameU8,
+  DWORD		dwFileAttributes
+)
+;
+TYPEDEF_FNCT_PTR (DWORD, SetFileAttributesU8long)
+(
   LPCSTR	lpFileNameU8,
   DWORD		dwFileAttributes
 )
@@ -3144,12 +3263,19 @@ DWORD SetFileAttributesU8long(
 	To use/build this function, define HAVE_ADVAPI32 and link to Advapi32.lib.
 */
 #ifdef HAVE_ADVAPI32
-BOOL SetFileSecurityU8(
-  char					*lpFileNameU8,
-  SECURITY_INFORMATION	SecurityInformation,
-  PSECURITY_DESCRIPTOR	pSecurityDescriptor
-)
-;
+	BOOL SetFileSecurityU8(
+	  char					*lpFileNameU8,
+	  SECURITY_INFORMATION	SecurityInformation,
+	  PSECURITY_DESCRIPTOR	pSecurityDescriptor
+	)
+	;
+	TYPEDEF_FNCT_PTR (BOOL, SetFileSecurityU8)
+	(
+	  char					*lpFileNameU8,
+	  SECURITY_INFORMATION	SecurityInformation,
+	  PSECURITY_DESCRIPTOR	pSecurityDescriptor
+	)
+	;
 #endif
 
 /*
@@ -3162,8 +3288,8 @@ BOOL SetFileSecurityU8(
 	The function returns FALSE if it considers the first argument not being the
 	name of the executable file.
 */
-BOOL IsFirstArgumentExeArgumentW (int *pargc, WCHAR **pargv [])
-;
+BOOL IsFirstArgumentExeArgumentW (int *pargc, WCHAR **pargv []);
+TYPEDEF_FNCT_PTR (BOOL, IsFirstArgumentExeArgumentW) (int *pargc, WCHAR **pargv []);
 
 /*
 	SwallowExeArgumentW
@@ -3180,6 +3306,7 @@ BOOL IsFirstArgumentExeArgumentW (int *pargc, WCHAR **pargv [])
 	The function returns TRUE if an exe argument has been swallowed, FALSE otherwise.
 */
 BOOL SwallowExeArgumentW (int *pargc, WCHAR **pargv []);
+TYPEDEF_FNCT_PTR (BOOL, SwallowExeArgumentW) (int *pargc, WCHAR **pargv []);
 
 /*
 	InsertExeArgumentIfMissingW
@@ -3209,8 +3336,8 @@ BOOL SwallowExeArgumentW (int *pargc, WCHAR **pargv []);
 		free (argvWithExe);
 	}
 */
-WCHAR **InsertExeArgumentIfMissingW (int *pargc, WCHAR **pargv [])
-;
+WCHAR **InsertExeArgumentIfMissingW (int *pargc, WCHAR **pargv []);
+TYPEDEF_FNCT_PTR (WCHAR **, InsertExeArgumentIfMissingW) (int *pargc, WCHAR **pargv []);
 
 /*
 	WNetGetUniversalNameU8
@@ -3222,13 +3349,21 @@ WCHAR **InsertExeArgumentIfMissingW (int *pargc, WCHAR **pargv [])
 	To use this function, define HAVE_MPR and link to Mpr.lib.
 */
 #ifdef HAVE_MPR
-DWORD WNetGetUniversalNameU8(
-	LPCSTR  lpLocalPathU8,
-	DWORD   dwInfoLevel,
-	LPVOID  lpBuffer,
-	LPDWORD lpBufferSize
-)
-;
+	DWORD WNetGetUniversalNameU8(
+		LPCSTR  lpLocalPathU8,
+		DWORD   dwInfoLevel,
+		LPVOID  lpBuffer,
+		LPDWORD lpBufferSize
+	)
+	;
+	TYPEDEF_FNCT_PTR (DWORD, WNetGetUniversalNameU8)
+	(
+		LPCSTR  lpLocalPathU8,
+		DWORD   dwInfoLevel,
+		LPVOID  lpBuffer,
+		LPDWORD lpBufferSize
+	)
+	;
 #endif
 
 /*
@@ -3239,6 +3374,14 @@ DWORD WNetGetUniversalNameU8(
 	for details.
 */
 BOOL WritePrivateProfileStringU8(
+	LPCSTR lpAppNameU8,
+	LPCSTR lpKeyNameU8,
+	LPCSTR lpStringU8,
+	LPCSTR lpFileNameU8
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, WritePrivateProfileStringU8)
+(
 	LPCSTR lpAppNameU8,
 	LPCSTR lpKeyNameU8,
 	LPCSTR lpStringU8,
@@ -3278,6 +3421,7 @@ BOOL WritePrivateProfileStringU8long(
 	Should only be used if stream is set to UTF-16.
 */
 int fprintfU8 (FILE *stream, const char *format, ...);
+TYPEDEF_FNCT_PTR (int, fprintfU8) (FILE *stream, const char *format, ...);
 
 /*
 	printfU8
@@ -3296,6 +3440,7 @@ int fprintfU8 (FILE *stream, const char *format, ...);
 	Should only be used if Windows console output is set to UTF-16.
 */
 int putsU8 (const char *strU8);
+TYPEDEF_FNCT_PTR (int, putsU8) (const char *strU8);
 
 
 EXTERN_C_END
