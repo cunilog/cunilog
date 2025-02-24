@@ -4,7 +4,7 @@
 ## Introduction
 
 Cunilog is a simple and easy-to-use platform-independent module/unit written
-in C (C99) to log events in high-performance applications.
+in C to log events in high-performance applications.
 
 It serves as a drop-in module where you just add the two files, the
 combined source code and the combined header files, to your own project and

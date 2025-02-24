@@ -40,7 +40,7 @@ Apart from the correct character set there's nothing special to consider for Win
 On Windows, Cunilog requires to be built with __Character Set__ set to __Use Unicode Character Set__. This means it can only be compiled as part of your application if your application is compiled with the same character set. Note that __Unicode Character Set__ on Windows means UTF-16, not UTF-8, which is fine because Cunilog converts all strings/texts to UTF-16 before it calls any Windows API, and it converts strings/texts coming back from Windows APIs to UTF-8 before returning them to the caller.
 In Visual Studio, the character set an application is built with can be found under __Project__, __Properties__, __Configuration Properties__, then __Advanced__. If your application needs to be built differently, build Cunilog as a statically or dynamically linked library.
 
-### Building Cunilog as a Windows static or dynamic (shared) library
+### Building Cunilog as a Windows static or dynamic (shared) library (DLL)
 
 Open the MSVC solution __libcunilog.sln__ in folder __proj\msvc2019\libcunilog__ with MSVC 2019 and build it. There's currently only solution/project files for MSVC 2019.
 

@@ -498,9 +498,11 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./functionptrtpydef.h"
 		#include "./ubfmem.h"
 	#else
 		#include "./../pre/externC.h"
+		#include "./../pre/functionptrtpydef.h"
 		#include "./../mem/ubfmem.h"
 	#endif
 
@@ -659,6 +661,7 @@ typedef struct smembuf
 	make it unusable. Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
+TYPEDEF_FNCT_PTR (void *, setToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 
 /*
 	growToSizeSMEMBUF
@@ -674,6 +677,7 @@ void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
+TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 
 /*
 	growToSizeSMEMBUF64aligned
@@ -684,7 +688,8 @@ void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
 	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
-void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
+void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz);
+TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF64aligned) (SMEMBUF *pb, size_t siz);
 
 /*
 	freeSMEMBUF
@@ -700,6 +705,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUF (SMEMBUF *pb);
+	TYPEDEF_FNCT_PTR (void, freeSMEMBUF) (SMEMBUF *pb);
 #else
 	#define freeSMEMBUF(pb)								\
 		ubf_free ((pb)->buf.pvoid)
@@ -715,6 +721,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb);
+	TYPEDEF_FNCT_PTR (void, doneSMEMBUF) (SMEMBUF *pb);
 #else
 	#define doneSMEMBUF(p)								\
 		freeSMEMBUF (p);								\
@@ -772,6 +779,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF * pb, size_t siz);
 */
 void copySMEMBUF (SMEMBUF *dst, SMEMBUF *src)
 ;
+TYPEDEF_FNCT_PTR (void, copySMEMBUF) (SMEMBUF *dst, SMEMBUF *src);
 
 /*
 	copySMEMBUFsiz
@@ -784,6 +792,8 @@ void copySMEMBUF (SMEMBUF *dst, SMEMBUF *src)
 */
 void copySMEMBUFsiz (SMEMBUF *dst, SMEMBUF *src, size_t siz)
 ;
+TYPEDEF_FNCT_PTR (void, copySMEMBUFsiz) (SMEMBUF *dst, SMEMBUF *src, size_t siz);
+
 
 EXTERN_C_END
 
