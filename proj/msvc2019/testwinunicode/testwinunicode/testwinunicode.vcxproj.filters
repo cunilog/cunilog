@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\src\c\testwinunicode\testwinunicode.c">
+    <ClCompile Include="..\..\..\..\src\c\combined\cunilog_combined.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\c\combined\cunilog_combined.c">
+    <ClCompile Include="..\..\..\..\src\c\testcunilog\testwinunicode.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -26,7 +26,7 @@
     <ClInclude Include="..\..\..\..\src\c\combined\cunilog_combined.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\src\c\testwinunicode\testwinunicode.h">
+    <ClInclude Include="..\..\..\..\src\c\testcunilog\testwinunicode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

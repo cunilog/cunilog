@@ -73,8 +73,10 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./functionptrtpydef.h"
 	#else
 		#include "./../pre/externC.h"
+		#include "./../pre/functionptrtpydef.h"
 	#endif
 
 	#include "./cunilogversion.h"

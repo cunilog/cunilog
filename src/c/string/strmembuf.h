@@ -45,8 +45,10 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./membuf.h"
+		#include "./functionptrtpydef.h"
 	#else
 		#include "./../mem/membuf.h"
+		#include "./../pre/functionptrtpydef.h"
 	#endif
 
 #endif
@@ -74,6 +76,8 @@ EXTERN_C_BEGIN
 */
 size_t SMEMBUFfromStrReserveBytes (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
 ;
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrReserveBytes) (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+;
 
 /*
 	SMEMBUFfromStr
@@ -87,6 +91,7 @@ size_t SMEMBUFfromStrReserveBytes (SMEMBUF *pmb, const char *str, size_t len, si
 	or 0 when the heap allocation fails.
 */
 size_t SMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len);
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStr) (SMEMBUF *pmb, const char *str, size_t len);
 
 /*
 	SMEMBUFstrFromUINT64
@@ -98,6 +103,8 @@ size_t SMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len);
 	structure, not counting the NUL-terminator.
 */
 size_t SMEMBUFstrFromUINT64 (SMEMBUF *pmb, uint64_t ui)
+;
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrFromUINT64) (SMEMBUF *pmb, uint64_t ui)
 ;
 
 EXTERN_C_END

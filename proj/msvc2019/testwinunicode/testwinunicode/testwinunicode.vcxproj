@@ -144,11 +144,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\c\combined\cunilog_combined.c" />
-    <ClCompile Include="..\..\..\..\src\c\testwinunicode\testwinunicode.c" />
+    <ClCompile Include="..\..\..\..\src\c\testcunilog\testwinunicode.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\c\combined\cunilog_combined.h" />
-    <ClInclude Include="..\..\..\..\src\c\testwinunicode\testwinunicode.h" />
+    <ClInclude Include="..\..\..\..\src\c\testcunilog\testwinunicode.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

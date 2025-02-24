@@ -1,13 +1,17 @@
 
 # Using Cunilog
 
-## Building
+## Building and linking
 
 This brief introduction assumes that you either add the two combined source code files
 __cunilog_combined.h__ and __cunilog_combined.c__ in folder __src/c/combined__
 to your project and compile them as part of it, or that you build libcunilog, link your application to it, and only add __cunilog_combined.h__ to your project.
 
-Another option would be that you add all files separately but this is a lot more work.
+Another option would be that you add all files separately but this might be a bit more work.
+
+Details and differences between the available build and link options can be found on page [Building Cunilog](building.md)
+
+## Interface
 
 Include __cunilog_combined.h__ to access Cunilog's interface.
 All necessary constants, enumerations, functions, macros, and structures should be
