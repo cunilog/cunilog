@@ -17,7 +17,7 @@ On Windows, Microsoft call this method [Load-time dynamic linking](https://learn
 
 ## Explicit loading/linking
 
-Loading a library that is shared dynamically and linking to it explicitely is very similar between Windows and POSIX.
+Loading a library that is shared dynamically and linking to it explicitely is very similar between Windows and POSIX. This method is also called [Run-time dynamic linking](https://learn.microsoft.com/en-us/windows/win32/dlls/about-dynamic-link-libraries). Don't worry about the Microsoft link. The idea is the same for POSIX.
 
 Windows offers the API functions __LoadLibrary ()__ and __LoadLibraryEx ()__ to load modules into the address space of a calling process. POSIX on the other hand has __dlopen ()__, and Linux additionally provides __dlmopen ()__ with similar functionality.
 
