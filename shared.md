@@ -1,7 +1,7 @@
 
 # Cunilog in a dynamically-linked (shared) library
 
-Cunilog can be built as a shared library that is loaded at runtime. On Windows this is called a dynamically linked library, or short DLL. The filename extension of these files is __.dll__. On Unix/Linux systems they're called shared objects and usually have the filename extension __.so__.
+Cunilog can be built as a shared library that is loaded at runtime. On Windows this is called a dynamically linked library, or short [DLL](https://learn.microsoft.com/en-us/windows/win32/dlls/dynamic-link-libraries). The filename extension of these files is __.dll__. On Unix/Linux systems they're called shared objects and usually have the filename extension __.so__.
 
 See [Building Cunilog](building.md) on how to create such a library.
 
