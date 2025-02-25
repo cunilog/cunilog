@@ -47,9 +47,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
+		#include "./functionptrtpydef.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
+		#include "./../pre/functionptrtpydef.h"
 	#endif
 
 #endif
@@ -87,8 +89,8 @@ EXTERN_C_BEGIN
 
 	The function is only re-entrant after it returned from its first invocation.
 */
-const char *szBuild_ISO__DATE__ (void)
-;
+const char *szBuild_ISO__DATE__ (void);
+TYPEDEF_FNCT_PTR (const char *, szBuild_ISO__DATE__) (void);
 
 /*
 	szBuild_ISO__TIME__
@@ -113,8 +115,8 @@ const char *szBuild_ISO__DATE__ (void)
 	The function is only re-entrant after it returned from its first invocation, or
 	after the function szBuild_ISO__DATE__ () has been called.
 */
-const char *szBuild_ISO__DATE__TIME__ (void)
-;
+const char *szBuild_ISO__DATE__TIME__ (void);
+TYPEDEF_FNCT_PTR (const char *, szBuild_ISO__DATE__TIME__) (void);
 
 /*
 	replace_ISO_DATE_
@@ -131,8 +133,8 @@ const char *szBuild_ISO__DATE__TIME__ (void)
 	The function is only re-entrant after it returned from its first invocation, or
 	after the function szBuild_ISO__DATE__ () has been called.
 */
-size_t replace_ISO_DATE_ (char *sz, size_t len)
-;
+size_t replace_ISO_DATE_ (char *sz, size_t len);
+TYPEDEF_FNCT_PTR (size_t, replace_ISO_DATE_) (char *sz, size_t len);
 
 EXTERN_C_END
 

@@ -931,8 +931,7 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET)
 	CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
-	;
+	void ConfigSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl);
 	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETcunilognewline)
 		(SCUNILOGTARGET *put, newline_t nl);
 #else
