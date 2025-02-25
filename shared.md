@@ -21,7 +21,7 @@ Loading a library that is shared dynamically and linking to it explicitely is ve
 
 Windows offers the API functions __LoadLibrary ()__ and __LoadLibraryEx ()__ to load modules into the address space of a calling process. POSIX on the other hand has __dlopen ()__, and Linux additionally provides __dlmopen ()__ with similar functionality.
 
-On Windows, one would call __FreeLibrary ()__ to close a handle to the module returned by __LoadLibrary ()__ or __LoadLibraryEx ()__ and decrement its reference count. On POSIX, this would be __dlclose ()__.
+On Windows, one would call __FreeLibrary ()__ to close a handle to the module returned by __LoadLibrary ()__ or __LoadLibraryEx ()__ and decrement its reference count. On POSIX, this would be __dlclose ()__ for handles returned by __dlopen ()__.
 
 The API function [GetProcAddress ()](https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getprocaddress) retrieves the address of a function or data object within the library on Windows. The POSIX equivalent of this function is [dlsym ()](https://linux.die.net/man/3/dlsym).
 
