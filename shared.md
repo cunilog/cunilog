@@ -13,7 +13,7 @@ A dynamic (shared) library can be loaed in two different ways:
 
 Implicit loading/linking is a relatively straight-forward process and generally requires no special attention.
 
-On Windows, Microsoft call this method [Load-time dynamic linking](https://learn.microsoft.com/en-us/windows/win32/dlls/about-dynamic-link-libraries). Because Windows expects applications to be built, link to, and use the C runtime libraries in the same manner within application boundaries, all components of the same application must be built identical. See [C runtime (CRT) and C++ standard library (STL)](https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features?view=msvc-170) and [Building Cunilog](building.md).
+On Windows, Microsoft call this method [Load-time dynamic linking](https://learn.microsoft.com/en-us/windows/win32/dlls/about-dynamic-link-libraries). Because Windows expects applications to be built, linked to, and use the C runtime libraries in the same manner within application boundaries, all components of the same application must be built identical. See [C runtime (CRT) and C++ standard library (STL)](https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features?view=msvc-170) and [Building Cunilog](building.md).
 
 ## Explicit loading/linking
 
