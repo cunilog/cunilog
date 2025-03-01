@@ -47,7 +47,7 @@ When		Who				What
 
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool ubf_is_printable_ASCII (char c)
 	{	// From SPC (20h, 32d) to '~' (7Eh, 126d).
 		return ((unsigned char) c > 0x1F && (unsigned char) c < 0x7F);
@@ -68,7 +68,7 @@ bool str_has_only_printable_ASCII (const char *sz, size_t len)
 	return true;
 }
 
-#ifdef _DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool ubf_is_letter (char c)
 	{
 		return	(
@@ -98,7 +98,7 @@ char *ubf_is_letter_until (char *ch, char c)
 /*
 	Returns true when c is a white space character.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool isWhiteSpace (char c)
 	{
 		return	(
@@ -113,14 +113,14 @@ char *ubf_is_letter_until (char *ch, char c)
 #pragma warning (default: 4706)									// Assignment within conditional expression.
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool isDirectorySeparator (char c)
 	{
 		return ('/' == c || '\\' == c);
 	}
 #endif
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool isWrongDirectorySeparator (char c)
 	{
 		return (UBF_WRONG_DIR_SEP == c);
@@ -189,7 +189,7 @@ size_t ubf_count_char (const char *cc, char c)
 	return stRet;
 }
 
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	size_t ubf_obtain_strlen (const char *sz, size_t providedLength)
 	{
 		return sz ? (USE_STRLEN == providedLength ? strlen (sz) : providedLength) : 0;

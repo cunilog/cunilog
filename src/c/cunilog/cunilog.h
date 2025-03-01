@@ -365,10 +365,12 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 
 	szLogPath			The path where the log files are written to. This can either be an
 						absolute or a relative path. If the path is relative, it is assumed to
-						be relative to the executable module. If this parameter is NULL, the
-						function uses the executable module's path. This string does not have to
-						be NUL-terminated if lenLogPath is given correctly and not as (size_t)
-						-1 (or USE_STRLEN).
+						be relative to what the enumeration parameter relLogPath specifies.
+						If this parameter is NULL, the function picks a folder according to
+						what the enumeration parameter relLogPath specifies, or the function
+						fails.
+						This string does not have to be NUL-terminated if lenLogPath is given
+						correctly and not as (size_t) -1 (or USE_STRLEN).
 
 	lenLogPath			The length of szLogPath. If this parameter is (size_t) -1, the function
 						calls strlen () to obtain it. Conveniently USE_STRLEN is defined as
@@ -520,10 +522,12 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETex)
 
 	szLogPath			The path where the log files are written to. This can either be an
 						absolute or a relative path. If the path is relative, it is assumed to
-						be relative to the executable module. If this parameter is NULL, the
-						function uses the executable module's path. This string does not have to
-						be NUL-terminated if lenLogPath is given correctly and not as (size_t)
-						-1 (or USE_STRLEN).
+						be relative to what the enumeration parameter relLogPath specifies.
+						If this parameter is NULL, the function picks a folder according to
+						what the enumeration parameter relLogPath specifies, or the function
+						fails.
+						This string does not have to be NUL-terminated if lenLogPath is given
+						correctly and not as (size_t) -1 (or USE_STRLEN).
 
 	lenLogPath			The length of szLogPath. If this parameter is (size_t) -1, the function
 						calls strlen () to obtain it. Conveniently USE_STRLEN is defined as
@@ -691,10 +695,12 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitOrCreateSCUNILOGTARGET)
 	
 	szLogPath			The path where the log files are written to. This can either be an
 						absolute or a relative path. If the path is relative, it is assumed to
-						be relative to the executable module. If this parameter is NULL, the
-						function uses the executable module's path. This string does not have to
-						be NUL-terminated if lenLogPath is given correctly and not as (size_t)
-						-1 (or USE_STRLEN).
+						be relative to what the enumeration parameter relLogPath specifies.
+						If this parameter is NULL, the function picks a folder according to
+						what the enumeration parameter relLogPath specifies, or the function
+						fails.
+						This string does not have to be NUL-terminated if lenLogPath is given
+						correctly and not as (size_t) -1 (or USE_STRLEN).
 
 	lenLogPath			The length of szLogPath. If this parameter is (size_t) -1, the function
 						calls strlen () to obtain it. Conveniently USE_STRLEN is defined as
@@ -797,10 +803,12 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstaticEx)
 
 	szLogPath			The path where the log files are written to. This can either be an
 						absolute or a relative path. If the path is relative, it is assumed to
-						be relative to the executable module. If this parameter is NULL, the
-						function uses the executable module's path. This string does not have to
-						be NUL-terminated if lenLogPath is given correctly and not as (size_t)
-						-1 (or USE_STRLEN).
+						be relative to what the enumeration parameter relLogPath specifies.
+						If this parameter is NULL, the function picks a folder according to
+						what the enumeration parameter relLogPath specifies, or the function
+						fails.
+						This string does not have to be NUL-terminated if lenLogPath is given
+						correctly and not as (size_t) -1 (or USE_STRLEN).
 
 	lenLogPath			The length of szLogPath. If this parameter is (size_t) -1, the function
 						calls strlen () to obtain it. Conveniently USE_STRLEN is defined as
@@ -1202,70 +1210,6 @@ TYPEDEF_FNCT_PTR (bool, CancelSCUNILOGTARGET) (SCUNILOGTARGET *put);
 			CancelSCUNILOGTARGET (pSCUNILOGTARGETstatic)
 
 /*
-	SetLogPrioritySCUNILOGTARGET
-
-	Sets the priority of the separate logging thread that belongs to the specified
-	SCUNILOGTARGET structure put points to.
-	
-	The priority levels are based on Windows thread priority levels. See the cunilogprio
-	enum type (parameter prio) for possible values. For POSIX, these have been placed in
-	a table with nice values as approximations (table icuWinPrioTable; see code file),
-	although they are not really nice values as the priority is applied to the separate
-	logging thread only.
-	Neither the table nor this function have been tested to ensure the approximations
-	for POSIX are accurate.
-
-	Windows systems support cunilogPrioBeginBackground and cunilogPrioEndBackground. These
-	values change the separate logging thread's priority to THREAD_MODE_BACKGROUND_BEGIN and
-	THREAD_MODE_BACKGROUND_END respectively. See
-	https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority
-	for details.
-	Since directly comparable functionality is not available on POSIX,
-	cunilogPrioBeginBackground is identical to cunilogPrioIdle, which sets the thread priority
-	value to 19, and cunilogPrioEndBackground is identical to a value of 0, which means normal
-	priority. See https://www.man7.org/linux/man-pages/man3/pthread_setschedprio.3.html .
-
-	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
-	to true.
-
-	Returns true on success, false otherwise. If the SCUNILOGTARGET structure doesn't
-	have a separate logging thread, the function returns true. Whether the function
-	returns success or failure depends on the system call that sets the priority. The
-	function also returns false if the value for prio is invalid.
-*/
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	bool SetLogPrioritySCUNILOGTARGET (SCUNILOGTARGET *put, cunilogprio prio);
-	TYPEDEF_FNCT_PTR (bool, SetLogPrioritySCUNILOGTARGET) (SCUNILOGTARGET *put, cunilogprio prio);
-#else
-	#define SetLogPrioritySCUNILOGTARGET(put, prio) (true)
-#endif
-
-/*
-	SetLogPrioritySCUNILOGTARGETstatic
-
-	Sets the priority of the separate logging thread that belongs to the internal static
-	SCUNILOGTARGET structure.
-
-	The priority levels are based on Windows thread priority levels. See the cunilogprio
-	enum type (parameter prio) for possible values. For POSIX, these have been placed in
-	a table with nice values as approximations (table icuWinPrioTable; see code file).
-	Neither the table nor this function have been tested to ensure the approximations
-	are accurate.
-
-	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
-	to true.
-
-	Returns true on success, false otherwise. If the SCUNILOGTARGET structure doesn't
-	have a separate logging thread, the function returns true.
-*/
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	#define SetLogPrioritySCUNILOGTARGETstatic (prio)	\
-				SetLogPrioritySCUNILOGTARGET (pSCUNILOGTARGETstatic, prio)
-#else
-	#define SetLogPrioritySCUNILOGTARGETstatic(put, prio) (true)
-#endif
-
-/*
 	PauseLogSCUNILOGTARGET
 
 	Pauses/suspends logging to the SCUNILOGTARGET structure put points to while still
@@ -1633,6 +1577,112 @@ bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 	#define ChangeSCUNILOGTARGETcunilognewline_static(nl)	\
 				ChangeSCUNILOGTARGETcunilognewline (pSCUNILOGTARGETstatic, (nl))
 #endif
+
+/*
+	ChangeSCUNILOGTARGETdisableTaskProcessors
+	ChangeSCUNILOGTARGETenableTaskProcessors
+
+	The functions return true if the event was queued successfully, false otherwise.
+*/
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+	bool ChangeSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+
+	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETdisableTaskProcessors) (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETenableTaskProcessors) (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+#endif
+
+/*
+	ChangeSCUNILOGTARGETdisableEchoProcessor
+	ChangeSCUNILOGTARGETenableEchoProcessor
+
+	The functions return true if the event was queued successfully, false otherwise.
+*/
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETdisableEchoProcessor	(SCUNILOGTARGET *put);
+	bool ChangeSCUNILOGTARGETenableEchoProcessor	(SCUNILOGTARGET *put);
+
+	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETdisableEchoProcessor)	(SCUNILOGTARGET *put);
+	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETenableEchoProcessor)	(SCUNILOGTARGET *put);
+#endif
+
+/*
+	ChangeSCUNILOGTARGETlogPriority
+
+	Queues an event to set the priority of the separate logging thread that belongs to the
+	specified SCUNILOGTARGET structure put points to.
+	
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY or CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS are defined,
+	this is a macro that evaluates to true.
+
+	The priority levels are based on Windows thread priority levels. See the cunilogprio
+	enum type (parameter prio) for possible values. For POSIX, these have been placed in
+	a table with nice values as approximations (table icuWinPrioTable; see code file),
+	although they are not really nice values as the priority is applied to the separate
+	logging thread only.
+	Neither the table nor this function have been tested to ensure the approximations
+	for POSIX are accurate.
+
+	Windows systems support cunilogPrioBeginBackground and cunilogPrioEndBackground. These
+	values change the separate logging thread's priority to THREAD_MODE_BACKGROUND_BEGIN and
+	THREAD_MODE_BACKGROUND_END respectively. See
+	https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority
+	for details.
+	Since directly comparable functionality is not available on POSIX,
+	cunilogPrioBeginBackground is identical to cunilogPrioIdle, which sets the thread priority
+	value to 19, and cunilogPrioEndBackground is identical to a value of 0, which means normal
+	priority. See https://www.man7.org/linux/man-pages/man3/pthread_setschedprio.3.html .
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
+	to true.
+
+	Returns true on success, false otherwise. If the SCUNILOGTARGET structure doesn't
+	have a separate logging thread, the function returns true. The function returns false if the
+	value for prio is invalid.
+*/
+#if !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && !defined (CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS)
+	bool ChangeSCUNILOGTARGETlogPriority (SCUNILOGTARGET *put, cunilogprio prio);
+	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETlogPriority) (SCUNILOGTARGET *put, cunilogprio prio);
+#else
+	#define ChangeSCUNILOGTARGETlogPriority(put, prio) (true)
+#endif
+
+/*
+	SetLogPrioritySCUNILOGTARGETstatic
+
+	Sets the priority of the separate logging thread that belongs to the internal static
+	SCUNILOGTARGET structure.
+
+	The priority levels are based on Windows thread priority levels. See the cunilogprio
+	enum type (parameter prio) for possible values. For POSIX, these have been placed in
+	a table with nice values as approximations (table icuWinPrioTable; see code file).
+	Neither the table nor this function have been tested to ensure the approximations
+	are accurate.
+
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
+	to true.
+
+	Returns true on success, false otherwise. If the SCUNILOGTARGET structure doesn't
+	have a separate logging thread, the function returns true.
+*/
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#define SetLogPrioritySCUNILOGTARGETstatic(prio)	\
+				ChangeSCUNILOGTARGETlogPriority (pSCUNILOGTARGETstatic, prio)
+#else
+	#define SetLogPrioritySCUNILOGTARGETstatic(put, prio) (true)
+#endif
+
+/*
+	CunilogChangeCurrentThreadPriority
+
+	Sets the priority of the current thread.
+
+	This is a platform-independent way of changing the current thread's priority.
+
+	The function returns true on success, false otherwise.
+*/
+bool CunilogChangeCurrentThreadPriority (cunilogprio prio);
+TYPEDEF_FNCT_PTR (bool, CunilogChangeCurrentThreadPriority) (cunilogprio prio);
 
 /*
 	The version as text, its year, and as a 64 bit number.

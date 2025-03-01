@@ -85,7 +85,7 @@ It builds and works on Windows with MSVC. It's not fully tested yet.
 It is prepared for Linux but neither builds nor works. Some preparational work
 has been done for MacOS but it won't build and certainly won't work either.
 
-Once it builds and works on Linux it will most likely also build and work on
+Once it builds and works on Linux it will most likely also build for and work on
 Android.
 
 ## How to build Cunilog

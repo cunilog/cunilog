@@ -68,14 +68,18 @@ EXTERN_C_BEGIN
 /*
 	culIsValidCmd
 
-	Returns true if cmd is a valid Cunilog command.
+	Returns true if cmd is a valid Cunilog command. Note that this is the only function/
+	macro that checks that cmd is a valid Cunilog command, and that this is the only function/
+	macro that does not abort in debug versions if the command is invalid.
+	
+	All other functions/macros do not check if a Cunilog command is valid or not.
 */
 #ifdef DEBUG
 	bool culIsValidCmd (enum cunilogEvtCmd cmd)
 	;
 #else
 	#define culIsValidCmd(cmd)							\
-		((cmd) && (cmd) < cunilogCmdConfigXAmountEnumValues)
+		((0 <= cmd) && (cmd) < cunilogCmdConfigXAmountEnumValues)
 #endif
 
 /*
@@ -116,6 +120,31 @@ void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
 	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevtpy sevTpy)
 	;
 #endif
+
+/*
+	culCmdStoreCmdConfigDisableTaskProcessors
+	culCmdStoreCmdConfigEnableTaskProcessors
+
+	These functions store a command to disable or enable a particular type of processor in
+	the buffer szOut points to.
+*/
+void culCmdStoreCmdConfigDisableTaskProcessors (unsigned char *szOut, enum cunilogprocesstask task);
+void culCmdStoreCmdConfigEnableTaskProcessors (unsigned char *szOut, enum cunilogprocesstask task);
+
+/*
+	culCmdStoreConfigLogThreadPriority
+
+	Stores the command to change the priority of the logging thread in the buffer szOut
+	points to.
+*/
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+	void culCmdStoreConfigLogThreadPriority (unsigned char *szOut, cunilogprio prio);
+#endif
+
+/*
+	culCmdSetCurrentThreadPriority
+*/
+bool culCmdSetCurrentThreadPriority (cunilogprio prio);
 
 /*
 	culCmdChangeCmdConfigFromCommand

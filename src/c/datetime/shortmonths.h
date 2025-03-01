@@ -45,14 +45,18 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
+		#include "./DLLimport.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
+		#include "./../pre/DLLimport.h"
 	#endif
 
 #endif
 
-// Our short months.
-extern const char ccdtMnths [12][4];
+/*
+	Our short months.
+*/
+CUNILOG_DLL_IMPORT extern const char ccdtMnths [12][4];
 
 #endif														// Of #ifdef U_SHORTMONTHS_H.

@@ -1,8 +1,8 @@
 
-# Cunilog Basics
+# Cunilog basics
 
 ## General
-### Comments and Documentation
+### Comments and documentation
 
 Each Cunilog interface definition, function, macro, structure, variable, constant, and enumeration
 should be self-explanatory in the header file(s). The comments above or next to the
@@ -31,7 +31,14 @@ First, build a debug version of your application and make sure you also use a Cu
 build, then test it to ensure all function and macro arguments are good and that there are no
 buffer overruns or accidental NULL pointers.
 
-### String Arguments
+### Name collisions
+
+This is something that may happen every now and then, in particular in bigger projects. Many function and object
+names in Cunilog do not have unique prefixes. If this happens, the names should be changed where it makes
+most sense. This means if a name is already relatively unique it should probably be changed in the application to avoid the clash. If Cunilog uses a very common name it should be changed in Cunilog. However, I would like to avoid having general prefixes like many other projects and libraries.
+Feel free to raise an issue.
+
+### String arguments
 
 Unless mentioned otherwise, most functions and macros that accept string
 arguments/parameters also expect a length parameter that tells the function/macro
@@ -53,23 +60,66 @@ responsibility to ensure UTF-8 passed on to Cunilog is correct UTF-8.
 
 For more information on Cunilog and UTF-8, please refer to [Cunilog and UTF-8](utf8.md).
 
-## Logging Target
+## Logging target
 
-In Cunilog terms a log file is called a __target__. In fact, a __target__
+In Cunilog terms a log file is called a target. In fact, a target
 can be anything from console output to log file or both or a database or
-whatever. This is entirely configurable. Whatever the __target__ is, all
+whatever. This is entirely configurable. Whatever the target is, all
 logging functions expect a target.
 
 An application can create an arbitrary number of targets for Cunilog, or just
-use the default (static) __target__. Logging to targets can be suspended and resumed.
-Every __target__, however, needs to be configured first so that Cunilog knows what to do
-with it. This also applies to the default (static) __target__.
+use the default (static) target. Logging to targets can be suspended and resumed.
+Every target, however, needs to be configured first so that Cunilog knows what to do
+with it. This also applies to the default (static) target.
 
 Logging functions create events, and events are sent to targets. A target can be configured to fork/duplicate events to other targets. Events can also be redirected to another target.
 
-All logging functions expect as their first parameter a pointer to a __target__
-structure of type __SCUNILOGTARGET__. For the default (static) __target__,
-macros are provided that end in _static. These macros set the __target__ to an
+All logging functions expect as their first parameter a pointer to a target
+structure of type __SCUNILOGTARGET__. For the default (static) target,
+macros are provided that end in _static. These macros set the target to an
 internal (static) __SCUNILOGTARGET__ structure, which is shared by all these
 macros/functions.
+
+The characteristics of a Cunilog target are specified when it is initialised. Some of these
+characteristics can be changed afterwards but need to be applied before the first logging
+function that uses this target is called. Other characteristics can still be changed even after
+logging functions have been called. If the application only has a single thread and the target
+has been initialised for a single thread only, all of its characterisitcs can be changed if
+enough care is taken.
+
+### Log path and application name
+
+Cunilog distinguishes between a log path and an application's name. By default, events are written
+to text files named (log path)__/__(application name)___YYYY-MM-DD.log__.
+
+If the path is relative, the enumeration __enCunilogRelLogPath__ decides on an appropriate base path.
+
+### Threading
+
+The tpye of a Cunilog target is probably its most relevant characteristic. This type cannot be changed
+later unless the application and the target are both single-threaded.
+
+The __enum cunilogtype__ denotes the type of a target.
+
+| __enum cunilogtype__ | |
+| :------------------- | --- |
+| cunilogSingleThreaded | Only a single thread can use this target |
+| cunilogMultiThreaded  | Several threads can use this target but function calls block if the target is busy |
+| cunilogSingleThreadedSeparateLoggingThread cunilogMultiThreadedSeparateLoggingThread | A single or several threads can use this target but the actual work is done in a separate logging thread
+| cunilogMultiProcesses | Not implemented yet |
+
+Note that __cunilogSingleThreadedSeparateLoggingThread__ is meant for a single application thread only but the actual logging tasks are delegated to a separate logging thread via an event queue. On the other hand __cunilogMultiThreadedSeparateLoggingThread__ is meant to do the same in a multi-threaded application. However, both are currently implemented identically.
+
+If unsure, __cunilogMultiThreadedSeparateLoggingThread__ is most likely what you should pick. For more details on Cunilog target types, check the comments in the header file or have a look at the code.
+
+## Processors
+
+When an event goes to a target it is passed through an array of processors, literally in a loop.
+The C type definition for a Cunilog processor structure is __CUNILOG_PROCESSOR__. Each target holds a pointer
+to an array of processors. If a target is initialised without a processors array, the default
+is assigned.
+
+Each processor is assigned a certain task. Cunilog provides a default set of tasks for processors
+to carry out. A custom task is also available for which a callback function can be invoked.
+Each processor is assigned precisely one task, which is the member __enum cunilogprocesstask__.
 

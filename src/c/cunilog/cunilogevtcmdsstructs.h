@@ -64,8 +64,9 @@ enum cunilogEvtCmd
 	,	cunilogCmdConfigCunilognewline
 	,	cunilogCmdConfigDisableTaskProcessors
 	,	cunilogCmdConfigEnableTaskProcessors
-	,	cunilogConfigDisableEchoProcessor
-	,	cunilogConfigEnableEchoProcessor
+	,	cunilogCmdConfigDisableEchoProcessor
+	,	cunilogCmdConfigEnableEchoProcessor
+	,	cunilogCmdConfigSetLogPriority
 	// Do not add anything below this line.
 	,	cunilogCmdConfigXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogCmdConfigXAmountEnumValues.

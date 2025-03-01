@@ -217,7 +217,8 @@ CUNILOG_DLL_IMPORT extern const size_t		sizCunilogLogFileNameExtension;
 	cunilogMultiProcesses
 
 	Logging information is fully protected and can be written from different threads as well
-	as from different processes.
+	as from different processes. This is currently not supported and hasn't been implemented
+	yet.
 */
 enum cunilogtype
 {

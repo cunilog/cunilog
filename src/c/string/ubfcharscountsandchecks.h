@@ -48,9 +48,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
+		#include "./functionptrtpydef.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
+		#include "./../pre/functionptrtpydef.h"
 	#endif
 
 #endif
@@ -83,8 +85,9 @@ EXTERN_C_BEGIN
 	
 	The macro/function returns false if the octet in c is outside this range.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool ubf_is_printable_ASCII (char c);
+	TYPEDEF_FNCT_PTR (bool, ubf_is_printable_ASCII) (char c);
 #else
 	// From SPC (20h, 32d) to '~' (7Eh, 126d).
 	#define ubf_is_printable_ASCII(c)					\
@@ -98,6 +101,8 @@ EXTERN_C_BEGIN
 */
 bool str_has_only_printable_ASCII (const char *sz, size_t len)
 ;
+TYPEDEF_FNCT_PTR (bool, str_has_only_printable_ASCII) (const char *sz, size_t len)
+;
 
 /*
 	ubf_is_letter
@@ -106,8 +111,9 @@ bool str_has_only_printable_ASCII (const char *sz, size_t len)
 	false otherwise. The function is identical to the standard C function isalpha (),
 	which is defined as ubf_isalpha () in platform.h.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool ubf_is_letter (char c);
+	TYPEDEF_FNCT_PTR (bool, ubf_is_letter) (char c);
 #else
 	#define ubf_is_letter(c)	ubf_isalpha(c)
 #endif
@@ -119,10 +125,11 @@ bool str_has_only_printable_ASCII (const char *sz, size_t len)
 	characters before this first occurrance are letters, determined by invokations of
 	ubf_is_letter () for each character.
 	
-	The function returns NULL if the string in c contains anything but letters or if c
-	could not be found.
+	The function returns NULL if the string in c contains any character that is not a letters
+	or if c could not be found.
 */
 char *ubf_is_letter_until (char *ch, char c);
+TYPEDEF_FNCT_PTR (char *, ubf_is_letter_until) (char *ch, char c);
 
 /*
 	ubf_is_special
@@ -141,8 +148,9 @@ char *ubf_is_letter_until (char *ch, char c);
 
 	Returns true if c is white space. CR, LF, and FF do not count as white space.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool isWhiteSpace (char c);
+	TYPEDEF_FNCT_PTR (bool, isWhiteSpace) (char c);
 #else
 	#define isWhiteSpace(c)								\
 		(			UBF_SPC			== (c)				\
@@ -158,8 +166,9 @@ char *ubf_is_letter_until (char *ch, char c);
 	Evaluates to true if c is a directory separator, which can be either a forward
 	or a backward slash.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool isDirectorySeparator (char c);
+	TYPEDEF_FNCT_PTR (bool, isDirectorySeparator) (char c);
 #else
 	#define isDirectorySeparator(c)						\
 		('/' == (c) || '\\' == (c))
@@ -173,8 +182,9 @@ char *ubf_is_letter_until (char *ch, char c);
 	Evaluates to true if c is the wrong directory separator. The wrong directory separator
 	on Windows systems is the forward slash ("/"), on POSIX systems the backslash ("\").
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool isWrongDirectorySeparator (char c);
+	TYPEDEF_FNCT_PTR (bool, isWrongDirectorySeparator) (char c);
 #else
 	#define isWrongDirectorySeparator(c)				\
 		(UBF_WRONG_DIR_SEP == c)
@@ -188,6 +198,7 @@ char *ubf_is_letter_until (char *ch, char c);
 	cc points to. The string cc points to is required to be NUL-terminated.
 */
 size_t ubf_count_numerical_digits (const char *cc);
+TYPEDEF_FNCT_PTR (size_t, ubf_count_numerical_digits) (const char *cc);
 
 /*
 	ubf_count_starts_with_numerical_digits_up_to
@@ -196,6 +207,7 @@ size_t ubf_count_numerical_digits (const char *cc);
 	cc points starts with, up to len characters/octets.
 */
 size_t ubf_count_starts_with_numerical_digits_up_to (const char *cc, size_t len);
+TYPEDEF_FNCT_PTR (size_t, ubf_count_starts_with_numerical_digits_up_to) (const char *cc, size_t len);
 
 /*
 	ubf_count_special_characters
@@ -205,6 +217,7 @@ size_t ubf_count_starts_with_numerical_digits_up_to (const char *cc, size_t len)
 	digits.
 */
 size_t ubf_count_special_characters (const char *cc);
+TYPEDEF_FNCT_PTR (size_t, ubf_count_special_characters) (const char *cc);
 
 /*
 	ubf_count_char
@@ -212,6 +225,7 @@ size_t ubf_count_special_characters (const char *cc);
 	Counts how many times c occurs in cc and returns this number.
 */
 size_t ubf_count_char (const char *cc, char c);
+TYPEDEF_FNCT_PTR (size_t, ubf_count_char) (const char *cc, char c);
 
 /*
 	ubf_obtain_strlen
@@ -226,8 +240,9 @@ size_t ubf_count_char (const char *cc, char c);
 		This should be the length of sz without the NUL-terminator, as would be obtained
 		via strlen (sz) if sz was NUL-terminated.
 */
-#ifdef DEBUG
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	size_t ubf_obtain_strlen (const char *sz, size_t providedLength);
+	TYPEDEF_FNCT_PTR (size_t, ubf_obtain_strlen) (const char *sz, size_t providedLength);
 #else
 	#define ubf_obtain_strlen(sz, len)					\
 		(sz) ? (USE_STRLEN == (len) ? strlen (sz) : (len)) : 0

@@ -14,6 +14,9 @@ EXPORTS
 	; cunilog
 	pSCUNILOGTARGETstatic							@104	DATA
 
+	; shortmonths
+	ccdtMnths										@105	DATA
+
 	CunilogSetConsoleTo								@200
 	InitSCUNILOGTARGETex							@201
 	InitSCUNILOGTARGET								@202
@@ -37,7 +40,7 @@ EXPORTS
 	DoneSCUNILOGTARGET								@220
 	ShutdownSCUNILOGTARGET							@221
 	CancelSCUNILOGTARGET							@222
-	SetLogPrioritySCUNILOGTARGET					@223
+	ChangeSCUNILOGTARGETlogPriority					@223
 	PauseLogSCUNILOGTARGET							@224
 	ResumeLogSCUNILOGTARGET							@225
 	CreateSCUNILOGEVENT_Data						@226
@@ -46,6 +49,10 @@ EXPORTS
 	DoneSCUNILOGEVENT								@229
 	ChangeSCUNILOGTARGETuseColourForEcho			@230
 	ChangeSCUNILOGTARGETcunilognewline				@231
+	ChangeSCUNILOGTARGETdisableTaskProcessors		@232
+	ChangeSCUNILOGTARGETenableTaskProcessors		@233
+	ChangeSCUNILOGTARGETdisableEchoProcessor		@234
+	ChangeSCUNILOGTARGETenableEchoProcessor			@235
 
 	cunilogCheckVersionIntChk						@250
 
@@ -254,3 +261,16 @@ EXPORTS
 	fprintfU8										@556
 	putsU8											@557
 
+	;ubfcharscountsandchecks
+	ubf_is_printable_ASCII							@600
+	str_has_only_printable_ASCII					@601
+	ubf_is_letter									@602
+	ubf_is_letter_until								@603
+	isWhiteSpace									@604
+	isDirectorySeparator							@605
+	isWrongDirectorySeparator						@606
+	ubf_count_numerical_digits						@607
+	ubf_count_starts_with_numerical_digits_up_to	@608
+	ubf_count_special_characters					@609
+	ubf_count_char									@610
+	ubf_obtain_strlen								@611

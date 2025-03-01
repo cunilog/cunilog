@@ -125,15 +125,17 @@ SCUNILOGTARGET *pSCUNILOGTARGETstatic	= &SCUNILOGTARGETstatic;
 
 typedef struct cunilog_processor
 {
-	void						*pSCUNILOGTARGET;			// Pointer to the SCUNILOGTARGET
-															//	structure.
-	enum cunilogprocesstask		task;						// What to apply.
-	enum cunilogprocesstype		thrtype;					// When to apply (theshold type).
-	uint64_t					thr;						// Required value of cur before this
+	enum cunilogprocesstask			task;					// What to apply.
+	enum cunilogprocessfrequency	freq;					// When to apply
+															//	(frequency/theshold type).
+
+	// Trigger threshold and its current value.
+	uint64_t						thr;					// Required value of cur before this
 															//	processor is applied/run.
-	uint64_t					cur;						// The current value.
-	void						*pData;						// Pointer to processor-specific data.
-	uint64_t					uiOpts;						// Option flags. See OPT_CUNPROC_
+	uint64_t						cur;					// The current counter value.
+
+	void							*pData;					// Pointer to processor-specific data.
+	uint64_t						uiOpts;					// Option flags. See OPT_CUNPROC_
 															//	definitions below.
 } CUNILOG_PROCESSOR;
 
@@ -1786,6 +1788,10 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	}
 #endif
 
+/*
+	This function has a declaration in cunilogevtcmds.c too. If its signature changes,
+	please don't forget to change it there too.
+*/
 void ConfigSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
 {
 	ubf_assert_non_NULL	(put);
@@ -1800,6 +1806,10 @@ void ConfigSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilo
 	}
 }
 
+/*
+	This function has a declaration in cunilogevtcmds.c too. If its signature changes,
+	please don't forget to change it there too.
+*/
 void ConfigSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
 {
 	ubf_assert_non_NULL	(put);
@@ -1814,6 +1824,10 @@ void ConfigSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilog
 	}
 }
 
+/*
+	This function has a declaration in cunilogevtcmds.c too. If its signature changes,
+	please don't forget to change it there too.
+*/
 void ConfigSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL	(put);
@@ -1822,6 +1836,10 @@ void ConfigSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put)
 	ConfigSCUNILOGTARGETdisableTaskProcessors (put, cunilogProcessEchoToConsole);
 }
 
+/*
+	This function has a declaration in cunilogevtcmds.c too. If its signature changes,
+	please don't forget to change it there too.
+*/
 void ConfigSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL	(put);
@@ -4466,89 +4484,6 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 	}
 #endif
 
-/*
-	Copied from cunilog.h.
-
-enum enCunilogLogPriority
-{
-	cunilogPrioNormal,
-	cunilogPrioBelowNormal,
-	cunilogPrioLow,
-	cunilogPrioIdle,
-	// Do not insert enum values below this line.
-	cunilogPrioInvalid
-};
-*/
-
-#ifdef OS_IS_WINDOWS
-	int icuWinPrioTable [cunilogPrioAmountEnumValues] =
-	{
-			/* cunilogPrioNormal			*/	THREAD_PRIORITY_NORMAL
-		,	/* cunilogPrioBelowNormal		*/	THREAD_PRIORITY_BELOW_NORMAL
-		,	/* cunilogPrioLow				*/	THREAD_PRIORITY_LOWEST
-		,	/* cunilogPrioIdle				*/	THREAD_PRIORITY_IDLE
-		,	/* cunilogPrioBeginBackground	*/	THREAD_MODE_BACKGROUND_BEGIN
-		,	/* cunilogPrioEndBackground		*/	THREAD_MODE_BACKGROUND_END
-	};
-#else
-	// These values haven't been tested yet! I (Thomas) just made them up in
-	//	the hope they might do well enough.
-	int icuPsxPrioTable [cunilogPrioAmountEnumValues] =
-	{
-			/* cunilogPrioNormal			*/	0
-		,	/* cunilogPrioBelowNormal		*/	5
-		,	/* cunilogPrioLow				*/	10
-		,	/* cunilogPrioIdle				*/	19
-		,	/* cunilogPrioBeginBackground	*/	19
-		,	/* cunilogPrioEndBackground		*/	0
-	};
-#endif
-
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	#ifdef OS_IS_WINDOWS
-		static bool SetWinLogPriority (SCUNILOGTARGET *put, int prio)
-		{
-			ubf_assert_non_NULL (put);
-			ubf_assert_non_NULL (put->th.hThread);
-			ubf_assert (INVALID_HANDLE_VALUE != put->th.hThread);
-
-			if (put->th.hThread && INVALID_HANDLE_VALUE != put->th.hThread)
-			{
-				return SetThreadPriority (put->th.hThread, prio);
-			}
-			return false;
-		}
-	#else
-		static bool SetPsxLogPriority (SCUNILOGTARGET *put, int prio)
-		{	// See https://man7.org/linux/man-pages/man3/pthread_setschedprio.3.html .
-			return 0 == pthread_setschedprio (put->th.tThread, prio);
-		}
-	#endif
-#endif
-
-#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	bool SetLogPrioritySCUNILOGTARGET (SCUNILOGTARGET *put, cunilogprio prio)
-	{
-		ubf_assert_non_NULL	(put);
-		ubf_assert			(0 <= prio);
-		ubf_assert			(prio < cunilogPrioAmountEnumValues);
-
-		if (hasSeparateLoggingThread (put))
-		{
-			if (0 <= prio && cunilogPrioAmountEnumValues > prio)
-			{
-				#ifdef PLATFORM_IS_WINDOWS
-					return SetWinLogPriority (put, icuWinPrioTable [prio]);
-				#else
-					return SetPsxLogPriority (put, icuPsxPrioTable [prio]);
-				#endif
-			} else
-				return false;
-		}
-		return true;
-	}
-#endif
-
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	void PauseLogSCUNILOGTARGET (SCUNILOGTARGET *put)
 	{
@@ -5254,24 +5189,33 @@ bool logTextWU16				(SCUNILOGTARGET *put, const wchar_t *cwText)
 #endif
 
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	static inline SCUNILOGEVENT *CreateSCUNILOGEVENTforCommand (SCUNILOGTARGET *put, size_t siz)
+	static inline SCUNILOGEVENT *CreateSCUNILOGEVENTforCommand (SCUNILOGTARGET *put, enum cunilogEvtCmd cmd)
 	{
-		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTandData	(
-								put, cunilogEvtSeverityNone, NULL, 0, cunilogEvtTypeCommand, NULL,
-								siz
-														);
-		return pev;
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(0 <= cmd);
+		ubf_assert			(cunilogCmdConfigXAmountEnumValues > cmd);
+
+		size_t rs = culCmdRequiredSize (cmd);
+		ubf_assert (CUNILOG_CMD_INVALID_SIZE != rs);
+
+		if (CUNILOG_CMD_INVALID_SIZE != rs)
+		{
+			SCUNILOGEVENT *pev = CreateSCUNILOGEVENTandData	(
+									put, cunilogEvtSeverityNone,
+									NULL, 0,
+									cunilogEvtTypeCommand, NULL,
+									rs
+															);
+			return pev;
+		}
+		return NULL;
 	}
 #endif
 
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 	bool ChangeSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
 	{
-		ubf_assert_non_NULL	(put);
-
-		size_t rs = culCmdRequiredSize (cunilogCmdConfigUseColourForEcho);
-		ubf_assert (CUNILOG_CMD_INVALID_SIZE != rs);
-		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand (put, rs);
+		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand (put, cunilogCmdConfigUseColourForEcho);
 		if (pev)
 		{
 			culCmdStoreCmdConfigUseColourForEcho (pev->szDataToLog, bUseColour);
@@ -5288,12 +5232,74 @@ bool logTextWU16				(SCUNILOGTARGET *put, const wchar_t *cwText)
 		ubf_assert			(0 <= nl);
 		ubf_assert			(cunilogNewLineAmountEnumValues > nl);
 
-		size_t rs = culCmdRequiredSize (cunilogCmdConfigCunilognewline);
-		ubf_assert (CUNILOG_CMD_INVALID_SIZE != rs);
-		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand (put, rs);
+		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand (put, cunilogCmdConfigCunilognewline);
 		if (pev)
 		{
 			culCmdStoreCmdConfigCunilognewline (pev->szDataToLog, nl);
+			return cunilogProcessOrQueueEvent (pev);
+		}
+		return false;
+	}
+#endif
+
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
+	{
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(0 <= task);
+		ubf_assert			(cunilogProcessAmountEnumValues > task);
+
+		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand (put, cunilogCmdConfigDisableTaskProcessors);
+		if (pev)
+		{
+			culCmdStoreCmdConfigEnableTaskProcessors (pev->szDataToLog, task);
+			return cunilogProcessOrQueueEvent (pev);
+		}
+		return false;
+	}
+#endif
+
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task)
+	{
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(0 <= task);
+		ubf_assert			(cunilogProcessAmountEnumValues > task);
+
+		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand (put, cunilogCmdConfigEnableTaskProcessors);
+		if (pev)
+		{
+			culCmdStoreCmdConfigEnableTaskProcessors (pev->szDataToLog, task);
+			return cunilogProcessOrQueueEvent (pev);
+		}
+		return false;
+	}
+#endif
+
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETdisableEchoProcessor	(SCUNILOGTARGET *put)
+	{
+		ubf_assert_non_NULL	(put);
+
+		enum cunilogEvtCmd	cmd		= cunilogCmdConfigDisableEchoProcessor;
+		SCUNILOGEVENT		*pev	= CreateSCUNILOGEVENTforCommand (put, cmd);
+		if (pev)
+		{
+			memcpy (pev->szDataToLog, &cmd, sizeof (cmd));
+			return cunilogProcessOrQueueEvent (pev);
+		}
+		return false;
+	}
+#endif
+
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+	bool ChangeSCUNILOGTARGETenableEchoProcessor	(SCUNILOGTARGET *put)
+	{
+		enum cunilogEvtCmd	cmd		= cunilogCmdConfigEnableEchoProcessor;
+		SCUNILOGEVENT		*pev	= CreateSCUNILOGEVENTforCommand (put, cmd);
+		if (pev)
+		{
+			memcpy (pev->szDataToLog, &cmd, sizeof (cmd));
 			return cunilogProcessOrQueueEvent (pev);
 		}
 		return false;
@@ -5308,9 +5314,9 @@ bool logTextWU16				(SCUNILOGTARGET *put, const wchar_t *cwText)
 		ubf_assert			(0 <= sevTpy);
 		ubf_assert			(cunilogEvtSeverityTypeXAmountEnumValues > sevTpy);
 
-		size_t rs = culCmdRequiredSize (cunilogCmdConfigEventSeverityFormatType);
-		ubf_assert (CUNILOG_CMD_INVALID_SIZE != rs);
-		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand (put, rs);
+		SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand	(
+								put, cunilogCmdConfigEventSeverityFormatType
+															);
 		if (pev)
 		{
 			culCmdStoreConfigEventSeverityFormatType (pev->szDataToLog, sevTpy);
@@ -5320,6 +5326,39 @@ bool logTextWU16				(SCUNILOGTARGET *put, const wchar_t *cwText)
 	}
 #endif
 #endif
+
+#if !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && !defined (CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS)
+	bool ChangeSCUNILOGTARGETlogPriority (SCUNILOGTARGET *put, cunilogprio prio)
+	{
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(0 <= prio);
+		ubf_assert			(prio < cunilogPrioAmountEnumValues);
+
+		if (hasSeparateLoggingThread (put))
+		{
+			SCUNILOGEVENT *pev = CreateSCUNILOGEVENTforCommand (put, cunilogCmdConfigSetLogPriority);
+			if (pev)
+			{
+				culCmdStoreConfigLogThreadPriority (pev->szDataToLog, prio);
+				return cunilogProcessOrQueueEvent (pev);
+			}
+			return false;
+		}
+		return true;
+	}
+#endif
+
+bool CunilogChangeCurrentThreadPriority (cunilogprio prio)
+{
+	ubf_assert			(0 <= prio);
+	ubf_assert			(prio < cunilogPrioAmountEnumValues);
+
+	if (0 <= prio && prio < cunilogPrioAmountEnumValues)
+	{
+		return culCmdSetCurrentThreadPriority (prio);
+	}
+	return false;
+}
 
 
 const uint64_t	uiCunilogVersion	=		((uint64_t) CUNILOG_VERSION_MAJOR	<< 48)
