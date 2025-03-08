@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -63,6 +67,7 @@ When		Who				What
 		#include "./strnewline.h"
 		#include "./CompressFile.h"
 		#include "./ExeFileName.h"
+		#include "./UserHome.h"
 		
 		#if defined (PLATFORM_IS_WINDOWS)
 			#include "./WinAPI_U8.h"
@@ -94,6 +99,7 @@ When		Who				What
 		#include "./../string/strwildcards.h"
 		#include "./../OS/CompressFile.h"
 		#include "./../OS/ExeFileName.h"
+		#include "./../OS/UserHome.h"
 		
 		#if defined (PLATFORM_IS_WINDOWS)
 			#include "./../OS/Windows/WinAPI_U8.h"
@@ -142,88 +148,37 @@ typedef struct cunilog_processor
 */
 
 /*
-	Our default pData structures for our standard processors.
+	Our default static pData structures for our standard processors.
 */
-CUNILOG_LOGFILE			stdcuppLogFile;
+CUNILOG_LOGFILE			stdcuppLogFile =
+	CUNILOG_INIT_DEF_CUNILOG_LOGFILE ();
 
 CUNILOG_ROTATION_DATA	stdcuppRotatorFS_compress =
-{
-	cunilogrotationtask_FScompressLogfiles,
-	2, 0, CUNILOG_MAX_ROTATE_AUTO,
-	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,
-	NULL,
-	CUNILOG_ROTATOR_FLAG_NONE
-};
-
+	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS
+		(CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED);
 CUNILOG_ROTATION_DATA	stdcuppRotatorMove_to_recycle_bin =
-{
-	cunilogrotationtask_MoveToRecycleBinLogfiles,
-	3, 0, CUNILOG_MAX_ROTATE_AUTO,
-	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,
-	NULL,
-	CUNILOG_ROTATOR_FLAG_NONE
-};
-
+	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_RECYCLE_BIN
+		(CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED);
 CUNILOG_ROTATION_DATA	stdcuppRotatorDelete =
-{
-	cunilogrotationtask_DeleteLogfiles,
-	4, 0, CUNILOG_MAX_ROTATE_AUTO,
-	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,
-	NULL,
-	CUNILOG_ROTATOR_FLAG_NONE
-};
+	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_DELETE
+		(CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED);
 
 /*
 	Our standard processors. Only used for our static SCUNILOGTARGET structure.
 */
-CUNILOG_PROCESSOR	stdcuppEcho	=
-{
-	cunilogProcessEchoToConsole,
-	cunilogProcessAppliesTo_nAlways,
-	0, 0,
-	NULL,
-	OPT_CUNPROC_FORCE_NEXT
-};
-CUNILOG_PROCESSOR	stdcuppUpdateLogfileName =
-{
-	cunilogProcessUpdateLogFileName,
-	cunilogProcessAppliesTo_nAlways,
-	0, 0,
-	NULL,
-	OPT_CUNPROC_FORCE_NEXT
-};
-CUNILOG_PROCESSOR	stdcuppWriteToLogfile =
-{
-	cunilogProcessWriteToLogFile,
-	cunilogProcessAppliesTo_nAlways,
-	0, 0,
-	&stdcuppLogFile,
-	OPT_CUNPROC_NONE
-};
-CUNILOG_PROCESSOR	stdcuppFlushLogFile =
-{
-	cunilogProcessFlushLogFile,
-	cunilogProcessAppliesTo_Auto,
-	0, 0,
-	&stdcuppLogFile,
-	OPT_CUNPROC_FORCE_NEXT
-};
-CUNILOG_PROCESSOR	stdcuppRotateLogfilesFScompress =
-{
-	cunilogProcessRotateLogfiles,
-	cunilogProcessAppliesTo_Auto,
-	0, 0,
-	&stdcuppRotatorFS_compress,
-	OPT_CUNPROC_NONE | OPT_CUNPROC_AT_STARTUP
-};
-CUNILOG_PROCESSOR	stdcuppRotateLogfilesMoveToTrash =
-{
-	cunilogProcessRotateLogfiles,
-	cunilogProcessAppliesTo_Auto,
-	0, 0,
-	&stdcuppRotatorMove_to_recycle_bin,
-	OPT_CUNPROC_NONE | OPT_CUNPROC_AT_STARTUP
-};
+CUNILOG_PROCESSOR	stdcuppEcho							=
+	CUNILOG_INIT_DEF_ECHO_PROCESSOR;
+CUNILOG_PROCESSOR	stdcuppUpdateLogfileName			=
+	CUNILOG_INIT_DEF_UPDATELOGFILENAME_PROCESSOR;
+CUNILOG_PROCESSOR	stdcuppWriteToLogfile				=
+	CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR		(&stdcuppLogFile);
+CUNILOG_PROCESSOR	stdcuppFlushLogFile					=
+	CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR			(&stdcuppLogFile);
+CUNILOG_PROCESSOR	stdcuppRotateLogfilesFScompress		=
+	CUNILOG_INIT_DEF_LOGFILESFSCOMPRESS_PROCESSOR	(&stdcuppRotatorFS_compress);
+CUNILOG_PROCESSOR	stdcuppRotateLogfilesMoveToTrash	=
+	CUNILOG_INIT_DEF_LOGFILESMOVETOTRASH_PROCESSOR	(&stdcuppRotatorMove_to_recycle_bin);
+
 CUNILOG_PROCESSOR	*stdcupp [] =
 {
 	&stdcuppEcho,											// Writes to console.
@@ -235,23 +190,77 @@ CUNILOG_PROCESSOR	*stdcupp [] =
 	&stdcuppRotateLogfilesMoveToTrash						// Rotates the log files.
 };
 
-#ifdef DEBUG
-	void InitCUNILOG_PROCESSOR	(
-			CUNILOG_PROCESSOR				*cup,
-			enum cunilogprocesstask			task,
-			enum cunilogprocessfrequency	freq,
-			uint64_t						thrs
-								)
+/*
+CUNILOG_PROCESSOR **CreateNewStandardProcessors (unsigned int *pn)
+{
+	CUNILOG_PROCESSOR **pp	= malloc (3 * sizeof (CUNILOG_PROCESSOR *));
+
+	if (pp)
 	{
-		ubf_assert_non_NULL (cup);
-		cup->task	= task;
-		cup->freq	= freq;
-		cup->thr	= thrs;
-		cup->cur	= 0;
-		cup->pData	= NULL;
-		cup->uiOpts	= OPT_CUNPROC_NONE;
+		// Echo (output) to console.
+		unsigned int ui = 0;
+		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
+		if (pp [ui])
+		{
+			pp [ui]->pSCUNILOGTARGET = put;
+			pp [ui]->task		= cunilogProcessEchoToConsole;
+			pp [ui]->thrtype	= cunilogProcessAppliesTo_nAlways;
+			pp [ui]->thr		= 0;
+			pp [ui]->cur		= 0;
+			pp [ui]->pData		= NULL;
+			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
+			pp [ui]->uiOpts	|= OPT_CUNPROC_FORCE_NEXT | OPT_CUNPROC_ALLOCATED;
+		}
+		// Update the name of the logfile.
+		++ ui;
+		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
+		if (pp [ui])
+		{
+			pp [ui]->pSCUNILOGTARGET = put;
+			pp [ui]->task		= cunilogProcessUpdateLogFileName;
+			pp [ui]->thrtype	= cunilogProcessAppliesTo_nAlways;
+			pp [ui]->thr		= 0;
+			pp [ui]->cur		= 0;
+			pp [ui]->pData		= NULL;
+			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
+			pp [ui]->uiOpts	|= OPT_CUNPROC_ALLOCATED;
+		}
+		// Write to log file.
+		++ ui;
+		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
+		if (pp [ui])
+		{
+			pp [ui]->pSCUNILOGTARGET = put;
+			pp [ui]->task		= cunilogProcessWriteToLogFile;
+			pp [ui]->thrtype	= cunilogProcessAppliesTo_nAlways;
+			pp [ui]->thr		= 0;
+			pp [ui]->cur		= 0;
+			pp [ui]->pData		= NULL;
+			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
+			pp [ui]->uiOpts	|= OPT_CUNPROC_ALLOCATED;
+		}
+		// Flush log file.
+		++ ui;
+		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
+		if (pp [ui])
+		{
+			pp [ui]->pSCUNILOGTARGET = put;
+			pp [ui]->task		= cunilogProcessFlushLogFile;
+			pp [ui]->thrtype	= cunilogProcessAppliesTo_HourChanged;
+			pp [ui]->thr		= 0;
+			pp [ui]->cur		= 0;
+			pp [ui]->pData		= NULL;
+			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
+			pp [ui]->uiOpts	|= OPT_CUNPROC_FORCE_NEXT | OPT_CUNPROC_ALLOCATED;
+		}
+		// This is the last one.
+		++ ui;
+		if (pn)
+			*pn = ui;
 	}
-#endif
+	return pp;
+}
+*/
 
 size_t arrLengthTimeStampFromPostfix [] =					// [unilogPostfixAmountEnumValues]
 {
@@ -608,77 +617,6 @@ static size_t ObtainCurrentWorkingDirectoy (SMEMBUF *mb)
 	return r;
 }
 
-/*
-	ObtainUserHomeDirectoy
-
-	Obtains the user's home directory with an ending forward or backward slash as an
-	SMEMBUF. It returns the length of the path excluding the terminating NUL character.
-
-	This function should probably go in its own module at some point.
-*/
-static size_t ObtainUserHomeDirectoy (SMEMBUF *mb)
-{
-	ubf_assert_non_NULL (mb);
-	ubf_assert (isInitialisedSMEMBUF (mb));
-
-	size_t	r = 0;
-
-	#if defined (PLATFORM_IS_WINDOWS)
-
-		HANDLE hToken = 0;
-		OpenProcessToken (GetCurrentProcess(), TOKEN_QUERY, &hToken );
-		DWORD dw = 0;
-		GetUserProfileDirectoryU8 (hToken, NULL, &dw);
-		growToSizeSMEMBUF (mb, (size_t) dw + 1);
-		if (isUsableSMEMBUF (mb))
-		{
-			bool b = GetUserProfileDirectoryU8 (hToken, mb->buf.pch, &dw);
-			if (b && dw > 1)
-			{
-				// This check is normally not required since we actually already
-				//	know that the profile folder comes without a directory separator.
-				//	This function is only called from the initialiser and therefore not a
-				//	hot path.
-				if ('\\' != mb->buf.pch [dw - 2])
-				{
-					++ dw;
-					mb->buf.pch [dw - 2] = '\\';
-					mb->buf.pch [dw - 1] = '\0';
-				}
-				ubf_assert ('\0' == mb->buf.pch [dw - 1]);
-				r = (size_t) dw - 1;
-			}
-		}
-
-	#elif defined (PLATFORM_IS_POSIX)
-
-		size_t lnH;
-		const char *szH = UserHomeDirectoryPOSIX (&lnH);
-		// Same here: This check is normally not required since we actually already
-		//	know that the profile folder comes without a directory separator.
-		//	This function is only called from the initialiser and therefore not a
-		//	hot path.
-		if (lnH && '/' != szH [lnH])
-		{
-			r = SMEMBUFfromStrReserveBytes (mb, szH, lnH + 1, 1) - 1;
-			if (r)
-			{
-				mb->buf.pch [lnH]		= '/';
-				mb->buf.pch [lnH + 1]	= '\0';
-				++ r;
-			}
-		} else
-			r = SMEMBUFfromStr (mb, szH, lnH + 1) - 1;
-
-	#else
-
-		#error Not supported!
-
-	#endif
-
-	return r;
-}
-
 static size_t ObtainRelativeLogPathBase (SMEMBUF *mb, enCunilogRelLogPath relLogPath)
 {
 	switch (relLogPath)
@@ -848,82 +786,6 @@ char *CreateAppNameInSUNILOGTARGET (SCUNILOGTARGET *put, const char *szAppName, 
 	put->uiOpts |= CUNILOGTARGET_APPNAME_ALLOCATED;
 	return put->mbAppName.buf.pch;
 }
-
-/*
-	Probably not required, or maybe only as an example.
-
-CUNILOG_PROCESSOR **NewStandardProcessors (SCUNILOGTARGET *put, unsigned int *pn)
-{
-	ubf_assert_non_NULL (put);
-
-	CUNILOG_PROCESSOR **pp	= malloc (3 * sizeof (CUNILOG_PROCESSOR *));
-
-	if (pp)
-	{
-		// Echo (output) to console.
-		unsigned int ui = 0;
-		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
-		if (pp [ui])
-		{
-			pp [ui]->pSCUNILOGTARGET = put;
-			pp [ui]->task		= cunilogProcessEchoToConsole;
-			pp [ui]->thrtype	= cunilogProcessAppliesTo_nAlways;
-			pp [ui]->thr		= 0;
-			pp [ui]->cur		= 0;
-			pp [ui]->pData		= NULL;
-			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
-			pp [ui]->uiOpts	|= OPT_CUNPROC_FORCE_NEXT | OPT_CUNPROC_ALLOCATED;
-		}
-		// Update the name of the logfile.
-		++ ui;
-		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
-		if (pp [ui])
-		{
-			pp [ui]->pSCUNILOGTARGET = put;
-			pp [ui]->task		= cunilogProcessUpdateLogFileName;
-			pp [ui]->thrtype	= cunilogProcessAppliesTo_nAlways;
-			pp [ui]->thr		= 0;
-			pp [ui]->cur		= 0;
-			pp [ui]->pData		= NULL;
-			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
-			pp [ui]->uiOpts	|= OPT_CUNPROC_ALLOCATED;
-		}
-		// Write to log file.
-		++ ui;
-		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
-		if (pp [ui])
-		{
-			pp [ui]->pSCUNILOGTARGET = put;
-			pp [ui]->task		= cunilogProcessWriteToLogFile;
-			pp [ui]->thrtype	= cunilogProcessAppliesTo_nAlways;
-			pp [ui]->thr		= 0;
-			pp [ui]->cur		= 0;
-			pp [ui]->pData		= NULL;
-			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
-			pp [ui]->uiOpts	|= OPT_CUNPROC_ALLOCATED;
-		}
-		// Flush log file.
-		++ ui;
-		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
-		if (pp [ui])
-		{
-			pp [ui]->pSCUNILOGTARGET = put;
-			pp [ui]->task		= cunilogProcessFlushLogFile;
-			pp [ui]->thrtype	= cunilogProcessAppliesTo_HourChanged;
-			pp [ui]->thr		= 0;
-			pp [ui]->cur		= 0;
-			pp [ui]->pData		= NULL;
-			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
-			pp [ui]->uiOpts	|= OPT_CUNPROC_FORCE_NEXT | OPT_CUNPROC_ALLOCATED;
-		}
-		// This is the last one.
-		++ ui;
-		if (pn)
-			*pn = ui;
-	}
-	return pp;
-}
-*/
 
 static inline enum cunilogprocessfrequency defaultFrequencyFromPostfix (SCUNILOGTARGET *put)
 {
@@ -1864,7 +1726,16 @@ void ConfigSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put)
 	}
 #endif
 
-static void CloseCUNILOG_LOGFILEifOpen (CUNILOG_LOGFILE *cl)
+static inline void InitCUNILOG_LOGFILE (CUNILOG_LOGFILE *cl)
+{
+	#ifdef OS_IS_WINDOWS
+		cl->hLogFile = NULL;
+	#else
+		cl->fLogFile = NULL;
+	#endif
+}
+
+static inline void CloseCUNILOG_LOGFILEifOpen (CUNILOG_LOGFILE *cl)
 {
 	#ifdef OS_IS_WINDOWS
 		if (cl->hLogFile)
@@ -1876,7 +1747,7 @@ static void CloseCUNILOG_LOGFILEifOpen (CUNILOG_LOGFILE *cl)
 		if (cl->fLogFile)
 		{
 			fclose (cl->fLogFile);
-			cl->fLogFile = 0;
+			cl->fLogFile = NULL;
 		}
 	#endif
 }

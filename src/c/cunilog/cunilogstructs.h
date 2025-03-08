@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -363,7 +367,7 @@ typedef struct cunilog_processor
 	enum cunilogprocessfrequency	freq;					// When to apply
 															//	(frequency/theshold type).
 
-	// Trigger threshold and its current value.
+	// Trigger threshold and its current value. These are 0-indexed.
 	uint64_t						thr;					// Required value of cur before this
 															//	processor is applied/run.
 	uint64_t						cur;					// The current counter value.
@@ -411,6 +415,7 @@ typedef struct cunilog_processor
 
 /*
 	A pData structure for a unilogProcessWriteToLogFile or a unilogProcessFlushLogFile processor.
+	This probably shouldn't be a structure but leaves room for possible extensions.
 */
 typedef struct cunilog_logfile
 {
@@ -421,12 +426,19 @@ typedef struct cunilog_logfile
 	#endif
 } CUNILOG_LOGFILE;
 
+/*
+	Note that
+	cunilogrotationtask_MoveToTrashLogfiles			and
+	cunilogrotationtask_MoveToRecycleBinLogfiles	are identical to accomodate for
+	Linux or Windows naming preference.
+*/
 enum cunilogrotationtask
 {
 		cunilogrotationtask_None							// Ignored. No operation.
 	,	cunilogrotationtask_FScompressLogfiles				// Compress logfiles with the help
 															//	of the file system.
-	,	cunilogrotationtask_MoveToRecycleBinLogfiles
+	,	cunilogrotationtask_MoveToTrashLogfiles
+	,	cunilogrotationtask_MoveToRecycleBinLogfiles = cunilogrotationtask_MoveToTrashLogfiles
 	,	cunilogrotationtask_DeleteLogfiles
 };
 
@@ -489,6 +501,155 @@ typedef struct cunilog_rotation_data
 	((pt)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
 #define cunilogClrRotatorFlag_USE_MBDSTFILE(pt)			\
 	((pt)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
+
+
+// Value of member nMaxToRotate of a CUNILOG_ROTATION_DATA structure to be obtained
+//	during initialisation.
+#ifndef CUNILOG_MAX_ROTATE_AUTO
+#define CUNILOG_MAX_ROTATE_AUTO			(UINT64_MAX)
+#endif
+
+/*
+	Initialiser for a CUNILOG_LOGFILE structure.
+*/
+#ifdef OS_IS_WINDOWS
+	#define CUNILOG_INIT_DEF_CUNILOG_LOGFILE()				\
+	{														\
+		NULL												\
+	}
+#else
+	#define CUNILOG_INIT_DEF_CUNILOG_LOGFILE()				\
+	{														\
+		NULL												\
+	}
+#endif
+
+/*
+	Initialisers for CUNILOG_ROTATION_DATA structures.
+
+	Note that
+	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_TRASH()			and
+	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_RECYCLE_BIN()	are identical.
+*/
+/*
+	Argument k is the amount of logfiles to keep/not touch.
+*/
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS(k)\
+{														\
+	cunilogrotationtask_FScompressLogfiles,				\
+	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
+	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
+	NULL,												\
+	CUNILOG_ROTATOR_FLAG_NONE							\
+}
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_TRASH(k)\
+{														\
+	cunilogrotationtask_MoveToTrashLogfiles,			\
+	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
+	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
+	NULL,												\
+	CUNILOG_ROTATOR_FLAG_NONE							\
+}
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_RECYCLE_BIN(k)\
+{														\
+	cunilogrotationtask_MoveToRecycleBinLogfiles,		\
+	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
+	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
+	NULL,												\
+	CUNILOG_ROTATOR_FLAG_NONE							\
+}
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_DELETE(k)\
+{														\
+	cunilogrotationtask_DeleteLogfiles,					\
+	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
+	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
+	NULL,												\
+	CUNILOG_ROTATOR_FLAG_NONE							\
+}
+
+/*
+	Initialisers for processor tasks.
+*/
+#define CUNILOG_INIT_DEF_ECHO_PROCESSOR					\
+{														\
+	cunilogProcessEchoToConsole,						\
+	cunilogProcessAppliesTo_nAlways,					\
+	0, 0,												\
+	NULL,												\
+	OPT_CUNPROC_FORCE_NEXT								\
+}
+#define CUNILOG_INIT_DEF_UPDATELOGFILENAME_PROCESSOR	\
+{														\
+	cunilogProcessUpdateLogFileName,					\
+	cunilogProcessAppliesTo_nAlways,					\
+	0, 0,												\
+	NULL,												\
+	OPT_CUNPROC_FORCE_NEXT								\
+}
+/*
+	Argument plf is a pointer to a CUNILOG_LOGFILE structure.
+*/
+#define CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR(plf)	\
+{														\
+	cunilogProcessWriteToLogFile,						\
+	cunilogProcessAppliesTo_nAlways,					\
+	0, 0,												\
+	(plf),									\
+	OPT_CUNPROC_NONE									\
+}
+#define CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR(plf)	\
+{														\
+	cunilogProcessFlushLogFile,							\
+	cunilogProcessAppliesTo_Auto,						\
+	0, 0,												\
+	(plf),									\
+	OPT_CUNPROC_FORCE_NEXT								\
+}
+/*
+	Argument p is a pointer to a CUNILOG_ROTATION_DATA structure with member
+	tsk set to cunilogrotationtask_FScompressLogfiles. Such a structure can
+	be initialised with the CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS()
+	macro.
+*/
+#define CUNILOG_INIT_DEF_LOGFILESFSCOMPRESS_PROCESSOR(p)\
+{														\
+	cunilogProcessRotateLogfiles,						\
+	cunilogProcessAppliesTo_Auto,						\
+	0, 0,												\
+	(p),							\
+	OPT_CUNPROC_NONE | OPT_CUNPROC_AT_STARTUP			\
+}
+/*
+	Argument p is a pointer to a CUNILOG_ROTATION_DATA structure with member
+	tsk set to cunilogrotationtask_MoveToRecycleBinLogfiles.
+*/
+#define CUNILOG_INIT_DEF_LOGFILESMOVETOTRASH_PROCESSOR(p)\
+{														\
+	cunilogProcessRotateLogfiles,						\
+	cunilogProcessAppliesTo_Auto,						\
+	0, 0,												\
+	(p),												\
+	OPT_CUNPROC_NONE | OPT_CUNPROC_AT_STARTUP			\
+}
+
+
+/*
+	FillCUNILOG_PROCESSOR
+
+	Function/macro to initialise a CUNILOG_PROCESSOR structure. The data (pData) member
+	is set to NULL and the member uiOpts to OPT_CUNPROC_NONE, which means no option flags
+	are set. The caller is responsible for setting those members to their desired values
+	afterwards.
+*/
+#define FillCUNILOG_PROCESSOR(cup, task,				\
+								freq, thrs)				\
+	ubf_assert_non_NULL (cup);							\
+	(cup)->task		= task;								\
+	(cup)->freq		= freq;								\
+	(cup)->thr		= thrs;								\
+	(cup)->cur		= 0;								\
+	(cup)->pData	= NULL;								\
+	(cup)->uiOpts	= OPT_CUNPROC_NONE;
 
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	typedef struct scunilogevent SCUNILOGEVENT;

@@ -61,6 +61,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -149,6 +153,10 @@ When		Who				What
 2024-11-06	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	The definitions in this module are required for Cunilog to build.
@@ -249,6 +257,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -337,6 +349,10 @@ When		Who				What
 
 ****************************************************************************************/
 
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
 #ifndef U_DLL_IMPORT_H
 #define U_DLL_IMPORT_H
 
@@ -362,6 +378,10 @@ When		Who				What
 2025-02-20	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -461,8 +481,11 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	Module/unit that provides a simplistic buffer (SMEMBUF).
-		
 */
 
 /*
@@ -813,6 +836,10 @@ When		Who				What
 2020-12-13	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This is a simple module/unit that provides UTF-8 versions of some common Windows API
@@ -4267,6 +4294,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	The OS_IS_ definitions provide the target operating system, for instance OS_IS_LINUX.
 	The PLATFORM_IS_ definitions provide the platform, for instance PLATFORM_IS_POSIX or
 	PLATFORM_IS_WINDOWS.
@@ -4662,6 +4693,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -4694,6 +4729,10 @@ When		Who				What
 EXTERN_C_BEGIN
 
 #ifndef UBF_TYPE_DEFINITIONS_INCL_H
+
+#ifndef LENOFSTR
+#define LENOFSTR(str) (sizeof (str) - 1)
+#endif
 
 // Some macros taken from
 //	https://www.codeproject.com/Articles/567335/Essential-Macros-for-C-Programming .
@@ -4749,6 +4788,10 @@ When		Who				What
 2024-08-07	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 #ifdef _MSC_VER
 
@@ -4853,6 +4896,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -4954,6 +5001,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	Include this file _after_ <Windows.h> or when <Windows.h> is not included at all,
 	like for instance on POSIX.
 */
@@ -5032,6 +5083,10 @@ When		Who				What
 2022-01-15	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -5411,6 +5466,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -5556,6 +5615,118 @@ enntfscompressresult IsFileNTFSCompressedByHandle (HANDLE hFile);
 #endif															// Of #ifndef COMPRESSNTFS_U8.
 /****************************************************************************************
 
+	File:		WinSharedMutex.h
+	Why:		Implements a mutex for interprocess-locking.
+	OS:			C99
+	Author:		Thomas
+	Created:	2021-02-23
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2021-02-23	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	See module shared_mutex in folder OS/POSIX.
+	This module here is meant to be a compatible Windows version.
+*/
+
+/*
+MIT License
+
+Copyright (c) 2018 Oleg Yamnikov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#ifndef W_SHARED_MUTEX_INCLUDED
+#define W_SHARED_MUTEX_INCLUDED
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+	#include "./WinAPI_U8.h"
+#endif
+
+
+EXTERN_C_BEGIN
+
+#ifdef PLATFORM_IS_WINDOWS
+
+typedef HANDLE shared_mutex_t;
+
+// Initialize a new shared mutex with given `name`. If a mutex
+// with such name exists in the system, it will be loaded.
+// Otherwise a new mutes will by created.
+//
+// In case of any error, it will be printed into the standard output
+// and the returned structure will have `ptr` equal `NULL`.
+// `errno` wil not be reset in such case, so you may used it.
+//
+// **NOTE:** In case when the mutex appears to be uncreated,
+// this function becomes *non-thread-safe*. If multiple threads
+// call it at one moment, there occur several race conditions,
+// in which one call might recreate another's shared memory
+// object or rewrite another's pthread mutex in the shared memory.
+// There is no workaround currently, except to run first
+// initialization only before multi-threaded or multi-process
+// functionality.
+shared_mutex_t WinInitSharedMutex(const char *name);
+
+// Close access to the shared mutex and free all the resources,
+// used by the structure.
+//
+// Returns 0 in case of success. If any error occurs, it will be
+// printed into the standard output and the function will return -1.
+// `errno` wil not be reset in such case, so you may used it.
+//
+// **NOTE:** It will not destroy the mutex. The mutex would not
+// only be available to other processes using it right now,
+// but also to any process which might want to use it later on.
+// For complete desctruction use `shared_mutex_destroy` instead.
+//
+// **NOTE:** It will not unlock locked mutex.
+int WinCloseSharedMutex(shared_mutex_t mutex);
+
+// Close and destroy shared mutex.
+// Any open pointers to it will be invalidated.
+//
+// Returns 0 in case of success. If any error occurs, it will be
+// printed into the standard output and the function will return -1.
+// `errno` wil not be reset in such case, so you may used it.
+//
+// **NOTE:** It will not unlock locked mutex.
+int WinDestroySharedMutex(shared_mutex_t mutex);
+
+#endif															// Of #ifdef UBF_WINDOWS.
+
+EXTERN_C_END
+
+#endif															// W_SHARED_MUTEX_INCLUDED.
+/****************************************************************************************
+
 	File:		WinExeFileName.h
 	Why:		Obtains the name of the executable.
 	OS:			Windows.
@@ -5570,6 +5741,10 @@ When		Who				What
 2024-05-21	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -5688,6 +5863,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -5751,6 +5930,10 @@ When		Who				What
 2024-10-14	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -5863,6 +6046,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -5966,6 +6153,10 @@ When		Who				What
 2024-11-03	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	Functions for retrieving username, user home directory, etc. on POSIX.
@@ -6114,6 +6305,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	The name of this module is actually slightly wrong as it isn't really POSIX.
 	It tries to follow the XDG specification
 	(https://specifications.freedesktop.org/trash-spec/latest/)
@@ -6183,6 +6378,150 @@ EXTERN_C_END
 #endif														// Of #ifndef U_PSX_TRASH_H.
 /****************************************************************************************
 
+	File:		PsxSharedMutex.h
+	Why:		Implements a mutex for interprocess-locking.
+	OS:			C99
+	Author:		Thomas
+	Created:	2021-02-23
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2021-02-23	Thomas			Created. See
+							 https://gist.github.com/marcetcheverry/d2f62672ee98bf54bfad7b8bc0840616
+							 and
+							 https://gist.github.com/yamnikov-oleg/abf61cf96b4867cbf72d .
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	Building requires linking with pthread and librt.
+*/
+
+/*
+MIT License
+
+Copyright (c) 2018 Oleg Yamnikov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#ifndef U_PSX_SHARED_MUTEX_H
+#define U_PSX_SHARED_MUTEX_H
+
+#include <stddef.h>
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./platform.h"
+		#include "./functionptrtpydef.h"
+	#else
+		#include "./../../pre/externC.h"
+		#include "./../../pre/platform.h"
+		#include "./../../pre/functionptrtpydef.h"
+	#endif
+
+#endif
+
+
+EXTERN_C_BEGIN
+
+#ifdef PLATFORM_IS_POSIX
+
+#include <sys/stat.h>
+
+#include <pthread.h> // pthread_mutex_t, pthread_mutexattr_t,
+                     // pthread_mutexattr_init, pthread_mutexattr_setpshared,
+                     // pthread_mutex_init, pthread_mutex_destroy
+
+// Structure of a shared mutex.
+typedef struct shared_mutex_t {
+  pthread_mutex_t *ptr; // Pointer to the pthread mutex and
+                        // shared memory segment.
+  int shm_fd;           // Descriptor of shared memory object.
+  char* name;           // Name of the mutex and associated
+                        // shared memory object.
+  int created;          // Equals 1 (true) if initialization
+                        // of this structure caused creation
+                        // of a new shared mutex.
+                        // Equals 0 (false) if this mutex was
+                        // just retrieved from shared memory.
+} shared_mutex_t;
+
+// Initialize a new shared mutex with given `name`. If a mutex
+// with such name exists in the system, it will be loaded.
+// Otherwise a new mutes will by created.
+//
+// In case of any error, it will be printed into the standard output
+// and the returned structure will have `ptr` equal `NULL`.
+// `errno` wil not be reset in such case, so you may used it.
+//
+// **NOTE:** In case when the mutex appears to be uncreated,
+// this function becomes *non-thread-safe*. If multiple threads
+// call it at one moment, there occur several race conditions,
+// in which one call might recreate another's shared memory
+// object or rewrite another's pthread mutex in the shared memory.
+// There is no workaround currently, except to run first
+// initialization only before multi-threaded or multi-process
+// functionality.
+shared_mutex_t PsxInitSharedMutex(const char *name, mode_t mode);
+
+// Close access to the shared mutex and free all the resources,
+// used by the structure.
+//
+// Returns 0 in case of success. If any error occurs, it will be
+// printed into the standard output and the function will return -1.
+// `errno` wil not be reset in such case, so you may used it.
+//
+// **NOTE:** It will not destroy the mutex. The mutex would not
+// only be available to other processes using it right now,
+// but also to any process which might want to use it later on.
+// For complete desctruction use `shared_mutex_destroy` instead.
+//
+// **NOTE:** It will not unlock locked mutex.
+int PsxCloseSharedMutex(shared_mutex_t mutex);
+
+// Close and destroy shared mutex.
+// Any open pointers to it will be invalidated.
+//
+// Returns 0 in case of success. If any error occurs, it will be
+// printed into the standard output and the function will return -1.
+// `errno` wil not be reset in such case, so you may used it.
+//
+// **NOTE:** It will not unlock locked mutex.
+int PsxDestroySharedMutex(shared_mutex_t mutex);
+
+#endif															// Of #ifdef UBF_LINUX.
+
+EXTERN_C_END
+
+#endif															// Of #ifndef U_PSX_SHARED_MUTEX_H.
+/****************************************************************************************
+
 	File:		TrashCan.h
 	Why:		Trash can function for Apple devices.
 	OS:			C99
@@ -6197,6 +6536,10 @@ When		Who				What
 2024-10-21	Thomas			This wrapper module created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This module is mainly a wrapper for Robert Guetzkow's trashcan_soft_delete () function
@@ -6311,6 +6654,10 @@ When		Who				What
 2024-10-17	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -6431,6 +6778,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -6542,6 +6893,234 @@ EXTERN_C_END
 #endif														// Of #ifndef EXEFILENAME_H.
 /****************************************************************************************
 
+	File:		SharedMutex.h
+	Why:		Implements a mutex for interprocess-locking.
+	OS:			C99
+	Author:		Thomas
+	Created:	2021-02-23
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2021-02-23	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+MIT License
+
+Copyright (c) 2018 Oleg Yamnikov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#ifndef UBF_SHARED_MUTEX_H
+#define UBF_SHARED_MUTEX_H
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include <stdbool.h>
+	#include <inttypes.h>
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./ArrayMacros.h"
+		#include "./platform.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/ArrayMacros.h"
+		#include "./../pre/platform.h"
+	#endif
+
+	#if defined (PLATFORM_IS_POSIX) && defined (PLATFORM_IS_WINDOWS)
+		#error Only one platform can be defined
+	#endif
+	#ifdef PLATFORM_IS_POSIX
+		#include "./POSIX/PsxSharedMutex.h"
+	#endif
+	#ifdef PLATFORM_IS_WINDOWS
+		#include "./Windows/WinSharedMutex.h"
+	#endif
+
+#endif
+
+/*
+	The prefix to make a kernel object global on Windows.
+*/
+#define UBF_WIN_SHARED_MUTEX_GLOBAL_PFX		"Global\\"
+
+EXTERN_C_BEGIN
+
+// Initialize a new shared mutex with given `name`. If a mutex
+// with such name exists in the system, it will be loaded.
+// Otherwise a new mutes will by created.
+//
+// In case of any error, it will be printed into the standard output
+// and the returned structure will have `ptr` equal `NULL`.
+// `errno` wil not be reset in such case, so you may used it.
+//
+// **NOTE:** In case when the mutex appears to be uncreated,
+// this function becomes *non-thread-safe*. If multiple threads
+// call it at one moment, there occur several race conditions,
+// in which one call might recreate another's shared memory
+// object or rewrite another's pthread mutex in the shared memory.
+// There is no workaround currently, except to run first
+// initialization only before multi-threaded or multi-process
+// functionality.
+/*
+	2021-02-24, Thomas
+	
+	The parameter name must not contain any forward or backward slashes.
+	In Linux, the name is automatically prepended a forward slash.
+	In Windows, the name is automatically prepended a global namespace
+	identifier ("Global\"). See
+	https://docs.microsoft.com/en-us/windows/win32/termserv/kernel-object-namespaces
+	for information.
+*/
+shared_mutex_t InitSharedMutex (const char *name);
+
+// Close access to the shared mutex and free all the resources,
+// used by the structure.
+//
+// Returns 0 in case of success. If any error occurs, it will be
+// printed into the standard output and the function will return -1.
+// `errno` wil not be reset in such case, so you may used it.
+//
+// **NOTE:** It will not destroy the mutex. The mutex would not
+// only be available to other processes using it right now,
+// but also to any process which might want to use it later on.
+// For complete desctruction use `shared_mutex_destroy` instead.
+//
+// **NOTE:** It will not unlock locked mutex.
+int CloseSharedMutex (shared_mutex_t mutex);
+
+// Close and destroy shared mutex.
+// Any open pointers to it will be invalidated.
+//
+// Returns 0 in case of success. If any error occurs, it will be
+// printed into the standard output and the function will return -1.
+// `errno` wil not be reset in such case, so you may used it.
+//
+// **NOTE:** It will not unlock locked mutex.
+int DestroySharedMutex(shared_mutex_t mutex);
+
+/*
+	EnterSharedMutex
+	LeaveSharedMutex
+*/
+int EnterSharedMutex (shared_mutex_t mutex);
+int LeaveSharedMutex (shared_mutex_t mutex);
+
+EXTERN_C_END
+
+#endif															// Of #ifndef SHAREDMUTEX_H.
+/****************************************************************************************
+
+	File:		UserHome.h
+	Why:		User home directory functions.
+	OS:			C99.
+	Author:		Thomas
+	Created:	2025-03-03
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-03-03	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef U_USERHOME_H
+#define U_USERHOME_H
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./platform.h"
+		#include "./membuf.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/platform.h"
+		#include "./../mem/membuf.h"
+	#endif
+
+#endif
+
+EXTERN_C_BEGIN
+
+/*
+	ObtainUserHomeDirectoy
+
+	Obtains the user's home directory with an ending forward or backward slash as an
+	SMEMBUF. Whether the function adds a forward or backward slash depends on the platform.
+	
+	The SMEMBUF structure mb points to must be initialised before the function is called.
+
+	The function returns the length of the path excluding the terminating NUL character.
+
+	The function returns 0 when it fails.
+*/
+size_t ObtainUserHomeDirectoy (SMEMBUF *mb);
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_USERHOME_H.
+/****************************************************************************************
+
 	File:		ExtCompressors.h
 	Why:		Interface module/unit for external compressors.
 	OS:			POSIX, Windows.
@@ -6556,6 +7135,10 @@ When		Who				What
 2024-11-01	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This module is an interface for external compressors/external compression libraries.
@@ -6638,6 +7221,10 @@ When		Who				What
 2019-08-24	Thomas			Module OS/ubf_debug.c/h should be obsolete now.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -7257,6 +7844,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This is a simple module to track a counter.
 */
 
@@ -7521,6 +8112,10 @@ When		Who				What
 2016-10-31	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -7854,6 +8449,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	Simple module for providing dynamically allocated bulk memory (or memory pools;
 	also called arenas). See
 	https://en.wikipedia.org/wiki/Region-based_memory_management .
@@ -7995,6 +8594,8 @@ When		Who				What
 #else
     #error "Either a 32 bit or a 64 bit platform must be determined."
 #endif
+
+EXTERN_C_BEGIN
 
 enum en_sbulkmem_unit
 {
@@ -8453,6 +9054,8 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 		(true)
 #endif
 
+EXTERN_C_END
+
 #endif															// Of #ifndef BULKMALLOC_H.
 /****************************************************************************************
 
@@ -8473,6 +9076,10 @@ When		Who				What
 	Wayback Machine also holds no copy of it.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -8605,6 +9212,10 @@ When		Who				What
 							 added here for convenience.
 							 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	Implements vectors (variable arrays) in C. If you change this text please copy
@@ -9056,6 +9667,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -9121,6 +9736,10 @@ When		Who				What
 							 issues.
 							 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This module deals with our own timestamp formats. UBF_TIMESTAMP is a
@@ -9875,6 +10494,10 @@ When		Who				What
 2019-08-13	Thomas			Underscore character removed from time interval names.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -11308,6 +11931,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -11468,6 +12095,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -11611,6 +12242,10 @@ When		Who				What
 2019-08-24	Thomas			Module OS/ubf_debug.c/h should be obsolete now.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -12230,6 +12865,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -12449,6 +13088,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
  * Copyright (c) 2024 YASUOKA Masahiko <yasuoka@yasuoka.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -12474,16 +13117,26 @@ When		Who				What
 #define USE_STRLEN						((size_t) -1)
 #endif
 
-#ifdef	__cplusplus
-	extern "C"	{
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./platform.h"
+		#include "./functionptrtpydef.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/platform.h"
+		#include "./../pre/functionptrtpydef.h"
+	#endif
+
 #endif
 
-bool c_check_utf8(const char *str, size_t len)
-;
+EXTERN_C_BEGIN
 
-#ifdef	__cplusplus
-				}
-#endif
+bool c_check_utf8(const char *str, size_t len);
+TYPEDEF_FNCT_PTR (bool, c_check_utf8) (const char *str, size_t len);
+
+EXTERN_C_END
 
 #endif														// Of #ifndef U_CHECK_UTF8_H.
 /****************************************************************************************
@@ -12502,6 +13155,10 @@ When		Who				What
 2024-12-26	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -12697,6 +13354,10 @@ When		Who				What
 2023-05-27	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -12916,6 +13577,10 @@ When		Who				What
 							 this module and renamed (without the "secure" part in them).
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -13633,6 +14298,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This module supports the following build options:
 
 
@@ -13808,14 +14477,16 @@ size_t strIsLineEndings (char *ch, size_t stLen, size_t *stJump)
 
 	The value cunilogNewLineSystem uses the operating system/platform default, which is
 	currently cunilogNewLineWindows (CRLF) in Windows and cunilogNewLinePOSIX (LF) for every
-	other system.
+	other platform.
 
 	The value cunilogNewLineDefault used to be cunilogNewLineSystem to ensure logfiles
 	could be opened with Notepad on Windows systems but since newer versions of Notepad
 	(Windows 10 and newer) can perfectly display files that have POSIX line endings, the
 	default is now cunilogNewLinePOSIX to save one octet per event line. Use
 	cunilogNewLineWindows or cunilogNewLineSystem if textual logfiles need to be opened/
-	viewed with Notepad for Windows versions before Windows 10.
+	viewed with Notepad for Windows versions before Windows 10 or if they are opened/
+	viewed/processed later with any other application that can't cope with POSIX line
+	endings.
 */
 #if defined (CUNILOG_NEWLINE_POSIX_ONLY)
 	enum enLineEndings
@@ -13891,8 +14562,7 @@ size_t lnLineEnding (newline_t nl);
 	Returns the line ending and its length. The length does not include the NUL
 	terminator.
 */
-const char *szLineEnding (newline_t, size_t *pln)
-;
+const char *szLineEnding (newline_t, size_t *pln);
 
 #ifdef DEBUG
 	#ifndef STRNEWLINE_BUILD_TEST
@@ -13928,6 +14598,10 @@ When		Who				What
 2024-09-10	Thomas			Created. Based on ubfdumpstructs.h, which is now obsolete.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -14229,6 +14903,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -14480,6 +15158,10 @@ When		Who				What
 2019-08-28	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -14992,6 +15674,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	The functions in this module do not use any file system functions.
 */
 
@@ -15206,6 +15892,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -15282,6 +15972,10 @@ When		Who				What
 2025-01-06	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -15364,6 +16058,10 @@ When		Who				What
 2023-05-25	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -15476,6 +16174,33 @@ When		Who				What
 2022-03-21	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 #ifndef STRWILDCARDS_H
 #define STRWILDCARDS_H
@@ -15631,6 +16356,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -15768,9 +16497,9 @@ TYPEDEF_FNCT_PTR (char *, ubf_is_letter_until) (char *ch, char c);
 	TYPEDEF_FNCT_PTR (bool, isWhiteSpace) (char c);
 #else
 	#define isWhiteSpace(c)								\
-		(			UBF_SPC			== (c)				\
-				||	UBF_TAB			== (c)				\
-				||	UBF_VT			== (c)				\
+		(			ASCII_SPC		== (c)				\
+				||	ASCII_TAB		== (c)				\
+				||	ASCII_VT		== (c)				\
 		)
 #endif
 
@@ -15883,6 +16612,10 @@ When		Who				What
 2022-10-05	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -16232,7 +16965,7 @@ typedef struct cunilog_processor
 	enum cunilogprocessfrequency	freq;					// When to apply
 															//	(frequency/theshold type).
 
-	// Trigger threshold and its current value.
+	// Trigger threshold and its current value. These are 0-indexed.
 	uint64_t						thr;					// Required value of cur before this
 															//	processor is applied/run.
 	uint64_t						cur;					// The current counter value.
@@ -16280,6 +17013,7 @@ typedef struct cunilog_processor
 
 /*
 	A pData structure for a unilogProcessWriteToLogFile or a unilogProcessFlushLogFile processor.
+	This probably shouldn't be a structure but leaves room for possible extensions.
 */
 typedef struct cunilog_logfile
 {
@@ -16290,12 +17024,19 @@ typedef struct cunilog_logfile
 	#endif
 } CUNILOG_LOGFILE;
 
+/*
+	Note that
+	cunilogrotationtask_MoveToTrashLogfiles			and
+	cunilogrotationtask_MoveToRecycleBinLogfiles	are identical to accomodate for
+	Linux or Windows naming preference.
+*/
 enum cunilogrotationtask
 {
 		cunilogrotationtask_None							// Ignored. No operation.
 	,	cunilogrotationtask_FScompressLogfiles				// Compress logfiles with the help
 															//	of the file system.
-	,	cunilogrotationtask_MoveToRecycleBinLogfiles
+	,	cunilogrotationtask_MoveToTrashLogfiles
+	,	cunilogrotationtask_MoveToRecycleBinLogfiles = cunilogrotationtask_MoveToTrashLogfiles
 	,	cunilogrotationtask_DeleteLogfiles
 };
 
@@ -16358,6 +17099,155 @@ typedef struct cunilog_rotation_data
 	((pt)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
 #define cunilogClrRotatorFlag_USE_MBDSTFILE(pt)			\
 	((pt)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
+
+
+// Value of member nMaxToRotate of a CUNILOG_ROTATION_DATA structure to be obtained
+//	during initialisation.
+#ifndef CUNILOG_MAX_ROTATE_AUTO
+#define CUNILOG_MAX_ROTATE_AUTO			(UINT64_MAX)
+#endif
+
+/*
+	Initialiser for a CUNILOG_LOGFILE structure.
+*/
+#ifdef OS_IS_WINDOWS
+	#define CUNILOG_INIT_DEF_CUNILOG_LOGFILE()				\
+	{														\
+		NULL												\
+	}
+#else
+	#define CUNILOG_INIT_DEF_CUNILOG_LOGFILE()				\
+	{														\
+		NULL												\
+	}
+#endif
+
+/*
+	Initialisers for CUNILOG_ROTATION_DATA structures.
+
+	Note that
+	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_TRASH()			and
+	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_RECYCLE_BIN()	are identical.
+*/
+/*
+	Argument k is the amount of logfiles to keep/not touch.
+*/
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS(k)\
+{														\
+	cunilogrotationtask_FScompressLogfiles,				\
+	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
+	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
+	NULL,												\
+	CUNILOG_ROTATOR_FLAG_NONE							\
+}
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_TRASH(k)\
+{														\
+	cunilogrotationtask_MoveToTrashLogfiles,			\
+	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
+	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
+	NULL,												\
+	CUNILOG_ROTATOR_FLAG_NONE							\
+}
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_RECYCLE_BIN(k)\
+{														\
+	cunilogrotationtask_MoveToRecycleBinLogfiles,		\
+	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
+	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
+	NULL,												\
+	CUNILOG_ROTATOR_FLAG_NONE							\
+}
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_DELETE(k)\
+{														\
+	cunilogrotationtask_DeleteLogfiles,					\
+	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
+	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
+	NULL,												\
+	CUNILOG_ROTATOR_FLAG_NONE							\
+}
+
+/*
+	Initialisers for processor tasks.
+*/
+#define CUNILOG_INIT_DEF_ECHO_PROCESSOR					\
+{														\
+	cunilogProcessEchoToConsole,						\
+	cunilogProcessAppliesTo_nAlways,					\
+	0, 0,												\
+	NULL,												\
+	OPT_CUNPROC_FORCE_NEXT								\
+}
+#define CUNILOG_INIT_DEF_UPDATELOGFILENAME_PROCESSOR	\
+{														\
+	cunilogProcessUpdateLogFileName,					\
+	cunilogProcessAppliesTo_nAlways,					\
+	0, 0,												\
+	NULL,												\
+	OPT_CUNPROC_FORCE_NEXT								\
+}
+/*
+	Argument plf is a pointer to a CUNILOG_LOGFILE structure.
+*/
+#define CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR(plf)	\
+{														\
+	cunilogProcessWriteToLogFile,						\
+	cunilogProcessAppliesTo_nAlways,					\
+	0, 0,												\
+	(plf),									\
+	OPT_CUNPROC_NONE									\
+}
+#define CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR(plf)	\
+{														\
+	cunilogProcessFlushLogFile,							\
+	cunilogProcessAppliesTo_Auto,						\
+	0, 0,												\
+	(plf),									\
+	OPT_CUNPROC_FORCE_NEXT								\
+}
+/*
+	Argument p is a pointer to a CUNILOG_ROTATION_DATA structure with member
+	tsk set to cunilogrotationtask_FScompressLogfiles. Such a structure can
+	be initialised with the CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS()
+	macro.
+*/
+#define CUNILOG_INIT_DEF_LOGFILESFSCOMPRESS_PROCESSOR(p)\
+{														\
+	cunilogProcessRotateLogfiles,						\
+	cunilogProcessAppliesTo_Auto,						\
+	0, 0,												\
+	(p),							\
+	OPT_CUNPROC_NONE | OPT_CUNPROC_AT_STARTUP			\
+}
+/*
+	Argument p is a pointer to a CUNILOG_ROTATION_DATA structure with member
+	tsk set to cunilogrotationtask_MoveToRecycleBinLogfiles.
+*/
+#define CUNILOG_INIT_DEF_LOGFILESMOVETOTRASH_PROCESSOR(p)\
+{														\
+	cunilogProcessRotateLogfiles,						\
+	cunilogProcessAppliesTo_Auto,						\
+	0, 0,												\
+	(p),												\
+	OPT_CUNPROC_NONE | OPT_CUNPROC_AT_STARTUP			\
+}
+
+
+/*
+	FillCUNILOG_PROCESSOR
+
+	Function/macro to initialise a CUNILOG_PROCESSOR structure. The data (pData) member
+	is set to NULL and the member uiOpts to OPT_CUNPROC_NONE, which means no option flags
+	are set. The caller is responsible for setting those members to their desired values
+	afterwards.
+*/
+#define FillCUNILOG_PROCESSOR(cup, task,				\
+								freq, thrs)				\
+	ubf_assert_non_NULL (cup);							\
+	(cup)->task		= task;								\
+	(cup)->freq		= freq;								\
+	(cup)->thr		= thrs;								\
+	(cup)->cur		= 0;								\
+	(cup)->pData	= NULL;								\
+	(cup)->uiOpts	= OPT_CUNPROC_NONE;
 
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	typedef struct scunilogevent SCUNILOGEVENT;
@@ -17129,6 +18019,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -17205,6 +18099,10 @@ When		Who				What
 2025-02-17	Thomas			Created.
 
 ****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
 
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
@@ -17372,6 +18270,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	1. Create a SCUNILOGTARGET structure and initialise it. Use either your own structure
 		or create a new one with CreateNewSUNILOGTARGET () or InitOrCreateSUNILOGTARGET ().
 		Or use the internal structure of this module with InitSUNILOGTARGETstatic () instead.
@@ -17460,12 +18362,6 @@ When		Who				What
 #define CUNILOG_UNKNOWN_ERROR			(-1)
 #endif
 
-// Value of member nMaxToRotate of a CUNILOG_ROTATION_DATA structure to be obtained
-//	during initialisation.
-#ifndef CUNILOG_MAX_ROTATE_AUTO
-#define CUNILOG_MAX_ROTATE_AUTO			(UINT64_MAX)
-#endif
-
 // Memory alignments. Use 16 octets/bytes for 64 bit platforms.
 #if defined (_WIN64) || defined (__x86_64__)
 	#define CUNILOG_DEFAULT_ALIGNMENT	(16)
@@ -17540,8 +18436,32 @@ When		Who				What
 #define CUNILOG_WINDOWS_CRITICAL_SECTION_SPIN_COUNT		(5000)
 #endif
 
-// This seems to make sense.
-#define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
+// The default rotation thresholds in debug and release versions.
+#ifdef DEBUG
+
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED	(2)
+	#endif
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED		(3)
+	#endif
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED		(4)
+	#endif
+
+#else
+
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED	(10)
+	#endif
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED		(100)
+	#endif
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED		(100)
+	#endif
+
+#endif
 
 // The mode for opening the current logfile.
 #ifdef PLATFORM_IS_WINDOWS
@@ -17584,34 +18504,6 @@ CUNILOG_DLL_IMPORT extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 #else
 	#define cunilog_puts(t)	puts (t)
 	#define cunilog_printf(...) printf (__VA_ARGS__)
-#endif
-
-/*
-	InitCUNILOG_PROCESSOR
-
-	Function/macro to initialise a CUNILOG_PROCESSOR structure. The data (pData) member
-	is set to NULL and the member uiOpts to OPT_CUNPROC_NONE, which means no option flags
-	are set. The caller is responsible for setting those members to their desired values
-	afterwards.
-*/
-#ifdef DEBUG
-	void InitCUNILOG_PROCESSOR	(
-			CUNILOG_PROCESSOR				*cup,
-			enum cunilogprocesstask			task,
-			enum cunilogprocessfrequency	freq,
-			uint64_t						thrs
-								)
-	;
-#else
-	#define InitCUNILOG_PROCESSOR(cup, task,				\
-									type, thrs)				\
-		ubf_assert_non_NULL (cup);							\
-		(cup)->task		= task;								\
-		(cup)->freq		= freq;								\
-		(cup)->thr		= thrs;								\
-		(cup)->cur		= 0;								\
-		(cup)->pData	= NULL;								\
-		(cup)->uiOpts	= OPT_CUNPROC_NONE;
 #endif
 
 /*
@@ -17702,6 +18594,9 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 #else
 	#define CunilogSetConsoleToNone()
 #endif
+
+// This seems to make sense.
+#define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
 
 /*
 	InitSCUNILOGTARGETex

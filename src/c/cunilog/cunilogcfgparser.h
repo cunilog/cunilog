@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	Implements a simple config parser. Libucl (https://github.com/vstakhov/libucl) served as
 	its base idea.
 

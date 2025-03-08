@@ -20,6 +20,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This module deals with our own timestamp formats. UBF_TIMESTAMP is a
 	64 bit unsigned type and can and should be used whenever a timestamp is
 	required. A UBF_TIMESTAMP can be extracted to a SUBF_TIMESTRUCT for

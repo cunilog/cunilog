@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	The definitions in this module are required for Cunilog to build.
 */
 

@@ -183,7 +183,11 @@
     <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxHome.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxReadDirFncts.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxTrash.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxSharedMutex.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\SharedMutex.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\UserHome.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\CompressNTFS_U8.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinSharedMutex.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinExeFileName.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinAPI_ReadDirFncts.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8.c" />
@@ -233,7 +237,11 @@
     <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxHome.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxReadDirFncts.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxTrash.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxSharedMutex.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\SharedMutex.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\UserHome.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\CompressNTFS_U8.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinSharedMutex.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinExeFileName.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinAPI_ReadDirFncts.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8.h" />

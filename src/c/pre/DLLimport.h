@@ -14,6 +14,10 @@ When		Who				What
 
 ****************************************************************************************/
 
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
 #ifndef U_DLL_IMPORT_H
 #define U_DLL_IMPORT_H
 

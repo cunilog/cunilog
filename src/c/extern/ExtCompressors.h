@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This module is an interface for external compressors/external compression libraries.
 	This implies that when this module is used, the application requires to be linked to
 	additional external libraries.

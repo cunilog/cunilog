@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This module is mainly a wrapper for Robert Guetzkow's trashcan_soft_delete () function
 	for Apple devices. See
 	https://github.com/robertguetzkow/libtrashcan/blob/master/src/trashcan.c .

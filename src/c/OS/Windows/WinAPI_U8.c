@@ -15,6 +15,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -2114,9 +2118,9 @@ BOOL GetDefaultUserProfileDirectoryU8(
 {
 	ASSERT (NULL != lpcchSize);
 
-	BOOL bRet = false;
-	WCHAR wcProfDir [WINAPI_U8_HEAP_THRESHOLD];
-	WCHAR *pcProfDir;
+	BOOL	bRet = false;
+	WCHAR	wcProfDir [WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pcProfDir;
 
 	DWORD	dw = 0;
 	GetDefaultUserProfileDirectoryW (NULL, &dw);
@@ -2153,9 +2157,9 @@ BOOL GetUserProfileDirectoryU8(
 {
 	ASSERT (NULL != lpcchSize);
 
-	BOOL bRet = false;
-	WCHAR wcProfDir [WINAPI_U8_HEAP_THRESHOLD];
-	WCHAR *pcProfDir;
+	BOOL	bRet = false;
+	WCHAR	wcProfDir [WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pcProfDir;
 
 	DWORD	dw = 0;
 	GetUserProfileDirectoryW (hToken, NULL, &dw);

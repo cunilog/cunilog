@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	Functions for retrieving username, user home directory, etc. on POSIX.
 	
 	This module/unit can also be included on Windows builds but does not provide

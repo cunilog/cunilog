@@ -15,6 +15,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This is a simple module/unit that provides UTF-8 versions of some common Windows API
 	calls.
 

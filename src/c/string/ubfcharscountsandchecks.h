@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -153,9 +157,9 @@ TYPEDEF_FNCT_PTR (char *, ubf_is_letter_until) (char *ch, char c);
 	TYPEDEF_FNCT_PTR (bool, isWhiteSpace) (char c);
 #else
 	#define isWhiteSpace(c)								\
-		(			UBF_SPC			== (c)				\
-				||	UBF_TAB			== (c)				\
-				||	UBF_VT			== (c)				\
+		(			ASCII_SPC		== (c)				\
+				||	ASCII_TAB		== (c)				\
+				||	ASCII_VT		== (c)				\
 		)
 #endif
 

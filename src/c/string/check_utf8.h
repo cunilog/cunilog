@@ -19,6 +19,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
  * Copyright (c) 2024 YASUOKA Masahiko <yasuoka@yasuoka.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -44,15 +48,25 @@ When		Who				What
 #define USE_STRLEN						((size_t) -1)
 #endif
 
-#ifdef	__cplusplus
-	extern "C"	{
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./platform.h"
+		#include "./functionptrtpydef.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/platform.h"
+		#include "./../pre/functionptrtpydef.h"
+	#endif
+
 #endif
 
-bool c_check_utf8(const char *str, size_t len)
-;
+EXTERN_C_BEGIN
 
-#ifdef	__cplusplus
-				}
-#endif
+bool c_check_utf8(const char *str, size_t len);
+TYPEDEF_FNCT_PTR (bool, c_check_utf8) (const char *str, size_t len);
+
+EXTERN_C_END
 
 #endif														// Of #ifndef U_CHECK_UTF8_H.

@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	Simple module for providing dynamically allocated bulk memory (or memory pools;
 	also called arenas). See
 	https://en.wikipedia.org/wiki/Region-based_memory_management .
@@ -157,6 +161,8 @@ When		Who				What
 #else
     #error "Either a 32 bit or a 64 bit platform must be determined."
 #endif
+
+EXTERN_C_BEGIN
 
 enum en_sbulkmem_unit
 {
@@ -614,5 +620,7 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 	#define bulkmalloc_test_fnct()						\
 		(true)
 #endif
+
+EXTERN_C_END
 
 #endif															// Of #ifndef BULKMALLOC_H.

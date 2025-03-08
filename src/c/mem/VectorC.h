@@ -18,6 +18,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	Implements vectors (variable arrays) in C. If you change this text please copy
 	and paste it in the code or header file too.
 

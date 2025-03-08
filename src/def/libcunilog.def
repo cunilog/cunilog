@@ -261,7 +261,7 @@ EXPORTS
 	fprintfU8										@556
 	putsU8											@557
 
-	;ubfcharscountsandchecks
+	; ubfcharscountsandchecks
 	ubf_is_printable_ASCII							@600
 	str_has_only_printable_ASCII					@601
 	ubf_is_letter									@602
@@ -274,3 +274,6 @@ EXPORTS
 	ubf_count_special_characters					@609
 	ubf_count_char									@610
 	ubf_obtain_strlen								@611
+
+	; check_utf8
+	c_check_utf8									@620

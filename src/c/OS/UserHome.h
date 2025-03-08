@@ -1,17 +1,17 @@
 /****************************************************************************************
 
-	File:		stransi.c
-	Why:		Functions for ANSI escape codes.
-	OS:			C99
+	File:		UserHome.h
+	Why:		User home directory functions.
+	OS:			C99.
 	Author:		Thomas
-	Created:	2025-02-14
-
+	Created:	2025-03-03
+  
 History
 -------
 
 When		Who				What
 -----------------------------------------------------------------------------------------
-2025-02-14	Thomas			Created.
+2025-03-03	Thomas			Created.
 
 ****************************************************************************************/
 
@@ -42,17 +42,42 @@ When		Who				What
 	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef CUNILOG_USE_COMBINED_MODULE
+#ifndef U_USERHOME_H
+#define U_USERHOME_H
 
-	#include "./stransi.h"
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
-		#include "./ubfmem.h"
+		#include "./platform.h"
+		#include "./membuf.h"
 	#else
 		#include "./../pre/externC.h"
-		#include "./../mem/ubfmem.h"
+		#include "./../pre/platform.h"
+		#include "./../mem/membuf.h"
 	#endif
 
 #endif
 
+EXTERN_C_BEGIN
+
+/*
+	ObtainUserHomeDirectoy
+
+	Obtains the user's home directory with an ending forward or backward slash as an
+	SMEMBUF. Whether the function adds a forward or backward slash depends on the platform.
+	
+	The SMEMBUF structure mb points to must be initialised before the function is called.
+
+	The function returns the length of the path excluding the terminating NUL character.
+
+	The function returns 0 when it fails.
+*/
+size_t ObtainUserHomeDirectoy (SMEMBUF *mb);
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_USERHOME_H.

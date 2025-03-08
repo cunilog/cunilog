@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This module supports the following build options:
 
 
@@ -191,14 +195,16 @@ size_t strIsLineEndings (char *ch, size_t stLen, size_t *stJump)
 
 	The value cunilogNewLineSystem uses the operating system/platform default, which is
 	currently cunilogNewLineWindows (CRLF) in Windows and cunilogNewLinePOSIX (LF) for every
-	other system.
+	other platform.
 
 	The value cunilogNewLineDefault used to be cunilogNewLineSystem to ensure logfiles
 	could be opened with Notepad on Windows systems but since newer versions of Notepad
 	(Windows 10 and newer) can perfectly display files that have POSIX line endings, the
 	default is now cunilogNewLinePOSIX to save one octet per event line. Use
 	cunilogNewLineWindows or cunilogNewLineSystem if textual logfiles need to be opened/
-	viewed with Notepad for Windows versions before Windows 10.
+	viewed with Notepad for Windows versions before Windows 10 or if they are opened/
+	viewed/processed later with any other application that can't cope with POSIX line
+	endings.
 */
 #if defined (CUNILOG_NEWLINE_POSIX_ONLY)
 	enum enLineEndings
@@ -274,8 +280,7 @@ size_t lnLineEnding (newline_t nl);
 	Returns the line ending and its length. The length does not include the NUL
 	terminator.
 */
-const char *szLineEnding (newline_t, size_t *pln)
-;
+const char *szLineEnding (newline_t, size_t *pln);
 
 #ifdef DEBUG
 	#ifndef STRNEWLINE_BUILD_TEST

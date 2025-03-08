@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	The name of this module is actually slightly wrong as it isn't really POSIX.
 	It tries to follow the XDG specification
 	(https://specifications.freedesktop.org/trash-spec/latest/)

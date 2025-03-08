@@ -19,6 +19,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
  * Copyright (c) 2024 YASUOKA Masahiko <yasuoka@yasuoka.net>
  *
  * Permission to use, copy, modify, and distribute this software for any

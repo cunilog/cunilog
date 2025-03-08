@@ -17,6 +17,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -49,6 +53,10 @@ When		Who				What
 EXTERN_C_BEGIN
 
 #ifndef UBF_TYPE_DEFINITIONS_INCL_H
+
+#ifndef LENOFSTR
+#define LENOFSTR(str) (sizeof (str) - 1)
+#endif
 
 // Some macros taken from
 //	https://www.codeproject.com/Articles/567335/Essential-Macros-for-C-Programming .

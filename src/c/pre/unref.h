@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	Include this file _after_ <Windows.h> or when <Windows.h> is not included at all,
 	like for instance on POSIX.
 */

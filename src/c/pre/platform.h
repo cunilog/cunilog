@@ -17,6 +17,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	The OS_IS_ definitions provide the target operating system, for instance OS_IS_LINUX.
 	The PLATFORM_IS_ definitions provide the platform, for instance PLATFORM_IS_POSIX or
 	PLATFORM_IS_WINDOWS.

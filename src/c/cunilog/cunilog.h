@@ -16,6 +16,10 @@ When		Who				What
 ****************************************************************************************/
 
 /*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
 	1. Create a SCUNILOGTARGET structure and initialise it. Use either your own structure
 		or create a new one with CreateNewSUNILOGTARGET () or InitOrCreateSUNILOGTARGET ().
 		Or use the internal structure of this module with InitSUNILOGTARGETstatic () instead.
@@ -104,12 +108,6 @@ When		Who				What
 #define CUNILOG_UNKNOWN_ERROR			(-1)
 #endif
 
-// Value of member nMaxToRotate of a CUNILOG_ROTATION_DATA structure to be obtained
-//	during initialisation.
-#ifndef CUNILOG_MAX_ROTATE_AUTO
-#define CUNILOG_MAX_ROTATE_AUTO			(UINT64_MAX)
-#endif
-
 // Memory alignments. Use 16 octets/bytes for 64 bit platforms.
 #if defined (_WIN64) || defined (__x86_64__)
 	#define CUNILOG_DEFAULT_ALIGNMENT	(16)
@@ -184,8 +182,32 @@ When		Who				What
 #define CUNILOG_WINDOWS_CRITICAL_SECTION_SPIN_COUNT		(5000)
 #endif
 
-// This seems to make sense.
-#define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
+// The default rotation thresholds in debug and release versions.
+#ifdef DEBUG
+
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED	(2)
+	#endif
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED		(3)
+	#endif
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED		(4)
+	#endif
+
+#else
+
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED	(10)
+	#endif
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED		(100)
+	#endif
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED		(100)
+	#endif
+
+#endif
 
 // The mode for opening the current logfile.
 #ifdef PLATFORM_IS_WINDOWS
@@ -228,34 +250,6 @@ CUNILOG_DLL_IMPORT extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 #else
 	#define cunilog_puts(t)	puts (t)
 	#define cunilog_printf(...) printf (__VA_ARGS__)
-#endif
-
-/*
-	InitCUNILOG_PROCESSOR
-
-	Function/macro to initialise a CUNILOG_PROCESSOR structure. The data (pData) member
-	is set to NULL and the member uiOpts to OPT_CUNPROC_NONE, which means no option flags
-	are set. The caller is responsible for setting those members to their desired values
-	afterwards.
-*/
-#ifdef DEBUG
-	void InitCUNILOG_PROCESSOR	(
-			CUNILOG_PROCESSOR				*cup,
-			enum cunilogprocesstask			task,
-			enum cunilogprocessfrequency	freq,
-			uint64_t						thrs
-								)
-	;
-#else
-	#define InitCUNILOG_PROCESSOR(cup, task,				\
-									type, thrs)				\
-		ubf_assert_non_NULL (cup);							\
-		(cup)->task		= task;								\
-		(cup)->freq		= freq;								\
-		(cup)->thr		= thrs;								\
-		(cup)->cur		= 0;								\
-		(cup)->pData	= NULL;								\
-		(cup)->uiOpts	= OPT_CUNPROC_NONE;
 #endif
 
 /*
@@ -346,6 +340,9 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 #else
 	#define CunilogSetConsoleToNone()
 #endif
+
+// This seems to make sense.
+#define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
 
 /*
 	InitSCUNILOGTARGETex

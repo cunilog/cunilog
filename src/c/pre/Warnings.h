@@ -15,6 +15,10 @@ When		Who				What
 
 ****************************************************************************************/
 
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
 #ifdef _MSC_VER
 
 	// Array is too small to include a terminating NUL.
