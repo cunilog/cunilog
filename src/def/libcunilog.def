@@ -25,34 +25,35 @@ EXPORTS
 	InitSCUNILOGTARGETstaticEx						@205
 	InitSCUNILOGTARGETstatic						@206
 	GetAbsoluteLogPathSCUNILOGTARGET				@207
-	ConfigSCUNILOGTARGETcunilogpostfix				@208
-	ConfigSCUNILOGTARGETrunProcessorsOnStartup		@209
-	ConfigSCUNILOGTARGETcunilognewline				@210
-	ConfigSCUNILOGTARGETeventSeverityFormatType		@211
-	ConfigSCUNILOGTARGETuseColourForEcho			@212
-	ConfigSCUNILOGTARGETprocessorList				@213
-	ConfigSCUNILOGTARGETdisableTaskProcessors		@214
-	ConfigSCUNILOGTARGETenableTaskProcessors		@215
-	ConfigSCUNILOGTARGETdisableEchoProcessor		@216
-	ConfigSCUNILOGTARGETenableEchoProcessor			@217
-;	EnterSCUNILOGTARGET								@218	Should not be used.
-;	LeaveSCUNILOGTARGET								@219	Should not be used.
-	DoneSCUNILOGTARGET								@220
-	ShutdownSCUNILOGTARGET							@221
-	CancelSCUNILOGTARGET							@222
-	ChangeSCUNILOGTARGETlogPriority					@223
-	PauseLogSCUNILOGTARGET							@224
-	ResumeLogSCUNILOGTARGET							@225
-	CreateSCUNILOGEVENT_Data						@226
-	CreateSCUNILOGEVENT_Text						@227
-	DuplicateSCUNILOGEVENT							@228
-	DoneSCUNILOGEVENT								@229
-	ChangeSCUNILOGTARGETuseColourForEcho			@230
-	ChangeSCUNILOGTARGETcunilognewline				@231
-	ChangeSCUNILOGTARGETdisableTaskProcessors		@232
-	ChangeSCUNILOGTARGETenableTaskProcessors		@233
-	ChangeSCUNILOGTARGETdisableEchoProcessor		@234
-	ChangeSCUNILOGTARGETenableEchoProcessor			@235
+	GetAbsoluteLogPathSCUNILOGTARGET_static			@208
+	ConfigSCUNILOGTARGETcunilogpostfix				@209
+	ConfigSCUNILOGTARGETrunProcessorsOnStartup		@210
+	ConfigSCUNILOGTARGETcunilognewline				@211
+	ConfigSCUNILOGTARGETeventSeverityFormatType		@212
+	ConfigSCUNILOGTARGETuseColourForEcho			@213
+	ConfigSCUNILOGTARGETprocessorList				@214
+	ConfigSCUNILOGTARGETdisableTaskProcessors		@215
+	ConfigSCUNILOGTARGETenableTaskProcessors		@216
+	ConfigSCUNILOGTARGETdisableEchoProcessor		@217
+	ConfigSCUNILOGTARGETenableEchoProcessor			@218
+;	EnterSCUNILOGTARGET								@219	Should not be used.
+;	LeaveSCUNILOGTARGET								@220	Should not be used.
+	DoneSCUNILOGTARGET								@221
+	ShutdownSCUNILOGTARGET							@222
+	CancelSCUNILOGTARGET							@223
+	ChangeSCUNILOGTARGETlogPriority					@224
+	PauseLogSCUNILOGTARGET							@225
+	ResumeLogSCUNILOGTARGET							@226
+	CreateSCUNILOGEVENT_Data						@227
+	CreateSCUNILOGEVENT_Text						@228
+	DuplicateSCUNILOGEVENT							@229
+	DoneSCUNILOGEVENT								@230
+	ChangeSCUNILOGTARGETuseColourForEcho			@231
+	ChangeSCUNILOGTARGETcunilognewline				@232
+	ChangeSCUNILOGTARGETdisableTaskProcessors		@233
+	ChangeSCUNILOGTARGETenableTaskProcessors		@234
+	ChangeSCUNILOGTARGETdisableEchoProcessor		@235
+	ChangeSCUNILOGTARGETenableEchoProcessor			@236
 
 	cunilogCheckVersionIntChk						@250
 

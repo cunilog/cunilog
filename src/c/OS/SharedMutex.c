@@ -57,30 +57,27 @@ SOFTWARE.
 
 shared_mutex_t InitSharedMutex (const char *name)
 {
-	char	cName [1024];
-	char	namebuf [512];
+	ubf_assert (LENOFSTR (UBF_SHARED_MUTEX_GLOBAL_PFX) > 0);
+
+	char	cName [NAME_MAX + LENOFSTR (UBF_SHARED_MUTEX_GLOBAL_PFX)];
+	char	namebuf [NAME_MAX];
 	
 	ubf_assert (NULL != name);
-	ubf_assert (0 < name [0]);
+	ubf_assert (0 != name [0]);
 	ubf_assert ('\\' != name [0]);
 	ubf_assert ('/' != name [0]);
 
-	memcpy (namebuf, name, strlen (name) < 512 ? strlen (name) + 1 : 511);
-	namebuf [511] = '\0';
+	memcpy (namebuf, name, strlen (name) < NAME_MAX ? strlen (name) + 1 : NAME_MAX - 1);
+	namebuf [NAME_MAX - 1] = '\0';
+
+	ubf_assert (NAME_MAX > strlen (name));
+	memcpy (cName, UBF_SHARED_MUTEX_GLOBAL_PFX, LENOFSTR (UBF_SHARED_MUTEX_GLOBAL_PFX));
+	memcpy (cName + LENOFSTR (UBF_SHARED_MUTEX_GLOBAL_PFX), namebuf, strlen (namebuf) + 1);
 
 	#if defined (PLATFORM_IS_WINDOWS)
-
-		ubf_assert (512 > strlen (name));
-		memcpy (cName, UBF_WIN_SHARED_MUTEX_GLOBAL_PFX, LENOFSTR (UBF_WIN_SHARED_MUTEX_GLOBAL_PFX));
-		memcpy (cName + LENOFSTR (UBF_WIN_SHARED_MUTEX_GLOBAL_PFX), namebuf, strlen (namebuf) + 1);
 		return WinInitSharedMutex (cName);
-
 	#elif defined (PLATFORM_IS_POSIX)
-
-		cName [0] = '/';
-		memcpy (cName + 1, namebuf, strlen (namebuf) + 1);
 		return PsxInitSharedMutex (cName, S_IRUSR | S_IWUSR);
-
 	#elif
 		#error Not supported
 	#endif

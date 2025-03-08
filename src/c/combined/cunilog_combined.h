@@ -6939,10 +6939,12 @@ SOFTWARE.
 #ifndef UBF_SHARED_MUTEX_H
 #define UBF_SHARED_MUTEX_H
 
+#include <stdbool.h>
+#include <inttypes.h>
+#include <limits.h>
+
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
-	#include <stdbool.h>
-	#include <inttypes.h>
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
@@ -6968,8 +6970,31 @@ SOFTWARE.
 
 /*
 	The prefix to make a kernel object global on Windows.
+	For POSIX it is the prefix for a mutex ("/").
 */
-#define UBF_WIN_SHARED_MUTEX_GLOBAL_PFX		"Global\\"
+#if defined (PLATFORM_IS_WINDOWS)
+	#define UBF_SHARED_MUTEX_GLOBAL_PFX		"Global\\"
+#elif defined (PLATFORM_IS_POSIX)
+	#define UBF_SHARED_MUTEX_GLOBAL_PFX		"/"
+#elif
+	#error Not supported
+#endif
+
+
+#if defined (PLATFORM_IS_WINDOWS)
+	// This should be 255.
+	#ifndef NAME_MAX
+	#define NAME_MAX	(MAX_PATH - 4)
+	#endif
+#elif defined (PLATFORM_IS_POSIX)
+	#ifndef NAME_MAX
+	#define NAME_MAX	(255)
+	#endif
+#endif
+
+#ifndef NAME_MAX
+	#error NAME_MAX not defined
+#endif
 
 EXTERN_C_BEGIN
 
@@ -19134,6 +19159,16 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstatic)
 const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen);
 TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET)
 	(SCUNILOGTARGET *put, size_t *plen);
+
+/*
+	GetAbsoluteLogPathSCUNILOGTARGET_static
+
+	Calls GetAbsoluteLogPathSCUNILOGTARGET () to obtain the absolute path to the folder
+	logfiles for the internal static SCUNILOGTARGET structure are written to.
+*/
+const char *GetAbsoluteLogPathSCUNILOGTARGET_static (size_t *plen);
+TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET_static)
+	(size_t *plen);
 
 /*
 	ConfigSCUNILOGTARGETcunilogpostfix

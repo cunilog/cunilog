@@ -6031,30 +6031,27 @@ SOFTWARE.
 
 shared_mutex_t InitSharedMutex (const char *name)
 {
-	char	cName [1024];
-	char	namebuf [512];
+	ubf_assert (LENOFSTR (UBF_SHARED_MUTEX_GLOBAL_PFX) > 0);
+
+	char	cName [NAME_MAX + LENOFSTR (UBF_SHARED_MUTEX_GLOBAL_PFX)];
+	char	namebuf [NAME_MAX];
 	
 	ubf_assert (NULL != name);
-	ubf_assert (0 < name [0]);
+	ubf_assert (0 != name [0]);
 	ubf_assert ('\\' != name [0]);
 	ubf_assert ('/' != name [0]);
 
-	memcpy (namebuf, name, strlen (name) < 512 ? strlen (name) + 1 : 511);
-	namebuf [511] = '\0';
+	memcpy (namebuf, name, strlen (name) < NAME_MAX ? strlen (name) + 1 : NAME_MAX - 1);
+	namebuf [NAME_MAX - 1] = '\0';
+
+	ubf_assert (NAME_MAX > strlen (name));
+	memcpy (cName, UBF_SHARED_MUTEX_GLOBAL_PFX, LENOFSTR (UBF_SHARED_MUTEX_GLOBAL_PFX));
+	memcpy (cName + LENOFSTR (UBF_SHARED_MUTEX_GLOBAL_PFX), namebuf, strlen (namebuf) + 1);
 
 	#if defined (PLATFORM_IS_WINDOWS)
-
-		ubf_assert (512 > strlen (name));
-		memcpy (cName, UBF_WIN_SHARED_MUTEX_GLOBAL_PFX, LENOFSTR (UBF_WIN_SHARED_MUTEX_GLOBAL_PFX));
-		memcpy (cName + LENOFSTR (UBF_WIN_SHARED_MUTEX_GLOBAL_PFX), namebuf, strlen (namebuf) + 1);
 		return WinInitSharedMutex (cName);
-
 	#elif defined (PLATFORM_IS_POSIX)
-
-		cName [0] = '/';
-		memcpy (cName + 1, namebuf, strlen (namebuf) + 1);
 		return PsxInitSharedMutex (cName, S_IRUSR | S_IWUSR);
-
 	#elif
 		#error Not supported
 	#endif
@@ -11409,11 +11406,11 @@ When		Who				What
 	#include "./strcustomfmt.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
-		#include "./memstrstr.h"
+		//#include "./memstrstr.h"
 		#include "./ubfdebug.h"
 		#include "./unref.h"
 	#else
-		#include "./../mem/memstrstr.h"
+		//#include "./../mem/memstrstr.h"
 		#include "./../dbg/ubfdebug.h"
 		#include "./../pre/unref.h"
 	#endif
@@ -11441,11 +11438,9 @@ static inline const char *strcustomfmtFindNextCust (size_t *pidx, SSTRCUSTFMTBAS
 	ubf_assert_non_NULL	(cust);
 	ubf_assert			((size_t) -1 != len);
 
-	size_t	idx;
-	
 	while (len)
 	{
-		idx = 0;
+		size_t idx = 0;
 		while (idx < pb->n)
 		{
 			ubf_assert_non_NULL	(pb->psstrcustfmt [idx].ccFormatSpecifier);
@@ -11498,7 +11493,9 @@ size_t strcustomfmtGetRqSizeCustVA (SSTRCUSTFMTBASE *pb, size_t lenCust, const c
 
 		v	= va_arg (ap, void *);
 		len	-= pb->psstrcustfmt [idx].lenFormatSpecifier;
-		cp	+= cc - cp + pb->psstrcustfmt [idx].lenFormatSpecifier;
+		size_t st2 = cc - cp;
+		len	-= st2;
+		cp	+= st2 + pb->psstrcustfmt [idx].lenFormatSpecifier;
 		ret	-= pb->psstrcustfmt [idx].lenFormatSpecifier;
 		ret	+= pb->psstrcustfmt [idx].getRqSize (v, &pb->psstrcustfmt [idx]);
 		cc	= strcustomfmtFindNextCust (&idx, pb, cp, len);
@@ -11557,8 +11554,9 @@ size_t strcustomfmtStoreDataCustVA (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE
 		v	= va_arg (ap, void *);
 		len	-= pb->psstrcustfmt [idx].lenFormatSpecifier;
 		storeNonFormatSpecifiers (&cb, &sb, cp, cc - cp);
-		len	-= cc - cp;
-		cp	+= cc - cp + pb->psstrcustfmt [idx].lenFormatSpecifier;
+		size_t st2 = cc - cp;
+		len	-= st2;
+		cp	+= st2 + pb->psstrcustfmt [idx].lenFormatSpecifier;
 		ret	-= pb->psstrcustfmt [idx].lenFormatSpecifier;
 		s	= pb->psstrcustfmt [idx].storeData (cb, sb, v, &pb->psstrcustfmt [idx]);
 		ret	+= s;
@@ -11692,8 +11690,8 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 		f [1].storeData				= ourStoData;
 		memset (ch, 0, 256);
 		char	x = 0;
-		s1 = strcustomfmtGetRqSizeCust (&b, USE_STRLEN, "None {a} // #1, {a}xxx", NULL, &x, NULL);
-		s2 = strcustomfmtStoreDataCust (ch, 256, &b, USE_STRLEN, "None {a} // #1, {a}xxx", NULL, &x, NULL);
+		s1 = strcustomfmtGetRqSizeCust (			&b, USE_STRLEN, "None {a} // #1, {a}xxx", NULL, &x, NULL);
+		s2 = strcustomfmtStoreDataCust (ch, 256,	&b, USE_STRLEN, "None {a} // #1, {a}xxx", NULL, &x, NULL);
 		ubf_assert (s1 == s2);
 		ubf_assert (!memcmp (ch, "None 0123456789 // ABCD, 0123456789xxx", 39));
 
@@ -18538,6 +18536,14 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	return NULL;
 }
 
+const char *GetAbsoluteLogPathSCUNILOGTARGET_static (size_t *plen)
+{
+	ubf_assert_non_NULL	(pSCUNILOGTARGETstatic);
+	ubf_assert (cunilogIsTargetInitialised (pSCUNILOGTARGETstatic));
+
+	return GetAbsoluteLogPathSCUNILOGTARGET (pSCUNILOGTARGETstatic, plen);
+}
+
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
 	{
@@ -19891,6 +19897,7 @@ static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, SCUNILO
 	#endif
 
 	size_t lenPostfixStamp = lenDateTimeStampFromPostfix (put->culogPostfix);
+	ubf_assert (LEN_ISO8601DATEHOURANDMINUTE >= lenPostfixStamp);
 	memcpy (put->cPrevDateTimeStamp, put->szDateTimeStamp, lenPostfixStamp);
 
 	obtainDateAndTimeStamp (put->szDateTimeStamp, pev->stamp, put->culogPostfix);

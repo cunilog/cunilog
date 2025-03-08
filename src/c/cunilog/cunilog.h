@@ -882,6 +882,16 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET)
 	(SCUNILOGTARGET *put, size_t *plen);
 
 /*
+	GetAbsoluteLogPathSCUNILOGTARGET_static
+
+	Calls GetAbsoluteLogPathSCUNILOGTARGET () to obtain the absolute path to the folder
+	logfiles for the internal static SCUNILOGTARGET structure are written to.
+*/
+const char *GetAbsoluteLogPathSCUNILOGTARGET_static (size_t *plen);
+TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET_static)
+	(size_t *plen);
+
+/*
 	ConfigSCUNILOGTARGETcunilogpostfix
 
 	Sets the member unilogEvtTSformat of the SCUNILOGTARGET structure put points to to the

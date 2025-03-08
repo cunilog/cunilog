@@ -52,11 +52,11 @@ When		Who				What
 	#include "./strcustomfmt.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
-		#include "./memstrstr.h"
+		//#include "./memstrstr.h"
 		#include "./ubfdebug.h"
 		#include "./unref.h"
 	#else
-		#include "./../mem/memstrstr.h"
+		//#include "./../mem/memstrstr.h"
 		#include "./../dbg/ubfdebug.h"
 		#include "./../pre/unref.h"
 	#endif
@@ -84,11 +84,9 @@ static inline const char *strcustomfmtFindNextCust (size_t *pidx, SSTRCUSTFMTBAS
 	ubf_assert_non_NULL	(cust);
 	ubf_assert			((size_t) -1 != len);
 
-	size_t	idx;
-	
 	while (len)
 	{
-		idx = 0;
+		size_t idx = 0;
 		while (idx < pb->n)
 		{
 			ubf_assert_non_NULL	(pb->psstrcustfmt [idx].ccFormatSpecifier);
@@ -141,7 +139,9 @@ size_t strcustomfmtGetRqSizeCustVA (SSTRCUSTFMTBASE *pb, size_t lenCust, const c
 
 		v	= va_arg (ap, void *);
 		len	-= pb->psstrcustfmt [idx].lenFormatSpecifier;
-		cp	+= cc - cp + pb->psstrcustfmt [idx].lenFormatSpecifier;
+		size_t st2 = cc - cp;
+		len	-= st2;
+		cp	+= st2 + pb->psstrcustfmt [idx].lenFormatSpecifier;
 		ret	-= pb->psstrcustfmt [idx].lenFormatSpecifier;
 		ret	+= pb->psstrcustfmt [idx].getRqSize (v, &pb->psstrcustfmt [idx]);
 		cc	= strcustomfmtFindNextCust (&idx, pb, cp, len);
@@ -200,8 +200,9 @@ size_t strcustomfmtStoreDataCustVA (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE
 		v	= va_arg (ap, void *);
 		len	-= pb->psstrcustfmt [idx].lenFormatSpecifier;
 		storeNonFormatSpecifiers (&cb, &sb, cp, cc - cp);
-		len	-= cc - cp;
-		cp	+= cc - cp + pb->psstrcustfmt [idx].lenFormatSpecifier;
+		size_t st2 = cc - cp;
+		len	-= st2;
+		cp	+= st2 + pb->psstrcustfmt [idx].lenFormatSpecifier;
 		ret	-= pb->psstrcustfmt [idx].lenFormatSpecifier;
 		s	= pb->psstrcustfmt [idx].storeData (cb, sb, v, &pb->psstrcustfmt [idx]);
 		ret	+= s;
@@ -335,8 +336,8 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 		f [1].storeData				= ourStoData;
 		memset (ch, 0, 256);
 		char	x = 0;
-		s1 = strcustomfmtGetRqSizeCust (&b, USE_STRLEN, "None {a} // #1, {a}xxx", NULL, &x, NULL);
-		s2 = strcustomfmtStoreDataCust (ch, 256, &b, USE_STRLEN, "None {a} // #1, {a}xxx", NULL, &x, NULL);
+		s1 = strcustomfmtGetRqSizeCust (			&b, USE_STRLEN, "None {a} // #1, {a}xxx", NULL, &x, NULL);
+		s2 = strcustomfmtStoreDataCust (ch, 256,	&b, USE_STRLEN, "None {a} // #1, {a}xxx", NULL, &x, NULL);
 		ubf_assert (s1 == s2);
 		ubf_assert (!memcmp (ch, "None 0123456789 // ABCD, 0123456789xxx", 39));
 

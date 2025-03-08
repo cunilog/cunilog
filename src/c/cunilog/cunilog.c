@@ -1563,6 +1563,14 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen)
 	return NULL;
 }
 
+const char *GetAbsoluteLogPathSCUNILOGTARGET_static (size_t *plen)
+{
+	ubf_assert_non_NULL	(pSCUNILOGTARGETstatic);
+	ubf_assert (cunilogIsTargetInitialised (pSCUNILOGTARGETstatic));
+
+	return GetAbsoluteLogPathSCUNILOGTARGET (pSCUNILOGTARGETstatic, plen);
+}
+
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
 	{
@@ -2916,6 +2924,7 @@ static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, SCUNILO
 	#endif
 
 	size_t lenPostfixStamp = lenDateTimeStampFromPostfix (put->culogPostfix);
+	ubf_assert (LEN_ISO8601DATEHOURANDMINUTE >= lenPostfixStamp);
 	memcpy (put->cPrevDateTimeStamp, put->szDateTimeStamp, lenPostfixStamp);
 
 	obtainDateAndTimeStamp (put->szDateTimeStamp, pev->stamp, put->culogPostfix);

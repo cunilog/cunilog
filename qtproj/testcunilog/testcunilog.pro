@@ -66,11 +66,15 @@ HEADERS += \
     ../../src/c/OS/POSIX/PsxExeFileName.h \
     ../../src/c/OS/POSIX/PsxHome.h \
     ../../src/c/OS/POSIX/PsxReadDirFncts.h \
+    ../../src/c/OS/POSIX/PsxSharedMutex.h \
     ../../src/c/OS/POSIX/PsxTrash.h \
+    ../../src/c/OS/SharedMutex.h \
+    ../../src/c/OS/UserHome.h \
     ../../src/c/OS/Windows/CompressNTFS_U8.h \
     ../../src/c/OS/Windows/WinAPI_ReadDirFncts.h \
     ../../src/c/OS/Windows/WinAPI_U8.h \
     ../../src/c/OS/Windows/WinExeFileName.h \
+    ../../src/c/OS/Windows/WinSharedMutex.h \
     ../../src/c/cunilog/cunilog.h \
     ../../src/c/cunilog/cunilogcfgparser.h \
     ../../src/c/cunilog/cunilogdefs.h \
@@ -120,11 +124,15 @@ SOURCES += \
     ../../src/c/OS/POSIX/PsxExeFileName.c \
     ../../src/c/OS/POSIX/PsxHome.c \
     ../../src/c/OS/POSIX/PsxReadDirFncts.c \
+    ../../src/c/OS/POSIX/PsxSharedMutex.c \
     ../../src/c/OS/POSIX/PsxTrash.c \
+    ../../src/c/OS/SharedMutex.c \
+    ../../src/c/OS/UserHome.c \
     ../../src/c/OS/Windows/CompressNTFS_U8.c \
     ../../src/c/OS/Windows/WinAPI_ReadDirFncts.c \
     ../../src/c/OS/Windows/WinAPI_U8.c \
     ../../src/c/OS/Windows/WinExeFileName.c \
+    ../../src/c/OS/Windows/WinSharedMutex.c \
     ../../src/c/cunilog/cunilog.c \
     ../../src/c/cunilog/cunilogcfgparser.c \
     ../../src/c/cunilog/cunilogevtcmds.c \
