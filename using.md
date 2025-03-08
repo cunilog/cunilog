@@ -73,30 +73,30 @@ Here's the signature of the InitSUNILOGTARGETstatic () function:
 			module's path.
 
 	szAppName	The name of the application. This is the part of the log file's name
-						before the date/timestamp, for instance "myApp" in "myApp_2022-10-18.log".
-						If this parameter is NULL, the function uses the executable module's name.
-						The string does not need to be NUL-terminated if lenAppName holds the
-						correct length.
+			before the date/timestamp, for instance "myApp" in "myApp_2022-10-18.log".
+			If this parameter is NULL, the function uses the executable module's name.
+			The string does not need to be NUL-terminated if lenAppName holds the
+			correct length.
 
-	lenAppName			The length of szApplication. If this parameter is (size_t) -1, the
-						function calls strlen (szApplication) to obtain it. USE_STRLEN is defined
-						as (size_t) -1.
-						If this parameter is 0, the function uses the executable module's name.
+	lenAppName	The length of szApplication. If this parameter is (size_t) -1, the
+			function calls strlen (szApplication) to obtain it. USE_STRLEN is defined
+			as (size_t) -1.
+			If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
-						the base path if szLogPath is either relative or NULL. If szLogPath is
-						relative, the path is relative to
-						cunilogLogPath_relativeToExecutable (the executable file),
-						cunilogLogPath_relativeToCurrentDir (the current directory), or
-						cunilogLogPath_relativeToHomeDir (the user's home directory).
-						See cunilogstructs.h for details.
-						The value of this parameter is ignored if szLogPath is an absolute
-						path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
-						relative path or NULL, the function fails.
+	relLogPath	One of the values in the enCunilogRelLogPath enumeration that specify
+			the base path if szLogPath is either relative or NULL. If szLogPath is
+			relative, the path is relative to
+			cunilogLogPath_relativeToExecutable (the executable file),
+			cunilogLogPath_relativeToCurrentDir (the current directory), or
+			cunilogLogPath_relativeToHomeDir (the user's home directory).
+			See cunilogstructs.h for details.
+			The value of this parameter is ignored if szLogPath is an absolute
+			path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
+			relative path or NULL, the function fails.
 
-	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
-						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
-						ignored and implicitely set to cunilogSingleThreaded.
+	type		The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
+			If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
+			ignored and implicitely set to cunilogSingleThreaded.
 
 	The function returns a pointer to the internal SCUNILOGTARGET cunilognewlinestructure
 	upon success, NULL otherwise.
@@ -105,12 +105,12 @@ Here's the signature of the InitSUNILOGTARGETstatic () function:
 */
 SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 (
-	  const char				*szLogPath			// Path to the logging information.
-	, size_t					lenLogPath			// Length of szLogPath
-	, const char				*szApplication		// Application name.
-	, size_t					lenApplication		// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
-	, enum cunilogtype			type
+	  const char			*szLogPath	// Path to the logging information.
+	, size_t			lenLogPath	// Length of szLogPath
+	, const char			*szApplication	// Application name.
+	, size_t			lenApplication	// Length of szApplication.
+	, enCunilogRelLogPath		relLogPath	// Rel. to home, exe, or current dir.
+	, enum cunilogtype		type
 )
 ;
 ```
