@@ -103,7 +103,7 @@ To automatically link to the correct version of libcunilog you can insert the fo
 	// Climbs up one folder to above our project's root and then down to our cunilog solution.
 	//	Assumes that cunilog is in a sister directory.
 	#ifndef LIBCUNILOG_PROJPATH
-	#define LIBCUNILOG_PROJPATH "../cunilog/proj/msvc2019/libcunilog/"
+	#define LIBCUNILOG_PROJPATH "../cunilog/msproj/msvc2019/libcunilog/"
 	#endif
 
 	#ifdef CUNILOG_IMPORT_FROM_DLL
