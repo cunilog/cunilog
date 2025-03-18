@@ -17940,15 +17940,18 @@ static bool prepareProcessors (SCUNILOGTARGET *put, CUNILOG_PROCESSOR **cp, unsi
 
 	if (NULL == cp || 0 == np)
 	{
-		/*
-		put->cprocessors = defcupp;
-		put->nprocessors = GET_ARRAY_LEN (defcupp);
-		*/
-		put->cprocessors = CreateNewStandardProcessors (&put->nprocessors);
-		if (put->cprocessors)
-			cunilogSetProcessorsAllocated (put);
-		else
-			return false;
+		if (pSCUNILOGTARGETstatic == put)
+		{
+			put->cprocessors = defcupp;
+			put->nprocessors = GET_ARRAY_LEN (defcupp);
+		} else
+		{
+			put->cprocessors = CreateNewStandardProcessors (&put->nprocessors);
+			if (put->cprocessors)
+				cunilogSetProcessorsAllocated (put);
+			else
+				return false;
+		}
 	} else
 	{
 		put->cprocessors = cp;
