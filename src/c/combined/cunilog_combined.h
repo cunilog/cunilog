@@ -17598,6 +17598,8 @@ typedef struct scunilogtarget
 
 /*
 	Option flags for the uiOpts member of a SCUNILOGTARGET structure.
+	These still require to be split into internal ones and flags the caller
+	is allowed to provide.
 */
 
 // The initialiser.
@@ -17663,8 +17665,14 @@ typedef struct scunilogtarget
 // Colour information should be used.
 #define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (15)
 
-// Colour information should be used.
+// Debug flag when the queue is locked. To be removed in the future.
 #define CUNILOGTARGET_DEBUG_QUEUE_LOCKED		SINGLEBIT64 (16)
+
+// Tells the initialiser function(s) not to allocate/assign default processors.
+//	The target is not ready when this option flag is used. The function
+//	ConfigSCUNILOGTARGETprocessorList () must be called before the target
+//	is usable.
+#define CUNILOGTARGET_NO_DEFAULT_PROCESSORS		SINGLEBIT64 (60)
 
 /*
 	Macros for some flags.
@@ -17754,15 +17762,15 @@ typedef struct scunilogtarget
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#ifndef cunilogHasUseColourForEcho
-		#define cunilogHasUseColourForEcho(pt)				\
+		#define cunilogHasUseColourForEcho(pt)			\
 			((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 	#endif
 	#ifndef cunilogClrUseColourForEcho
-		#define cunilogClrUseColourForEcho(pt)				\
+		#define cunilogClrUseColourForEcho(pt)			\
 			((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 	#endif
 	#ifndef cunilogSetUseColourForEcho
-		#define cunilogSetUseColourForEcho(pt)				\
+		#define cunilogSetUseColourForEcho(pt)			\
 			((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 	#endif
 #endif

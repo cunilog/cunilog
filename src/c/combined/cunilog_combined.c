@@ -17934,9 +17934,36 @@ static inline void defaultProcessorParameters (SCUNILOGTARGET *put)
 	}
 }
 
-static bool prepareProcessors (SCUNILOGTARGET *put, CUNILOG_PROCESSOR **cp, unsigned int np)
+static inline void zeroProcessors (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
+
+	put->cprocessors	= NULL;
+	put->nprocessors	= 0;
+}
+
+static void DoneSCUNILOGTARGETprocessors (SCUNILOGTARGET *put);
+
+/*
+	In the target initialisers zeroProcessors () must be called before prepareProcessors ().
+*/
+static bool prepareProcessors (SCUNILOGTARGET *put, CUNILOG_PROCESSOR **cp, unsigned int np)
+{
+	ubf_assert_non_NULL		(put);
+
+	// The caller does not wish default processors. The function
+	//	ConfigSCUNILOGTARGETprocessorList () must be called before the target is usable.
+	if (put->uiOpts & CUNILOGTARGET_NO_DEFAULT_PROCESSORS)
+	{
+		ubf_assert_NULL		(put->cprocessors);
+		ubf_assert_0		(put->nprocessors);
+		return true;
+	}
+
+	if (put->cprocessors && put->nprocessors)
+	{
+		DoneSCUNILOGTARGETprocessors (put);
+	}
 
 	if (NULL == cp || 0 == np)
 	{
@@ -18377,6 +18404,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 		return NULL;
 	}
 	CreateAppNameInSUNILOGTARGET (put, szAppName, lnAppName);
+	zeroProcessors (put);
 	prepareProcessors (put, cuProcessorList, nProcessors);
 	return initCommonMembersAndPrepareSCUNILOGTARGET (put) ? put : NULL;
 }
@@ -18514,6 +18542,7 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 		pu->culogType			= unilogTypeFromArgument (type);
 		pu->unilogEvtTSformat	= unilogTSformat;
 		pu->unilogNewLine		= unilogNewLine;
+		zeroProcessors (pu);
 		prepareProcessors (pu, cuProcessorList, nProcessors);
 		initCommonMembersAndPrepareSCUNILOGTARGET (pu);
 	}
