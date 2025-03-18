@@ -70,9 +70,9 @@ SOFTWARE.
 #endif
 
 
-EXTERN_C_BEGIN
-
 #ifdef PLATFORM_IS_POSIX
+
+EXTERN_C_BEGIN
 
 #include <sys/stat.h>
 
@@ -137,8 +137,8 @@ int PsxCloseSharedMutex(shared_mutex_t mutex);
 // **NOTE:** It will not unlock locked mutex.
 int PsxDestroySharedMutex(shared_mutex_t mutex);
 
-#endif															// Of #ifdef UBF_LINUX.
-
 EXTERN_C_END
+
+#endif															// Of #ifdef PLATFORM_IS_POSIX.
 
 #endif															// Of #ifndef U_PSX_SHARED_MUTEX_H.

@@ -5663,6 +5663,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifdef _WIN32
+
 #ifndef W_SHARED_MUTEX_INCLUDED
 #define W_SHARED_MUTEX_INCLUDED
 
@@ -5675,7 +5677,11 @@ EXTERN_C_BEGIN
 
 #ifdef PLATFORM_IS_WINDOWS
 
-typedef HANDLE shared_mutex_t;
+typedef struct ssharedmutext
+{
+	HANDLE		h;
+	bool		bCreatedHere;
+} *shared_mutex_t;
 
 // Initialize a new shared mutex with given `name`. If a mutex
 // with such name exists in the system, it will be loaded.
@@ -5718,11 +5724,13 @@ int WinCloseSharedMutex(shared_mutex_t mutex);
 // `errno` wil not be reset in such case, so you may used it.
 //
 // **NOTE:** It will not unlock locked mutex.
-int WinDestroySharedMutex(shared_mutex_t mutex);
+void WinDestroySharedMutex(shared_mutex_t mutex);
 
 #endif															// Of #ifdef UBF_WINDOWS.
 
 EXTERN_C_END
+
+#endif															// Of #ifdef _WIN32
 
 #endif															// W_SHARED_MUTEX_INCLUDED.
 /****************************************************************************************
@@ -6448,9 +6456,9 @@ SOFTWARE.
 #endif
 
 
-EXTERN_C_BEGIN
-
 #ifdef PLATFORM_IS_POSIX
+
+EXTERN_C_BEGIN
 
 #include <sys/stat.h>
 
@@ -6515,9 +6523,9 @@ int PsxCloseSharedMutex(shared_mutex_t mutex);
 // **NOTE:** It will not unlock locked mutex.
 int PsxDestroySharedMutex(shared_mutex_t mutex);
 
-#endif															// Of #ifdef UBF_LINUX.
-
 EXTERN_C_END
+
+#endif															// Of #ifdef PLATFORM_IS_POSIX.
 
 #endif															// Of #ifndef U_PSX_SHARED_MUTEX_H.
 /****************************************************************************************
@@ -7044,19 +7052,25 @@ int CloseSharedMutex (shared_mutex_t mutex);
 // Close and destroy shared mutex.
 // Any open pointers to it will be invalidated.
 //
-// Returns 0 in case of success. If any error occurs, it will be
-// printed into the standard output and the function will return -1.
-// `errno` wil not be reset in such case, so you may used it.
 //
 // **NOTE:** It will not unlock locked mutex.
-int DestroySharedMutex(shared_mutex_t mutex);
+void DestroySharedMutex(shared_mutex_t mutex);
 
 /*
 	EnterSharedMutex
 	LeaveSharedMutex
+
+	These functions return true on success, false otherwise.
 */
-int EnterSharedMutex (shared_mutex_t mutex);
-int LeaveSharedMutex (shared_mutex_t mutex);
+bool EnterSharedMutex (shared_mutex_t mutex);
+bool LeaveSharedMutex (shared_mutex_t mutex);
+
+/*
+	WeCreatedSharedMutex
+
+	Returns true if this instance/process created the shared mutex.
+*/
+bool HaveWeCreatedSharedMutex (shared_mutex_t mutex);
 
 EXTERN_C_END
 
@@ -16911,12 +16925,15 @@ enum cunilogpostfix
 
 	Carries out the actual write operation to the logfile. The member pData points to a
 	CUNILOG_LOGFILE structure. If the file doesn't exist yet it is created and opened for
-	writing to it. If the logfile exists, it is opened for writing.
+	writing. If the logfile exists, it is opened for writing. The file is closed when no
+	longer required.
 
 
 	cunilogProcessFlushLogFile
 
 	Flushes the logfile. The member pData points to the same CUNILOG_LOGFILE structure the
+	cunilogProcessWriteToLogFile processor points to. If pData is NULL, the target
+	initialisation functions automatically set to the same CUNILOG_LOGFILE structure the
 	cunilogProcessWriteToLogFile processor points to.
 
 
@@ -16935,7 +16952,7 @@ enum cunilogpostfix
 	cunilogProcessTargetRedirector
 
 	Redirects to another target. The member pData points to a fully initialised SCUNILOGTARGET
-	structure to which the event is redirectred to. After the redirection further processing
+	structure to which events are redirectred to. After the redirection further processing
 	within the current target is suppressed, meaning that this is the last processor.
 
 	If pData is NULL, no redirection takes place and the remaining processors are worked
@@ -17109,7 +17126,7 @@ typedef struct cunilog_rotation_data
 #define CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE		SINGLEBIT64 (2)
 
 /*
-	Macros for some checking, setting, and clearing some of the flags above.
+	Macros for checking, setting, and clearing some of the flags above.
 */
 #define cunilogHasRotatorFlag_USE_MBSRCMASK(pt)			\
 	((pt)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
@@ -17217,15 +17234,15 @@ typedef struct cunilog_rotation_data
 	cunilogProcessWriteToLogFile,						\
 	cunilogProcessAppliesTo_nAlways,					\
 	0, 0,												\
-	(plf),									\
+	(plf),												\
 	OPT_CUNPROC_NONE									\
 }
-#define CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR(plf)	\
+#define CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR			\
 {														\
 	cunilogProcessFlushLogFile,							\
 	cunilogProcessAppliesTo_Auto,						\
 	0, 0,												\
-	(plf),									\
+	NULL,												\
 	OPT_CUNPROC_FORCE_NEXT								\
 }
 /*
@@ -17890,9 +17907,8 @@ typedef struct scunilogevent
 // Shuts down logging.
 #define CUNILOGEVENT_SHUTDOWN			SINGLEBIT64 (2)
 
-// Cancels outstanding events and shuts down logging.
-// Unused/obsolete.
-//#define CUNILOGEVENT_CANCEL				SINGLEBIT64 (3)
+// Suppresses echo/console output processor.
+#define CUNILOGEVENT_NO_ECHO			SINGLEBIT64 (3)
 
 // The data is to be written out as a binary dump.
 //	Replaced by cueventtype.
@@ -17922,12 +17938,12 @@ typedef struct scunilogevent
 #define cunilogIsEventCancel(pue)						\
 	((pue)->uiOpts & CUNILOGEVENT_CANCEL)
 
-/* Replaced by cueventtype.
-#define cunilogSetEventHexdump(pue)						\
-	((pue)->uiOpts |= CUNILOGEVENT_AS_HEXDUMP)
-#define cunilogIsEventHexdump(pue)						\
-	((pue)->uiOpts & CUNILOGEVENT_AS_HEXDUMP)
-*/
+#define cunilogSetEventNoEcho(pev)						\
+	((pev)->uiOpts |= CUNILOGEVENT_NO_ECHO)
+#define cunilogClrEventNoEcho(pev)						\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_NO_ECHO)
+#define cunilogHasEventNoEcho(pev)						\
+	((pev)->uiOpts & CUNILOGEVENT_NO_ECHO)
 
 #define cunilogSetEventAutoFullstop(pue)				\
 	((pue)->uiOpts |= CUNILOGEVENT_AUTO_FULLSTOP)
@@ -17973,7 +17989,43 @@ typedef struct scunilogevent
 #endif
 
 /*
-	Parameter structure for rotator processor.
+	A callback function of a custom/user defined processor.
+*/
+typedef bool (*pfCustProc) (CUNILOG_PROCESSOR *, SCUNILOGEVENT *);
+
+/*
+	Callback function for cleaning up a custom/user defined processor.
+*/
+typedef void (*pfDoneProc) (CUNILOG_PROCESSOR *);
+
+/*
+	A pData structure for a unilogProcessCustomProcessor (custom/user/external) processor.
+
+	Members:
+
+	pCust			Pointer to a data structure provided and used by the caller. Cunilog
+					does not access this value. To access this member from a callback function,
+					cast the pData member of the CUNILOG_PROCESSOR structure to a pointer
+					to a CUNILOG_CUSTPROCESS structure.
+	procFnct		Pointer to a custom/user function provided by the caller that handles
+					the processor. This member cannot be NULL.
+	procDone		Pointer to a function that is called when the processor is destroyed.
+					This member can be NULL if this custom (or user/external) processor
+					does not require cleanup code.
+
+	Note that there's no callback function for initialisation. If dynamic initialisation is
+	required, it is recommended to initialise pCust to NULL and initialise the custom data
+	structure within the first call to procFnct.
+*/
+typedef struct cunilog_customprocess
+{
+	void			*pCust;
+	pfCustProc		procFnct;
+	pfDoneProc		procDone;
+} CUNILOG_CUSTPROCESS;
+
+/*
+	Parameter structure for a rotator processor.
 */
 typedef struct cunilog_rotator_args
 {
@@ -17982,20 +18034,6 @@ typedef struct cunilog_rotator_args
 	char					*nam;							// Name of file to rotate.
 	size_t					siz;							// Its size, incl. NUL.
 } CUNILOG_ROTATOR_ARGS;
-
-/*
-	A callback function of a custom processor.
-*/
-typedef bool (*pfCustProc) (CUNILOG_PROCESSOR *, SCUNILOGEVENT *);
-
-/*
-	A pData structure for a unilogProcessCustomProcessor (custom/external) processor.
-*/
-typedef struct cunilog_custprocess
-{
-	void			*pData;
-	pfCustProc		procFnc;
-} CUNILOG_CUSTPROCESS;
 
 /*
 	The priority levels of the separate logging thread.
@@ -18387,12 +18425,23 @@ When		Who				What
 #define CUNILOG_UNKNOWN_ERROR			(-1)
 #endif
 
-// Memory alignments. Use 16 octets/bytes for 64 bit platforms.
-#if defined (_WIN64) || defined (__x86_64__)
+/*
+	Memory alignments. Use 16 octets/bytes for 64 bit platforms.
+	Use CUNILOG_DEFAULT_ALIGNMENT for structures and CUNILOG_POINTER_ALIGNMENT
+	for pointers.
+	Also, see https://learn.microsoft.com/en-us/cpp/build/reference/zp-struct-member-alignment?view=msvc-170 .
+*/
+#if defined (_M_X64)
 	#define CUNILOG_DEFAULT_ALIGNMENT	(16)
 #else
 	#define CUNILOG_DEFAULT_ALIGNMENT	(8)
 #endif
+#if defined (_M_X64)
+	#define CUNILOG_POINTER_ALIGNMENT	(8)
+#else
+	#define CUNILOG_POINTER_ALIGNMENT	(8)
+#endif
+
 
 // Our standard size for error messages on the stack.
 #define CUNILOG_STD_MSG_SIZE			(256)
@@ -18532,6 +18581,12 @@ CUNILOG_DLL_IMPORT extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 #endif
 
 /*
+	CreateCopyCUNILOG_PROCESSORs
+*/
+CUNILOG_PROCESSOR **CreateCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [], unsigned int n);
+
+
+/*
 	Table with the length of the rotational date/timestamp.
 */
 extern size_t arrLengthTimeStampFromPostfix [cunilogPostfixAmountEnumValues];
@@ -18622,6 +18677,23 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 
 // This seems to make sense.
 #define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
+
+/*
+	CunilogGetEnv
+
+	Wrapper function for getenv () on Windows and secure_getenv () on POSIX.
+*/
+char *CunilogGetEnv (const char *szName);
+TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
+
+/*
+	Cunilog_Have_NO_COLOR
+
+	Returns true if the environment variable NO_COLOR exists and has a value (is not empty).
+	See https://no-color.org/ for the specification.
+*/
+bool Cunilog_Have_NO_COLOR (void);
+TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
 
 /*
 	InitSCUNILOGTARGETex
@@ -19261,6 +19333,10 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET_static)
 	ConfigSCUNILOGTARGETuseColourForEcho
 
 	Switches on/off using colours for console output depending on event severity level.
+
+	The NO_COLOR suggestion at https://no-color.org/ recommends that this function is
+	called after checking the environment variable NO_COLOR first:
+	ConfigSCUNILOGTARGETuseColourForEcho (target, !Cunilog_Have_NO_COLOR ());
 */
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
@@ -19934,7 +20010,7 @@ bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 #endif
 
 /*
-	SetLogPrioritySCUNILOGTARGETstatic
+	ChangeSCUNILOGTARGETlogPriority_static
 
 	Sets the priority of the separate logging thread that belongs to the internal static
 	SCUNILOGTARGET structure.
@@ -19952,10 +20028,10 @@ bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 	have a separate logging thread, the function returns true.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	#define SetLogPrioritySCUNILOGTARGETstatic(prio)	\
+	#define ChangeSCUNILOGTARGETlogPriority_static(prio)	\
 				ChangeSCUNILOGTARGETlogPriority (pSCUNILOGTARGETstatic, prio)
 #else
-	#define SetLogPrioritySCUNILOGTARGETstatic(put, prio) (true)
+	#define ChangeSCUNILOGTARGETlogPriority_static(put, prio) (true)
 #endif
 
 /*

@@ -178,8 +178,8 @@ int main (int argc, char *argv [])
 	logTextU8sev_static (cunilogEvtSeverityCritical, "This is a critical message");
 	ChangeSCUNILOGTARGETuseColourForEcho_static (false);
 	logTextU8sev_static (cunilogEvtSeverityCritical, "This is also a critical message");
-	SetLogPrioritySCUNILOGTARGETstatic (cunilogPrioBelowNormal);
-	SetLogPrioritySCUNILOGTARGETstatic (cunilogPrioNormal);
+	ChangeSCUNILOGTARGETlogPriority_static (cunilogPrioBelowNormal);
+	ChangeSCUNILOGTARGETlogPriority_static (cunilogPrioNormal);
 	ChangeSCUNILOGTARGETuseColourForEcho_static (true);
 	logTextU8sev_static (cunilogEvtSeverityCritical, "This is another critical message");
 

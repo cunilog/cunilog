@@ -93,34 +93,45 @@ int CloseSharedMutex (shared_mutex_t mutex)
 	#endif
 }
 
-int DestroySharedMutex (shared_mutex_t mutex)
+void DestroySharedMutex (shared_mutex_t mutex)
 {
 	#ifdef PLATFORM_IS_POSIX
-		return PsxDestroySharedMutex (mutex);
+		PsxDestroySharedMutex (mutex);
 	#endif
 	#ifdef PLATFORM_IS_WINDOWS
-		return WinDestroySharedMutex (mutex);
+		WinDestroySharedMutex (mutex);
 	#endif
 }
 
-int EnterSharedMutex (shared_mutex_t mutex)
+bool EnterSharedMutex (shared_mutex_t mutex)
 {
 	#ifdef PLATFORM_IS_POSIX
-		return pthread_mutex_lock (mutex.ptr);
+		return 0 == pthread_mutex_lock (mutex.ptr);
 	#endif
 	#ifdef PLATFORM_IS_WINDOWS
 		DWORD dw;
-		dw = WaitForSingleObject (mutex, INFINITE);
-		return WAIT_OBJECT_0 == dw ? 0 : 1;
+		dw = WaitForSingleObject (mutex->h, INFINITE);
+		return WAIT_OBJECT_0 == dw;
 	#endif
 }
 
-int LeaveSharedMutex (shared_mutex_t mutex)
+bool LeaveSharedMutex (shared_mutex_t mutex)
 {
-	#ifdef UBF_LINUX
-		return pthread_mutex_unlock (mutex.ptr);
+	#ifdef PLATFORM_IS_POSIX
+		return 0 == pthread_mutex_unlock (mutex.ptr);
 	#endif
 	#ifdef PLATFORM_IS_WINDOWS
-		return ReleaseMutex (mutex) ? 0 : 1;
+		return ReleaseMutex (mutex->h);
+	#endif
+}
+
+bool HaveWeCreatedSharedMutex (shared_mutex_t mutex)
+{
+	#if defined (PLATFORM_IS_WINDOWS)
+		return mutex->bCreatedHere;
+	#elif defined (PLATFORM_IS_POSIX)
+		return 0 != mutex.created;
+	#elif
+		#error Not supported
 	#endif
 }

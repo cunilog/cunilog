@@ -150,117 +150,170 @@ typedef struct cunilog_processor
 /*
 	Our default static pData structures for our standard processors.
 */
-CUNILOG_LOGFILE			stdcuppLogFile =
+CUNILOG_LOGFILE			defcuppLogFile						=
 	CUNILOG_INIT_DEF_CUNILOG_LOGFILE ();
-
-CUNILOG_ROTATION_DATA	stdcuppRotatorFS_compress =
+CUNILOG_ROTATION_DATA	defcuppRotatorFS_compress			=
 	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS
 		(CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED);
-CUNILOG_ROTATION_DATA	stdcuppRotatorMove_to_recycle_bin =
+CUNILOG_ROTATION_DATA	defcuppRotatorMove_to_recycle_bin	=
 	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_RECYCLE_BIN
 		(CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED);
-CUNILOG_ROTATION_DATA	stdcuppRotatorDelete =
+CUNILOG_ROTATION_DATA	defcuppRotatorDelete				=
 	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_DELETE
 		(CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED);
-
 /*
-	Our standard processors. Only used for our static SCUNILOGTARGET structure.
+	Our default processors. Only used for our static SCUNILOGTARGET structure.
 */
-CUNILOG_PROCESSOR	stdcuppEcho							=
+CUNILOG_PROCESSOR		defcuppEcho							=
 	CUNILOG_INIT_DEF_ECHO_PROCESSOR;
-CUNILOG_PROCESSOR	stdcuppUpdateLogfileName			=
+CUNILOG_PROCESSOR		defcuppUpdateLogfileName			=
 	CUNILOG_INIT_DEF_UPDATELOGFILENAME_PROCESSOR;
-CUNILOG_PROCESSOR	stdcuppWriteToLogfile				=
-	CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR		(&stdcuppLogFile);
-CUNILOG_PROCESSOR	stdcuppFlushLogFile					=
-	CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR			(&stdcuppLogFile);
-CUNILOG_PROCESSOR	stdcuppRotateLogfilesFScompress		=
-	CUNILOG_INIT_DEF_LOGFILESFSCOMPRESS_PROCESSOR	(&stdcuppRotatorFS_compress);
-CUNILOG_PROCESSOR	stdcuppRotateLogfilesMoveToTrash	=
-	CUNILOG_INIT_DEF_LOGFILESMOVETOTRASH_PROCESSOR	(&stdcuppRotatorMove_to_recycle_bin);
+CUNILOG_PROCESSOR		defcuppWriteToLogfile				=
+	CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR		(&defcuppLogFile);
+CUNILOG_PROCESSOR		defcuppFlushLogFile					=
+	CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR;
+CUNILOG_PROCESSOR		defcuppRotateLogfilesFScompress		=
+	CUNILOG_INIT_DEF_LOGFILESFSCOMPRESS_PROCESSOR	(&defcuppRotatorFS_compress);
+CUNILOG_PROCESSOR		defcuppRotateLogfilesMoveToTrash	=
+	CUNILOG_INIT_DEF_LOGFILESMOVETOTRASH_PROCESSOR	(&defcuppRotatorMove_to_recycle_bin);
 
-CUNILOG_PROCESSOR	*stdcupp [] =
+// The list with the processors.
+CUNILOG_PROCESSOR	*defcupp [] =
 {
-	&stdcuppEcho,											// Writes to console.
-	&stdcuppUpdateLogfileName,								// Updates the date/timestamp within
+	&defcuppEcho,											// Writes to console.
+	&defcuppUpdateLogfileName,								// Updates the date/timestamp within
 															//	the log file's name.
-	&stdcuppWriteToLogfile,									// Writes out to log file.
-	&stdcuppFlushLogFile,									// Flushes the log file.
-	&stdcuppRotateLogfilesFScompress,						// Rotates the log files.
-	&stdcuppRotateLogfilesMoveToTrash						// Rotates the log files.
+	&defcuppWriteToLogfile,									// Writes out to log file.
+	&defcuppFlushLogFile,									// Flushes the log file.
+	&defcuppRotateLogfilesFScompress,						// Rotates the log files.
+	&defcuppRotateLogfilesMoveToTrash						// Rotates the log files.
 };
 
-/*
+CUNILOG_PROCESSOR **CreateCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [], unsigned int n)
+{
+	ubf_assert_non_NULL	(cps);
+	ubf_assert_non_NULL	(cps [0]);
+	ubf_assert_non_0	(n);
+
+	// First we calculate the required space for the copy. An alignment of
+	//	CUNILOG_POINTER_ALIGNMENT may prevent a cache miss or two.
+
+	// Space for the array of pointers to processors, plus the actual processors.
+	size_t stTot = ALIGNED_SIZE (n * sizeof (CUNILOG_PROCESSOR *), CUNILOG_POINTER_ALIGNMENT);
+	stTot += n * ALIGNED_SIZE (sizeof (CUNILOG_PROCESSOR), CUNILOG_POINTER_ALIGNMENT);
+
+	// Space for the pData members.
+	unsigned int u;
+	for (u = 0; u < n; ++ u)
+	{
+		switch (cps [u]->task)
+		{
+			case cunilogProcessWriteToLogFile:
+				stTot += ALIGNED_SIZE (sizeof (CUNILOG_LOGFILE), CUNILOG_POINTER_ALIGNMENT);
+				break;
+			case cunilogProcessRotateLogfiles:
+				stTot += ALIGNED_SIZE (sizeof (CUNILOG_ROTATION_DATA), CUNILOG_POINTER_ALIGNMENT);
+				break;
+			case cunilogProcessCustomProcessor:
+				stTot += ALIGNED_SIZE (sizeof (CUNILOG_CUSTPROCESS), CUNILOG_POINTER_ALIGNMENT);
+				break;
+			default:
+				break;
+		}
+	}
+
+	CUNILOG_PROCESSOR **cpn = ubf_malloc (stTot);
+	if (cpn)
+	{
+		unsigned char *p = (unsigned char *) cpn;
+		// We leave space for the array of pointers.
+		p += ALIGNED_SIZE (n * sizeof (CUNILOG_PROCESSOR *), CUNILOG_POINTER_ALIGNMENT);
+
+		for (u = 0; u < n; ++ u)
+		{
+			memcpy (p, cps [u], sizeof (CUNILOG_PROCESSOR));
+			cpn [u] = (CUNILOG_PROCESSOR *) p;
+			p += ALIGNED_SIZE (sizeof (CUNILOG_PROCESSOR), CUNILOG_POINTER_ALIGNMENT);
+
+			switch (cps [u]->task)
+			{
+				case cunilogProcessWriteToLogFile:
+					memcpy (p, cps [u]->pData, sizeof (CUNILOG_LOGFILE));
+					cpn [u]->pData = p;
+					p += ALIGNED_SIZE (sizeof (CUNILOG_LOGFILE), CUNILOG_POINTER_ALIGNMENT);
+					break;
+				case cunilogProcessRotateLogfiles:
+					memcpy (p, cps [u]->pData, sizeof (CUNILOG_ROTATION_DATA));
+					cpn [u]->pData = p;
+					p += ALIGNED_SIZE (sizeof (CUNILOG_ROTATION_DATA), CUNILOG_POINTER_ALIGNMENT);
+					break;
+				case cunilogProcessCustomProcessor:
+					memcpy (p, cps [u]->pData, sizeof (CUNILOG_CUSTPROCESS));
+					cpn [u]->pData = p;
+					p += ALIGNED_SIZE (sizeof (CUNILOG_CUSTPROCESS), CUNILOG_POINTER_ALIGNMENT);
+					break;
+				default:
+					break;
+			}
+		}
+	}
+	return cpn;
+}
+
 CUNILOG_PROCESSOR **CreateNewStandardProcessors (unsigned int *pn)
 {
-	CUNILOG_PROCESSOR **pp	= malloc (3 * sizeof (CUNILOG_PROCESSOR *));
+	// The return value is useless without knowing the amount of processors.
+	ubf_assert_non_NULL (pn);
 
-	if (pp)
+	/*
+		We simply place default processors on the stack andcreate a copy of them on the heap.
+	*/
+	// Our pData structures.
+	CUNILOG_LOGFILE			stkcuppLogFile =
+		CUNILOG_INIT_DEF_CUNILOG_LOGFILE ();
+	CUNILOG_ROTATION_DATA	stkcuppRotatorFS_compress			=
+		CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS
+			(CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED);
+	CUNILOG_ROTATION_DATA	stkcuppRotatorMove_to_recycle_bin	=
+		CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_RECYCLE_BIN
+			(CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED);
+	/*
+	CUNILOG_ROTATION_DATA	stkcuppRotatorDelete				=
+		CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_DELETE
+			(CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED);
+	*/
+	// The processors.
+	CUNILOG_PROCESSOR		stkcuppEcho							=
+		CUNILOG_INIT_DEF_ECHO_PROCESSOR;
+	CUNILOG_PROCESSOR		stkcuppUpdateLogfileName			=
+		CUNILOG_INIT_DEF_UPDATELOGFILENAME_PROCESSOR;
+	CUNILOG_PROCESSOR		stkcuppWriteToLogfile				=
+		CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR		(&stkcuppLogFile);
+	CUNILOG_PROCESSOR		stkcuppFlushLogFile					=
+		CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR;
+	CUNILOG_PROCESSOR		stkcuppRotateLogfilesFScompress		=
+		CUNILOG_INIT_DEF_LOGFILESFSCOMPRESS_PROCESSOR	(&stkcuppRotatorFS_compress);
+	CUNILOG_PROCESSOR		stkcuppRotateLogfilesMoveToTrash	=
+		CUNILOG_INIT_DEF_LOGFILESMOVETOTRASH_PROCESSOR	(&stkcuppRotatorMove_to_recycle_bin);
+
+	// The list with the processors.
+	CUNILOG_PROCESSOR	*stkcupp [] =
 	{
-		// Echo (output) to console.
-		unsigned int ui = 0;
-		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
-		if (pp [ui])
-		{
-			pp [ui]->pSCUNILOGTARGET = put;
-			pp [ui]->task		= cunilogProcessEchoToConsole;
-			pp [ui]->thrtype	= cunilogProcessAppliesTo_nAlways;
-			pp [ui]->thr		= 0;
-			pp [ui]->cur		= 0;
-			pp [ui]->pData		= NULL;
-			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
-			pp [ui]->uiOpts	|= OPT_CUNPROC_FORCE_NEXT | OPT_CUNPROC_ALLOCATED;
-		}
-		// Update the name of the logfile.
-		++ ui;
-		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
-		if (pp [ui])
-		{
-			pp [ui]->pSCUNILOGTARGET = put;
-			pp [ui]->task		= cunilogProcessUpdateLogFileName;
-			pp [ui]->thrtype	= cunilogProcessAppliesTo_nAlways;
-			pp [ui]->thr		= 0;
-			pp [ui]->cur		= 0;
-			pp [ui]->pData		= NULL;
-			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
-			pp [ui]->uiOpts	|= OPT_CUNPROC_ALLOCATED;
-		}
-		// Write to log file.
-		++ ui;
-		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
-		if (pp [ui])
-		{
-			pp [ui]->pSCUNILOGTARGET = put;
-			pp [ui]->task		= cunilogProcessWriteToLogFile;
-			pp [ui]->thrtype	= cunilogProcessAppliesTo_nAlways;
-			pp [ui]->thr		= 0;
-			pp [ui]->cur		= 0;
-			pp [ui]->pData		= NULL;
-			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
-			pp [ui]->uiOpts	|= OPT_CUNPROC_ALLOCATED;
-		}
-		// Flush log file.
-		++ ui;
-		pp [ui] = malloc (sizeof (CUNILOG_PROCESSOR));
-		if (pp [ui])
-		{
-			pp [ui]->pSCUNILOGTARGET = put;
-			pp [ui]->task		= cunilogProcessFlushLogFile;
-			pp [ui]->thrtype	= cunilogProcessAppliesTo_HourChanged;
-			pp [ui]->thr		= 0;
-			pp [ui]->cur		= 0;
-			pp [ui]->pData		= NULL;
-			pp [ui]->uiOpts		= OPT_CUNPROC_NONE;
-			pp [ui]->uiOpts	|= OPT_CUNPROC_FORCE_NEXT | OPT_CUNPROC_ALLOCATED;
-		}
-		// This is the last one.
-		++ ui;
-		if (pn)
-			*pn = ui;
-	}
-	return pp;
+		&stkcuppEcho,											// Writes to console.
+		&stkcuppUpdateLogfileName,								// Updates the date/timestamp within
+																//	the log file's name.
+		&stkcuppWriteToLogfile,									// Writes out to log file.
+		&stkcuppFlushLogFile,									// Flushes the log file.
+		&stkcuppRotateLogfilesFScompress,						// Rotates the log files.
+		&stkcuppRotateLogfilesMoveToTrash						// Rotates the log files.
+	};
+
+	unsigned int n = ARRAYSIZE (defcupp);
+	CUNILOG_PROCESSOR **cps = CreateCopyCUNILOG_PROCESSORs (stkcupp, n);
+	if (cps)
+		*pn = n;
+	return cps;
 }
-*/
 
 size_t arrLengthTimeStampFromPostfix [] =					// [unilogPostfixAmountEnumValues]
 {
@@ -845,7 +898,7 @@ static inline void correctDefaultFrequency (CUNILOG_PROCESSOR *cp, SCUNILOGTARGE
 	}
 }
 
-static inline void defaultFrequenciesAndMaxToRotate (SCUNILOGTARGET *put)
+static inline void defaultProcessorParameters (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL	(put->cprocessors);
@@ -854,51 +907,59 @@ static inline void defaultFrequenciesAndMaxToRotate (SCUNILOGTARGET *put)
 	CUNILOG_PROCESSOR		*cp;
 	CUNILOG_ROTATION_DATA	*prPrev				= NULL;
 	CUNILOG_ROTATION_DATA	*prCurr;
+	CUNILOG_LOGFILE			*pLF				= NULL;
 
 	unsigned int n = 0;
 	while (n < put->nprocessors)
 	{
 		cp = put->cprocessors [n];
 		correctDefaultFrequency (cp, put);
-		if (cunilogProcessRotateLogfiles == cp->task)
+		switch (cp->task)
 		{
-			prCurr = cp->pData;
-			if (prPrev)
-			{
-				if (CUNILOG_MAX_ROTATE_AUTO == prPrev->nMaxToRotate)
+			case cunilogProcessRotateLogfiles:
+				prCurr = cp->pData;
+				if (prPrev && CUNILOG_MAX_ROTATE_AUTO == prPrev->nMaxToRotate)
 					prPrev->nMaxToRotate = prCurr->nIgnore;
-			}
-			prPrev = prCurr;
+				prPrev = prCurr;
+				break;
+			case cunilogProcessWriteToLogFile:
+				pLF = cp->pData;
+				break;
+			case cunilogProcessFlushLogFile:
+				// If we abort here, the caller has supplied a cunilogProcessFlushLogFile
+				//	processor without supplying a cunilogProcessWriteToLogFile processor
+				//	first.
+				ubf_assert_non_NULL (pLF);
+				if (NULL == cp->pData)
+					cp->pData = pLF;
+				break;
 		}
 		++ n;
 	}
 }
 
-static void prepareProcessors (SCUNILOGTARGET *put, CUNILOG_PROCESSOR **cp, unsigned int np)
+static bool prepareProcessors (SCUNILOGTARGET *put, CUNILOG_PROCESSOR **cp, unsigned int np)
 {
 	ubf_assert_non_NULL (put);
 
 	if (NULL == cp || 0 == np)
 	{
-		put->cprocessors = stdcupp;
-		put->nprocessors = GET_ARRAY_LEN (stdcupp);
-	} else
-	{
 		/*
-			This was originally for testing but is not required here. We'll provide the caller
-			with an option to dynamically allocate standard processors at a later time.
-
-		put->cprocessors = NewStandardProcessors (put, &put->nprocessors);
+		put->cprocessors = defcupp;
+		put->nprocessors = GET_ARRAY_LEN (defcupp);
+		*/
+		put->cprocessors = CreateNewStandardProcessors (&put->nprocessors);
 		if (put->cprocessors)
 			cunilogSetProcessorsAllocated (put);
-		*/
-
-		// The caller obviously provided processors.
-		//setProcessorsSCUNILOGTARGET (put, cp, np);
+		else
+			return false;
+	} else
+	{
 		put->cprocessors = cp;
 		put->nprocessors = np;
 	}
-	defaultFrequenciesAndMaxToRotate (put);
+	defaultProcessorParameters (put);
+	return true;
 }
 
 static void prepareSCUNILOGTARGETinitFilenameBuffers (SCUNILOGTARGET *put, size_t lnTotal)
@@ -1109,6 +1170,25 @@ static bool StartSeparateLoggingThread_ifNeeded (SCUNILOGTARGET *put)
 		ourCunilogConsoleOutputCodePage = cp;
 	}
 #endif
+
+char *CunilogGetEnv (const char *szName)
+{
+	ubf_assert_non_NULL (szName);
+
+	#if defined (PLATFORM_IS_WINDOWS)
+		return getenv (szName);
+	#elif defined (PLATFORM_IS_POSIX)
+		return secure_getenv (szName);
+	#elif
+		#error Not supported
+	#endif
+}
+
+bool Cunilog_Have_NO_COLOR (void)
+{
+	char *szNoCol = CunilogGetEnv ("NO_COLOR");
+	return szNoCol && szNoCol [0];
+}
 
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	// This is the only type possible in a single-threaded environment.
@@ -1760,25 +1840,34 @@ static inline void CloseCUNILOG_LOGFILEifOpen (CUNILOG_LOGFILE *cl)
 	#endif
 }
 
-static void DoneSCUNILOGTARGETprocessors (SCUNILOGTARGET *psu)
+static void DoneSCUNILOGTARGETprocessors (SCUNILOGTARGET *put)
 {
-	ubf_assert_non_NULL (psu);
+	ubf_assert_non_NULL (put);
 
-	unsigned int			np = psu->nprocessors;
-	unsigned int			ui;
-	CUNILOG_PROCESSOR		*cp;
-	CUNILOG_ROTATION_DATA	*rt;
+	unsigned int				np = put->nprocessors;
+	unsigned int				ui;
+	CUNILOG_PROCESSOR			*cp;
+	union
+	{
+		CUNILOG_ROTATION_DATA	*rt;
+		CUNILOG_CUSTPROCESS		*up;
+	} upCust;
 
 	for (ui = 0; ui < np; ++ ui)
 	{
-		cp = psu->cprocessors [ui];
+		cp = put->cprocessors [ui];
 		switch (cp->task)
 		{
 			case cunilogProcessNoOperation:
 			case cunilogProcessEchoToConsole:
 			case cunilogProcessUpdateLogFileName:
 			case cunilogProcessFlushLogFile:
+				break;
 			case cunilogProcessCustomProcessor:
+				upCust.up = cp->pData;
+				if (upCust.up->procDone)
+					upCust.up->procDone (cp);
+				break;
 			case cunilogProcessTargetRedirector:
 			case cunilogProcessAmountEnumValues:
 				break;
@@ -1786,22 +1875,19 @@ static void DoneSCUNILOGTARGETprocessors (SCUNILOGTARGET *psu)
 				CloseCUNILOG_LOGFILEifOpen (cp->pData);
 				break;
 			case cunilogProcessRotateLogfiles:
-				rt = cp->pData;
-				if (cunilogHasRotatorFlag_USE_MBSRCMASK (rt))
-					doneSMEMBUF (&rt->mbSrcMask);
-				if (cunilogHasRotatorFlag_USE_MBDSTFILE (rt))
-					doneSMEMBUF (&rt->mbDstFile);
+				upCust.rt = cp->pData;
+				if (cunilogHasRotatorFlag_USE_MBSRCMASK (upCust.rt))
+					doneSMEMBUF (&upCust.rt->mbSrcMask);
+				if (cunilogHasRotatorFlag_USE_MBDSTFILE (upCust.rt))
+					doneSMEMBUF (&upCust.rt->mbDstFile);
 				break;
 		}
 	}
 
-	if (cunilogIsProcessorsAllocated (psu))
+	if (cunilogIsProcessorsAllocated (put))
 	{
-		for (ui = 0; ui < np; ++ ui)
-		{
-			cp = psu->cprocessors [ui];
-			free (cp);
-		}
+		ubf_free (put->cprocessors);
+		cunilogClrProcessorsAllocated (put);
 	}
 }
 
@@ -2823,7 +2909,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	static inline void cunilogFillColouredEchoEvtLine	(
-							char			*	*pszToOutput,
+							char				**pszToOutput,
 							size_t				*plnToOutput,
 							SCUNILOGEVENT		*pev
 														)
@@ -2874,7 +2960,7 @@ static bool cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
 
-	if (cunilogIsNoEcho (pev->pSCUNILOGTARGET))
+	if (cunilogIsNoEcho (pev->pSCUNILOGTARGET) || cunilogHasEventNoEcho (pev))
 		return true;
 
 	// The actual task of this processor: Echo the event line.
@@ -3332,14 +3418,14 @@ static inline void cuMoveFileToRecycleBin (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 	
-		logNoRotationTextU8fmt (put, "Deleting obsolete logfile \"%s\"...\n", put->mbFilToRotate.buf.pch);
+		logFromInsideRotatorTextU8fmt (put, "Deleting obsolete logfile \"%s\"...\n", put->mbFilToRotate.buf.pch);
 		int i = unlink (put->mbFilToRotate.buf.pch);
 		if (0 == i)
 		{
-			logNoRotationTextU8fmt (put, "Obsolete logfile \"%s\" deleted.\n", put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" deleted.\n", put->mbFilToRotate.buf.pch);
 		} else
 		{
-			logNoRotationTextU8fmt (put, "Error %d while attempting to delete obsolete logfile \"%s\".\n", errno, put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Error %d while attempting to delete obsolete logfile \"%s\".\n", errno, put->mbFilToRotate.buf.pch);
 		}
 	}
 #endif
@@ -3627,8 +3713,8 @@ static bool cunilogProcessCustomProcessorFnct (CUNILOG_PROCESSOR *cup, SCUNILOGE
 
 	CUNILOG_CUSTPROCESS	*pcu = cup->pData;
 	ubf_assert_non_NULL (pcu);
-	ubf_assert_non_NULL (pcu->procFnc);
-	return pcu->procFnc (cup, pev);
+	ubf_assert_non_NULL (pcu->procFnct);
+	return pcu->procFnct (cup, pev);
 }
 
 /*
@@ -4276,8 +4362,11 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	static SCUNILOGEVENT scueShutdown =
 	{
-		NULL, CUNILOGEVENT_SHUTDOWN, 0, cunilogEvtSeverityNone, cunilogEvtTypeNormalText,
-		NULL, 0, 0
+		NULL, CUNILOGEVENT_SHUTDOWN, 0,						// Up to stamp.
+		NULL, 0,											// Up to lenDataToLog
+		NULL,												// Member *next.
+		cunilogEvtSeverityNone, cunilogEvtTypeNormalText,
+		0													// Member sizEvent.
 	};
 #endif
 

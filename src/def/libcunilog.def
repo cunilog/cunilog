@@ -18,42 +18,44 @@ EXPORTS
 	ccdtMnths										@105	DATA
 
 	CunilogSetConsoleTo								@200
-	InitSCUNILOGTARGETex							@201
-	InitSCUNILOGTARGET								@202
-	CreateNewSCUNILOGTARGET							@203
-	InitOrCreateSCUNILOGTARGET						@204
-	InitSCUNILOGTARGETstaticEx						@205
-	InitSCUNILOGTARGETstatic						@206
-	GetAbsoluteLogPathSCUNILOGTARGET				@207
-	GetAbsoluteLogPathSCUNILOGTARGET_static			@208
-	ConfigSCUNILOGTARGETcunilogpostfix				@209
-	ConfigSCUNILOGTARGETrunProcessorsOnStartup		@210
-	ConfigSCUNILOGTARGETcunilognewline				@211
-	ConfigSCUNILOGTARGETeventSeverityFormatType		@212
-	ConfigSCUNILOGTARGETuseColourForEcho			@213
-	ConfigSCUNILOGTARGETprocessorList				@214
-	ConfigSCUNILOGTARGETdisableTaskProcessors		@215
-	ConfigSCUNILOGTARGETenableTaskProcessors		@216
-	ConfigSCUNILOGTARGETdisableEchoProcessor		@217
-	ConfigSCUNILOGTARGETenableEchoProcessor			@218
-;	EnterSCUNILOGTARGET								@219	Should not be used.
-;	LeaveSCUNILOGTARGET								@220	Should not be used.
-	DoneSCUNILOGTARGET								@221
-	ShutdownSCUNILOGTARGET							@222
-	CancelSCUNILOGTARGET							@223
-	ChangeSCUNILOGTARGETlogPriority					@224
-	PauseLogSCUNILOGTARGET							@225
-	ResumeLogSCUNILOGTARGET							@226
-	CreateSCUNILOGEVENT_Data						@227
-	CreateSCUNILOGEVENT_Text						@228
-	DuplicateSCUNILOGEVENT							@229
-	DoneSCUNILOGEVENT								@230
-	ChangeSCUNILOGTARGETuseColourForEcho			@231
-	ChangeSCUNILOGTARGETcunilognewline				@232
-	ChangeSCUNILOGTARGETdisableTaskProcessors		@233
-	ChangeSCUNILOGTARGETenableTaskProcessors		@234
-	ChangeSCUNILOGTARGETdisableEchoProcessor		@235
-	ChangeSCUNILOGTARGETenableEchoProcessor			@236
+	CunilogGetEnv									@201
+	Cunilog_Have_NO_COLOR							@202
+	InitSCUNILOGTARGETex							@203
+	InitSCUNILOGTARGET								@204
+	CreateNewSCUNILOGTARGET							@205
+	InitOrCreateSCUNILOGTARGET						@206
+	InitSCUNILOGTARGETstaticEx						@207
+	InitSCUNILOGTARGETstatic						@208
+	GetAbsoluteLogPathSCUNILOGTARGET				@209
+	GetAbsoluteLogPathSCUNILOGTARGET_static			@210
+	ConfigSCUNILOGTARGETcunilogpostfix				@211
+	ConfigSCUNILOGTARGETrunProcessorsOnStartup		@212
+	ConfigSCUNILOGTARGETcunilognewline				@213
+	ConfigSCUNILOGTARGETeventSeverityFormatType		@214
+	ConfigSCUNILOGTARGETuseColourForEcho			@215
+	ConfigSCUNILOGTARGETprocessorList				@216
+	ConfigSCUNILOGTARGETdisableTaskProcessors		@217
+	ConfigSCUNILOGTARGETenableTaskProcessors		@218
+	ConfigSCUNILOGTARGETdisableEchoProcessor		@219
+	ConfigSCUNILOGTARGETenableEchoProcessor			@220
+;	EnterSCUNILOGTARGET								@221	Should not be used.
+;	LeaveSCUNILOGTARGET								@222	Should not be used.
+	DoneSCUNILOGTARGET								@223
+	ShutdownSCUNILOGTARGET							@224
+	CancelSCUNILOGTARGET							@225
+	ChangeSCUNILOGTARGETlogPriority					@226
+	PauseLogSCUNILOGTARGET							@227
+	ResumeLogSCUNILOGTARGET							@228
+	CreateSCUNILOGEVENT_Data						@229
+	CreateSCUNILOGEVENT_Text						@230
+	DuplicateSCUNILOGEVENT							@231
+	DoneSCUNILOGEVENT								@232
+	ChangeSCUNILOGTARGETuseColourForEcho			@233
+	ChangeSCUNILOGTARGETcunilognewline				@234
+	ChangeSCUNILOGTARGETdisableTaskProcessors		@235
+	ChangeSCUNILOGTARGETenableTaskProcessors		@236
+	ChangeSCUNILOGTARGETdisableEchoProcessor		@237
+	ChangeSCUNILOGTARGETenableEchoProcessor			@238
 
 	cunilogCheckVersionIntChk						@250
 

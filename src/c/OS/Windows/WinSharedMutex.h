@@ -48,6 +48,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifdef _WIN32
+
 #ifndef W_SHARED_MUTEX_INCLUDED
 #define W_SHARED_MUTEX_INCLUDED
 
@@ -60,7 +62,11 @@ EXTERN_C_BEGIN
 
 #ifdef PLATFORM_IS_WINDOWS
 
-typedef HANDLE shared_mutex_t;
+typedef struct ssharedmutext
+{
+	HANDLE		h;
+	bool		bCreatedHere;
+} *shared_mutex_t;
 
 // Initialize a new shared mutex with given `name`. If a mutex
 // with such name exists in the system, it will be loaded.
@@ -103,10 +109,12 @@ int WinCloseSharedMutex(shared_mutex_t mutex);
 // `errno` wil not be reset in such case, so you may used it.
 //
 // **NOTE:** It will not unlock locked mutex.
-int WinDestroySharedMutex(shared_mutex_t mutex);
+void WinDestroySharedMutex(shared_mutex_t mutex);
 
 #endif															// Of #ifdef UBF_WINDOWS.
 
 EXTERN_C_END
+
+#endif															// Of #ifdef _WIN32
 
 #endif															// W_SHARED_MUTEX_INCLUDED.

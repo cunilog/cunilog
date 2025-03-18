@@ -288,12 +288,15 @@ enum cunilogpostfix
 
 	Carries out the actual write operation to the logfile. The member pData points to a
 	CUNILOG_LOGFILE structure. If the file doesn't exist yet it is created and opened for
-	writing to it. If the logfile exists, it is opened for writing.
+	writing. If the logfile exists, it is opened for writing. The file is closed when no
+	longer required.
 
 
 	cunilogProcessFlushLogFile
 
 	Flushes the logfile. The member pData points to the same CUNILOG_LOGFILE structure the
+	cunilogProcessWriteToLogFile processor points to. If pData is NULL, the target
+	initialisation functions automatically set to the same CUNILOG_LOGFILE structure the
 	cunilogProcessWriteToLogFile processor points to.
 
 
@@ -312,7 +315,7 @@ enum cunilogpostfix
 	cunilogProcessTargetRedirector
 
 	Redirects to another target. The member pData points to a fully initialised SCUNILOGTARGET
-	structure to which the event is redirectred to. After the redirection further processing
+	structure to which events are redirectred to. After the redirection further processing
 	within the current target is suppressed, meaning that this is the last processor.
 
 	If pData is NULL, no redirection takes place and the remaining processors are worked
@@ -486,7 +489,7 @@ typedef struct cunilog_rotation_data
 #define CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE		SINGLEBIT64 (2)
 
 /*
-	Macros for some checking, setting, and clearing some of the flags above.
+	Macros for checking, setting, and clearing some of the flags above.
 */
 #define cunilogHasRotatorFlag_USE_MBSRCMASK(pt)			\
 	((pt)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
@@ -594,15 +597,15 @@ typedef struct cunilog_rotation_data
 	cunilogProcessWriteToLogFile,						\
 	cunilogProcessAppliesTo_nAlways,					\
 	0, 0,												\
-	(plf),									\
+	(plf),												\
 	OPT_CUNPROC_NONE									\
 }
-#define CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR(plf)	\
+#define CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR			\
 {														\
 	cunilogProcessFlushLogFile,							\
 	cunilogProcessAppliesTo_Auto,						\
 	0, 0,												\
-	(plf),									\
+	NULL,												\
 	OPT_CUNPROC_FORCE_NEXT								\
 }
 /*
@@ -1267,9 +1270,8 @@ typedef struct scunilogevent
 // Shuts down logging.
 #define CUNILOGEVENT_SHUTDOWN			SINGLEBIT64 (2)
 
-// Cancels outstanding events and shuts down logging.
-// Unused/obsolete.
-//#define CUNILOGEVENT_CANCEL				SINGLEBIT64 (3)
+// Suppresses echo/console output processor.
+#define CUNILOGEVENT_NO_ECHO			SINGLEBIT64 (3)
 
 // The data is to be written out as a binary dump.
 //	Replaced by cueventtype.
@@ -1299,12 +1301,12 @@ typedef struct scunilogevent
 #define cunilogIsEventCancel(pue)						\
 	((pue)->uiOpts & CUNILOGEVENT_CANCEL)
 
-/* Replaced by cueventtype.
-#define cunilogSetEventHexdump(pue)						\
-	((pue)->uiOpts |= CUNILOGEVENT_AS_HEXDUMP)
-#define cunilogIsEventHexdump(pue)						\
-	((pue)->uiOpts & CUNILOGEVENT_AS_HEXDUMP)
-*/
+#define cunilogSetEventNoEcho(pev)						\
+	((pev)->uiOpts |= CUNILOGEVENT_NO_ECHO)
+#define cunilogClrEventNoEcho(pev)						\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_NO_ECHO)
+#define cunilogHasEventNoEcho(pev)						\
+	((pev)->uiOpts & CUNILOGEVENT_NO_ECHO)
 
 #define cunilogSetEventAutoFullstop(pue)				\
 	((pue)->uiOpts |= CUNILOGEVENT_AUTO_FULLSTOP)
@@ -1350,7 +1352,43 @@ typedef struct scunilogevent
 #endif
 
 /*
-	Parameter structure for rotator processor.
+	A callback function of a custom/user defined processor.
+*/
+typedef bool (*pfCustProc) (CUNILOG_PROCESSOR *, SCUNILOGEVENT *);
+
+/*
+	Callback function for cleaning up a custom/user defined processor.
+*/
+typedef void (*pfDoneProc) (CUNILOG_PROCESSOR *);
+
+/*
+	A pData structure for a unilogProcessCustomProcessor (custom/user/external) processor.
+
+	Members:
+
+	pCust			Pointer to a data structure provided and used by the caller. Cunilog
+					does not access this value. To access this member from a callback function,
+					cast the pData member of the CUNILOG_PROCESSOR structure to a pointer
+					to a CUNILOG_CUSTPROCESS structure.
+	procFnct		Pointer to a custom/user function provided by the caller that handles
+					the processor. This member cannot be NULL.
+	procDone		Pointer to a function that is called when the processor is destroyed.
+					This member can be NULL if this custom (or user/external) processor
+					does not require cleanup code.
+
+	Note that there's no callback function for initialisation. If dynamic initialisation is
+	required, it is recommended to initialise pCust to NULL and initialise the custom data
+	structure within the first call to procFnct.
+*/
+typedef struct cunilog_customprocess
+{
+	void			*pCust;
+	pfCustProc		procFnct;
+	pfDoneProc		procDone;
+} CUNILOG_CUSTPROCESS;
+
+/*
+	Parameter structure for a rotator processor.
 */
 typedef struct cunilog_rotator_args
 {
@@ -1359,20 +1397,6 @@ typedef struct cunilog_rotator_args
 	char					*nam;							// Name of file to rotate.
 	size_t					siz;							// Its size, incl. NUL.
 } CUNILOG_ROTATOR_ARGS;
-
-/*
-	A callback function of a custom processor.
-*/
-typedef bool (*pfCustProc) (CUNILOG_PROCESSOR *, SCUNILOGEVENT *);
-
-/*
-	A pData structure for a unilogProcessCustomProcessor (custom/external) processor.
-*/
-typedef struct cunilog_custprocess
-{
-	void			*pData;
-	pfCustProc		procFnc;
-} CUNILOG_CUSTPROCESS;
 
 /*
 	The priority levels of the separate logging thread.

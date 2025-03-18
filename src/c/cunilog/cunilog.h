@@ -108,12 +108,23 @@ When		Who				What
 #define CUNILOG_UNKNOWN_ERROR			(-1)
 #endif
 
-// Memory alignments. Use 16 octets/bytes for 64 bit platforms.
-#if defined (_WIN64) || defined (__x86_64__)
+/*
+	Memory alignments. Use 16 octets/bytes for 64 bit platforms.
+	Use CUNILOG_DEFAULT_ALIGNMENT for structures and CUNILOG_POINTER_ALIGNMENT
+	for pointers.
+	Also, see https://learn.microsoft.com/en-us/cpp/build/reference/zp-struct-member-alignment?view=msvc-170 .
+*/
+#if defined (_M_X64)
 	#define CUNILOG_DEFAULT_ALIGNMENT	(16)
 #else
 	#define CUNILOG_DEFAULT_ALIGNMENT	(8)
 #endif
+#if defined (_M_X64)
+	#define CUNILOG_POINTER_ALIGNMENT	(8)
+#else
+	#define CUNILOG_POINTER_ALIGNMENT	(8)
+#endif
+
 
 // Our standard size for error messages on the stack.
 #define CUNILOG_STD_MSG_SIZE			(256)
@@ -253,6 +264,12 @@ CUNILOG_DLL_IMPORT extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 #endif
 
 /*
+	CreateCopyCUNILOG_PROCESSORs
+*/
+CUNILOG_PROCESSOR **CreateCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [], unsigned int n);
+
+
+/*
 	Table with the length of the rotational date/timestamp.
 */
 extern size_t arrLengthTimeStampFromPostfix [cunilogPostfixAmountEnumValues];
@@ -343,6 +360,23 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 
 // This seems to make sense.
 #define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
+
+/*
+	CunilogGetEnv
+
+	Wrapper function for getenv () on Windows and secure_getenv () on POSIX.
+*/
+char *CunilogGetEnv (const char *szName);
+TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
+
+/*
+	Cunilog_Have_NO_COLOR
+
+	Returns true if the environment variable NO_COLOR exists and has a value (is not empty).
+	See https://no-color.org/ for the specification.
+*/
+bool Cunilog_Have_NO_COLOR (void);
+TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
 
 /*
 	InitSCUNILOGTARGETex
@@ -982,6 +1016,10 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET_static)
 	ConfigSCUNILOGTARGETuseColourForEcho
 
 	Switches on/off using colours for console output depending on event severity level.
+
+	The NO_COLOR suggestion at https://no-color.org/ recommends that this function is
+	called after checking the environment variable NO_COLOR first:
+	ConfigSCUNILOGTARGETuseColourForEcho (target, !Cunilog_Have_NO_COLOR ());
 */
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
@@ -1655,7 +1693,7 @@ bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 #endif
 
 /*
-	SetLogPrioritySCUNILOGTARGETstatic
+	ChangeSCUNILOGTARGETlogPriority_static
 
 	Sets the priority of the separate logging thread that belongs to the internal static
 	SCUNILOGTARGET structure.
@@ -1673,10 +1711,10 @@ bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 	have a separate logging thread, the function returns true.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	#define SetLogPrioritySCUNILOGTARGETstatic(prio)	\
+	#define ChangeSCUNILOGTARGETlogPriority_static(prio)	\
 				ChangeSCUNILOGTARGETlogPriority (pSCUNILOGTARGETstatic, prio)
 #else
-	#define SetLogPrioritySCUNILOGTARGETstatic(put, prio) (true)
+	#define ChangeSCUNILOGTARGETlogPriority_static(put, prio) (true)
 #endif
 
 /*

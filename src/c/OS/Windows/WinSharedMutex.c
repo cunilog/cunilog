@@ -43,32 +43,45 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifdef _WIN32
+
 #ifndef CUNILOG_USE_COMBINED_MODULE
 	#include "./WinSharedMutex.h"
 #endif
 
-#ifdef PLATFORM_IS_WINDOWS
-
 shared_mutex_t WinInitSharedMutex(const char *name)
 {
-	HANDLE	hMut;
-	hMut = CreateMutexU8 (NULL, FALSE, name);
-	ASSERT (NULL != hMut);
-	return hMut;
+	shared_mutex_t s = malloc (sizeof (struct ssharedmutext));
+	if (s)
+	{
+		s->h = CreateMutexU8 (NULL, FALSE, name);
+		if (s->h)
+		{
+			DWORD dwErr = GetLastError ();
+			s->bCreatedHere = ERROR_ALREADY_EXISTS == dwErr;
+		} else
+			goto fail;
+	}
+	return s;
+
+fail:
+	free (s);
+	return NULL;
 }
 
 int WinCloseSharedMutex(shared_mutex_t mutex)
 {
-	return CloseHandle (mutex) ? 0 : 1;
+	return CloseHandle (mutex->h) ? 0 : 1;
 }
 
-int WinDestroySharedMutex(shared_mutex_t mutex)
+void WinDestroySharedMutex(shared_mutex_t mutex)
 {	// In Windows, the mutex is destroyed automatically when the last open
 	//	handle to it is closed. Refer to
 	//	https://docs.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createmutexw
 	//	for clarification.
-	UNREFERENCED_PARAMETER (mutex);
-	return 0;
+	if (mutex->h)
+		CloseHandle (mutex->h);
+	free (mutex);
 }
 
-#endif															// Of #ifdef UBF_WINDOWS.
+#endif															// Of #ifdef _WIN32

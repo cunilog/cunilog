@@ -151,19 +151,25 @@ int CloseSharedMutex (shared_mutex_t mutex);
 // Close and destroy shared mutex.
 // Any open pointers to it will be invalidated.
 //
-// Returns 0 in case of success. If any error occurs, it will be
-// printed into the standard output and the function will return -1.
-// `errno` wil not be reset in such case, so you may used it.
 //
 // **NOTE:** It will not unlock locked mutex.
-int DestroySharedMutex(shared_mutex_t mutex);
+void DestroySharedMutex(shared_mutex_t mutex);
 
 /*
 	EnterSharedMutex
 	LeaveSharedMutex
+
+	These functions return true on success, false otherwise.
 */
-int EnterSharedMutex (shared_mutex_t mutex);
-int LeaveSharedMutex (shared_mutex_t mutex);
+bool EnterSharedMutex (shared_mutex_t mutex);
+bool LeaveSharedMutex (shared_mutex_t mutex);
+
+/*
+	WeCreatedSharedMutex
+
+	Returns true if this instance/process created the shared mutex.
+*/
+bool HaveWeCreatedSharedMutex (shared_mutex_t mutex);
 
 EXTERN_C_END
 
