@@ -121,7 +121,7 @@ void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
 	buffer szOut points to.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevtpy sevTpy)
+	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevfmtpy sevTpy)
 	;
 #endif
 

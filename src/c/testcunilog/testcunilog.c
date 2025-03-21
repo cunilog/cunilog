@@ -183,6 +183,33 @@ int main (int argc, char *argv [])
 	ChangeSCUNILOGTARGETuseColourForEcho_static (true);
 	logTextU8sev_static (cunilogEvtSeverityCritical, "This is another critical message");
 
+	logTextU8sev_static (cunilogEvtSeverityNonePass, "This is a good one");
+	logTextU8sev_static (cunilogEvtSeverityNoneFail, "This is a bad one");
+	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
+	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
+	ChangeSCUNILOGTARGETeventSeverityFormatType (pSCUNILOGTARGETstatic, cunilogEvtSeverityTypeChars3InBrackets);
+	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
+	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
+	ChangeSCUNILOGTARGETeventSeverityFormatType (pSCUNILOGTARGETstatic, cunilogEvtSeverityTypeChars5InBrackets);
+	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
+	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
+	ChangeSCUNILOGTARGETeventSeverityFormatType (pSCUNILOGTARGETstatic, cunilogEvtSeverityTypeChars9InBrackets);
+	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
+	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
+	ChangeSCUNILOGTARGETeventSeverityFormatType (pSCUNILOGTARGETstatic, cunilogEvtSeverityTypeChars5InTightBrackets);
+	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
+	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
+	logTextU8sev_static (cunilogEvtSeverityNone, "None");
+	logTextU8sev_static (cunilogEvtSeverityBlanks, "Blanks");
+	ChangeSCUNILOGTARGETeventSeverityFormatType (pSCUNILOGTARGETstatic, cunilogEvtSeverityTypeChars9InTightBrackets);
+	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
+	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
+	logTextU8sev_static (cunilogEvtSeverityNone, "None");
+	logTextU8sev_static (cunilogEvtSeverityBlanks, "Blanks");
+
+	logTextU8c_static ("This text only goes to the console");
+	logTextU8_static ("This one doesn't");
+
 	/*
 	Sleep (2000);
 	puts (STR_ANSI_FGCOL_BRIGHT_GREEN "This is the text we test the attributes with." STR_ANSI_RESET);

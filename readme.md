@@ -38,10 +38,13 @@ characteristics:
 	are needed to build the module. Simply build it alongside your application.
 - UTF-8 by default but some UTF-16 functions are available on Windows.
 - Preprocessor definitions to include or remove rarely used features.
-- Bindings for other programming languages. Right now only C is supported, though.
+- Bindings for other programming languages. Right now only C is supported, though, as the interfaces haven't been finalised yet.
 - Command-line utility to capture the output of executables and scripts.
 	This is planned but doesn't exist yet.
 - Logging of binary data as hex dumps.
+- Optional severity levels like warning, info, debug, error, etc.
+- Severity levels in different formats.
+- Optional colour support for severity levels via ANSI escape sequences.
 
 ## History
 

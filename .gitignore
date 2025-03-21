@@ -84,6 +84,7 @@ StyleCopReport.xml
 *.dll
 *.exe
 *.exp
+*.lastcodeanalysissucceeded
 *.lib
 *.meta
 *.obj

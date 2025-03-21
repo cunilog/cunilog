@@ -1708,7 +1708,7 @@ const char *GetAbsoluteLogPathSCUNILOGTARGET_static (size_t *plen)
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETeventSeverityFormatType	(
 			SCUNILOGTARGET				*put,
-			cueventsevtpy				eventSeverityFormatType
+			cueventsevfmtpy				eventSeverityFormatType
 														)
 	{
 		ubf_assert_non_NULL (put);
@@ -1994,7 +1994,7 @@ enum cunilogeventseverity
 {
 		cunilogEvtSeverityNone									//  0
 	,	cunilogEvtSeverityNonePass								//  1
-	,	cunilogEvtSevertiyNoneFail								//  2
+	,	cunilogEvtSeveriiyNoneFail								//  2
 	,	cunilogEvtSeverityBlanks								//  3
 	,	cunilogEvtSeverityEmergency								//	4
 	,	cunilogEvtSeverityNotice								//	5
@@ -2002,14 +2002,15 @@ enum cunilogeventseverity
 	,	cunilogEvtSeverityMessage								//  7
 	,	cunilogEvtSeverityWarning								//  8
 	,	cunilogEvtSeverityError									//  9
-	,	cunilogEvtSeverityFail									// 10
-	,	cunilogEvtSeverityCritical								// 11
-	,	cunilogEvtSeverityFatal									// 12
-	,	cunilogEvtSeverityDebug									// 13
-	,	cunilogEvtSeverityTrace									// 14
-	,	cunilogEvtSeverityDetail								// 15
-	,	cunilogEvtSeverityVerbose								// 16
-	,	cunilogEvtSeverityIllegal								// 17
+	,	cunilogEvtSeverityPass									// 10
+	,	cunilogEvtSeverityFail									// 11
+	,	cunilogEvtSeverityCritical								// 12
+	,	cunilogEvtSeverityFatal									// 13
+	,	cunilogEvtSeverityDebug									// 14
+	,	cunilogEvtSeverityTrace									// 15
+	,	cunilogEvtSeverityDetail								// 16
+	,	cunilogEvtSeverityVerbose								// 17
+	,	cunilogEvtSeverityIllegal								// 18
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
@@ -2027,6 +2028,7 @@ static const char *EventSeverityTexts3 [] =
 	,	"MSG"
 	,	"WRN"
 	,	"ERR"
+	,	"PAS"			// cunilogEvtSeverityPass		10
 	,	"FAI"
 	,	"CRI"
 	,	"FTL"
@@ -2048,8 +2050,31 @@ static const char *EventSeverityTexts5 [] =
 	,	"MESSG"
 	,	"WARN "
 	,	"ERROR"
+	,	"PASS "			//cunilogEvtSeverityPass		10
 	,	"FAIL "
 	,	"CRIT "
+	,	"FATAL"
+	,	"DEBUG"
+	,	"TRACE"
+	,	"DETAI"
+	,	"VERBO"
+	,	"ILLEG"			// cunilogEvtSeverityIllegal	17
+};
+static const char *EventSeverityTexts5tgt [] =
+{
+		""				// cunilogEvtSeverityNone		 0
+	,	""				// cunilogEvtSeverityNonePass	 1
+	,	""				// cunilogEvtSevertiyNoneFail	 2
+	,	""				// cunilogEvtSeverityBlanks		 3
+	,	"EMRGY"			// cunilogEvtSeverityEmergency	 4
+	,	"NOTE"			// cunilogEvtSeverityNotice		 5
+	,	"INFO"
+	,	"MESSG"
+	,	"WARN"
+	,	"ERROR"
+	,	"PASS"			//cunilogEvtSeverityPass		10
+	,	"FAIL"
+	,	"CRIT"
 	,	"FATAL"
 	,	"DEBUG"
 	,	"TRACE"
@@ -2069,6 +2094,7 @@ static const char *EventSeverityTexts9 [] =
 	,	"MESSAGE  "
 	,	"WARNING  "
 	,	"ERROR    "
+	,	"PASS     "		// cunilogEvtSeverityPass		10
 	,	"FAIL     "
 	,	"CRITICAL "
 	,	"FATAL    "
@@ -2078,12 +2104,34 @@ static const char *EventSeverityTexts9 [] =
 	,	"VERBOSE  "
 	,	"ILLEGAL  "		// cunilogEvtSeverityIllegal	17
 };
+static const char *EventSeverityTexts9tgt [] =
+{
+		""				// cunilogEvtSeverityNone		 0
+	,	""				// cunilogEvtSeverityNonePass	 1
+	,	""				// cunilogEvtSevertiyNoneFail	 2
+	,	""				// cunilogEvtSeverityBlanks		 3
+	,	"EMERGENCY"		// cunilogEvtSeverityEmergency	 4
+	,	"NOTICE"		// cunilogEvtSeverityNotice		 5
+	,	"INFO"
+	,	"MESSAGE"
+	,	"WARNING"
+	,	"ERROR"
+	,	"PASS"			// cunilogEvtSeverityPass		10
+	,	"FAIL"
+	,	"CRITICAL"
+	,	"FATAL"
+	,	"DEBUG"
+	,	"TRACE"
+	,	"DETAIL"
+	,	"VERBOSE"
+	,	"ILLEGAL"		// cunilogEvtSeverityIllegal	17
+};
 
 STRANSICOLOURSEQUENCE evtSeverityColours [cunilogEvtSeverityXAmountEnumValues] =
 {
 		{"",	0}														// cunilogEvtSeverityNone		 0
-	,	{STR_ANSI_FGCOL_BRIGHT_GREEN,	SIZ_ANSI_FGCOL_BRIGHT_GREEN}	// cunilogEvtSeverityNonePass	 1
-	,	{STR_ANSI_BGCOL_BRIGHT_RED,		SIZ_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSevertiyNoneFail	 2
+	,	{STR_ANSI_FGCOL_BRIGHT_GREEN,	LEN_ANSI_FGCOL_BRIGHT_GREEN}	// cunilogEvtSeverityNonePass	 1
+	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSevertiyNoneFail	 2
 	,	{"",	0}														// cunilogEvtSeverityBlanks		 3
 	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityEmergency	 4
 	,	{"",	0}														// cunilogEvtSeverityNotice		 5
@@ -2091,70 +2139,93 @@ STRANSICOLOURSEQUENCE evtSeverityColours [cunilogEvtSeverityXAmountEnumValues] =
 	,	{"",	0}														// cunilogEvtSeverityMessage	 7
 	,	{STR_ANSI_FGCOL_BRIGHT_MAGENTA,	LEN_ANSI_FGCOL_BRIGHT_MAGENTA}	// cunilogEvtSeverityWarning	 8
 	,	{"",	0}														// cunilogEvtSeverityError		 9
-	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityFail		10
-	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityCritical	11
-	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityFatal		12
-	,	{"",	0}														// cunilogEvtSeverityDebug		13
-	,	{"",	0}														// cunilogEvtSeverityTrace		14
-	,	{"",	0}														// cunilogEvtSeverityDetail		15
-	,	{"",	0}														// cunilogEvtSeverityVerbose	16
-	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityIllegal	17
+	,	{STR_ANSI_FGCOL_BRIGHT_GREEN,	LEN_ANSI_FGCOL_BRIGHT_GREEN}	// cunilogEvtSeverityPass		10
+	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityFail		11
+	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityCritical	12
+	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityFatal		13
+	,	{"",	0}														// cunilogEvtSeverityDebug		14
+	,	{"",	0}														// cunilogEvtSeverityTrace		15
+	,	{"",	0}														// cunilogEvtSeverityDetail		16
+	,	{"",	0}														// cunilogEvtSeverityVerbose	17
+	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityIllegal	18
 																		// cunilogEvtSeverityXAmountEnumValues
 };
 
-static inline size_t requiredEventSeverityChars (cueventseverity sev, cueventsevtpy tpy)
+static inline size_t requiredEventSeverityChars (cueventseverity sev, cueventsevfmtpy tpy)
 {
 	// "" or "INF" + " ".
 	if (cunilogEvtSeverityBlanks > sev)
 			return 0;
 	switch (tpy)
-	{													// The + 1 is for a space character.
-		case cunilogEvtSeverityTypeChars3:				return 3 + 1;
-		case cunilogEvtSeverityTypeChars5:				return 5 + 1;
-		case cunilogEvtSeverityTypeChars9:				return 9 + 1;
-		case cunilogEvtSeverityTypeChars3InBrackets:	return 2 + 3 + 1;
-		case cunilogEvtSeverityTypeChars5InBrackets:	return 2 + 5 + 1;
-		case cunilogEvtSeverityTypeChars9InBrackets:	return 2 + 9 + 1;
+	{														// The + 1 is for a space character.
+		case cunilogEvtSeverityTypeChars3:					return 3 + 1;
+		case cunilogEvtSeverityTypeChars5:					return 5 + 1;
+		case cunilogEvtSeverityTypeChars9:					return 9 + 1;
+		case cunilogEvtSeverityTypeChars3InBrackets:		return 2 + 3 + 1;
+		case cunilogEvtSeverityTypeChars5InBrackets:		return 2 + 5 + 1;
+		case cunilogEvtSeverityTypeChars9InBrackets:		return 2 + 9 + 1;
+		case cunilogEvtSeverityTypeChars5InTightBrackets:	return 2 + 5 + 1;
+		case cunilogEvtSeverityTypeChars9InTightBrackets:	return 2 + 9 + 1;
 	}
 	ubf_assert_msg (false, "Internal error! We should never get here!");
 	return 0;
 }
 
-static inline size_t writeEventSeverity (char *szOut, cueventseverity sev, cueventsevtpy tpy)
+static inline size_t writeEventSeverity (char *szOut, cueventseverity sev, cueventsevfmtpy tpy)
 {
 	ubf_assert_non_NULL (szOut);
+	ubf_assert (0 <= sev);
+	ubf_assert (cunilogEvtSeverityXAmountEnumValues > sev);
 
 	if (cunilogEvtSeverityBlanks > sev)
 			return 0;
 
+	size_t len;
+
 	switch (tpy)
 	{
-		case cunilogEvtSeverityTypeChars3:
+		case cunilogEvtSeverityTypeChars3:					// "EMG"
 			memcpy (szOut, EventSeverityTexts3 [sev], 3);
 			szOut [3] = ' ';
 			return 3 + 1;
-		case cunilogEvtSeverityTypeChars5:
+		case cunilogEvtSeverityTypeChars5:					// "EMRGY"
 			memcpy (szOut, EventSeverityTexts5 [sev], 5);
 			szOut [5] = ' ';
 			return 5 + 1;
-		case cunilogEvtSeverityTypeChars9:
+		case cunilogEvtSeverityTypeChars9:					// "EMERGENCY"
 			memcpy (szOut, EventSeverityTexts9 [sev], 9);
 			szOut [9] = ' ';
 			return 9 + 1;
-		case cunilogEvtSeverityTypeChars3InBrackets:
+		case cunilogEvtSeverityTypeChars3InBrackets:		// "[EMG]"
 			*szOut ++ = '[';
 			memcpy (szOut, EventSeverityTexts3 [sev], 3);
-			memcpy (szOut + 3 + 1, "] ", 2);
+			memcpy (szOut + 3, "] ", 2);
 			return 2 + 3 + 1;
-		case cunilogEvtSeverityTypeChars5InBrackets:
+		case cunilogEvtSeverityTypeChars5InBrackets:		// "[FAIL ]"
 			*szOut ++ = '[';
 			memcpy (szOut, EventSeverityTexts5 [sev], 5);
-			memcpy (szOut + 5 + 1, "] ", 2);
+			memcpy (szOut + 5, "] ", 2);
 			return 2 + 5 + 1;
-		case cunilogEvtSeverityTypeChars9InBrackets:
+		case cunilogEvtSeverityTypeChars9InBrackets:		// "[FAIL     ]"
 			*szOut ++ = '[';
 			memcpy (szOut, EventSeverityTexts9 [sev], 9);
-			memcpy (szOut + 9 + 1, "] ", 2);
+			memcpy (szOut + 9, "] ", 2);
+			return 2 + 9 + 1;
+		case cunilogEvtSeverityTypeChars5InTightBrackets:
+			len = strlen (EventSeverityTexts5tgt [sev]);
+			ubf_assert (len <= 5);
+			*szOut ++ = '[';
+			memcpy (szOut, EventSeverityTexts5tgt [sev], len);
+			memcpy (szOut + len, "] ", 2);
+			memset (szOut + len + 2, ' ', 5 - len);
+			return 2 + 5 + 1;
+		case cunilogEvtSeverityTypeChars9InTightBrackets:
+			len = strlen (EventSeverityTexts9tgt [sev]);
+			ubf_assert (len <= 9);
+			*szOut ++ = '[';
+			memcpy (szOut, EventSeverityTexts9tgt [sev], len);
+			memcpy (szOut + len, "] ", 2);
+			memset (szOut + len + 2, ' ', 9 - len);
 			return 2 + 9 + 1;
 	}
 	ubf_assert_msg (false, "Internal error! We should never get here!");
@@ -2852,6 +2923,10 @@ SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGTARGET *put, SCUNILOGEVENT *pev)
 	return NULL;
 }
 
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	static inline SCUNILOGEVENT *DequeueAllSCUNILOGEVENTs (SCUNILOGTARGET *put);
+#endif
+
 #ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
 	void cunilogInvokeErrorCallback (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	{
@@ -2874,6 +2949,9 @@ SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGTARGET *put, SCUNILOGEVENT *pev)
 			ubf_assert (0 <= rv);
 			ubf_assert (cunilogErrCB_AmountEnumValues > rv);
 
+			SCUNILOGEVENT *pve;
+			SCUNILOGEVENT *nxt;
+
 			switch (rv)
 			{
 				case cunilogErrCB_next_processor:
@@ -2881,15 +2959,21 @@ SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGTARGET *put, SCUNILOGEVENT *pev)
 				case cunilogErrCB_next_event:
 					cunilogSetEventStopProcessing (pev);
 					break;
-
-				// To do!!!
 				case cunilogErrCB_shutdown:
-					ubf_assert (false);
+					cunilogSetShutdownTarget (pev->pSCUNILOGTARGET);
 					break;
-
-				// To do!!!
-				// Default is to cancel the target.
 				case cunilogErrCB_cancel:
+					cunilogSetShutdownTarget (pev->pSCUNILOGTARGET);
+					#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+						pve = DequeueAllSCUNILOGEVENTs (pev->pSCUNILOGTARGET);
+						while (pve)
+						{
+							nxt = pve->next;
+							DoneSCUNILOGEVENT (NULL, pve);
+							pve = nxt;
+						}
+					#endif
+					break;
 				default:
 					ubf_assert (false);
 					break;
@@ -4184,6 +4268,42 @@ static bool (*pickAndRunProcessor [cunilogProcessAmountEnumValues]) (CUNILOG_PRO
 };
 
 /*
+	This function ensures that the decision on running the next processor is made
+	according to the correct priorities.
+*/
+static inline bool cancelOrCarryOnWithNextProcessor	(
+				bool bRetProcessor, SCUNILOGEVENT *pev, CUNILOG_PROCESSOR *cup
+													)
+{
+	ubf_assert_non_NULL	(pev);
+	ubf_assert_non_NULL	(cup);
+	ubf_assert_non_NULL	(pev->pSCUNILOGTARGET);
+	ubf_assert			(cunilogIsTargetInitialised	(pev->pSCUNILOGTARGET));
+
+	// This is an echo-only event. There's no need to carry on with the other processors
+	//	if we just ran the echo/console/terminal output processor.
+	if (cunilogHasEventEchoOnly (pev) && cunilogProcessEchoToConsole == cup->task)
+		return false;
+
+	// An error callback function told us to stop here. The remaining processors are
+	//	not run.
+	if (cunilogHasEventStopProcessing (pev))
+		return false;
+
+	// The processor has the OPT_CUNPROC_FORCE_NEXT flag set.
+	if (OPT_CUNPROC_FORCE_NEXT & cup->uiOpts)
+		return true;
+
+	// This is the first time processors run, and the caller wants us to run them all
+	//	on startup.
+	if (cunilogHasRunAllProcessorsOnStartup (pev->pSCUNILOGTARGET))
+		return true;
+
+	// Now the current processor decides if the next processor is allowed to run.
+	 return bRetProcessor;
+}
+
+/*
 	Returns true for further processing by the caller.
 */
 static bool cunilogProcessProcessor (SCUNILOGEVENT *pev, CUNILOG_PROCESSOR *cup)
@@ -4196,7 +4316,16 @@ static bool cunilogProcessProcessor (SCUNILOGEVENT *pev, CUNILOG_PROCESSOR *cup)
 	// If the processor is disabled we move on to the next one unconditionally.
 	if (optCunProcHasOPT_CUNPROC_DISABLED (cup->uiOpts))
 		return true;
+	if (cunilogHasEventEchoOnly (pev))
+	{
+		puts ("");
+	}
+	if (cunilogHasEventEchoOnly (pev) && cunilogProcessEchoToConsole != cup->task)
+	{
+		return true;
+	}
 
+	bool bRetProc = true;
 	cunilogUpdateCurrentValue (cup, pev);
 	if	(
 				thresholdReached (cup, pev)
@@ -4204,14 +4333,10 @@ static bool cunilogProcessProcessor (SCUNILOGEVENT *pev, CUNILOG_PROCESSOR *cup)
 		)
 	{
 		// True tells the caller to carry on with the next processor.
-		bool bNext =		pickAndRunProcessor [cup->task] (cup, pev)
-						&&	!cunilogHasEventStopProcessing (pev);
-		return bNext;
+		bRetProc = pickAndRunProcessor [cup->task] (cup, pev);
 	}
-
-	// Tells the caller not to bother with the next processor unless bForceNext is true
-	//	or the caller explicitely wants us to run all processors on startup.
-	return OPT_CUNPROC_FORCE_NEXT & cup->uiOpts || cunilogHasRunAllProcessorsOnStartup (pev->pSCUNILOGTARGET);
+	
+	return cancelOrCarryOnWithNextProcessor (bRetProc, pev, cup);
 }
 
 static void cunilogProcessProcessors (SCUNILOGEVENT *pev)
@@ -4654,27 +4779,6 @@ bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 	return false;
 }
 
-bool logTextU8qvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap)
-{
-	ubf_assert_non_NULL (put);
-
-	if (cunilogIsShutdownTarget (put))
-		return false;
-
-	size_t		l;
-	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
-
-	char *ob = ubf_malloc (l + 1);
-	if (ob)
-	{
-		vsnprintf (ob, l + 1, fmt, ap);
-		bool b = logTextU8lq (put, ob, l);
-		ubf_free (ob);
-		return b;
-	}
-	return false;
-}
-
 bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
@@ -4696,6 +4800,27 @@ bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 		vsnprintf (ob, l + 1, fmt, ap);
 		va_end (ap);
 
+		bool b = logTextU8lq (put, ob, l);
+		ubf_free (ob);
+		return b;
+	}
+	return false;
+}
+
+bool logTextU8qvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	size_t		l;
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+
+	char *ob = ubf_malloc (l + 1);
+	if (ob)
+	{
+		vsnprintf (ob, l + 1, fmt, ap);
 		bool b = logTextU8lq (put, ob, l);
 		ubf_free (ob);
 		return b;
@@ -5189,6 +5314,237 @@ bool logTextWU16				(SCUNILOGTARGET *put, const wchar_t *cwText)
 }
 #endif
 
+bool logTextU8csevl			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	SCUNILOGEVENT *pev = CreateSCUNILOGEVENT_Text (put, sev, ccText, len);
+	if (pev)
+	{
+		cunilogSetEventEchoOnly (pev);
+		return cunilogProcessOrQueueEvent (pev);
+	}
+	return false;
+}
+
+bool logTextU8csev			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText)
+{
+	ubf_assert_non_NULL (put);
+
+	return logTextU8csevl (put, sev, ccText, USE_STRLEN);
+}
+
+bool logTextU8cl			(SCUNILOGTARGET *put, const char *ccText, size_t len)
+{
+	ubf_assert_non_NULL (put);
+
+	return logTextU8csevl (put, cunilogEvtSeverityNone, ccText, len);
+}
+
+bool logTextU8c				(SCUNILOGTARGET *put, const char *ccText)
+{
+	ubf_assert_non_NULL (put);
+
+	return logTextU8csevl (put, cunilogEvtSeverityNone, ccText, USE_STRLEN);
+}
+
+bool logTextU8cvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	size_t		l;
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+
+	char *ob = ubf_malloc (l + 1);
+	if (ob)
+	{
+		vsnprintf (ob, l + 1, fmt, ap);
+		bool b = logTextU8cl (put, ob, l);
+		ubf_free (ob);
+		return b;
+	}
+	return false;
+}
+
+bool logTextU8cfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	va_list		ap;
+	size_t		l;
+
+	va_start (ap, fmt);
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+	va_end (ap);
+
+	char *ob = ubf_malloc (l + 1);
+	if (ob)
+	{
+		va_start (ap, fmt);
+		vsnprintf (ob, l + 1, fmt, ap);
+		va_end (ap);
+
+		bool b = logTextU8cl (put, ob, l);
+		ubf_free (ob);
+		return b;
+	}
+	return false;
+}
+
+bool logTextU8csfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	va_list		ap;
+	size_t		l;
+
+	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
+	char		*ob;
+
+	va_start (ap, fmt);
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+	va_end (ap);
+
+	ob = l < CUNILOG_DEFAULT_SFMT_SIZE ? cb : ubf_malloc (l + 1);
+	if (ob)
+	{
+		va_start (ap, fmt);
+		vsnprintf (ob, l + 1, fmt, ap);
+		va_end (ap);
+
+		bool b = logTextU8cl (put, ob, l);
+		if (ob != cb) ubf_free (ob);
+		return b;
+	}
+	return false;
+}
+
+bool logTextU8csmbvfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+	ubf_assert (isInitialisedSMEMBUF (smb));
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	size_t		l;
+
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+
+	growToSizeSMEMBUF (smb, l + 1);
+	if (isUsableSMEMBUF (smb))
+	{
+		if (smb->buf.pch)
+		{
+			vsnprintf (smb->buf.pch, l + 1, fmt, ap);
+
+			bool b = logTextU8cl (put, smb->buf.pch, l);
+			return b;
+		}
+	}
+	return false;
+}
+
+bool logTextU8csmbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...)
+{
+	ubf_assert_non_NULL (put);
+	ubf_assert (isInitialisedSMEMBUF (smb));
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	va_list		ap;
+	size_t		l;
+
+	va_start (ap, fmt);
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+	va_end (ap);
+
+	growToSizeSMEMBUF (smb, l + 1);
+	if (isUsableSMEMBUF (smb))
+	{
+		if (smb->buf.pch)
+		{
+			va_start (ap, fmt);
+			vsnprintf (smb->buf.pch, l + 1, fmt, ap);
+			va_end (ap);
+
+			bool b = logTextU8cl (put, smb->buf.pch, l);
+			return b;
+		}
+	}
+	return false;
+}
+
+bool logTextU8csvfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	size_t		l;
+
+	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
+	char		*ob;
+
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+
+	ob = l < CUNILOG_DEFAULT_SFMT_SIZE ? cb : ubf_malloc (l + 1);
+	if (ob)
+	{
+		vsnprintf (ob, l + 1, fmt, ap);
+
+		bool b = logTextU8csevl (put, sev, ob, l);
+		if (ob != cb) ubf_free (ob);
+		return b;
+	}
+	return false;
+}
+
+bool logTextU8csfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, ...)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	va_list		ap;
+	size_t		l;
+
+	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
+	char		*ob;
+
+	va_start (ap, fmt);
+	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+	va_end (ap);
+
+	ob = l < CUNILOG_DEFAULT_SFMT_SIZE ? cb : ubf_malloc (l + 1);
+	if (ob)
+	{
+		va_start (ap, fmt);
+		vsnprintf (ob, l + 1, fmt, ap);
+		va_end (ap);
+
+		bool b = logTextU8csevl (put, sev, ob, l);
+		if (ob != cb) ubf_free (ob);
+		return b;
+	}
+	return false;
+}
+
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 	static inline SCUNILOGEVENT *CreateSCUNILOGEVENTforCommand (SCUNILOGTARGET *put, enum cunilogEvtCmd cmd)
 	{
@@ -5309,7 +5665,7 @@ bool logTextWU16				(SCUNILOGTARGET *put, const wchar_t *cwText)
 
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-	bool ChangeSCUNILOGTARGETeventSeverityType (SCUNILOGTARGET *put, cueventsevtpy sevTpy)
+	bool ChangeSCUNILOGTARGETeventSeverityFormatType (SCUNILOGTARGET *put, cueventsevfmtpy sevTpy)
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(0 <= sevTpy);
@@ -5417,7 +5773,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 
 		ubf_assert ( 0 == cunilogEvtSeverityNone);
 		ubf_assert ( 1 == cunilogEvtSeverityNonePass);
-		ubf_assert ( 2 == cunilogEvtSevertiyNoneFail);
+		ubf_assert ( 2 == cunilogEvtSeverityNoneFail);
 		ubf_assert ( 3 == cunilogEvtSeverityBlanks);
 		ubf_assert ( 4 == cunilogEvtSeverityEmergency);
 		ubf_assert ( 5 == cunilogEvtSeverityNotice);
@@ -5425,17 +5781,20 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert ( 7 == cunilogEvtSeverityMessage);
 		ubf_assert ( 8 == cunilogEvtSeverityWarning);
 		ubf_assert ( 9 == cunilogEvtSeverityError);
-		ubf_assert (10 == cunilogEvtSeverityFail);
-		ubf_assert (11 == cunilogEvtSeverityCritical);
-		ubf_assert (12 == cunilogEvtSeverityFatal);
-		ubf_assert (13 == cunilogEvtSeverityDebug);
-		ubf_assert (14 == cunilogEvtSeverityTrace);
-		ubf_assert (15 == cunilogEvtSeverityDetail);
-		ubf_assert (16 == cunilogEvtSeverityVerbose);
-		ubf_assert (17 == cunilogEvtSeverityIllegal);
-		ubf_assert (18 == cunilogEvtSeverityXAmountEnumValues);
+		ubf_assert (10 == cunilogEvtSeverityPass);
+		ubf_assert (11 == cunilogEvtSeverityFail);
+		ubf_assert (12 == cunilogEvtSeverityCritical);
+		ubf_assert (13 == cunilogEvtSeverityFatal);
+		ubf_assert (14 == cunilogEvtSeverityDebug);
+		ubf_assert (15 == cunilogEvtSeverityTrace);
+		ubf_assert (16 == cunilogEvtSeverityDetail);
+		ubf_assert (17 == cunilogEvtSeverityVerbose);
+		ubf_assert (18 == cunilogEvtSeverityIllegal);
+		ubf_assert (19 == cunilogEvtSeverityXAmountEnumValues);
 
 		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNone]));
+		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNonePass]));
+		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNoneFail]));
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityBlanks]));
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityEmergency]));
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNotice]));
@@ -5443,6 +5802,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityMessage]));
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityWarning]));
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityError]));
+		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityPass]));
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityFail]));
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityCritical]));
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityFatal]));
@@ -5453,6 +5813,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityIllegal]));
 
 		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNone]));
+		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNonePass]));
+		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNoneFail]));
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityBlanks]));
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityEmergency]));
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNotice]));
@@ -5460,6 +5822,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityMessage]));
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityWarning]));
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityError]));
+		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityPass]));
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityFail]));
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityCritical]));
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityFatal]));
@@ -5470,6 +5833,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityIllegal]));
 
 		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNone]));
+		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNonePass]));
+		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNoneFail]));
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityBlanks]));
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityEmergency]));
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNotice]));
@@ -5477,6 +5842,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityMessage]));
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityWarning]));
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityError]));
+		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityPass]));
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityFail]));
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityCritical]));
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityFatal]));

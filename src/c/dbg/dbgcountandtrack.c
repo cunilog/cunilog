@@ -115,12 +115,14 @@ When		Who				What
 			++ pt->n;
 		} else
 		{
-			SDBGCOUNTANDTRACK *t = malloc (sizeof (SDBGCOUNTANDTRACK) * (pt->size + DBGCOUNTANDTRACK_RESERVE_NUM));
+			size_t currSize = sizeof (SDBGCOUNTANDTRACK) * pt->size;
+			size_t resvSize = sizeof (SDBGCOUNTANDTRACK) * DBGCOUNTANDTRACK_RESERVE_NUM;
+			SDBGCOUNTANDTRACK *t = malloc (currSize + resvSize);
 			if (t)
 			{
 				if (pt->size)
 				{
-					memcpy (t, pt->trackers, sizeof (SDBGCOUNTANDTRACK) * pt->size);
+					memcpy (t, pt->trackers, currSize);
 					free (pt->trackers);
 				}
 				pt->trackers = t;

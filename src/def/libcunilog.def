@@ -56,6 +56,8 @@ EXPORTS
 	ChangeSCUNILOGTARGETenableTaskProcessors		@236
 	ChangeSCUNILOGTARGETdisableEchoProcessor		@237
 	ChangeSCUNILOGTARGETenableEchoProcessor			@238
+	ChangeSCUNILOGTARGETeventSeverityFormatType		@239
+	ChangeSCUNILOGTARGETlogPriority					@240
 
 	cunilogCheckVersionIntChk						@250
 

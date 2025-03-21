@@ -827,12 +827,13 @@ typedef struct scunilognpi
 	/*
 		Possible return values of the error/fail callback function.
 
-		cunilogErrCB_next_processor			The error/fail callback function is called again for
-											the next processor that fails, even for the same event.
+		cunilogErrCB_next_processor			The current processor is cancelled and the next
+											processor is going to be processed. The error/fail
+											callback function is called again for the next
+											processor that fails, even for the same event.
 
-		cunilogErrCB_next_event				The error/fail callback function is called again if the
-											next event fails. It is not called for failing
-											processors of this event.
+		cunilogErrCB_next_event				The current event is cancelled. No other processors
+											are run.
 
 		cunilogErrCB_shutdown				The Cunilog target is shutdown.
 
@@ -859,9 +860,9 @@ typedef struct scunilognpi
 typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 
 /*
-	The type of an event severity level.
+	The type/format of an event severity level.
 */
-enum cunilogeventseveritytype
+enum cunilogeventseveritytpy
 {
 		cunilogEvtSeverityTypeChars3							// "EMG", "DBG"...
 	,	cunilogEvtSeverityTypeChars5							// "EMRGY", "DEBUG"...
@@ -869,11 +870,13 @@ enum cunilogeventseveritytype
 	,	cunilogEvtSeverityTypeChars3InBrackets					// "[EMG]", "[DBG]"...
 	,	cunilogEvtSeverityTypeChars5InBrackets					// "[EMRGY]", "[DEBUG]"...
 	,	cunilogEvtSeverityTypeChars9InBrackets					// "[EMERGENCY]", "[DEBUG    ]"...
+	,	cunilogEvtSeverityTypeChars5InTightBrackets				// "[FAIL] "...
+	,	cunilogEvtSeverityTypeChars9InTightBrackets				// "[DEBUG]    "...
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityTypeXAmountEnumValues					// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityTypeXAmountEnumValues.
 };
-typedef enum cunilogeventseveritytype cueventsevtpy;
+typedef enum cunilogeventseveritytpy cueventsevfmtpy;
 
 /*
 	SUNILOGTARGET
@@ -951,7 +954,7 @@ typedef struct scunilogtarget
 	//SCUNILOGDUMP					*psdump;				// Holds the dump parameters.
 	ddumpWidth						dumpWidth;
 
-	cueventsevtpy					evSeverityType;			// Format of the event severity.
+	cueventsevfmtpy					evSeverityType;			// Format of the event severity.
 
 	#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
 		cunilogErrCallback			errorCB;				// Error/fail callback function.
@@ -1160,7 +1163,7 @@ enum cunilogeventseverity
 {
 		cunilogEvtSeverityNone									//  0
 	,	cunilogEvtSeverityNonePass								//  1
-	,	cunilogEvtSevertiyNoneFail								//  2
+	,	cunilogEvtSeverityNoneFail								//  2
 	,	cunilogEvtSeverityBlanks								//  3
 	,	cunilogEvtSeverityEmergency								//	4
 	,	cunilogEvtSeverityNotice								//	5
@@ -1168,14 +1171,15 @@ enum cunilogeventseverity
 	,	cunilogEvtSeverityMessage								//  7
 	,	cunilogEvtSeverityWarning								//  8
 	,	cunilogEvtSeverityError									//  9
-	,	cunilogEvtSeverityFail									// 10
-	,	cunilogEvtSeverityCritical								// 11
-	,	cunilogEvtSeverityFatal									// 12
-	,	cunilogEvtSeverityDebug									// 13
-	,	cunilogEvtSeverityTrace									// 14
-	,	cunilogEvtSeverityDetail								// 15
-	,	cunilogEvtSeverityVerbose								// 16
-	,	cunilogEvtSeverityIllegal								// 17
+	,	cunilogEvtSeverityPass									// 10
+	,	cunilogEvtSeverityFail									// 11
+	,	cunilogEvtSeverityCritical								// 12
+	,	cunilogEvtSeverityFatal									// 13
+	,	cunilogEvtSeverityDebug									// 14
+	,	cunilogEvtSeverityTrace									// 15
+	,	cunilogEvtSeverityDetail								// 16
+	,	cunilogEvtSeverityVerbose								// 17
+	,	cunilogEvtSeverityIllegal								// 18
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
@@ -1295,6 +1299,9 @@ typedef struct scunilogevent
 // Suppresses the remaining processors.
 #define CUNILOGEVENT_STOP_PROCESSING	SINGLEBIT64	(7)
 
+// Only process the echo processor. All others are suppressed.
+#define CUNILOGEVENT_ECHO_ONLY			SINGLEBIT64 (8)
+
 // Macros to set and check flags.
 #define cunilogSetEventAllocated(pue)					\
 	((pue)->uiOpts |= CUNILOGEVENT_ALLOCATED)
@@ -1332,6 +1339,13 @@ typedef struct scunilogevent
 	((pev)->uiOpts &= ~ CUNILOGEVENT_STOP_PROCESSING)
 #define cunilogHasEventStopProcessing(pev)				\
 	((pev)->uiOpts & CUNILOGEVENT_STOP_PROCESSING)
+
+#define cunilogSetEventEchoOnly(pev)					\
+	((pev)->uiOpts |= CUNILOGEVENT_ECHO_ONLY)
+#define cunilogClrEventEchoOnly(pev)					\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_ECHO_ONLY)
+#define cunilogHasEventEchoOnly(pev)					\
+	((pev)->uiOpts & CUNILOGEVENT_ECHO_ONLY)
 
 /*
 	Return type of the separate logging thread.

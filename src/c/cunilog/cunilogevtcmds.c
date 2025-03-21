@@ -78,7 +78,7 @@ typedef struct sculCmdArr
 SCULCMDARR culCmdSizes [] =
 {
 		SIZCMDENUM + sizeof (bool)							// cunilogCmdConfigUseColourForEcho
-	,	SIZCMDENUM + sizeof (cueventsevtpy)					// cunilogCmdConfigEventSeverityFormatType
+	,	SIZCMDENUM + sizeof (cueventsevfmtpy)				// cunilogCmdConfigEventSeverityFormatType
 	,	SIZCMDENUM + sizeof (newline_t)						// cunilogCmdConfigCunilognewline
 	,	SIZCMDENUM + sizeof (enum cunilogprocesstask)		// cunilogCmdConfigDisableTaskProcessors
 	,	SIZCMDENUM + sizeof (enum cunilogprocesstask)		// cunilogCmdConfigEnableTaskProcessors
@@ -127,10 +127,10 @@ void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour
 }
 
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevtpy sevTpy)
+	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevfmtpy sevTpy)
 	{
 		ubf_assert_non_NULL (szOut);
-		ubf_assert (sizeof (cueventsevtpy) == sizeof (sevTpy));
+		ubf_assert (sizeof (cueventsevfmtpy) == sizeof (sevTpy));
 
 		culCmdStoreEventCommand (szOut, cunilogCmdConfigEventSeverityFormatType);
 		memcpy (szOut + sizeof (enum cunilogEvtCmd), &sevTpy, sizeof (sevTpy));
@@ -301,7 +301,7 @@ void culCmdChangeCmdConfigFromCommand (SCUNILOGEVENT *pev)
 			break;
 		case cunilogCmdConfigEventSeverityFormatType:
 			#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-				memcpy (&put->evSeverityType, szData, sizeof (cueventsevtpy));
+				memcpy (&put->evSeverityType, szData, sizeof (cueventsevfmtpy));
 			#endif
 			break;
 		case cunilogCmdConfigCunilognewline:

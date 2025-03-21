@@ -998,13 +998,13 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET_static)
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigSCUNILOGTARGETeventSeverityFormatType	(
 			SCUNILOGTARGET				*put,
-			cueventsevtpy				eventSeverityFormatType
+			cueventsevfmtpy				eventSeverityFormatType
 														)
 	;
 	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETeventSeverityFormatType)
 														(
 			SCUNILOGTARGET				*put,
-			cueventsevtpy				eventSeverityFormatType
+			cueventsevfmtpy				eventSeverityFormatType
 														)
 	;
 #else
@@ -1487,6 +1487,9 @@ TYPEDEF_FNCT_PTR (bool, logEv) (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 	Functions that have U8 in their names are for UTF-8, the ones with a WU16 are intended for
 	Windows UTF-16 encoding. On POSIX systems the WU16 functions are not available.
 
+	Functions whose name contains a c only output to the console. Other processors are simply
+	ignored.
+
 	Function names with an l accept a length parameter for the text's length, in octets/bytes.
 	You can use USE_STRLEN for this parameter, in which case the text buffer's length is obtained
 	via a call to strlen () and the string needs to be NUL-terminated. NUL-termination is not
@@ -1529,8 +1532,8 @@ bool logTextU8				(SCUNILOGTARGET *put, const char *ccText);
 bool logTextU8q				(SCUNILOGTARGET *put, const char *ccText);
 bool logTextU8vfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
 bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8qvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
 bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
+bool logTextU8qvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
 bool logTextU8svfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
 bool logTextU8sfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
 bool logTextU8sqvfmt		(SCUNILOGTARGET *put, const char *fmt, va_list ap);
@@ -1556,6 +1559,19 @@ bool logTextWU16l			(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len);
 bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 #endif
 
+// Console output only. No other processors are invoked.
+bool logTextU8csevl			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len);
+bool logTextU8csev			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText);
+bool logTextU8cl			(SCUNILOGTARGET *put, const char *ccText, size_t len);
+bool logTextU8c				(SCUNILOGTARGET *put, const char *ccText);
+bool logTextU8cvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
+bool logTextU8cfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
+bool logTextU8csfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
+bool logTextU8csmbvfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, va_list ap);
+bool logTextU8csmbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
+bool logTextU8csvfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, va_list ap);
+bool logTextU8csfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, ...);
+
 #define logTextU8sevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextU8sevlq_static(v, t, l)	logTextU8sevlq		(pSCUNILOGTARGETstatic, (v), (t), (l))
 #define logTextU8sev_static(v, t)		logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
@@ -1565,6 +1581,8 @@ bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 #define logTextU8_static(t)				logTextU8l			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
 #define logTextU8q_static(t)			logTextU8lq			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
 #define logTextU8fmt_static(...)		logTextU8fmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
+#define logTextU8qfmt_static(...)		logTextU8qfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
+#define logTextU8qvfmt_static(t, ap)	logTextU8qvfmt		(pSCUNILOGTARGETstatic, (t), (ap))
 #define logTextU8sfmt_static(...)		logTextU8sfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
 #define logTextU8sfmtsev_static(s, ...)	logTextU8sfmtsev	(pSCUNILOGTARGETstatic, (s), __VA_ARGS__)
 #define logTextU8smbfmtsev_static(s, m, ...)			\
@@ -1584,6 +1602,22 @@ bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 #define logTextWU16l_static(t, l)		logTextWU16l		(pSCUNILOGTARGETstatic, (t), (l))
 #define logTextWU16_static(t)			logTextWU16l		(pSCUNILOGTARGETstatic, (t), USE_STRLEN);
 #endif
+
+// Console output only. No other processors are invoked.
+#define logTextU8csevl_static(s, t, l)	logTextU8csevl		(pSCUNILOGTARGETstatic, (s), (t), (l));
+#define logTextU8csev_static(s, t)		logTextU8csev		(pSCUNILOGTARGETstatic, (s), (t));
+#define logTextU8cl_static(t, l)		logTextU8cl			(pSCUNILOGTARGETstatic, (t), (l));
+#define logTextU8c_static(t)			logTextU8c			(pSCUNILOGTARGETstatic, (t));
+#define logTextU8cvfmt_static(t, ap)	logTextU8cvfmt		(pSCUNILOGTARGETstatic, (t), (ap));
+#define logTextU8cfmt_static(...)		logTextU8cfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__);
+#define logTextU8csfmt_static(...)		logTextU8csfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__);
+#define logTextU8csmbvfmt_static(m, t, ap)				\
+										logTextU8csmbvfmt	(pSCUNILOGTARGETstatic, (m), (t), (ap));
+#define logTextU8csmbfmt_static(m, ...)	logTextU8csmbfmt	(pSCUNILOGTARGETstatic, (m), __VA_ARGS__);
+#define logTextU8csvfmtsev_static(s, t, ap)				\
+										logTextU8csvfmtsev	(pSCUNILOGTARGETstatic, (s), (t), (ap));
+#define logTextU8csfmtsev_static(s, ...)				\
+										logTextU8csfmtsev	(pSCUNILOGTARGETstatic, (s), __VA_ARGS__);
 
 /*
 	ChangeSCUNILOGTARGETuseColourForEcho
@@ -1652,6 +1686,21 @@ bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 #endif
 
 /*
+	ChangeSCUNILOGTARGETeventSeverityFormatType
+
+	Queues an event to set the format type of event severities for the target structure put.
+	It sets the member evSeverityType of the SCUNILOGTARGET structure put to the
+	value of eventSeverityFormatType.
+*/
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
+	bool ChangeSCUNILOGTARGETeventSeverityFormatType (SCUNILOGTARGET *put, cueventsevfmtpy sevTpy);
+	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETeventSeverityFormatType)
+		(SCUNILOGTARGET *put, cueventsevfmtpy sevTpy);
+#endif
+#endif
+
+/*
 	ChangeSCUNILOGTARGETlogPriority
 
 	Queues an event to set the priority of the separate logging thread that belongs to the
@@ -1714,7 +1763,7 @@ bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
 	#define ChangeSCUNILOGTARGETlogPriority_static(prio)	\
 				ChangeSCUNILOGTARGETlogPriority (pSCUNILOGTARGETstatic, prio)
 #else
-	#define ChangeSCUNILOGTARGETlogPriority_static(put, prio) (true)
+	#define ChangeSCUNILOGTARGETlogPriority_static(prio) (true)
 #endif
 
 /*
