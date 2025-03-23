@@ -209,6 +209,11 @@ int main (int argc, char *argv [])
 
 	logTextU8c_static ("This text only goes to the console");
 	logTextU8_static ("This one doesn't");
+	logTextU8cfmt_static ("There's %d bugs.", 200);
+	logTextU8cfmt_static ("A string: %s", "who knows?");
+	
+	SMEMBUF smb = SMEMBUF_INITIALISER;
+	logTextU8smbfmt_static (&smb, "Another string is \"%s\"", "String");
 
 	/*
 	Sleep (2000);

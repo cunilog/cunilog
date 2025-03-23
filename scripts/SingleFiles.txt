@@ -9,13 +9,14 @@ head
 /pre/externC
 /pre/DLLimport
 /pre/functionptrtpydef
-/mem/membuf
-/OS/Windows/WinAPI_U8
 /pre/platform
+/pre/restrict
 /pre/ArrayMacros
 /pre/Warnings
 /pre/SingleBits
 /pre/unref
+/mem/membuf
+/OS/Windows/WinAPI_U8
 /OS/Windows/WinAPI_ReadDirFncts
 /OS/Windows/CompressNTFS_U8
 /OS/Windows/WinSharedMutex

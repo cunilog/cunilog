@@ -260,7 +260,15 @@ CUNILOG_PROCESSOR **CreateCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [], uns
 	return cpn;
 }
 
-CUNILOG_PROCESSOR **CreateNewStandardProcessors (unsigned int *pn)
+void *DoneCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [])
+{
+	ubf_assert_non_NULL (cps);
+
+	ubf_free (cps);
+	return NULL;
+}
+
+CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn)
 {
 	// The return value is useless without knowing the amount of processors.
 	ubf_assert_non_NULL (pn);
@@ -977,7 +985,7 @@ static bool prepareProcessors (SCUNILOGTARGET *put, CUNILOG_PROCESSOR **cp, unsi
 			put->nprocessors = GET_ARRAY_LEN (defcupp);
 		} else
 		{
-			put->cprocessors = CreateNewStandardProcessors (&put->nprocessors);
+			put->cprocessors = CreateNewDefaultProcessors (&put->nprocessors);
 			if (put->cprocessors)
 				cunilogSetProcessorsAllocated (put);
 			else
@@ -4316,14 +4324,9 @@ static bool cunilogProcessProcessor (SCUNILOGEVENT *pev, CUNILOG_PROCESSOR *cup)
 	// If the processor is disabled we move on to the next one unconditionally.
 	if (optCunProcHasOPT_CUNPROC_DISABLED (cup->uiOpts))
 		return true;
-	if (cunilogHasEventEchoOnly (pev))
-	{
-		puts ("");
-	}
+
 	if (cunilogHasEventEchoOnly (pev) && cunilogProcessEchoToConsole != cup->task)
-	{
 		return true;
-	}
 
 	bool bRetProc = true;
 	cunilogUpdateCurrentValue (cup, pev);
@@ -4759,52 +4762,13 @@ bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 		return false;
 
 	va_list		ap;
-	size_t		l;
+	bool		b;
 
 	va_start (ap, fmt);
-	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+	b = logTextU8vfmt (put, fmt, ap);
 	va_end (ap);
 
-	char *ob = ubf_malloc (l + 1);
-	if (ob)
-	{
-		va_start (ap, fmt);
-		vsnprintf (ob, l + 1, fmt, ap);
-		va_end (ap);
-
-		bool b = logTextU8l (put, ob, l);
-		ubf_free (ob);
-		return b;
-	}
-	return false;
-}
-
-bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
-{
-	ubf_assert_non_NULL (put);
-
-	if (cunilogIsShutdownTarget (put))
-		return false;
-
-	va_list		ap;
-	size_t		l;
-
-	va_start (ap, fmt);
-	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
-	va_end (ap);
-
-	char *ob = ubf_malloc (l + 1);
-	if (ob)
-	{
-		va_start (ap, fmt);
-		vsnprintf (ob, l + 1, fmt, ap);
-		va_end (ap);
-
-		bool b = logTextU8lq (put, ob, l);
-		ubf_free (ob);
-		return b;
-	}
-	return false;
+	return b;
 }
 
 bool logTextU8qvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap)
@@ -4826,6 +4790,23 @@ bool logTextU8qvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap)
 		return b;
 	}
 	return false;
+}
+
+bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogIsShutdownTarget (put))
+		return false;
+
+	va_list		ap;
+	bool		b;
+
+	va_start (ap, fmt);
+	b = logTextU8qvfmt (put, fmt, ap);
+	va_end (ap);
+
+	return b;
 }
 
 bool logTextU8svfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap)
@@ -4862,27 +4843,13 @@ bool logTextU8sfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 		return false;
 
 	va_list		ap;
-	size_t		l;
-
-	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
-	char		*ob;
+	bool		b;
 
 	va_start (ap, fmt);
-	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+	b = logTextU8svfmt (put, fmt, ap);
 	va_end (ap);
 
-	ob = l < CUNILOG_DEFAULT_SFMT_SIZE ? cb : ubf_malloc (l + 1);
-	if (ob)
-	{
-		va_start (ap, fmt);
-		vsnprintf (ob, l + 1, fmt, ap);
-		va_end (ap);
-
-		bool b = logTextU8l (put, ob, l);
-		if (ob != cb) ubf_free (ob);
-		return b;
-	}
-	return false;
+	return b;
 }
 
 bool logTextU8sqvfmt		(SCUNILOGTARGET *put, const char *fmt, va_list ap)
@@ -4918,27 +4885,13 @@ bool logTextU8sqfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 		return false;
 
 	va_list		ap;
-	size_t		l;
-
-	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
-	char		*ob;
+	bool		b;
 
 	va_start (ap, fmt);
-	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+	b = logTextU8sqfmt (put, fmt, ap);
 	va_end (ap);
 
-	ob = l < CUNILOG_DEFAULT_SFMT_SIZE ? cb : ubf_malloc (l + 1);
-	if (ob)
-	{
-		va_start (ap, fmt);
-		vsnprintf (ob, l + 1, fmt, ap);
-		va_end (ap);
-
-		bool b = logTextU8lq (put, ob, l);
-		if (ob != cb) ubf_free (ob);
-		return b;
-	}
-	return false;
+	return b;
 }
 
 bool logTextU8svfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, va_list ap)
@@ -4975,27 +4928,13 @@ bool logTextU8sfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fm
 		return false;
 
 	va_list		ap;
-	size_t		l;
-
-	char		cb [CUNILOG_DEFAULT_SFMT_SIZE];
-	char		*ob;
+	bool		b;
 
 	va_start (ap, fmt);
-	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+	b = logTextU8svfmtsev (put, sev, fmt, ap);
 	va_end (ap);
 
-	ob = l < CUNILOG_DEFAULT_SFMT_SIZE ? cb : ubf_malloc (l + 1);
-	if (ob)
-	{
-		va_start (ap, fmt);
-		vsnprintf (ob, l + 1, fmt, ap);
-		va_end (ap);
-
-		bool b = logTextU8sevl (put, sev, ob, l);
-		if (ob != cb) ubf_free (ob);
-		return b;
-	}
-	return false;
+	return b;
 }
 
 bool logTextU8smbvfmtsev	(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, va_list ap)
@@ -5032,26 +4971,13 @@ bool logTextU8smbfmtsev		(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev
 		return false;
 
 	va_list		ap;
-	size_t		l;
+	bool		b;
 
 	va_start (ap, fmt);
-	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+	b = logTextU8smbvfmtsev (put, smb, sev, fmt, ap);
 	va_end (ap);
 
-	growToSizeSMEMBUF (smb, l + 1);
-	if (isUsableSMEMBUF (smb))
-	{
-		if (smb->buf.pch)
-		{
-			va_start (ap, fmt);
-			vsnprintf (smb->buf.pch, l + 1, fmt, ap);
-			va_end (ap);
-
-			bool b = logTextU8sevl (put, sev, smb->buf.pch, l);
-			return b;
-		}
-	}
-	return false;
+	return b;
 }
 
 bool logTextU8smbvfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, va_list ap)
@@ -5062,22 +4988,7 @@ bool logTextU8smbvfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, va_l
 	if (cunilogIsShutdownTarget (put))
 		return false;
 
-	size_t		l;
-
-	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
-
-	growToSizeSMEMBUF (smb, l + 1);
-	if (isUsableSMEMBUF (smb))
-	{
-		if (smb->buf.pch)
-		{
-			vsnprintf (smb->buf.pch, l + 1, fmt, ap);
-
-			bool b = logTextU8l (put, smb->buf.pch, l);
-			return b;
-		}
-	}
-	return false;
+	return logTextU8smbvfmtsev (put, smb, cunilogEvtSeverityNone, fmt, ap);
 }
 
 bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...)
@@ -5089,26 +5000,13 @@ bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...)
 		return false;
 
 	va_list		ap;
-	size_t		l;
+	bool		b;
 
 	va_start (ap, fmt);
-	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+	b = logTextU8smbvfmt (put, smb, fmt, ap);
 	va_end (ap);
 
-	growToSizeSMEMBUF (smb, l + 1);
-	if (isUsableSMEMBUF (smb))
-	{
-		if (smb->buf.pch)
-		{
-			va_start (ap, fmt);
-			vsnprintf (smb->buf.pch, l + 1, fmt, ap);
-			va_end (ap);
-
-			bool b = logTextU8l (put, smb->buf.pch, l);
-			return b;
-		}
-	}
-	return false;
+	return b;
 }
 
 bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption)
@@ -5380,24 +5278,13 @@ bool logTextU8cfmt			(SCUNILOGTARGET *put, const char *fmt, ...)
 		return false;
 
 	va_list		ap;
-	size_t		l;
+	bool		b;
 
 	va_start (ap, fmt);
-	l = (size_t) vsnprintf (NULL, 0, fmt, ap);
+	b = logTextU8cvfmt (put, fmt, ap);
 	va_end (ap);
 
-	char *ob = ubf_malloc (l + 1);
-	if (ob)
-	{
-		va_start (ap, fmt);
-		vsnprintf (ob, l + 1, fmt, ap);
-		va_end (ap);
-
-		bool b = logTextU8cl (put, ob, l);
-		ubf_free (ob);
-		return b;
-	}
-	return false;
+	return b;
 }
 
 bool logTextU8csfmt			(SCUNILOGTARGET *put, const char *fmt, ...)

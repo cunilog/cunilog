@@ -148,12 +148,6 @@ char *memstrstrn (char *s1, size_t size1, char *s2, size_t size2, size_t amount)
 	return chF;
 }
 
-/*
-	Note: These comments are only here for convenience. Refer to the
-	 ones in memstrstr.h. They might be more accurate.
-
-	Replaces all occurrences of s1 in s with s2.
-*/
 size_t memchrreplace (char *s, size_t size, char s1, char s2)
 {
 	size_t r	= 0;

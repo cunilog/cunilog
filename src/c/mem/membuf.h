@@ -56,10 +56,12 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./functionptrtpydef.h"
+		#include "./restrict.h"
 		#include "./ubfmem.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/functionptrtpydef.h"
+		#include "./../pre/restrict.h"
 		#include "./../mem/ubfmem.h"
 	#endif
 
@@ -334,9 +336,11 @@ TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF64aligned) (SMEMBUF *pb, size_t siz);
 	The function does not return a value. Check with isUsableSMEMBUF (dst) to see if the
 	copy operation was successful.
 */
-void copySMEMBUF (SMEMBUF *dst, SMEMBUF *src)
+void copySMEMBUF (SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src)
 ;
-TYPEDEF_FNCT_PTR (void, copySMEMBUF) (SMEMBUF *dst, SMEMBUF *src);
+TYPEDEF_FNCT_PTR (void, copySMEMBUF)
+	(SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src)
+	;
 
 /*
 	copySMEMBUFsiz
@@ -347,10 +351,11 @@ TYPEDEF_FNCT_PTR (void, copySMEMBUF) (SMEMBUF *dst, SMEMBUF *src);
 	The function does not return a value. Check with isUsableSMEMBUF (dst) to see if the
 	copy operation was successful.
 */
-void copySMEMBUFsiz (SMEMBUF *dst, SMEMBUF *src, size_t siz)
+void copySMEMBUFsiz (SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src, size_t siz)
 ;
-TYPEDEF_FNCT_PTR (void, copySMEMBUFsiz) (SMEMBUF *dst, SMEMBUF *src, size_t siz);
-
+TYPEDEF_FNCT_PTR (void, copySMEMBUFsiz)
+	(SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src, size_t siz)
+	;
 
 EXTERN_C_END
 

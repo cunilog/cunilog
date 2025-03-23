@@ -17,6 +17,8 @@ EXPORTS
 	; shortmonths
 	ccdtMnths										@105	DATA
 
+	CreateCopyCUNILOG_PROCESSORs					@198
+	DoneCopyCUNILOG_PROCESSORs						@199
 	CunilogSetConsoleTo								@200
 	CunilogGetEnv									@201
 	Cunilog_Have_NO_COLOR							@202
@@ -43,7 +45,7 @@ EXPORTS
 	DoneSCUNILOGTARGET								@223
 	ShutdownSCUNILOGTARGET							@224
 	CancelSCUNILOGTARGET							@225
-	ChangeSCUNILOGTARGETlogPriority					@226
+
 	PauseLogSCUNILOGTARGET							@227
 	ResumeLogSCUNILOGTARGET							@228
 	CreateSCUNILOGEVENT_Data						@229
@@ -58,6 +60,7 @@ EXPORTS
 	ChangeSCUNILOGTARGETenableEchoProcessor			@238
 	ChangeSCUNILOGTARGETeventSeverityFormatType		@239
 	ChangeSCUNILOGTARGETlogPriority					@240
+	CunilogChangeCurrentThreadPriority				@241
 
 	cunilogCheckVersionIntChk						@250
 

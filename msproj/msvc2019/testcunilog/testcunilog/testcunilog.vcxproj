@@ -250,6 +250,7 @@
     <ClInclude Include="..\..\..\..\src\c\pre\externC.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\functionptrtpydef.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\platform.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\restrict.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\SingleBits.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\unref.h" />
     <ClInclude Include="..\..\..\..\src\c\pre\Warnings.h" />

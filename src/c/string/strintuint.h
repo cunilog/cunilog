@@ -193,8 +193,9 @@ size_t ubf_n_itoa10 (int value, char *result);
 	The function does not add a NUL-terminator to result, nor does it return a value.
 	It always writes exactly two bytes to result. For example, if ui59m is 26, the
 	function writes the non-NUL-terminated string "26" to result.
+
 	The caller is responsible for ensuring that the function is not called with any
-	values of ui59m greater than 59.
+	values of ui59m greater than 59. Debug versions provide an assertion for this case.
 
 	The function's purpose is to return ASCII representations of minutes, seconds,
 	months, hours, days in a month, week numbers, or any unsigned integer of up to 59 very
@@ -202,13 +203,12 @@ size_t ubf_n_itoa10 (int value, char *result);
 
 	If the returned string is required to be NUL-terminated, use ubf_str0_from_59max_n ()
 	instead.
-
 */
 #ifdef DEBUG
 	void ubf_str0_from_59max (char *result, uint8_t ui59m);
 #else
 	extern char c_0_to_59_str0 [62][2];
-	#define ubf_str0_from_59max(r,u)	memcpy (r, c_0_to_59_str0 [u], 2)
+	#define ubf_str0_from_59max(r,u)	memcpy ((r), c_0_to_59_str0 [(u)], 2)
 #endif
 
 /*
@@ -229,8 +229,8 @@ size_t ubf_n_itoa10 (int value, char *result);
 	void ubf_str0_from_59max_n (char *result, uint8_t ui59m);
 #else
 	#define ubf_str0_from_59max_n(r,u)					\
-		memcpy (r, c_0_to_59_str0 [u], 2);				\
-		r [2] = '\0'
+		memcpy ((r), c_0_to_59_str0 [(u)], 2);			\
+		(r) [2] = '\0'
 #endif
 
 /*
@@ -472,6 +472,7 @@ bool ubf_int64_from_str (int64_t *pi, const char *chStr);
 bool ubf_uint16_from_str (uint16_t *pus, const char *chStr);
 #define ubf_ushort_from_str(a,b)					\
 			ubf_uint16_from_str (a, b)
+
 /*
 	ubf_strd_from_uint64
 

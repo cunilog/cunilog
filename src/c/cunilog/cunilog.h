@@ -265,9 +265,34 @@ CUNILOG_DLL_IMPORT extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 
 /*
 	CreateCopyCUNILOG_PROCESSORs
+
+	Creates a copy of the array of pointers to CUNILOG_PROCESSOR structures with n processors.
+	The copy contains a copy of the array of pointers to the structures, a copy of the
+	structures themselves, and a copy of all pData members. This is as deep as the function
+	goes.
+
+	The copy is created as a single memory block, hence can be deallocated again with a single
+	call to ubf_free (). However, for consistency it is recommended to call
+	DoneCopyCUNILOG_PROCESSORs () on the returned memory block.
+
+	The function returns a pointer to the allocated memory block where the copy of the array
+	of pointers to CUNILOG_PROCESSOR structures can be found, including all CUNILOG_PROCESSOR
+	structures and their pData structures. It returns NULL if the heap allocation fails.
 */
 CUNILOG_PROCESSOR **CreateCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [], unsigned int n);
+TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR **, CreateCopyCUNILOG_PROCESSORs)
+	(CUNILOG_PROCESSOR *cps [], unsigned int n);
 
+/*
+	DoneCopyCUNILOG_PROCESSORs
+
+	Destroys a copy of CUNILOG_PROCESSORs created with CreateCopyCUNILOG_PROCESSORs ().
+	The parameter cps must not be NULL.
+	
+	The function is literally just a wrapper for ubf_free () and always returns NULL.
+*/
+void *DoneCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps []);
+TYPEDEF_FNCT_PTR (void *, DoneCopyCUNILOG_PROCESSORs) (CUNILOG_PROCESSOR *cps []);
 
 /*
 	Table with the length of the rotational date/timestamp.
@@ -1532,8 +1557,8 @@ bool logTextU8				(SCUNILOGTARGET *put, const char *ccText);
 bool logTextU8q				(SCUNILOGTARGET *put, const char *ccText);
 bool logTextU8vfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
 bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
 bool logTextU8qvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
+bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
 bool logTextU8svfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
 bool logTextU8sfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
 bool logTextU8sqvfmt		(SCUNILOGTARGET *put, const char *fmt, va_list ap);
@@ -1581,8 +1606,9 @@ bool logTextU8csfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *f
 #define logTextU8_static(t)				logTextU8l			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
 #define logTextU8q_static(t)			logTextU8lq			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
 #define logTextU8fmt_static(...)		logTextU8fmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
-#define logTextU8qfmt_static(...)		logTextU8qfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
 #define logTextU8qvfmt_static(t, ap)	logTextU8qvfmt		(pSCUNILOGTARGETstatic, (t), (ap))
+#define logTextU8qfmt_static(...)		logTextU8qfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
+#define logTextU8sqvfmt_static(t, ap)	logTextU8sqvfmt		(pSCUNILOGTARGETstatic, (t), (ap));
 #define logTextU8sfmt_static(...)		logTextU8sfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
 #define logTextU8sfmtsev_static(s, ...)	logTextU8sfmtsev	(pSCUNILOGTARGETstatic, (s), __VA_ARGS__)
 #define logTextU8smbfmtsev_static(s, m, ...)			\
