@@ -53,9 +53,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
+		#include "./restrict.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
+		#include "./../pre/restrict.h"
 	#endif
 
 #endif
@@ -150,9 +152,8 @@ size_t str_remove_path_navigators (char *chPath, size_t *pLen);
 					corrected.
 	plenPath		Pointer to a value that specifies the length of the path chPath
 					points to, excluding a terminating NUL character. If this parameter
-					is NULL or points to a value of (size_t) -1, which is
-					SUBF_STRING_USE_STRLEN or SUBF_STRING_UNKNOWN_LENGTH, the function
-					uses strlen (chPath) to obtain its length.
+					is NULL or points to a value of (size_t) -1, which is USE_STRLEN, the
+					function uses strlen (chPath) to obtain its length.
 	pReps			Pointer to a size_t that receives the amount of
 					replacements the function has performed. This parameter can be NULL
 					if this information is not needed.
@@ -165,7 +166,12 @@ size_t str_remove_path_navigators (char *chPath, size_t *pLen);
 	versions abort. The function also returns false when *pstPath is 0. Debug versions
 	abort in this case too.
 */
-bool ubf_correct_directory_separators_str (char *chPath, size_t *plenPath, size_t *pReps);
+bool ubf_correct_directory_separators_str	(
+			char			*chPath,
+			size_t			*cunilog_restrict plenPath,
+			size_t			*cunilog_restrict pReps
+											)
+;
 
 /*
 	ubf_change_directory_separators

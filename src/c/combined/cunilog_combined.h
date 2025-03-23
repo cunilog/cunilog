@@ -917,7 +917,7 @@ When		Who				What
 		C99 compiler. The restrict keyword is available.
 		See https://en.wikipedia.org/wiki/C99 .
 	*/
-	#define cunilog_restrict	restrict
+	#definecunilog_restrict	restrict
 
 #elif defined (__clang__)
 
@@ -948,7 +948,7 @@ When		Who				What
 	/*
 		Not available.
 	*/
-	#define cunilog_restrict
+	#definecunilog_restrict
 
 #endif
 
@@ -1685,10 +1685,10 @@ TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF64aligned) (SMEMBUF *pb, size_t siz);
 	The function does not return a value. Check with isUsableSMEMBUF (dst) to see if the
 	copy operation was successful.
 */
-void copySMEMBUF (SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src)
+void copySMEMBUF (SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src)
 ;
 TYPEDEF_FNCT_PTR (void, copySMEMBUF)
-	(SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src)
+	(SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src)
 	;
 
 /*
@@ -1700,10 +1700,10 @@ TYPEDEF_FNCT_PTR (void, copySMEMBUF)
 	The function does not return a value. Check with isUsableSMEMBUF (dst) to see if the
 	copy operation was successful.
 */
-void copySMEMBUFsiz (SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src, size_t siz)
+void copySMEMBUFsiz (SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src, size_t siz)
 ;
 TYPEDEF_FNCT_PTR (void, copySMEMBUFsiz)
-	(SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src, size_t siz)
+	(SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src, size_t siz)
 	;
 
 EXTERN_C_END
@@ -13527,9 +13527,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
+		#include "./restrict.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
+		#include "./../pre/restrict.h"
 	#endif
 
 #endif
@@ -13624,9 +13626,8 @@ size_t str_remove_path_navigators (char *chPath, size_t *pLen);
 					corrected.
 	plenPath		Pointer to a value that specifies the length of the path chPath
 					points to, excluding a terminating NUL character. If this parameter
-					is NULL or points to a value of (size_t) -1, which is
-					SUBF_STRING_USE_STRLEN or SUBF_STRING_UNKNOWN_LENGTH, the function
-					uses strlen (chPath) to obtain its length.
+					is NULL or points to a value of (size_t) -1, which is USE_STRLEN, the
+					function uses strlen (chPath) to obtain its length.
 	pReps			Pointer to a size_t that receives the amount of
 					replacements the function has performed. This parameter can be NULL
 					if this information is not needed.
@@ -13639,7 +13640,12 @@ size_t str_remove_path_navigators (char *chPath, size_t *pLen);
 	versions abort. The function also returns false when *pstPath is 0. Debug versions
 	abort in this case too.
 */
-bool ubf_correct_directory_separators_str (char *chPath, size_t *plenPath, size_t *pReps);
+bool ubf_correct_directory_separators_str	(
+			char			*chPath,
+			size_t			*cunilog_restrict plenPath,
+			size_t			*cunilog_restrict pReps
+											)
+;
 
 /*
 	ubf_change_directory_separators
@@ -16145,8 +16151,10 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./restrict.h"
 	#else
 		#include "./../pre/externC.h"
+		#include "./../pre/restrict.h"
 	#endif
 
 #endif
@@ -16171,7 +16179,11 @@ EXTERN_C_BEGIN
 	The maximum buffer required to store str as a URI encoded string is 3 times the length of
 	str (plus NUL terminator).
 */
-size_t uri_encode_str (char *szURIencoded, const char *str, size_t len)
+size_t uri_encode_str	(
+			char			*cunilog_restrict szURIencoded,
+			const char		*cunilog_restrict str,
+			size_t			len
+						)
 ;
 
 EXTERN_C_END
@@ -16348,9 +16360,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
+		#include "./restrict.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
+		#include "./../pre/restrict.h"
 	#endif
 
 #endif
@@ -16456,7 +16470,10 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 
 	See function strwildcards_test_function () for a more complete list of expectations.
 */
-bool globMatch (const char *ccStri, size_t lnStri, const char *ccGlob, size_t lnGlob)
+bool globMatch	(
+		const char		*cunilog_restrict ccStri,	size_t lnStri,
+		const char		*cunilog_restrict ccGlob,	size_t lnGlob
+				)
 ;
 
 /*

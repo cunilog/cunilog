@@ -154,7 +154,7 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 	}
 #endif
 
-void copySMEMBUF (SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src)
+void copySMEMBUF (SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src)
 {
 	ubf_assert_non_NULL	(dst);
 	ubf_assert_non_NULL	(src);
@@ -169,7 +169,7 @@ void copySMEMBUF (SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src
 	}
 }
 
-void copySMEMBUFsiz (SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src, size_t siz)
+void copySMEMBUFsiz (SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src, size_t siz)
 {
 	ubf_assert_non_NULL	(dst);
 	ubf_assert_non_NULL	(src);

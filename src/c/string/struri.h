@@ -51,8 +51,10 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./restrict.h"
 	#else
 		#include "./../pre/externC.h"
+		#include "./../pre/restrict.h"
 	#endif
 
 #endif
@@ -77,7 +79,11 @@ EXTERN_C_BEGIN
 	The maximum buffer required to store str as a URI encoded string is 3 times the length of
 	str (plus NUL terminator).
 */
-size_t uri_encode_str (char *szURIencoded, const char *str, size_t len)
+size_t uri_encode_str	(
+			char			*cunilog_restrict szURIencoded,
+			const char		*cunilog_restrict str,
+			size_t			len
+						)
 ;
 
 EXTERN_C_END

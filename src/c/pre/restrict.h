@@ -52,7 +52,7 @@ When		Who				What
 		C99 compiler. The restrict keyword is available.
 		See https://en.wikipedia.org/wiki/C99 .
 	*/
-	#define cunilog_restrict	restrict
+	#definecunilog_restrict	restrict
 
 #elif defined (__clang__)
 
@@ -83,7 +83,7 @@ When		Who				What
 	/*
 		Not available.
 	*/
-	#define cunilog_restrict
+	#definecunilog_restrict
 
 #endif
 

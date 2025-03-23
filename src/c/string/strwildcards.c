@@ -169,7 +169,10 @@ enum hasGlobCharAfterStar
 };
 typedef enum hasGlobCharAfterStar enGl;
 
-static inline enGl globCharAfterStar (char *c, size_t *g, const char *ccGlob, size_t *lnGlob)
+static inline enGl globCharAfterStar	(
+		char			*cunilog_restrict c,		size_t *cunilog_restrict g,
+		const char		*cunilog_restrict ccGlob,	size_t *cunilog_restrict lnGlob
+										)
 {
 	ubf_assert_non_NULL (c);
 	ubf_assert_non_NULL (g);
@@ -230,10 +233,13 @@ DISABLE_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
 DISABLE_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
 static inline const char *handleGlobStars	(
-							bool *r,
-							size_t *s, size_t *g,
-							const char *ccStri, size_t *lnStri,
-							const char *ccGlob, size_t *lnGlob
+							bool		*r,
+							size_t		*cunilog_restrict s,
+							size_t		*cunilog_restrict g,
+							const char	*cunilog_restrict ccStri,
+							size_t		*cunilog_restrict lnStri,
+							const char	*cunilog_restrict ccGlob,
+							size_t		*cunilog_restrict lnGlob
 											)
 {
 	char		c;
@@ -270,7 +276,10 @@ static inline const char *handleGlobStars	(
 	return p;
 }
 
-static inline bool globMatchInt (const char *ccStri, size_t *lnStri, const char *ccGlob, size_t *lnGlob)
+static inline bool globMatchInt	(
+		const char		*cunilog_restrict ccStri,	size_t *cunilog_restrict lnStri,
+		const char		*cunilog_restrict ccGlob,	size_t *cunilog_restrict lnGlob
+								)
 {
 	size_t		s		= 0;
 	size_t		g		= 0;
@@ -302,7 +311,10 @@ static inline bool globMatchInt (const char *ccStri, size_t *lnStri, const char 
 DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
 DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
-bool globMatch (const char *ccStri, size_t lnStri, const char *ccGlob, size_t lnGlob)
+bool globMatch	(
+		const char		*cunilog_restrict ccStri,	size_t lnStri,
+		const char		*cunilog_restrict ccGlob,	size_t lnGlob
+				)
 {
 	lnStri = USE_STRLEN == lnStri ? strlen (ccStri) : lnStri;
 	lnGlob = USE_STRLEN == lnGlob ? strlen (ccGlob) : lnGlob;

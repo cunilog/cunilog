@@ -65,7 +65,11 @@ static inline bool isValidURIcharacter (const char c)
 }
 
 // Function to encode a string in URI format.
-size_t uri_encode_str (char *szURIencoded, const char *str, size_t len)
+size_t uri_encode_str	(
+			char			*cunilog_restrict szURIencoded,
+			const char		*cunilog_restrict str,
+			size_t			len
+						)
 {
 
 	size_t			ret     = 0;

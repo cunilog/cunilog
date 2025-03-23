@@ -336,10 +336,10 @@ TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF64aligned) (SMEMBUF *pb, size_t siz);
 	The function does not return a value. Check with isUsableSMEMBUF (dst) to see if the
 	copy operation was successful.
 */
-void copySMEMBUF (SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src)
+void copySMEMBUF (SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src)
 ;
 TYPEDEF_FNCT_PTR (void, copySMEMBUF)
-	(SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src)
+	(SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src)
 	;
 
 /*
@@ -351,10 +351,10 @@ TYPEDEF_FNCT_PTR (void, copySMEMBUF)
 	The function does not return a value. Check with isUsableSMEMBUF (dst) to see if the
 	copy operation was successful.
 */
-void copySMEMBUFsiz (SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src, size_t siz)
+void copySMEMBUFsiz (SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src, size_t siz)
 ;
 TYPEDEF_FNCT_PTR (void, copySMEMBUFsiz)
-	(SMEMBUF * cunilog_restrict dst, SMEMBUF * cunilog_restrict src, size_t siz)
+	(SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src, size_t siz)
 	;
 
 EXTERN_C_END
