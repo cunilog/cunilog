@@ -52,7 +52,7 @@ When		Who				What
 		C99 compiler. The restrict keyword is available.
 		See https://en.wikipedia.org/wiki/C99 .
 	*/
-	#definecunilog_restrict	restrict
+	#define cunilog_restrict	restrict
 
 #elif defined (__clang__)
 
@@ -60,7 +60,7 @@ When		Who				What
 		See https://clang.llvm.org/docs/LanguageExtensions.html .
 		Clang also supports __restrict.
 	*/
-	#define cunilot_restrict	__restrict__
+	#define cunilog_restrict	__restrict__
 
 #elif defined (__GNUC__)
 
@@ -68,7 +68,16 @@ When		Who				What
 		See https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html .
 		Also supports __restrict.
 	*/
-	#define cunilot_restrict	__restrict__
+	#define cunilog_restrict	__restrict__
+
+#elif defined (__INTEL_COMPILER)
+
+	/*
+		Requires -restrict option. See
+		https://www.intel.com/content/www/us/en/docs/cpp-compiler/developer-guide-reference/2021-8/restrict-qrestrict.html
+		for details.
+	*/
+	#define cunilog_restrict	restrict
 
 #elif defined (_MSC_VER)
 

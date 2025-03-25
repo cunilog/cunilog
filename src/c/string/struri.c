@@ -48,9 +48,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./strhex.h"
+		#include "./ubfdebug.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../string/strhex.h"
+		#include "./../dbg/ubfdebug.h"
 	#endif
 
 #endif
@@ -71,6 +73,7 @@ size_t uri_encode_str	(
 			size_t			len
 						)
 {
+	ubf_assert (szURIencoded != str);
 
 	size_t			ret     = 0;
 

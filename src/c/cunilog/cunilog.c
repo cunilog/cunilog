@@ -805,6 +805,40 @@ char *CreateLogPathInSUNILOGTARGET	(
 	return put->mbLogPath.buf.pch;
 }
 
+char *CreateLogPath_smb	(
+		SMEMBUF *psmb, size_t *psiz, const char *szLogPath, size_t len, enCunilogRelLogPath relLogPath
+						)
+{
+	ubf_assert_non_NULL (psmb);
+	ubf_assert_non_NULL (psiz);
+
+	if (szLogPath)
+	{
+		ubf_assert (0 != len);
+
+		bool b;
+		b = ObtainLogPathFromArgument	(
+				psmb, psiz, szLogPath, len, relLogPath
+										);
+		// The function only fails if szLogPath is NULL or relative but cunilogLogPath_isAbsolute
+		//	has been given.
+		if (!b)
+			return NULL;
+	} else
+	{
+		// If szLogPath is NULL its length should be 0.
+		ubf_assert_0 (len);
+
+		// Cannot be absolute.
+		if (cunilogLogPath_isAbsolute == relLogPath)
+			return NULL;
+
+		// No path given. We use the path specified with relLogPath.
+		*psiz = ObtainRelativeLogPathBase (psmb, relLogPath);
+	}
+	return psmb->buf.pch;
+}
+
 static inline const char *RemoveSlashesFromStart (const char *szAppName, size_t *plen)
 {
 	ubf_assert_non_NULL (plen);
@@ -1477,6 +1511,8 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 		relLogPath, type, postfix, unilogTSformat, unilogNewLine, rp
 										);
 
+	//_ASSERT (false);
+
 	SCUNILOGTARGET	*pu;							// Return value.
 	size_t			lnUNILOGTARGET	= ALIGNED_SIZE (sizeof (SCUNILOGTARGET), CUNILOG_DEFAULT_ALIGNMENT);
 	size_t			lnTotal			= lnUNILOGTARGET;
@@ -1490,10 +1526,17 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 
 	if (szLogPath && lnLogPath)
 	{
-		if (!isDirSep (szLogPath [lnLogPath -1]))
-			lnLP = ALIGNED_SIZE (lnLogPath + 2, CUNILOG_DEFAULT_ALIGNMENT);
+		size_t ln;
+		char *szLP = CreateLogPath_smb (&logpath, &ln, szLogPath, lnLogPath, relLogPath);
+
+		ubf_assert_non_NULL (szLP);
+		UNUSED (szLP);
+
+		lnLogPath = ln;
+		if (!isDirSep (logpath.buf.pch [ln -1]))
+			lnLP = ALIGNED_SIZE (ln + 2, CUNILOG_DEFAULT_ALIGNMENT);
 		else 
-			lnLP = ALIGNED_SIZE (lnLogPath + 1, CUNILOG_DEFAULT_ALIGNMENT);
+			lnLP = ALIGNED_SIZE (ln + 1, CUNILOG_DEFAULT_ALIGNMENT);
 		lnTotal += lnLP;
 	} else
 	{	// No log path given.
@@ -1509,7 +1552,6 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 		}
 		lnLogPath = ObtainRelativeLogPathBase (&logpath, relLogPath);
 		ubf_assert_non_0 (lnLogPath);
-		szLogPath = logpath.buf.pch;
 		lnLP = ALIGNED_SIZE (lnLogPath + 1, CUNILOG_DEFAULT_ALIGNMENT);
 		lnTotal += lnLP;
 	}
@@ -1532,8 +1574,8 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 		pu->uiOpts |= CUNILOGTARGET_ALLOCATED;
 		initSMEMBUF (&pu->mbLogPath);
 		pu->mbLogPath.buf.pcc = (char *) pu + ALIGNED_SIZE (lnUNILOGTARGET, CUNILOG_DEFAULT_ALIGNMENT);
-		memcpy (pu->mbLogPath.buf.pch, szLogPath, lnLogPath + 1);
-		if (!isDirSep (szLogPath [lnLogPath -1]))
+		memcpy (pu->mbLogPath.buf.pch, logpath.buf.pch, lnLogPath + 1);
+		if (!isDirSep (logpath.buf.pch [lnLogPath -1]))
 		{
 			pu->mbLogPath.buf.pch [lnLogPath]		= UBF_DIR_SEP;
 			pu->mbLogPath.buf.pch [lnLogPath + 1]	= ASCII_NUL;
@@ -5906,6 +5948,10 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				NULL, 0, cunilogEvtTS_Default, cunilogNewLineSystem,
 				cunilogDontRunProcessorsOnStartup
 									);
+		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
 		DoneSCUNILOGTARGET (pt);
 
 		pt = InitOrCreateSCUNILOGTARGET	(

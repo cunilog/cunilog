@@ -115,10 +115,30 @@ int main (int argc, char *argv [])
 				cunilogRunProcessorsOnStartup
 									);
 
+	size_t len;
+	const char *szAbsPath = GetAbsoluteLogPathSCUNILOGTARGET (put, &len);
+
 	logTextU8_static ("cunilogPostfixDotNumberDescending");
 
 	ShutdownSCUNILOGTARGETstatic ();
 	DoneSCUNILOGTARGETstatic ();
+
+	put = CreateNewSCUNILOGTARGET		(
+				ccLogsFolder, lnLogsFolder,
+				NULL, 0,
+				cunilogLogPath_relativeToExecutable,
+				cunilogMultiThreadedSeparateLoggingThread,
+				cunilogPostfixMinute,
+				NULL, 0,
+				cunilogEvtTS_Default,
+				cunilogNewLineDefault,
+				cunilogRunProcessorsOnStartup
+										);
+	ubf_assert_non_NULL (put);
+	szAbsPath = GetAbsoluteLogPathSCUNILOGTARGET (put, &len);
+
+	ShutdownSCUNILOGTARGET (put);
+	DoneSCUNILOGTARGET (put);
 
 
 	put = InitSCUNILOGTARGETstaticEx	(

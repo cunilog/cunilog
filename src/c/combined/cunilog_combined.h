@@ -917,7 +917,7 @@ When		Who				What
 		C99 compiler. The restrict keyword is available.
 		See https://en.wikipedia.org/wiki/C99 .
 	*/
-	#definecunilog_restrict	restrict
+	#define cunilog_restrict	restrict
 
 #elif defined (__clang__)
 
@@ -925,7 +925,7 @@ When		Who				What
 		See https://clang.llvm.org/docs/LanguageExtensions.html .
 		Clang also supports __restrict.
 	*/
-	#define cunilot_restrict	__restrict__
+	#define cunilog_restrict	__restrict__
 
 #elif defined (__GNUC__)
 
@@ -933,7 +933,16 @@ When		Who				What
 		See https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html .
 		Also supports __restrict.
 	*/
-	#define cunilot_restrict	__restrict__
+	#define cunilog_restrict	__restrict__
+
+#elif defined (__INTEL_COMPILER)
+
+	/*
+		Requires -restrict option. See
+		https://www.intel.com/content/www/us/en/docs/cpp-compiler/developer-guide-reference/2021-8/restrict-qrestrict.html
+		for details.
+	*/
+	#define cunilog_restrict	restrict
 
 #elif defined (_MSC_VER)
 
@@ -10676,9 +10685,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
+		#include "./restrict.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
+		#include "./../pre/restrict.h"
 	#endif
 
 #endif
@@ -10971,7 +10982,7 @@ void SetFILETIMEtoMaxFILETIME (FILETIME *ft);
 	
 	Copies the contents of the FILETIME structure ftsource into fttarget.
 */
-void cpyFILETIME (FILETIME *fttarget, FILETIME *ftsource);
+void cpyFILETIME (FILETIME *cunilog_restrict fttarget, FILETIME *cunilog_restrict ftsource);
 
 /*
 	CPYFILETIME
@@ -10990,7 +11001,7 @@ void cpyFILETIME (FILETIME *fttarget, FILETIME *ftsource);
 	The function returns 0, if both structures are identical, 1 if ft1 is
 	greater than ft2, and -1 if ft1 is smaller than ft2.
 */
-int cmpFILETIME (FILETIME *ft1, FILETIME *ft2);
+int cmpFILETIME (FILETIME *cunilog_restrict ft1, FILETIME *cunilog_restrict ft2);
 
 /*
 	CMPFILETIME
@@ -13642,8 +13653,8 @@ size_t str_remove_path_navigators (char *chPath, size_t *pLen);
 */
 bool ubf_correct_directory_separators_str	(
 			char			*chPath,
-			size_t			*cunilog_restrict plenPath,
-			size_t			*cunilog_restrict pReps
+			size_t			*plenPath,
+			size_t			*pReps
 											)
 ;
 
@@ -16471,8 +16482,8 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	See function strwildcards_test_function () for a more complete list of expectations.
 */
 bool globMatch	(
-		const char		*cunilog_restrict ccStri,	size_t lnStri,
-		const char		*cunilog_restrict ccGlob,	size_t lnGlob
+		const char		*ccStri,	size_t lnStri,
+		const char		*ccGlob,	size_t lnGlob
 				)
 ;
 

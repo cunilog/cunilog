@@ -170,13 +170,13 @@ enum hasGlobCharAfterStar
 typedef enum hasGlobCharAfterStar enGl;
 
 static inline enGl globCharAfterStar	(
-		char			*cunilog_restrict c,		size_t *cunilog_restrict g,
-		const char		*cunilog_restrict ccGlob,	size_t *cunilog_restrict lnGlob
+		char			*c,			size_t *g,
+		const char		*ccGlob,	size_t *lnGlob
 										)
 {
-	ubf_assert_non_NULL (c);
-	ubf_assert_non_NULL (g);
-	ubf_assert_non_NULL (lnGlob);
+	ubf_assert_non_NULL	(c);
+	ubf_assert_non_NULL	(g);
+	ubf_assert_non_NULL	(lnGlob);
 
 	++ *g;
 
@@ -234,17 +234,24 @@ DISABLE_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
 static inline const char *handleGlobStars	(
 							bool		*r,
-							size_t		*cunilog_restrict s,
-							size_t		*cunilog_restrict g,
-							const char	*cunilog_restrict ccStri,
-							size_t		*cunilog_restrict lnStri,
-							const char	*cunilog_restrict ccGlob,
-							size_t		*cunilog_restrict lnGlob
+							size_t		*s,
+							size_t		*g,
+							const char	*ccStri,
+							size_t		*lnStri,
+							const char	*ccGlob,
+							size_t		*lnGlob
 											)
 {
+	ubf_assert_non_NULL	(r);
+	ubf_assert_non_NULL	(s);
+	ubf_assert_non_NULL	(g);
+	ubf_assert_non_NULL	(ccStri);
+	ubf_assert_non_NULL	(lnStri);
+	ubf_assert_non_NULL	(ccGlob);
+	ubf_assert_non_NULL	(lnGlob);
+
 	char		c;
-	//const char	*p = NULL;									// Init to NULL to silence warning.
-	const char	*p;												// Nah!
+	const char	*p;
 	enGl		gl;
 
 	gl = globCharAfterStar (&c, g, ccGlob, lnGlob);
@@ -277,10 +284,15 @@ static inline const char *handleGlobStars	(
 }
 
 static inline bool globMatchInt	(
-		const char		*cunilog_restrict ccStri,	size_t *cunilog_restrict lnStri,
-		const char		*cunilog_restrict ccGlob,	size_t *cunilog_restrict lnGlob
+		const char		*ccStri,	size_t *lnStri,
+		const char		*ccGlob,	size_t *lnGlob
 								)
 {
+	ubf_assert_non_NULL	(ccStri);
+	ubf_assert_non_NULL	(lnStri);
+	ubf_assert_non_NULL	(ccGlob);
+	ubf_assert_non_NULL	(lnGlob);
+
 	size_t		s		= 0;
 	size_t		g		= 0;
 	bool		r;
@@ -312,8 +324,8 @@ DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
 DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
 bool globMatch	(
-		const char		*cunilog_restrict ccStri,	size_t lnStri,
-		const char		*cunilog_restrict ccGlob,	size_t lnGlob
+		const char		*ccStri,	size_t lnStri,
+		const char		*ccGlob,	size_t lnGlob
 				)
 {
 	lnStri = USE_STRLEN == lnStri ? strlen (ccStri) : lnStri;

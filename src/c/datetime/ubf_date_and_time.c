@@ -232,17 +232,22 @@ void SetFILETIMEtoMaxFILETIME (FILETIME *ft)
 	ft->dwLowDateTime	= UINT32_MAX;
 }
 
-void cpyFILETIME (FILETIME *fttarget, FILETIME *ftsource)
+void cpyFILETIME (FILETIME *cunilog_restrict fttarget, FILETIME *cunilog_restrict ftsource)
 {
-	ubf_assert_non_NULL (fttarget);
-	ubf_assert_non_NULL (ftsource);
+	ubf_assert_non_NULL	(fttarget);
+	ubf_assert_non_NULL	(ftsource);
+	ubf_assert			(fttarget != ftsource);
 
 	fttarget->dwHighDateTime	= ftsource->dwHighDateTime;
 	fttarget->dwLowDateTime		= ftsource->dwLowDateTime;
 }
 
-int cmpFILETIME (FILETIME *ft1, FILETIME *ft2)
+int cmpFILETIME (FILETIME *cunilog_restrict ft1, FILETIME *cunilog_restrict ft2)
 {
+	ubf_assert_non_NULL	(ft1);
+	ubf_assert_non_NULL	(ft2);
+	ubf_assert			(ft1 != ft2);
+
 	if (ft1->dwHighDateTime	> ft2->dwHighDateTime)
 		return 1;
 	if (ft1->dwHighDateTime	< ft2->dwHighDateTime)

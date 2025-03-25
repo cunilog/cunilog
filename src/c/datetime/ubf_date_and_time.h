@@ -65,9 +65,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
+		#include "./restrict.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
+		#include "./../pre/restrict.h"
 	#endif
 
 #endif
@@ -360,7 +362,7 @@ void SetFILETIMEtoMaxFILETIME (FILETIME *ft);
 	
 	Copies the contents of the FILETIME structure ftsource into fttarget.
 */
-void cpyFILETIME (FILETIME *fttarget, FILETIME *ftsource);
+void cpyFILETIME (FILETIME *cunilog_restrict fttarget, FILETIME *cunilog_restrict ftsource);
 
 /*
 	CPYFILETIME
@@ -379,7 +381,7 @@ void cpyFILETIME (FILETIME *fttarget, FILETIME *ftsource);
 	The function returns 0, if both structures are identical, 1 if ft1 is
 	greater than ft2, and -1 if ft1 is smaller than ft2.
 */
-int cmpFILETIME (FILETIME *ft1, FILETIME *ft2);
+int cmpFILETIME (FILETIME *cunilog_restrict ft1, FILETIME *cunilog_restrict ft2);
 
 /*
 	CMPFILETIME

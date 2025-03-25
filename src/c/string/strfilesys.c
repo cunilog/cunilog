@@ -187,15 +187,15 @@ size_t str_remove_path_navigators (char *chPath, size_t *pLen)
 
 bool ubf_correct_directory_separators_str	(
 			char			*chPath,
-			size_t			*cunilog_restrict plenPath,
-			size_t			*cunilog_restrict pReps
+			size_t			*plenPath,
+			size_t			*pReps
 											)
 {
 	size_t			stRet	= 0;
 	size_t			st;
 	size_t			stLen;
 	char			*ch		= chPath;
-	char			ds [3]	= {UBF_DIR_SEP, UBF_DIR_SEP};		// Double separator.
+	char			ds [3]	= {UBF_DIR_SEP, UBF_DIR_SEP, 0};	// Double separator.
 	
 	ubf_assert (NULL != chPath);
 	if (chPath)

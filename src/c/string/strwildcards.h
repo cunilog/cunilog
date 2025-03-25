@@ -164,8 +164,8 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	See function strwildcards_test_function () for a more complete list of expectations.
 */
 bool globMatch	(
-		const char		*cunilog_restrict ccStri,	size_t lnStri,
-		const char		*cunilog_restrict ccGlob,	size_t lnGlob
+		const char		*ccStri,	size_t lnStri,
+		const char		*ccGlob,	size_t lnGlob
 				)
 ;
 

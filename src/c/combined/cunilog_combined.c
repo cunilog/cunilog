@@ -8466,17 +8466,22 @@ void SetFILETIMEtoMaxFILETIME (FILETIME *ft)
 	ft->dwLowDateTime	= UINT32_MAX;
 }
 
-void cpyFILETIME (FILETIME *fttarget, FILETIME *ftsource)
+void cpyFILETIME (FILETIME *cunilog_restrict fttarget, FILETIME *cunilog_restrict ftsource)
 {
-	ubf_assert_non_NULL (fttarget);
-	ubf_assert_non_NULL (ftsource);
+	ubf_assert_non_NULL	(fttarget);
+	ubf_assert_non_NULL	(ftsource);
+	ubf_assert			(fttarget != ftsource);
 
 	fttarget->dwHighDateTime	= ftsource->dwHighDateTime;
 	fttarget->dwLowDateTime		= ftsource->dwLowDateTime;
 }
 
-int cmpFILETIME (FILETIME *ft1, FILETIME *ft2)
+int cmpFILETIME (FILETIME *cunilog_restrict ft1, FILETIME *cunilog_restrict ft2)
 {
+	ubf_assert_non_NULL	(ft1);
+	ubf_assert_non_NULL	(ft2);
+	ubf_assert			(ft1 != ft2);
+
 	if (ft1->dwHighDateTime	> ft2->dwHighDateTime)
 		return 1;
 	if (ft1->dwHighDateTime	< ft2->dwHighDateTime)
@@ -11931,15 +11936,15 @@ size_t str_remove_path_navigators (char *chPath, size_t *pLen)
 
 bool ubf_correct_directory_separators_str	(
 			char			*chPath,
-			size_t			*cunilog_restrict plenPath,
-			size_t			*cunilog_restrict pReps
+			size_t			*plenPath,
+			size_t			*pReps
 											)
 {
 	size_t			stRet	= 0;
 	size_t			st;
 	size_t			stLen;
 	char			*ch		= chPath;
-	char			ds [3]	= {UBF_DIR_SEP, UBF_DIR_SEP};		// Double separator.
+	char			ds [3]	= {UBF_DIR_SEP, UBF_DIR_SEP, 0};	// Double separator.
 	
 	ubf_assert (NULL != chPath);
 	if (chPath)
@@ -15784,9 +15789,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./strhex.h"
+		#include "./ubfdebug.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../string/strhex.h"
+		#include "./../dbg/ubfdebug.h"
 	#endif
 
 #endif
@@ -15807,6 +15814,7 @@ size_t uri_encode_str	(
 			size_t			len
 						)
 {
+	ubf_assert (szURIencoded != str);
 
 	size_t			ret     = 0;
 
@@ -16129,13 +16137,13 @@ enum hasGlobCharAfterStar
 typedef enum hasGlobCharAfterStar enGl;
 
 static inline enGl globCharAfterStar	(
-		char			*cunilog_restrict c,		size_t *cunilog_restrict g,
-		const char		*cunilog_restrict ccGlob,	size_t *cunilog_restrict lnGlob
+		char			*c,			size_t *g,
+		const char		*ccGlob,	size_t *lnGlob
 										)
 {
-	ubf_assert_non_NULL (c);
-	ubf_assert_non_NULL (g);
-	ubf_assert_non_NULL (lnGlob);
+	ubf_assert_non_NULL	(c);
+	ubf_assert_non_NULL	(g);
+	ubf_assert_non_NULL	(lnGlob);
 
 	++ *g;
 
@@ -16193,17 +16201,24 @@ DISABLE_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
 static inline const char *handleGlobStars	(
 							bool		*r,
-							size_t		*cunilog_restrict s,
-							size_t		*cunilog_restrict g,
-							const char	*cunilog_restrict ccStri,
-							size_t		*cunilog_restrict lnStri,
-							const char	*cunilog_restrict ccGlob,
-							size_t		*cunilog_restrict lnGlob
+							size_t		*s,
+							size_t		*g,
+							const char	*ccStri,
+							size_t		*lnStri,
+							const char	*ccGlob,
+							size_t		*lnGlob
 											)
 {
+	ubf_assert_non_NULL	(r);
+	ubf_assert_non_NULL	(s);
+	ubf_assert_non_NULL	(g);
+	ubf_assert_non_NULL	(ccStri);
+	ubf_assert_non_NULL	(lnStri);
+	ubf_assert_non_NULL	(ccGlob);
+	ubf_assert_non_NULL	(lnGlob);
+
 	char		c;
-	//const char	*p = NULL;									// Init to NULL to silence warning.
-	const char	*p;												// Nah!
+	const char	*p;
 	enGl		gl;
 
 	gl = globCharAfterStar (&c, g, ccGlob, lnGlob);
@@ -16236,10 +16251,15 @@ static inline const char *handleGlobStars	(
 }
 
 static inline bool globMatchInt	(
-		const char		*cunilog_restrict ccStri,	size_t *cunilog_restrict lnStri,
-		const char		*cunilog_restrict ccGlob,	size_t *cunilog_restrict lnGlob
+		const char		*ccStri,	size_t *lnStri,
+		const char		*ccGlob,	size_t *lnGlob
 								)
 {
+	ubf_assert_non_NULL	(ccStri);
+	ubf_assert_non_NULL	(lnStri);
+	ubf_assert_non_NULL	(ccGlob);
+	ubf_assert_non_NULL	(lnGlob);
+
 	size_t		s		= 0;
 	size_t		g		= 0;
 	bool		r;
@@ -16271,8 +16291,8 @@ DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
 DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
 bool globMatch	(
-		const char		*cunilog_restrict ccStri,	size_t lnStri,
-		const char		*cunilog_restrict ccGlob,	size_t lnGlob
+		const char		*ccStri,	size_t lnStri,
+		const char		*ccGlob,	size_t lnGlob
 				)
 {
 	lnStri = USE_STRLEN == lnStri ? strlen (ccStri) : lnStri;
@@ -17819,6 +17839,40 @@ char *CreateLogPathInSUNILOGTARGET	(
 	return put->mbLogPath.buf.pch;
 }
 
+char *CreateLogPath_smb	(
+		SMEMBUF *psmb, size_t *psiz, const char *szLogPath, size_t len, enCunilogRelLogPath relLogPath
+						)
+{
+	ubf_assert_non_NULL (psmb);
+	ubf_assert_non_NULL (psiz);
+
+	if (szLogPath)
+	{
+		ubf_assert (0 != len);
+
+		bool b;
+		b = ObtainLogPathFromArgument	(
+				psmb, psiz, szLogPath, len, relLogPath
+										);
+		// The function only fails if szLogPath is NULL or relative but cunilogLogPath_isAbsolute
+		//	has been given.
+		if (!b)
+			return NULL;
+	} else
+	{
+		// If szLogPath is NULL its length should be 0.
+		ubf_assert_0 (len);
+
+		// Cannot be absolute.
+		if (cunilogLogPath_isAbsolute == relLogPath)
+			return NULL;
+
+		// No path given. We use the path specified with relLogPath.
+		*psiz = ObtainRelativeLogPathBase (psmb, relLogPath);
+	}
+	return psmb->buf.pch;
+}
+
 static inline const char *RemoveSlashesFromStart (const char *szAppName, size_t *plen)
 {
 	ubf_assert_non_NULL (plen);
@@ -18491,6 +18545,8 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 		relLogPath, type, postfix, unilogTSformat, unilogNewLine, rp
 										);
 
+	//_ASSERT (false);
+
 	SCUNILOGTARGET	*pu;							// Return value.
 	size_t			lnUNILOGTARGET	= ALIGNED_SIZE (sizeof (SCUNILOGTARGET), CUNILOG_DEFAULT_ALIGNMENT);
 	size_t			lnTotal			= lnUNILOGTARGET;
@@ -18504,10 +18560,17 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 
 	if (szLogPath && lnLogPath)
 	{
-		if (!isDirSep (szLogPath [lnLogPath -1]))
-			lnLP = ALIGNED_SIZE (lnLogPath + 2, CUNILOG_DEFAULT_ALIGNMENT);
+		size_t ln;
+		char *szLP = CreateLogPath_smb (&logpath, &ln, szLogPath, lnLogPath, relLogPath);
+
+		ubf_assert_non_NULL (szLP);
+		UNUSED (szLP);
+
+		lnLogPath = ln;
+		if (!isDirSep (logpath.buf.pch [ln -1]))
+			lnLP = ALIGNED_SIZE (ln + 2, CUNILOG_DEFAULT_ALIGNMENT);
 		else 
-			lnLP = ALIGNED_SIZE (lnLogPath + 1, CUNILOG_DEFAULT_ALIGNMENT);
+			lnLP = ALIGNED_SIZE (ln + 1, CUNILOG_DEFAULT_ALIGNMENT);
 		lnTotal += lnLP;
 	} else
 	{	// No log path given.
@@ -18523,7 +18586,6 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 		}
 		lnLogPath = ObtainRelativeLogPathBase (&logpath, relLogPath);
 		ubf_assert_non_0 (lnLogPath);
-		szLogPath = logpath.buf.pch;
 		lnLP = ALIGNED_SIZE (lnLogPath + 1, CUNILOG_DEFAULT_ALIGNMENT);
 		lnTotal += lnLP;
 	}
@@ -18546,8 +18608,8 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 		pu->uiOpts |= CUNILOGTARGET_ALLOCATED;
 		initSMEMBUF (&pu->mbLogPath);
 		pu->mbLogPath.buf.pcc = (char *) pu + ALIGNED_SIZE (lnUNILOGTARGET, CUNILOG_DEFAULT_ALIGNMENT);
-		memcpy (pu->mbLogPath.buf.pch, szLogPath, lnLogPath + 1);
-		if (!isDirSep (szLogPath [lnLogPath -1]))
+		memcpy (pu->mbLogPath.buf.pch, logpath.buf.pch, lnLogPath + 1);
+		if (!isDirSep (logpath.buf.pch [lnLogPath -1]))
 		{
 			pu->mbLogPath.buf.pch [lnLogPath]		= UBF_DIR_SEP;
 			pu->mbLogPath.buf.pch [lnLogPath + 1]	= ASCII_NUL;
@@ -22920,6 +22982,10 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				NULL, 0, cunilogEvtTS_Default, cunilogNewLineSystem,
 				cunilogDontRunProcessorsOnStartup
 									);
+		szAbsLogPath = GetAbsoluteLogPathSCUNILOGTARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
 		DoneSCUNILOGTARGET (pt);
 
 		pt = InitOrCreateSCUNILOGTARGET	(
