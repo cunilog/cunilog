@@ -3055,19 +3055,19 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 		{
 			switch (ourCunilogConsoleOutputCodePage)
 			{
-				case cunilogConsoleIsUTF8:		return puts		(szOutput);
-				case cunilogConsoleIsUTF16:		return putsU8	(szOutput);
-				case cunilogConsoleIsNeither:	return puts		(szOutput);
-				default:						return puts		(szOutput);
+				case cunilogConsoleIsUTF8:		return puts					(szOutput);
+				case cunilogConsoleIsUTF16:		return putsU8toU16stdout	(szOutput);
+				case cunilogConsoleIsNeither:	return puts					(szOutput);
+				default:						return puts					(szOutput);
 			}
 		} else
 		{
 			switch (ourCunilogConsoleOutputCodePage)
 			{
-				case cunilogConsoleIsUTF8:		return puts		("");
-				case cunilogConsoleIsUTF16:		return putsU8	("");
-				case cunilogConsoleIsNeither:	return puts		("");
-				default:						return puts		("");
+				case cunilogConsoleIsUTF8:		return puts					("");
+				case cunilogConsoleIsUTF16:		return putsU8toU16stdout	("");
+				case cunilogConsoleIsNeither:	return puts					("");
+				default:						return puts					("");
 			}
 		}
 	}

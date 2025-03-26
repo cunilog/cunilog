@@ -256,11 +256,11 @@ CUNILOG_DLL_IMPORT extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 	used if the console is set to output in UTF-16.
 */
 #ifdef PLATFORM_IS_WINDOWS
-	#define cunilog_puts(t)	putsU8 (t)
-	#define cunilog_printf(...) printfU8 (__VA_ARGS__)
+	#define cunilog_puts(t)		putsU8toU16stdout (t)
+	#define cunilog_printf(...) printfU8toU16stdout (__VA_ARGS__)
 #else
-	#define cunilog_puts(t)	puts (t)
-	#define cunilog_printf(...) printf (__VA_ARGS__)
+	#define cunilog_puts(t)		puts (t)
+	#define cunilog_printf(...)	printf (__VA_ARGS__)
 #endif
 
 /*

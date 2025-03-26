@@ -1576,6 +1576,8 @@ typedef struct smembuf
 	
 	If the function fails it calls doneSMEMBUF () on the structure to free its memory block and
 	make it unusable. Check with isUsableSMEMBUF() if the structure can be used afterwards.
+	Note that the functions returning a value unequal to NULL alone is not a reliable way of
+	determining that the function succeeded.
 */
 void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
 TYPEDEF_FNCT_PTR (void *, setToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
@@ -5138,33 +5140,43 @@ BOOL WritePrivateProfileStringU8long(
 */
 
 /*
-	fprintfU8
+	vfprintfU8toU16stream
+
+	UTF-8 version of vfprintf ().
+
+	Should only be used if stream is set to UTF-16.
+*/
+int vfprintfU8toU16stream (FILE *stream, const char *format, va_list ap);
+TYPEDEF_FNCT_PTR (int, vfprintfU8toU16stream) (FILE *stream, const char *format, va_list ap);
+
+/*
+	fprintfU8toU16stream
 
 	UTF-8 version of fprintf ().
 	
 	Should only be used if stream is set to UTF-16.
 */
-int fprintfU8 (FILE *stream, const char *format, ...);
-TYPEDEF_FNCT_PTR (int, fprintfU8) (FILE *stream, const char *format, ...);
+int fprintfU8toU16stream (FILE *stream, const char *format, ...);
+TYPEDEF_FNCT_PTR (int, fprintfU8toU16stream) (FILE *stream, const char *format, ...);
 
 /*
-	printfU8
+	printfU8toU16stdout
 
 	UTF-8 version of printf (). See http://www.cplusplus.com/reference/cstdio/printf/ .
 	
 	Should only be used if Windows console output is set to UTF-16.
 */
-#define printfU8(...) fprintfU8 (stdout, __VA_ARGS__)
+#define printfU8toU16stdout(...) fprintfU8toU16stream (stdout, __VA_ARGS__)
 
 /*
-	putsU8
+	putsU8toU16stdout
 
 	UTF-8 version of puts (). See http://www.cplusplus.com/reference/cstdio/puts/ .
 	
 	Should only be used if Windows console output is set to UTF-16.
 */
-int putsU8 (const char *strU8);
-TYPEDEF_FNCT_PTR (int, putsU8) (const char *strU8);
+int putsU8toU16stdout (const char *strU8);
+TYPEDEF_FNCT_PTR (int, putsU8toU16stdout) (const char *strU8);
 
 
 EXTERN_C_END
@@ -18719,11 +18731,11 @@ CUNILOG_DLL_IMPORT extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 	used if the console is set to output in UTF-16.
 */
 #ifdef PLATFORM_IS_WINDOWS
-	#define cunilog_puts(t)	putsU8 (t)
-	#define cunilog_printf(...) printfU8 (__VA_ARGS__)
+	#define cunilog_puts(t)		putsU8toU16stdout (t)
+	#define cunilog_printf(...) printfU8toU16stdout (__VA_ARGS__)
 #else
-	#define cunilog_puts(t)	puts (t)
-	#define cunilog_printf(...) printf (__VA_ARGS__)
+	#define cunilog_puts(t)		puts (t)
+	#define cunilog_printf(...)	printf (__VA_ARGS__)
 #endif
 
 /*

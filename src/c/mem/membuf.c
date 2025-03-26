@@ -72,11 +72,13 @@ void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz)
 				if (NULL == p)
 				{
 					ubf_free (pb->buf.puc);
+					pb->buf.puc = NULL;
 					p = ubf_malloc (siz);
 				}
 			} else
 			{
 				ubf_free (pb->buf.puc);
+				pb->buf.puc = NULL;
 				p = ubf_malloc (siz);
 			}
 		} else

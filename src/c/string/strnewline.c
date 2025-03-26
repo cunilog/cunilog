@@ -122,7 +122,7 @@ unsigned int strIsNewLine (char *ch, size_t stLen, size_t *stJump)
 		}
 	}
 	if (stJump)
-		*stJump				= 0;
+		*stJump					= 0;
 	return uiRet;
 }
 

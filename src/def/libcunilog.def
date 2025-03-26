@@ -266,8 +266,9 @@ EXPORTS
 	InsertExeArgumentIfMissingW						@553
 ;	WNetGetUniversalNameU8							@554	Not exported
 	WritePrivateProfileStringU8						@555
-	fprintfU8										@556
-	putsU8											@557
+	vfprintfU8toU16stream							@556
+	fprintfU8toU16stream							@557
+	putsU8toU16stdout								@558
 
 	; ubfcharscountsandchecks
 	ubf_is_printable_ASCII							@600

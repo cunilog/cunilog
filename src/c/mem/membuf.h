@@ -218,6 +218,8 @@ typedef struct smembuf
 	
 	If the function fails it calls doneSMEMBUF () on the structure to free its memory block and
 	make it unusable. Check with isUsableSMEMBUF() if the structure can be used afterwards.
+	Note that the functions returning a value unequal to NULL alone is not a reliable way of
+	determining that the function succeeded.
 */
 void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
 TYPEDEF_FNCT_PTR (void *, setToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);

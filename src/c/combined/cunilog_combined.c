@@ -92,11 +92,13 @@ void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz)
 				if (NULL == p)
 				{
 					ubf_free (pb->buf.puc);
+					pb->buf.puc = NULL;
 					p = ubf_malloc (siz);
 				}
 			} else
 			{
 				ubf_free (pb->buf.puc);
+				pb->buf.puc = NULL;
 				p = ubf_malloc (siz);
 			}
 		} else
@@ -3711,16 +3713,12 @@ BOOL WritePrivateProfileStringU8long(
 }
 */
 
-int fprintfU8 (FILE *stream, const char *format, ...)
+int vfprintfU8toU16stream (FILE *stream, const char *format, va_list ap)
 {
 	int			iReq;
 	int			iRet		= -1;
-	va_list		args;
 
-	va_start (args, format);
-	// Returns the required buffer size without terminating NUL.
-	iReq = vsnprintf (NULL, 0, format, args);
-	va_end (args);
+	iReq = vsnprintf (NULL, 0, format, ap);
 
 	WCHAR	wcToPrint	[WINAPI_U8_HEAP_THRESHOLD];
 	WCHAR	*pcToPrint;
@@ -3729,36 +3727,56 @@ int fprintfU8 (FILE *stream, const char *format, ...)
 	{
 		char	szToPrint	[WINAPI_U8_HEAP_THRESHOLD];
 
-		va_start (args, format);
-		vsnprintf (szToPrint, WINAPI_U8_HEAP_THRESHOLD, format, args);
-		va_end (args);
+		vsnprintf (szToPrint, WINAPI_U8_HEAP_THRESHOLD, format, ap);
 		pcToPrint = AllocWinU16fromU8orUseThreshold (wcToPrint, szToPrint);
-		iRet = fwprintf (stream, pcToPrint);
-		DoneWinU16fromU8orUseThreshold (pcToPrint, wcToPrint);
+		if (pcToPrint)
+		{
+			iRet = fwprintf (stream, pcToPrint);
+			DoneWinU16fromU8orUseThreshold (pcToPrint, wcToPrint);
+		}
 	} else
 	{
-		char	*szToPrint = ubf_malloc (((size_t) iReq) + 1);
+		char	*szToPrint = ubf_malloc (((size_t) (iReq)) + 1);
 
 		if (szToPrint)
 		{
+			vsnprintf (szToPrint, ((size_t) (iReq)) + 1, format, ap);
 			pcToPrint = AllocWinU16fromU8orUseThreshold (wcToPrint, szToPrint);
-			iRet = fwprintf (stream, pcToPrint);
-			DoneWinU16fromU8orUseThreshold (pcToPrint, wcToPrint);
+			if (pcToPrint)
+			{
+				iRet = fwprintf (stream, pcToPrint);
+				DoneWinU16fromU8orUseThreshold (pcToPrint, wcToPrint);
+			}
 			ubf_free (szToPrint);
 		}
 	}
 	return iRet;
 }
 
-int putsU8 (const char *strU8)
+int fprintfU8toU16stream (FILE *stream, const char *format, ...)
+{
+	int			iRet		= -1;
+	va_list		args;
+
+	va_start (args, format);
+	iRet = vfprintfU8toU16stream (stream, format, args);
+	va_end (args);
+
+	return iRet;
+}
+
+int putsU8toU16stdout (const char *strU8)
 {
 	WCHAR	wcToPrint	[WINAPI_U8_HEAP_THRESHOLD];
 	WCHAR	*pcToPrint;
-	int		iRet;
+	int		iRet		= EOF;
 
 	pcToPrint = AllocWinU16fromU8orUseThreshold (wcToPrint, strU8);
-	iRet = _putws (pcToPrint);
-	DoneWinU16fromU8orUseThreshold (pcToPrint, wcToPrint);
+	if (pcToPrint)
+	{
+		iRet = _putws (pcToPrint);
+		DoneWinU16fromU8orUseThreshold (pcToPrint, wcToPrint);
+	}
 	return iRet;
 }
 
@@ -6123,7 +6141,8 @@ bool HaveWeCreatedSharedMutex (shared_mutex_t mutex)
 	#elif
 		#error Not supported
 	#endif
-}/****************************************************************************************
+}
+/****************************************************************************************
 
 	File:		UserHome.c
 	Why:		User home directory functions.
@@ -13701,7 +13720,7 @@ unsigned int strIsNewLine (char *ch, size_t stLen, size_t *stJump)
 		}
 	}
 	if (stJump)
-		*stJump				= 0;
+		*stJump					= 0;
 	return uiRet;
 }
 
@@ -20089,19 +20108,19 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 		{
 			switch (ourCunilogConsoleOutputCodePage)
 			{
-				case cunilogConsoleIsUTF8:		return puts		(szOutput);
-				case cunilogConsoleIsUTF16:		return putsU8	(szOutput);
-				case cunilogConsoleIsNeither:	return puts		(szOutput);
-				default:						return puts		(szOutput);
+				case cunilogConsoleIsUTF8:		return puts					(szOutput);
+				case cunilogConsoleIsUTF16:		return putsU8toU16stdout	(szOutput);
+				case cunilogConsoleIsNeither:	return puts					(szOutput);
+				default:						return puts					(szOutput);
 			}
 		} else
 		{
 			switch (ourCunilogConsoleOutputCodePage)
 			{
-				case cunilogConsoleIsUTF8:		return puts		("");
-				case cunilogConsoleIsUTF16:		return putsU8	("");
-				case cunilogConsoleIsNeither:	return puts		("");
-				default:						return puts		("");
+				case cunilogConsoleIsUTF8:		return puts					("");
+				case cunilogConsoleIsUTF16:		return putsU8toU16stdout	("");
+				case cunilogConsoleIsNeither:	return puts					("");
+				default:						return puts					("");
 			}
 		}
 	}
