@@ -102,7 +102,7 @@ int main (int argc, char *argv [])
 	put = InitSCUNILOGTARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogMultiThreadedSeparateLoggingThread,
 				cunilogPostfixDotNumberDescending,
 				NULL, 0,
@@ -120,7 +120,7 @@ int main (int argc, char *argv [])
 	put = InitSCUNILOGTARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogMultiThreadedSeparateLoggingThread,
 				cunilogPostfixMinute,
 				NULL, 0,

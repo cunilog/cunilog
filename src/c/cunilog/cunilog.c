@@ -678,48 +678,48 @@ static size_t ObtainCurrentWorkingDirectoy (SMEMBUF *mb)
 	return r;
 }
 
-static size_t ObtainRelativeLogPathBase (SMEMBUF *mb, enCunilogRelLogPath relLogPath)
+static size_t ObtainRelativeLogPathBase (SMEMBUF *mb, enCunilogRelPath relLogPath)
 {
 	switch (relLogPath)
 	{
 		#ifdef DEBUG
-		case cunilogLogPath_isAbsolute:
+		case cunilogPath_isAbsolute:
 			ubf_assert_msg (false, "This should have been caught before we got here");
 			// Hopefully this causes an access violation/segmentation fault.
 			return CUNILOG_SIZE_ERROR;
 		#endif
-		case cunilogLogPath_relativeToExecutable:
+		case cunilogPath_relativeToExecutable:
 			return ObtainPathFromExecutableModule (mb);
-		case cunilogLogPath_relativeToCurrentDir:
+		case cunilogPath_relativeToCurrentDir:
 			return ObtainCurrentWorkingDirectoy (mb);
-		case cunilogLogPath_relativeToHomeDir:
+		case cunilogPath_relativeToHomeDir:
 			return ObtainUserHomeDirectoy (mb);
 	}
 	return 0;
 }
 
-static bool ObtainLogPathFromArgument	(
-				SMEMBUF						*smlp,
-				size_t						*lnlp,
-				const char					*szLogPath,
-				size_t						len,
-				enCunilogRelLogPath			relLogPath
-										)
+bool GetAbsPathFromAbsOrRelPath	(
+		SMEMBUF				*psmb,
+		size_t				*plmb,
+		const char			*szAbsOrRelPath,
+		size_t				lnAbsOrRelPath,
+		enCunilogRelPath	absOrRelPath
+								)
 {
-	ubf_assert_non_NULL (smlp);
-	ubf_assert_non_NULL (lnlp);
-	ubf_assert_non_NULL (szLogPath);
-	ubf_assert_non_0 (len);
-	ubf_assert (isInitialisedSMEMBUF (smlp));
+	ubf_assert_non_NULL (psmb);
+	ubf_assert_non_NULL (szAbsOrRelPath);
+	ubf_assert_non_0	(lnAbsOrRelPath);
+	ubf_assert			(isInitialisedSMEMBUF (psmb));
 
-	SMEMBUF b	= SMEMBUF_INITIALISER;
-	size_t	ln	= len;
+	SMEMBUF b		= SMEMBUF_INITIALISER;
+	lnAbsOrRelPath	= USE_STRLEN == lnAbsOrRelPath ? strlen (szAbsOrRelPath) : lnAbsOrRelPath;
+	size_t	ln		= lnAbsOrRelPath;
 
-	if (is_absolute_path_l (szLogPath, ln))
+	if (is_absolute_path_l (szAbsOrRelPath, ln))
 	{
-		if (!isDirSep (szLogPath [ln - 1]))
+		if (!isDirSep (szAbsOrRelPath [ln - 1]))
 		{
-			if (SMEMBUFfromStrReserveBytes (&b, szLogPath, ln, 2))
+			if (SMEMBUFfromStrReserveBytes (&b, szAbsOrRelPath, ln, 2))
 			{
 				b.buf.pch [ln] = UBF_DIR_SEP;
 				++ ln;
@@ -727,11 +727,11 @@ static bool ObtainLogPathFromArgument	(
 			}
 		} else
 		{
-			SMEMBUFfromStr (&b, szLogPath, ln);
+			SMEMBUFfromStr (&b, szAbsOrRelPath, ln);
 		}
 	} else
 	{	// The path is relative. It cannot be absolute.
-		if (cunilogLogPath_isAbsolute == relLogPath)
+		if (cunilogPath_isAbsolute == absOrRelPath)
 		{
 			#ifndef CUNILOG_BUILD_TEST_FNCTS
 				ubf_assert_msg	(
@@ -742,36 +742,37 @@ static bool ObtainLogPathFromArgument	(
 			return false;
 		}
 		SMEMBUF	t	= SMEMBUF_INITIALISER;
-		size_t	lp	= ObtainRelativeLogPathBase (&t, relLogPath);
-		ln = lp + len;
-		if (!isDirSep (szLogPath [len - 1]))
+		size_t	lp	= ObtainRelativeLogPathBase (&t, absOrRelPath);
+		ln = lp + lnAbsOrRelPath;
+		if (!isDirSep (szAbsOrRelPath [lnAbsOrRelPath - 1]))
 		{
 			growToSizeSMEMBUF (&b, ln + 1);
 			if (isUsableSMEMBUF (&b))
 			{
 				copySMEMBUF (&b, &t);
-				memcpy (b.buf.pch + lp, szLogPath, len);
-				b.buf.pch [lp + len] = UBF_DIR_SEP;
+				memcpy (b.buf.pch + lp, szAbsOrRelPath, lnAbsOrRelPath);
+				b.buf.pch [lp + lnAbsOrRelPath] = UBF_DIR_SEP;
 				++ ln;
 			}
 		} else
 		{
 			growToSizeSMEMBUF (&b, ln);
 			if (isUsableSMEMBUF (&b))
-				memcpy (b.buf.pch + lp, szLogPath, len);
+				memcpy (b.buf.pch + lp, szAbsOrRelPath, lnAbsOrRelPath);
 		}
 		doneSMEMBUF (&t);
 	}
 	str_correct_dir_separators (b.buf.pch, ln);
 	str_remove_path_navigators (b.buf.pch, &ln);
-	copySMEMBUFsiz (smlp, &b, ln + 1);							// NUL-terminated.
+	copySMEMBUFsiz (psmb, &b, ln + 1);						// NUL-terminated.
 	doneSMEMBUF (&b);
-	*lnlp = ln;													// The length of the destination.
+	if (plmb)
+		*plmb = ln;											// The length of the destination.
 	return true;
 }
 
 char *CreateLogPathInSUNILOGTARGET	(
-		SCUNILOGTARGET *put, const char *szLogPath, size_t len, enCunilogRelLogPath relLogPath
+		SCUNILOGTARGET *put, const char *szLogPath, size_t len, enCunilogRelPath relLogPath
 									)
 {
 	ubf_assert_non_NULL (put);
@@ -782,7 +783,7 @@ char *CreateLogPathInSUNILOGTARGET	(
 		ubf_assert (0 != len);
 
 		bool b;
-		b = ObtainLogPathFromArgument	(
+		b = GetAbsPathFromAbsOrRelPath	(
 				&put->mbLogPath, &put->lnLogPath, szLogPath, len, relLogPath
 										);
 		// The function only fails if szLogPath is NULL or relative but cunilogLogPath_isAbsolute
@@ -795,7 +796,7 @@ char *CreateLogPathInSUNILOGTARGET	(
 		ubf_assert_0 (len);
 
 		// Cannot be absolute.
-		if (cunilogLogPath_isAbsolute == relLogPath)
+		if (cunilogPath_isAbsolute == relLogPath)
 			return NULL;
 
 		// No path given. We use the path specified with relLogPath.
@@ -806,7 +807,7 @@ char *CreateLogPathInSUNILOGTARGET	(
 }
 
 char *CreateLogPath_smb	(
-		SMEMBUF *psmb, size_t *psiz, const char *szLogPath, size_t len, enCunilogRelLogPath relLogPath
+		SMEMBUF *psmb, size_t *psiz, const char *szLogPath, size_t len, enCunilogRelPath relLogPath
 						)
 {
 	ubf_assert_non_NULL (psmb);
@@ -817,7 +818,7 @@ char *CreateLogPath_smb	(
 		ubf_assert (0 != len);
 
 		bool b;
-		b = ObtainLogPathFromArgument	(
+		b = GetAbsPathFromAbsOrRelPath	(
 				psmb, psiz, szLogPath, len, relLogPath
 										);
 		// The function only fails if szLogPath is NULL or relative but cunilogLogPath_isAbsolute
@@ -830,7 +831,7 @@ char *CreateLogPath_smb	(
 		ubf_assert_0 (len);
 
 		// Cannot be absolute.
-		if (cunilogLogPath_isAbsolute == relLogPath)
+		if (cunilogPath_isAbsolute == relLogPath)
 			return NULL;
 
 		// No path given. We use the path specified with relLogPath.
@@ -1369,7 +1370,7 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 		put->nPausedEvents					= 0;
 	#endif
 	put->dumpWidth							= enDataDumpWidth16;
-	put->evSeverityType						= cunilogEvtSeverityTypeChars3;
+	put->evSeverityType						= cunilogEvtSeverityTypeDefault;
 	initPrevTimestamp						(put);
 	InitSCUNILOGTARGETmbLogFold				(put);
 	InitSCUNILOGTARGETdumpstructs			(put);
@@ -1383,7 +1384,7 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 
 #ifdef DEBUG
 	void assertSaneParametersSCUNILOGTARGET	(
-	  enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	  enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, enum cunilogeventTSformat	unilogTSformat		// The format of an event timestamp.
@@ -1392,7 +1393,7 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 											)
 	{
 		ubf_assert (0 <= relLogPath);
-		ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+		ubf_assert (cunilogPath_XAmountEnumValues > relLogPath);
 		ubf_assert (0 <= type);
 		ubf_assert (cunilogTypeAmountEnumValues > type);
 		ubf_assert (0 <= postfix);
@@ -1415,7 +1416,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -1439,7 +1440,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	put->unilogEvtTSformat	= unilogTSformat;
 	put->unilogNewLine		= unilogNewLine;
 	char *szLP = CreateLogPathInSUNILOGTARGET (put, szLogPath, lnLogPath, relLogPath);
-	if (NULL == szLP && cunilogLogPath_isAbsolute == relLogPath)
+	if (NULL == szLP && cunilogPath_isAbsolute == relLogPath)
 	{
 		#ifndef CUNILOG_BUILD_TEST_FNCTS
 			ubf_assert_msg	(
@@ -1463,13 +1464,13 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 		, size_t					lenLogPath			// Length of szLogPath
 		, const char				*szAppName			// Application name.
 		, size_t					lenAppName			// Length of szApplication.
-		, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+		, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 		, enum cunilogtype			type
 	)
 	{
 		ubf_assert_non_NULL (put);
 		ubf_assert (0 <= relLogPath);
-		ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+		ubf_assert (cunilogPath_XAmountEnumValues > relLogPath);
 		ubf_assert (0 <= type);
 		ubf_assert (cunilogTypeAmountEnumValues > type);
 
@@ -1497,7 +1498,7 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -1540,7 +1541,7 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 		lnTotal += lnLP;
 	} else
 	{	// No log path given.
-		if (cunilogLogPath_isAbsolute == relLogPath)
+		if (cunilogPath_isAbsolute == relLogPath)
 		{
 			#ifndef CUNILOG_BUILD_TEST_FNCTS
 				ubf_assert_msg	(
@@ -1614,7 +1615,7 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -1662,7 +1663,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szApplication		// Application name.
 	, size_t					lenApplication		// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -1688,12 +1689,12 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szApplication		// Application name.
 	, size_t					lenApplication		// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 )
 {
 	ubf_assert (0 <= relLogPath);
-	ubf_assert (cunilogLogPath_AmountEnumValues > relLogPath);
+	ubf_assert (cunilogPath_XAmountEnumValues > relLogPath);
 	ubf_assert (0 <= type);
 	ubf_assert (cunilogTypeAmountEnumValues > type);
 
@@ -2071,14 +2072,15 @@ static const char *EventSeverityTexts3 [] =
 		""				// cunilogEvtSeverityNone		 0
 	,	""				// cunilogEvtSeverityNonePass	 1
 	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	"   "			// cunilogEvtSeverityBlanks		 3
-	,	"EMG"			// cunilogEvtSeverityEmergency	 4
-	,	"NOT"			// cunilogEvtSeverityNotice		 5
+	,	""				// cunilogEvtSevertiyNoneWarn	 3
+	,	"   "			// cunilogEvtSeverityBlanks		 4
+	,	"EMG"			// cunilogEvtSeverityEmergency	 5
+	,	"NOT"			// cunilogEvtSeverityNotice		 6
 	,	"INF"
 	,	"MSG"
 	,	"WRN"
 	,	"ERR"
-	,	"PAS"			// cunilogEvtSeverityPass		10
+	,	"PAS"			// cunilogEvtSeverityPass		11
 	,	"FAI"
 	,	"CRI"
 	,	"FTL"
@@ -2086,21 +2088,22 @@ static const char *EventSeverityTexts3 [] =
 	,	"TRC"
 	,	"DET"
 	,	"VBS"
-	,	"ILG"			// cunilogEvtSeverityIllegal	17
+	,	"ILG"			// cunilogEvtSeverityIllegal	18
 };
 static const char *EventSeverityTexts5 [] =
 {
 		""				// cunilogEvtSeverityNone		 0
 	,	""				// cunilogEvtSeverityNonePass	 1
 	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	"     "			// cunilogEvtSeverityBlanks		 3
-	,	"EMRGY"			// cunilogEvtSeverityEmergency	 4
-	,	"NOTE "			// cunilogEvtSeverityNotice		 5
+	,	""				// cunilogEvtSevertiyNoneWarn	 3
+	,	"     "			// cunilogEvtSeverityBlanks		 4
+	,	"EMRGY"			// cunilogEvtSeverityEmergency	 5
+	,	"NOTE "			// cunilogEvtSeverityNotice		 6
 	,	"INFO "
 	,	"MESSG"
 	,	"WARN "
 	,	"ERROR"
-	,	"PASS "			//cunilogEvtSeverityPass		10
+	,	"PASS "			//cunilogEvtSeverityPass		11
 	,	"FAIL "
 	,	"CRIT "
 	,	"FATAL"
@@ -2108,21 +2111,22 @@ static const char *EventSeverityTexts5 [] =
 	,	"TRACE"
 	,	"DETAI"
 	,	"VERBO"
-	,	"ILLEG"			// cunilogEvtSeverityIllegal	17
+	,	"ILLEG"			// cunilogEvtSeverityIllegal	18
 };
 static const char *EventSeverityTexts5tgt [] =
 {
 		""				// cunilogEvtSeverityNone		 0
 	,	""				// cunilogEvtSeverityNonePass	 1
 	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	""				// cunilogEvtSeverityBlanks		 3
-	,	"EMRGY"			// cunilogEvtSeverityEmergency	 4
-	,	"NOTE"			// cunilogEvtSeverityNotice		 5
+	,	""				// cunilogEvtSevertiyNoneWarn	 3
+	,	""				// cunilogEvtSeverityBlanks		 4
+	,	"EMRGY"			// cunilogEvtSeverityEmergency	 5
+	,	"NOTE"			// cunilogEvtSeverityNotice		 6
 	,	"INFO"
 	,	"MESSG"
 	,	"WARN"
 	,	"ERROR"
-	,	"PASS"			//cunilogEvtSeverityPass		10
+	,	"PASS"			//cunilogEvtSeverityPass		11
 	,	"FAIL"
 	,	"CRIT"
 	,	"FATAL"
@@ -2130,21 +2134,22 @@ static const char *EventSeverityTexts5tgt [] =
 	,	"TRACE"
 	,	"DETAI"
 	,	"VERBO"
-	,	"ILLEG"			// cunilogEvtSeverityIllegal	17
+	,	"ILLEG"			// cunilogEvtSeverityIllegal	18
 };
 static const char *EventSeverityTexts9 [] =
 {
 		""				// cunilogEvtSeverityNone		 0
 	,	""				// cunilogEvtSeverityNonePass	 1
 	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	"         "		// cunilogEvtSeverityBlanks		 3
-	,	"EMERGENCY"		// cunilogEvtSeverityEmergency	 4
-	,	"NOTICE   "		// cunilogEvtSeverityNotice		 5
+	,	""				// cunilogEvtSevertiyNoneWarn	 3
+	,	"         "		// cunilogEvtSeverityBlanks		 4
+	,	"EMERGENCY"		// cunilogEvtSeverityEmergency	 5
+	,	"NOTICE   "		// cunilogEvtSeverityNotice		 6
 	,	"INFO     "
 	,	"MESSAGE  "
 	,	"WARNING  "
 	,	"ERROR    "
-	,	"PASS     "		// cunilogEvtSeverityPass		10
+	,	"PASS     "		// cunilogEvtSeverityPass		11
 	,	"FAIL     "
 	,	"CRITICAL "
 	,	"FATAL    "
@@ -2152,7 +2157,7 @@ static const char *EventSeverityTexts9 [] =
 	,	"TRACE    "
 	,	"DETAIL   "
 	,	"VERBOSE  "
-	,	"ILLEGAL  "		// cunilogEvtSeverityIllegal	17
+	,	"ILLEGAL  "		// cunilogEvtSeverityIllegal	18
 };
 static const char *EventSeverityTexts9tgt [] =
 {
@@ -2177,29 +2182,75 @@ static const char *EventSeverityTexts9tgt [] =
 	,	"ILLEGAL"		// cunilogEvtSeverityIllegal	17
 };
 
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 STRANSICOLOURSEQUENCE evtSeverityColours [cunilogEvtSeverityXAmountEnumValues] =
 {
 		{"",	0}														// cunilogEvtSeverityNone		 0
 	,	{STR_ANSI_FGCOL_BRIGHT_GREEN,	LEN_ANSI_FGCOL_BRIGHT_GREEN}	// cunilogEvtSeverityNonePass	 1
 	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSevertiyNoneFail	 2
-	,	{"",	0}														// cunilogEvtSeverityBlanks		 3
-	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityEmergency	 4
-	,	{"",	0}														// cunilogEvtSeverityNotice		 5
-	,	{"",	0}														// cunilogEvtSeverityInfo		 6
-	,	{"",	0}														// cunilogEvtSeverityMessage	 7
-	,	{STR_ANSI_FGCOL_BRIGHT_MAGENTA,	LEN_ANSI_FGCOL_BRIGHT_MAGENTA}	// cunilogEvtSeverityWarning	 8
-	,	{"",	0}														// cunilogEvtSeverityError		 9
-	,	{STR_ANSI_FGCOL_BRIGHT_GREEN,	LEN_ANSI_FGCOL_BRIGHT_GREEN}	// cunilogEvtSeverityPass		10
-	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityFail		11
-	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityCritical	12
-	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityFatal		13
-	,	{"",	0}														// cunilogEvtSeverityDebug		14
-	,	{"",	0}														// cunilogEvtSeverityTrace		15
-	,	{"",	0}														// cunilogEvtSeverityDetail		16
-	,	{"",	0}														// cunilogEvtSeverityVerbose	17
-	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityIllegal	18
+	,	{STR_ANSI_FGCOL_BRIGHT_MAGENTA,	LEN_ANSI_FGCOL_BRIGHT_MAGENTA}	// cunilogEvtSeverityNoneWarn	 3
+	,	{"",	0}														// cunilogEvtSeverityBlanks		 4
+	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityEmergency	 5
+	,	{"",	0}														// cunilogEvtSeverityNotice		 6
+	,	{"",	0}														// cunilogEvtSeverityInfo		 7
+	,	{"",	0}														// cunilogEvtSeverityMessage	 8
+	,	{STR_ANSI_FGCOL_BRIGHT_MAGENTA,	LEN_ANSI_FGCOL_BRIGHT_MAGENTA}	// cunilogEvtSeverityWarning	 9
+	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityError		10
+	,	{STR_ANSI_FGCOL_BRIGHT_GREEN,	LEN_ANSI_FGCOL_BRIGHT_GREEN}	// cunilogEvtSeverityPass		11
+	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityFail		12
+	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityCritical	13
+	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityFatal		14
+	,	{"",	0}														// cunilogEvtSeverityDebug		15
+	,	{"",	0}														// cunilogEvtSeverityTrace		16
+	,	{"",	0}														// cunilogEvtSeverityDetail		17
+	,	{"",	0}														// cunilogEvtSeverityVerbose	18
+	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityIllegal	19
 																		// cunilogEvtSeverityXAmountEnumValues
 };
+#endif
+
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	static inline size_t evtSeverityColoursLen (cueventseverity sev)
+	{
+		ubf_assert (0 <= sev);
+		ubf_assert (sev < cunilogEvtSeverityXAmountEnumValues);
+
+		size_t len = 0;
+		len += evtSeverityColours [sev].lnColSequence;
+		if (len)
+			len += LEN_ANSI_RESET;
+		return len;
+	}
+#else
+	#define evtSeverityColoursLen(sev) (0)
+#endif
+
+#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	static inline void cpyEvtSeverityColour (char **sz, cueventseverity sev)
+	{
+		ubf_assert_non_NULL	(sz);
+		ubf_assert_non_NULL	(*sz);
+		ubf_assert			(0 <= sev);
+		ubf_assert			(sev < cunilogEvtSeverityXAmountEnumValues);
+
+		if (evtSeverityColours [sev].lnColSequence)
+		{
+			memcpy (*sz, evtSeverityColours [sev].szColSequence, evtSeverityColours [sev].lnColSequence);
+			*sz += evtSeverityColours [sev].lnColSequence;
+		}
+	}
+	static inline void cpyRstEvtSeverityColour (char **sz, cueventseverity sev)
+	{
+		if (evtSeverityColours [sev].lnColSequence)
+		{
+			memcpy (*sz, STR_ANSI_RESET, LEN_ANSI_RESET);
+			*sz += LEN_ANSI_RESET;
+		}
+	}
+#else
+	#define cpyEvtSeverityColour(s, sev)
+	#define cpyRstEvtSeverityColour(s)
+#endif
 
 static inline size_t requiredEventSeverityChars (cueventseverity sev, cueventsevfmtpy tpy)
 {
@@ -3052,7 +3103,10 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 			CunilogSetConsoleTo (cunilogConsoleIsUTF8);
 
 		if (len)
-		{
+		{	// This function expects a NUL-terminated string.
+			ubf_assert (strlen (szOutput) == len);
+			ubf_assert (ASCII_NUL == szOutput [len]);
+
 			switch (ourCunilogConsoleOutputCodePage)
 			{
 				case cunilogConsoleIsUTF8:		return puts					(szOutput);
@@ -3073,6 +3127,37 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	}
 #endif
 
+#ifdef PLATFORM_IS_WINDOWS
+	static inline int cunilogPrintWin (const char *szOutput, size_t len)
+	{
+		if (cunilogConsoleIsUninitialised == ourCunilogConsoleOutputCodePage)
+			CunilogSetConsoleTo (cunilogConsoleIsUTF8);
+
+		if (len)
+		{	// This function expects a NUL-terminated string.
+			ubf_assert (strlen (szOutput) == len);
+			ubf_assert (ASCII_NUL == szOutput [len]);
+
+			switch (ourCunilogConsoleOutputCodePage)
+			{
+				case cunilogConsoleIsUTF8:		return printf				(szOutput);
+				case cunilogConsoleIsUTF16:		return fprintfU8toU16stream	(stdout, szOutput);
+				case cunilogConsoleIsNeither:	return printf				(szOutput);
+				default:						return printf				(szOutput);
+			}
+		} else
+		{
+			switch (ourCunilogConsoleOutputCodePage)
+			{
+				case cunilogConsoleIsUTF8:		return printf				("");
+				case cunilogConsoleIsUTF16:		return fprintfU8toU16stream	(stdout, "");
+				case cunilogConsoleIsNeither:	return printf				("");
+				default:						return printf				("");
+			}
+		}
+	}
+#endif
+
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	static inline void cunilogFillColouredEchoEvtLine	(
 							char				**pszToOutput,
@@ -3083,8 +3168,8 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 		ubf_assert_non_NULL (pszToOutput);
 		ubf_assert_non_NULL (plnToOutput);
 		ubf_assert_non_NULL (pev);
-
-		size_t	lnThisColour	= evtSeverityColours [pev->evSeverity].lnColSequence;
+		// Includes LEN_ANSI_RESET too.
+		size_t	lnThisColour	= evtSeverityColoursLen (pev->evSeverity);
 
 		if	(
 					cunilogHasUseColourForEcho (pev->pSCUNILOGTARGET)
@@ -3092,22 +3177,22 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 			)
 		{
 			size_t	lnEvtLine		= pev->pSCUNILOGTARGET->lnLogEventLine;
-			char	*szColSeq		= evtSeverityColours [pev->evSeverity].szColSequence;
 			size_t	lnColEcho		= lnThisColour
-									+ pev->pSCUNILOGTARGET->lnLogEventLine
-									+ LEN_ANSI_RESET
-									+ 1;
+									+ lnEvtLine
+									;
 
-			growToSizeSMEMBUF (&pev->pSCUNILOGTARGET->mbColEventLine, lnColEcho);
+			growToSizeSMEMBUF (&pev->pSCUNILOGTARGET->mbColEventLine, lnColEcho + 1);
 			if (isUsableSMEMBUF (&pev->pSCUNILOGTARGET->mbColEventLine))
 			{
+				ubf_assert	(
+									strlen (pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch)
+								==	pev->pSCUNILOGTARGET->lnLogEventLine
+							);
 				char *sz = pev->pSCUNILOGTARGET->mbColEventLine.buf.pch;
-				memcpy (sz, szColSeq, lnThisColour);
-				sz += lnThisColour;
+				cpyEvtSeverityColour (&sz, pev->evSeverity);
 				memcpy (sz, pev->pSCUNILOGTARGET->mbLogEventLine.buf.pch, lnEvtLine);
 				sz += lnEvtLine;
-				memcpy (sz, STR_ANSI_RESET, LEN_ANSI_RESET);
-				sz += LEN_ANSI_RESET;
+				cpyRstEvtSeverityColour (&sz, pev->evSeverity);
 				*sz = ASCII_NUL;
 				pev->pSCUNILOGTARGET->lnColEventLine = lnColEcho;
 				*pszToOutput = pev->pSCUNILOGTARGET->mbColEventLine.buf.pch;
@@ -5646,6 +5731,201 @@ bool CunilogChangeCurrentThreadPriority (cunilogprio prio)
 	return false;
 }
 
+int cunilog_printf_sev_fmtpy_vl	(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*format,
+		va_list				ap
+)
+{
+	ubf_assert_non_NULL (format);
+
+	size_t lenRequired = evtSeverityColoursLen (sev);
+	lenRequired += requiredEventSeverityChars (sev, sftpy);
+
+	int			iReq;
+
+	iReq = vsnprintf (NULL, 0, format, ap);
+	if (iReq < 0)
+		return iReq;
+	lenRequired += iReq;
+
+	int		iRet = -1;
+	char	szToPrint [WINAPI_U8_HEAP_THRESHOLD];
+	char	*pzToPrint;
+
+	if (lenRequired < WINAPI_U8_HEAP_THRESHOLD)
+		pzToPrint = szToPrint;
+	else
+		pzToPrint = ubf_malloc (lenRequired + 1);
+
+	if (pzToPrint)
+	{
+		char *pz = pzToPrint;
+		cpyEvtSeverityColour (&pz, sev);
+		size_t st = writeEventSeverity (pz, sev, sftpy);
+		pz += st;
+		iReq = vsnprintf (pz, lenRequired + 1, format, ap);
+		if (iReq < 0)
+			goto Leave;
+		pz += iReq;
+		cpyRstEvtSeverityColour (&pz, sev);
+		pz [0] = ASCII_NUL;
+
+		#ifdef PLATFORM_IS_WINDOWS
+			iRet = cunilogPrintWin (pzToPrint, lenRequired);
+		#else
+			if (lenRequired)
+				iRet = printf (pz);
+			else
+				iRet = printf ("");
+		#endif
+	}
+
+	Leave:
+	if (pzToPrint && pzToPrint != szToPrint)
+		ubf_free (pzToPrint);
+	return iRet;
+}
+
+int cunilog_printf_sev_fmtpy	(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*format,
+		...
+								)
+{
+	ubf_assert_non_NULL (format);
+
+	int			iRet		= -1;
+	va_list		args;
+
+	va_start (args, format);
+	iRet = cunilog_printf_sev_fmtpy_vl (sev, sftpy, format, args);
+	va_end (args);
+
+	return iRet;
+}
+
+int cunilog_printf_sev			(
+		cueventseverity		sev,
+		const char			*format,
+		...
+								)
+{
+	ubf_assert_non_NULL (format);
+
+	int			iRet		= -1;
+	va_list		args;
+
+	va_start (args, format);
+	iRet = cunilog_printf_sev_fmtpy_vl (sev, cunilogEvtSeverityTypeDefault, format, args);
+	va_end (args);
+
+	return iRet;
+}
+
+int cunilog_printf				(
+		const char			*format,
+		...
+								)
+{
+	ubf_assert_non_NULL (format);
+
+	int			iRet		= -1;
+	va_list		args;
+
+	va_start (args, format);
+	iRet = cunilog_printf_sev_fmtpy_vl (cunilogEvtSeverityNone, cunilogEvtSeverityTypeDefault, format, args);
+	va_end (args);
+
+	return iRet;
+}
+
+int cunilog_puts_sev_fmtpy_l	(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*strU8,
+		size_t				len
+								)
+{
+	ubf_assert_non_NULL (strU8);
+
+	if (NULL == strU8)
+		return EOF;
+
+	len = USE_STRLEN == len ? strlen (strU8) : len;
+	size_t lenRequired = evtSeverityColoursLen (sev);
+	lenRequired += requiredEventSeverityChars (sev, sftpy);
+	lenRequired += len;
+
+	int		iRet = EOF;
+	char	szToPrint [WINAPI_U8_HEAP_THRESHOLD];
+	char	*pzToPrint;
+
+	if (lenRequired < WINAPI_U8_HEAP_THRESHOLD)
+		pzToPrint = szToPrint;
+	else
+		pzToPrint = ubf_malloc (lenRequired + 1);		// Max. length of newline is 3.
+
+	if (pzToPrint)
+	{
+		char *pz = pzToPrint;
+		cpyEvtSeverityColour (&pz, sev);
+		size_t st = writeEventSeverity (pz, sev, sftpy);
+		pz += st;
+		memcpy (pz, strU8, len);
+		pz += len;
+		cpyRstEvtSeverityColour (&pz, sev);
+		pz [0] = ASCII_NUL;
+
+		#ifdef PLATFORM_IS_WINDOWS
+			iRet = cunilogPutsWin (pzToPrint, lenRequired);
+		#else
+			if (lenRequired)
+				iRet = puts (pz);
+			else
+				iRet = puts ("");
+		#endif
+
+		if (pzToPrint != szToPrint)
+			ubf_free (pzToPrint);
+	}
+
+	return iRet;
+}
+
+int cunilog_puts_sev_fmtpy		(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*strU8
+								)
+{
+	ubf_assert_non_NULL (strU8);
+
+	return cunilog_puts_sev_fmtpy_l (sev, sftpy, strU8, USE_STRLEN);
+}
+
+int cunilog_puts_sev			(
+		cueventseverity		sev,
+		const char			*strU8
+								)
+{
+	ubf_assert_non_NULL (strU8);
+
+	return cunilog_puts_sev_fmtpy_l (sev, cunilogEvtSeverityTypeDefault, strU8, USE_STRLEN);
+}
+
+int cunilog_puts				(
+		const char			*strU8
+								)
+{
+	ubf_assert_non_NULL (strU8);
+
+	return cunilog_puts_sev_fmtpy_l	(
+				cunilogEvtSeverityNone, cunilogEvtSeverityTypeDefault, strU8, USE_STRLEN
+									);
+}
 
 const uint64_t	uiCunilogVersion	=		((uint64_t) CUNILOG_VERSION_MAJOR	<< 48)
 										|	((uint64_t) CUNILOG_VERSION_MINOR	<< 32)
@@ -5703,27 +5983,29 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert ( 0 == cunilogEvtSeverityNone);
 		ubf_assert ( 1 == cunilogEvtSeverityNonePass);
 		ubf_assert ( 2 == cunilogEvtSeverityNoneFail);
-		ubf_assert ( 3 == cunilogEvtSeverityBlanks);
-		ubf_assert ( 4 == cunilogEvtSeverityEmergency);
-		ubf_assert ( 5 == cunilogEvtSeverityNotice);
-		ubf_assert ( 6 == cunilogEvtSeverityInfo);
-		ubf_assert ( 7 == cunilogEvtSeverityMessage);
-		ubf_assert ( 8 == cunilogEvtSeverityWarning);
-		ubf_assert ( 9 == cunilogEvtSeverityError);
-		ubf_assert (10 == cunilogEvtSeverityPass);
-		ubf_assert (11 == cunilogEvtSeverityFail);
-		ubf_assert (12 == cunilogEvtSeverityCritical);
-		ubf_assert (13 == cunilogEvtSeverityFatal);
-		ubf_assert (14 == cunilogEvtSeverityDebug);
-		ubf_assert (15 == cunilogEvtSeverityTrace);
-		ubf_assert (16 == cunilogEvtSeverityDetail);
-		ubf_assert (17 == cunilogEvtSeverityVerbose);
-		ubf_assert (18 == cunilogEvtSeverityIllegal);
-		ubf_assert (19 == cunilogEvtSeverityXAmountEnumValues);
+		ubf_assert ( 3 == cunilogEvtSeverityNoneWarn);
+		ubf_assert ( 4 == cunilogEvtSeverityBlanks);
+		ubf_assert ( 5 == cunilogEvtSeverityEmergency);
+		ubf_assert ( 6 == cunilogEvtSeverityNotice);
+		ubf_assert ( 7 == cunilogEvtSeverityInfo);
+		ubf_assert ( 8 == cunilogEvtSeverityMessage);
+		ubf_assert ( 9 == cunilogEvtSeverityWarning);
+		ubf_assert (10 == cunilogEvtSeverityError);
+		ubf_assert (11 == cunilogEvtSeverityPass);
+		ubf_assert (12 == cunilogEvtSeverityFail);
+		ubf_assert (13 == cunilogEvtSeverityCritical);
+		ubf_assert (14 == cunilogEvtSeverityFatal);
+		ubf_assert (15 == cunilogEvtSeverityDebug);
+		ubf_assert (16 == cunilogEvtSeverityTrace);
+		ubf_assert (17 == cunilogEvtSeverityDetail);
+		ubf_assert (18 == cunilogEvtSeverityVerbose);
+		ubf_assert (19 == cunilogEvtSeverityIllegal);
+		ubf_assert (20 == cunilogEvtSeverityXAmountEnumValues);
 
 		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNone]));
 		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNonePass]));
 		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNoneFail]));
+		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNoneWarn]));
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityBlanks]));
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityEmergency]));
 		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNotice]));
@@ -5744,6 +6026,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNone]));
 		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNonePass]));
 		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNoneFail]));
+		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNoneWarn]));
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityBlanks]));
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityEmergency]));
 		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNotice]));
@@ -5764,6 +6047,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNone]));
 		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNonePass]));
 		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNoneFail]));
+		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNoneWarn]));
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityBlanks]));
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityEmergency]));
 		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNotice]));
@@ -5792,7 +6076,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		pt = InitSCUNILOGTARGETstaticEx	(
 					NULL,		0,
 					"Unilog",	USE_STRLEN,
-					cunilogLogPath_relativeToHomeDir,
+					cunilogPath_relativeToHomeDir,
 					cunilogSingleThreaded,
 					cunilogPostfixDay,
 					NULL, 0,
@@ -5818,7 +6102,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		pt = InitSCUNILOGTARGETstaticEx	(
 					NULL,				0,
 					"////sub/Unilog",	USE_STRLEN,
-					cunilogLogPath_relativeToHomeDir,
+					cunilogPath_relativeToHomeDir,
 					cunilogSingleThreaded,
 					cunilogPostfixDay,
 					NULL, 0,
@@ -5847,7 +6131,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		pt = InitSCUNILOGTARGETstaticEx	(
 					NULL,		0,
 					"Unilog",	USE_STRLEN,
-					cunilogLogPath_relativeToCurrentDir,
+					cunilogPath_relativeToCurrentDir,
 					cunilogSingleThreaded,
 					cunilogPostfixDay,
 					NULL, 0,
@@ -5872,7 +6156,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		pt = InitSCUNILOGTARGETstaticEx	(
 					"C:/temp",	USE_STRLEN,
 					"Unilog",	USE_STRLEN,
-					cunilogLogPath_relativeToExecutable,
+					cunilogPath_relativeToExecutable,
 					cunilogSingleThreaded,
 					cunilogPostfixDay,
 					NULL, 0,
@@ -5915,7 +6199,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		pt = InitSCUNILOGTARGETstaticEx	(
 					"../temp",	USE_STRLEN,
 					"Unilog",	USE_STRLEN,
-					cunilogLogPath_relativeToExecutable,
+					cunilogPath_relativeToExecutable,
 					cunilogSingleThreaded,
 					cunilogPostfixDay,
 					NULL, 0, cunilogEvtTS_Default, cunilogNewLineSystem,
@@ -5942,7 +6226,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		pt = CreateNewSCUNILOGTARGET (
 				NULL, 0,
 				NULL, 0,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogSingleThreaded,
 				cunilogPostfixDay,
 				NULL, 0, cunilogEvtTS_Default, cunilogNewLineSystem,
@@ -5958,7 +6242,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				NULL,
 				NULL, 0,
 				"Unilog", 6,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogSingleThreaded,
 				cunilogPostfixDay,
 				NULL, 0, cunilogEvtTS_Default, cunilogNewLineSystem,
@@ -5976,7 +6260,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				NULL,
 				"C:/Temp", 7,
 				"Unilog", 6,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogSingleThreaded,
 				cunilogPostfixDay,
 				NULL, 0, cunilogEvtTS_Default, cunilogNewLineSystem,
@@ -6019,7 +6303,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				&cut,
 				"temp",		USE_STRLEN,
 				"OurApp",	USE_STRLEN,
-				cunilogLogPath_isAbsolute,
+				cunilogPath_isAbsolute,
 				cunilogMultiThreaded
 									);
 		ubf_assert_NULL (put);
@@ -6031,7 +6315,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				NULL,
 				"C:/Temp", 7,
 				NULL, 0,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogSingleThreaded,
 				cunilogPostfixDay,
 				NULL, 0, cunilogEvtTS_Default, cunilogNewLineSystem,

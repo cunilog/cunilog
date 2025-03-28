@@ -760,26 +760,26 @@ typedef struct cunilog_fls
 typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 
 /*
-	Base folder for a relative path or path if no log path at all is given.
+	Base folder for a relative path or path if no path at all is given.
 
 	These are the possible enumeration values of the parameter relLogPath of the
 	SCUNILOGTARGET initialisation functions.
 
-	cunilogLogPath_isAbsolute
+	cunilogPath_isAbsolute
 
-	The parameter szLogPath cannot be NULL, and it cannot be a relative path.
+	The path parameter cannot be NULL, and it cannot be a relative path.
 
 
-	cunilogLogPath_relativeToExecutable
+	cunilogPath_relativeToExecutable
 	
-	If szLogPath is a relative path, the path is assumed to be relative to the path of
-	the executable file. If szLogPath is NULL, the path of the executable file is used.
+	If path is a relative path, it is assumed to be relative to the path of
+	the executable file. If the path is NULL, the path of the executable file is used.
 
 
-	cunilogLogPath_relativeToCurrentDir
+	cunilogPath_relativeToCurrentDir
 
-	If szLogPath is a relative path, the path is assumed to be relative to the current
-	working directory. If szLogPath is NULL, the current working directory is used.
+	If the path parameter is a relative path, the path is assumed to be relative to the
+	current working directory. If path is NULL, the current working directory is used.
 	The current working directory is obtained by the SCUNILOGTARGET initialisation functions
 	and stays constant during the lifetime of this SCUNILOGTARGET. It is therefore safe for
 	the application to change this directory any time after the initialisation function
@@ -787,22 +787,22 @@ typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 	szLogPath, call an SCUNILOGTARGET initialisation function with szLogPath set to NULL.
 
 
-	cunilogLogPath_relativeToHomeDir
+	cunilogPath_relativeToHomeDir
 
-	If szLogPath is a relative path, the path is assumed to be relative to the current user's
-	home folder. If szPath is NULL, the user's home directory is used.
+	If path is a relative path, the path is assumed to be relative to the current user's
+	home folder. If path is NULL, the user's home directory is used.
 */
-enum cunilogRelLogPath
+enum cunilogRelPath
 {
-		cunilogLogPath_isAbsolute
-	,	cunilogLogPath_relativeToExecutable
-	,	cunilogLogPath_relativeToCurrentDir
-	,	cunilogLogPath_relativeToHomeDir
+		cunilogPath_isAbsolute
+	,	cunilogPath_relativeToExecutable
+	,	cunilogPath_relativeToCurrentDir
+	,	cunilogPath_relativeToHomeDir
 	// Do not add anything below this line.
-	,	cunilogLogPath_AmountEnumValues						// Used for sanity checks.
+	,	cunilogPath_XAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below unilogRotationAmountEnumValues.
 };
-typedef enum cunilogRelLogPath enCunilogRelLogPath;
+typedef enum cunilogRelPath enCunilogRelPath;
 
 /*
 	Structure to leave some information for the next processor.
@@ -864,7 +864,8 @@ typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 */
 enum cunilogeventseveritytpy
 {
-		cunilogEvtSeverityTypeChars3							// "EMG", "DBG"...
+		cunilogEvtSeverityTypeChars3							// "EMG", "DBG"... (default).
+	,	cunilogEvtSeverityTypeDefault = cunilogEvtSeverityTypeChars3
 	,	cunilogEvtSeverityTypeChars5							// "EMRGY", "DEBUG"...
 	,	cunilogEvtSeverityTypeChars9							// "EMERGENCY", "DEBUG    "...
 	,	cunilogEvtSeverityTypeChars3InBrackets					// "[EMG]", "[DBG]"...
@@ -1164,22 +1165,23 @@ enum cunilogeventseverity
 		cunilogEvtSeverityNone									//  0
 	,	cunilogEvtSeverityNonePass								//  1
 	,	cunilogEvtSeverityNoneFail								//  2
-	,	cunilogEvtSeverityBlanks								//  3
-	,	cunilogEvtSeverityEmergency								//	4
-	,	cunilogEvtSeverityNotice								//	5
-	,	cunilogEvtSeverityInfo									//  6
-	,	cunilogEvtSeverityMessage								//  7
-	,	cunilogEvtSeverityWarning								//  8
-	,	cunilogEvtSeverityError									//  9
-	,	cunilogEvtSeverityPass									// 10
-	,	cunilogEvtSeverityFail									// 11
-	,	cunilogEvtSeverityCritical								// 12
-	,	cunilogEvtSeverityFatal									// 13
-	,	cunilogEvtSeverityDebug									// 14
-	,	cunilogEvtSeverityTrace									// 15
-	,	cunilogEvtSeverityDetail								// 16
-	,	cunilogEvtSeverityVerbose								// 17
-	,	cunilogEvtSeverityIllegal								// 18
+	,	cunilogEvtSeverityNoneWarn								//  3
+	,	cunilogEvtSeverityBlanks								//  4
+	,	cunilogEvtSeverityEmergency								//	5
+	,	cunilogEvtSeverityNotice								//	6
+	,	cunilogEvtSeverityInfo									//  7
+	,	cunilogEvtSeverityMessage								//  8
+	,	cunilogEvtSeverityWarning								//  9
+	,	cunilogEvtSeverityError									// 10
+	,	cunilogEvtSeverityPass									// 11
+	,	cunilogEvtSeverityFail									// 12
+	,	cunilogEvtSeverityCritical								// 13
+	,	cunilogEvtSeverityFatal									// 14
+	,	cunilogEvtSeverityDebug									// 15
+	,	cunilogEvtSeverityTrace									// 16
+	,	cunilogEvtSeverityDetail								// 17
+	,	cunilogEvtSeverityVerbose								// 18
+	,	cunilogEvtSeverityIllegal								// 19
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.

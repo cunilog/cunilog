@@ -92,6 +92,20 @@ int main (int argc, char *argv [])
 	TestStrCustomFmt ();
 	TestPsxHome ();
 
+	cunilog_printf_sev_fmtpy (cunilogEvtSeverityBlanks, cunilogEvtSeverityTypeChars3, "cunilog_printf_sev_fmtpy ()");
+	cunilog_printf_sev (cunilogEvtSeverityBlanks, "cunilog_printf_sev ()");
+	cunilog_printf ("This is from cunilog_printf ()");
+	cunilog_printf ("And so is this.\n");
+	cunilog_printf_sev (cunilogEvtSeverityNonePass, "Pass ");
+	cunilog_printf_sev (cunilogEvtSeverityNoneFail, "Fail ");
+	cunilog_printf_sev (cunilogEvtSeverityNonePass, "Pass ");
+	cunilog_printf_sev (cunilogEvtSeverityNonePass, "Pass again\n");
+	cunilog_puts ("Output");
+	cunilog_puts_sev (cunilogEvtSeverityCritical, "Not good.");
+	cunilog_puts_sev_fmtpy_l (cunilogEvtSeverityFatal, cunilogEvtSeverityTypeChars5, "Not good either", USE_STRLEN);
+	cunilog_puts_sev (cunilogEvtSeverityNonePass, "Pass ");
+	cunilog_puts_sev (cunilogEvtSeverityNoneFail, "Fail ");
+
 	/*
 		End of tests.
 	*/
@@ -106,7 +120,7 @@ int main (int argc, char *argv [])
 	put = InitSCUNILOGTARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogMultiThreadedSeparateLoggingThread,
 				cunilogPostfixDotNumberDescending,
 				NULL, 0,
@@ -126,7 +140,7 @@ int main (int argc, char *argv [])
 	put = CreateNewSCUNILOGTARGET		(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogMultiThreadedSeparateLoggingThread,
 				cunilogPostfixMinute,
 				NULL, 0,
@@ -144,7 +158,7 @@ int main (int argc, char *argv [])
 	put = InitSCUNILOGTARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogMultiThreadedSeparateLoggingThread,
 				cunilogPostfixMinute,
 				NULL, 0,

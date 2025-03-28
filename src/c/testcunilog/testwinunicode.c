@@ -33,7 +33,7 @@ void wmain (void)
 	put = InitSCUNILOGTARGETstatic	(
 			STR_LOGS_FOLDER, USE_STRLEN,
 			NULL, 0,
-			cunilogLogPath_relativeToExecutable, cunilogSingleThreaded
+			cunilogPath_relativeToExecutable, cunilogSingleThreaded
 									);
 	if (!put)
 		return;

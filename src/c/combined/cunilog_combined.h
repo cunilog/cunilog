@@ -17533,26 +17533,26 @@ typedef struct cunilog_fls
 typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 
 /*
-	Base folder for a relative path or path if no log path at all is given.
+	Base folder for a relative path or path if no path at all is given.
 
 	These are the possible enumeration values of the parameter relLogPath of the
 	SCUNILOGTARGET initialisation functions.
 
-	cunilogLogPath_isAbsolute
+	cunilogPath_isAbsolute
 
-	The parameter szLogPath cannot be NULL, and it cannot be a relative path.
+	The path parameter cannot be NULL, and it cannot be a relative path.
 
 
-	cunilogLogPath_relativeToExecutable
+	cunilogPath_relativeToExecutable
 	
-	If szLogPath is a relative path, the path is assumed to be relative to the path of
-	the executable file. If szLogPath is NULL, the path of the executable file is used.
+	If path is a relative path, it is assumed to be relative to the path of
+	the executable file. If the path is NULL, the path of the executable file is used.
 
 
-	cunilogLogPath_relativeToCurrentDir
+	cunilogPath_relativeToCurrentDir
 
-	If szLogPath is a relative path, the path is assumed to be relative to the current
-	working directory. If szLogPath is NULL, the current working directory is used.
+	If the path parameter is a relative path, the path is assumed to be relative to the
+	current working directory. If path is NULL, the current working directory is used.
 	The current working directory is obtained by the SCUNILOGTARGET initialisation functions
 	and stays constant during the lifetime of this SCUNILOGTARGET. It is therefore safe for
 	the application to change this directory any time after the initialisation function
@@ -17560,22 +17560,22 @@ typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 	szLogPath, call an SCUNILOGTARGET initialisation function with szLogPath set to NULL.
 
 
-	cunilogLogPath_relativeToHomeDir
+	cunilogPath_relativeToHomeDir
 
-	If szLogPath is a relative path, the path is assumed to be relative to the current user's
-	home folder. If szPath is NULL, the user's home directory is used.
+	If path is a relative path, the path is assumed to be relative to the current user's
+	home folder. If path is NULL, the user's home directory is used.
 */
-enum cunilogRelLogPath
+enum cunilogRelPath
 {
-		cunilogLogPath_isAbsolute
-	,	cunilogLogPath_relativeToExecutable
-	,	cunilogLogPath_relativeToCurrentDir
-	,	cunilogLogPath_relativeToHomeDir
+		cunilogPath_isAbsolute
+	,	cunilogPath_relativeToExecutable
+	,	cunilogPath_relativeToCurrentDir
+	,	cunilogPath_relativeToHomeDir
 	// Do not add anything below this line.
-	,	cunilogLogPath_AmountEnumValues						// Used for sanity checks.
+	,	cunilogPath_XAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below unilogRotationAmountEnumValues.
 };
-typedef enum cunilogRelLogPath enCunilogRelLogPath;
+typedef enum cunilogRelPath enCunilogRelPath;
 
 /*
 	Structure to leave some information for the next processor.
@@ -17637,7 +17637,8 @@ typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 */
 enum cunilogeventseveritytpy
 {
-		cunilogEvtSeverityTypeChars3							// "EMG", "DBG"...
+		cunilogEvtSeverityTypeChars3							// "EMG", "DBG"... (default).
+	,	cunilogEvtSeverityTypeDefault = cunilogEvtSeverityTypeChars3
 	,	cunilogEvtSeverityTypeChars5							// "EMRGY", "DEBUG"...
 	,	cunilogEvtSeverityTypeChars9							// "EMERGENCY", "DEBUG    "...
 	,	cunilogEvtSeverityTypeChars3InBrackets					// "[EMG]", "[DBG]"...
@@ -17937,22 +17938,23 @@ enum cunilogeventseverity
 		cunilogEvtSeverityNone									//  0
 	,	cunilogEvtSeverityNonePass								//  1
 	,	cunilogEvtSeverityNoneFail								//  2
-	,	cunilogEvtSeverityBlanks								//  3
-	,	cunilogEvtSeverityEmergency								//	4
-	,	cunilogEvtSeverityNotice								//	5
-	,	cunilogEvtSeverityInfo									//  6
-	,	cunilogEvtSeverityMessage								//  7
-	,	cunilogEvtSeverityWarning								//  8
-	,	cunilogEvtSeverityError									//  9
-	,	cunilogEvtSeverityPass									// 10
-	,	cunilogEvtSeverityFail									// 11
-	,	cunilogEvtSeverityCritical								// 12
-	,	cunilogEvtSeverityFatal									// 13
-	,	cunilogEvtSeverityDebug									// 14
-	,	cunilogEvtSeverityTrace									// 15
-	,	cunilogEvtSeverityDetail								// 16
-	,	cunilogEvtSeverityVerbose								// 17
-	,	cunilogEvtSeverityIllegal								// 18
+	,	cunilogEvtSeverityNoneWarn								//  3
+	,	cunilogEvtSeverityBlanks								//  4
+	,	cunilogEvtSeverityEmergency								//	5
+	,	cunilogEvtSeverityNotice								//	6
+	,	cunilogEvtSeverityInfo									//  7
+	,	cunilogEvtSeverityMessage								//  8
+	,	cunilogEvtSeverityWarning								//  9
+	,	cunilogEvtSeverityError									// 10
+	,	cunilogEvtSeverityPass									// 11
+	,	cunilogEvtSeverityFail									// 12
+	,	cunilogEvtSeverityCritical								// 13
+	,	cunilogEvtSeverityFatal									// 14
+	,	cunilogEvtSeverityDebug									// 15
+	,	cunilogEvtSeverityTrace									// 16
+	,	cunilogEvtSeverityDetail								// 17
+	,	cunilogEvtSeverityVerbose								// 18
+	,	cunilogEvtSeverityIllegal								// 19
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
@@ -18724,21 +18726,6 @@ CUNILOG_DLL_IMPORT extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
 */
 
 /*
-	cunilog_puts
-	cunilog_printf
-
-	Our puts () that resolves to putsU8 () on Windows. These macros should only be
-	used if the console is set to output in UTF-16.
-*/
-#ifdef PLATFORM_IS_WINDOWS
-	#define cunilog_puts(t)		putsU8toU16stdout (t)
-	#define cunilog_printf(...) printfU8toU16stdout (__VA_ARGS__)
-#else
-	#define cunilog_puts(t)		puts (t)
-	#define cunilog_printf(...)	printf (__VA_ARGS__)
-#endif
-
-/*
 	CreateCopyCUNILOG_PROCESSORs
 
 	Creates a copy of the array of pointers to CUNILOG_PROCESSOR structures with n processors.
@@ -18874,6 +18861,10 @@ TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
 
 	Returns true if the environment variable NO_COLOR exists and has a value (is not empty).
 	See https://no-color.org/ for the specification.
+
+	The function checks the environment variable NO_COLOR every time it is called. It is
+	therefore recommended to call the functions only when really required, for example at the
+	start of an application and store its return value in a variable.
 */
 bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
@@ -18968,7 +18959,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -18985,7 +18976,7 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETex)
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -19009,7 +19000,7 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETex)
 		, size_t					lenLogPath			// Length of szLogPath
 		, const char				*szAppName			// Application name.
 		, size_t					lenAppName			// Length of szApplication.
-		, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+		, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 		, enum cunilogtype			type
 	)
 	;
@@ -19020,7 +19011,7 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETex)
 		, size_t					lenLogPath			// Length of szLogPath
 		, const char				*szAppName			// Application name.
 		, size_t					lenAppName			// Length of szApplication.
-		, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+		, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 		, enum cunilogtype			type
 	)
 	;
@@ -19129,7 +19120,7 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -19145,7 +19136,7 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, CreateNewSCUNILOGTARGET)
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -19189,7 +19180,7 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -19206,7 +19197,7 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitOrCreateSCUNILOGTARGET)
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -19300,7 +19291,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szApplication		// Application name.
 	, size_t					lenApplication		// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -19316,7 +19307,7 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstaticEx)
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szApplication		// Application name.
 	, size_t					lenApplication		// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -19383,7 +19374,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szApplication		// Application name.
 	, size_t					lenApplication		// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 )
 ;
@@ -19393,7 +19384,7 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstatic)
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szApplication		// Application name.
 	, size_t					lenApplication		// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 )
 ;
@@ -19424,6 +19415,49 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET)
 const char *GetAbsoluteLogPathSCUNILOGTARGET_static (size_t *plen);
 TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET_static)
 	(size_t *plen);
+
+/*
+	GetAbsPathFromAbsOrRelPath
+
+	Obtains an absolute path from a relative path. The parameter absOrRelPath specifies
+	to what a relative path is relative to.
+
+	The function adds a forward or backward slash to the buffer psmb points to, as it
+	assumes the parameters are paths, not filenames. However, the function also works
+	with paths to filenames but since it adds a slash the caller needs to remove this
+	manually, for example by overwriting it with an ASCII_NUL character.
+
+	psmb			A pointer to an SMEMBUF structure whose buffer receives the absolut
+					path.
+
+	plmb			A pointer to a size_t that receives the length of the buffer.
+
+	szAbsOrRelPath	The path. Can be relative or absolute.
+
+	lnAbsOrRelPath	Its length as would be retrieved by strlen (). Can be USE_STRLEN,
+					in which case the function calls strlen (szAbsOrRelPath) to obtain
+					it.
+
+	absOrRelPath	An enum that specifies what the path is relative to. The the enum
+					enCunilogRelPath for possible values.
+*/
+bool GetAbsPathFromAbsOrRelPath	(
+		SMEMBUF				*psmb,
+		size_t				*plmb,
+		const char			*szAbsOrRelPath,
+		size_t				lnAbsOrRelPath,
+		enCunilogRelPath	absOrRelPath
+								)
+;
+TYPEDEF_FNCT_PTR (bool, GetAbsPathFromAbsOrRelPath)
+								(
+		SMEMBUF				*psmb,
+		size_t				*plmb,
+		const char			*szAbsOrRelPath,
+		size_t				lnAbsOrRelPath,
+		enCunilogRelPath	absOrRelPath
+								)
+;
 
 /*
 	ConfigSCUNILOGTARGETcunilogpostfix
@@ -19998,7 +20032,10 @@ TYPEDEF_FNCT_PTR (bool, logEv) (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 	octets, which includes the NUL-terminator. UTF-8 characters can have up to 4 octets/bytes.
 	Cunilog writes out only UTF-8 but doesn't actually understand its encoding.
 
-	The vfmt versions are variadic functions/macros that expect a va_list argument.
+	The vfmt versions are variadic functions/macros that expect a va_list argument. Note that
+	these functions/macros are normal logging functions and do not compose the output and write
+	to a buffer provided by the caller like standard library functions vsnprintf () and family
+	would.
 
 	The fmt versions offer variadic functionality like printf () does. The function
 	logTextU8fmt () uses an additional memory allocation and deallocation internally. The sfmt
@@ -20278,6 +20315,95 @@ bool logTextU8csfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *f
 */
 bool CunilogChangeCurrentThreadPriority (cunilogprio prio);
 TYPEDEF_FNCT_PTR (bool, CunilogChangeCurrentThreadPriority) (cunilogprio prio);
+
+
+/*
+	cunilog_printf_sev_fmtpy_vl
+	cunilog_printf_sev_fmtpy
+	cunilog_printf_sev
+	cunilog_printf
+	cunilog_puts_sev_fmtpy_l
+	cunilog_puts_sev_fmtpy
+	cunilog_puts_sev
+	cunilog_puts
+
+	The Cunilog printf () and puts () functions.
+
+	The _sev_fmtpy_vl version expects a severity, a serverity format type, and a va_list
+	argument. The _sev_fmtpy versions expect a severity and a severity format type while
+	the _sev versions expect a severity only.
+
+	None of these functions abide by the NO_COLOR standard (see https://no-color.org/).
+	To make an application NO_COLOR complient, guard them with the return value of
+	Cunilog_Have_NO_COLOR ().
+
+	bool bUserWantsColour = !Cunilog_Have_NO_COLOR ();		// At application start.
+
+	if (bUserWantsColour)
+		cunilog_printf_sev (cunilogEvtSeverityNonePass,	"Text for printf () output.\n");
+	else
+		cunilog_printf_sev (cunilogEvtSeverityNone,		"Text for printf () output.\n");
+
+
+	The functions cunilog_printf () and cunilog_puts () are replacements for the standard
+	library functions printf () and puts () respectively. These functions honour Cunilog's
+	console settings functions CunilogSetConsoleToUTF8 (), CunilogSetConsoleToUTF16 (),
+	and CunilogSetConsoleToNone () on Windows.
+*/
+int cunilog_printf_sev_fmtpy_vl	(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*format,
+		va_list				ap
+								)
+;
+
+int cunilog_printf_sev_fmtpy	(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*format,
+		...
+								)
+;
+
+int cunilog_printf_sev			(
+		cueventseverity		sev,
+		const char			*format,
+		...
+								)
+;
+
+int cunilog_printf				(
+		const char			*format,
+		...
+								)
+;
+
+int cunilog_puts_sev_fmtpy_l	(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*strU8,
+		size_t				len
+								)
+;
+
+int cunilog_puts_sev_fmtpy		(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*strU8
+								)
+;
+
+int cunilog_puts_sev			(
+		cueventseverity		sev,
+		const char			*strU8
+								)
+;
+
+int cunilog_puts				(
+		const char			*strU8
+								)
+;
 
 /*
 	The version as text, its year, and as a 64 bit number.

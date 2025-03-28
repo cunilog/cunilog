@@ -28,7 +28,7 @@ int main (void)
 	put = InitSCUNILOGTARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogSingleThreaded,
 				cunilogPostfixDefault,
 				NULL, 0,
