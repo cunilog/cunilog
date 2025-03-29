@@ -368,8 +368,29 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	#define CunilogSetConsoleToNone()
 #endif
 
-// This seems to make sense.
-#define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
+/*
+	CunilogEnableANSI
+	CunilogDisableANSI
+	CunilogIsANSIenabled
+
+	Enables or disables ANSI escape sequences for the Windows console,
+	or check if ANSI escape sequences for the Windows console are enabled.
+
+	The functions return true on success, false otherwise.
+	
+	The function CunilogIsANSIenabled () returns true if ANSI escape sequences are
+	enabled, false if not. On POSIX, CunilogIsANSIenabled () always evaluates to
+	true.
+*/
+#ifdef PLATFORM_IS_WINDOWS
+	bool CunilogEnableANSI	(void);
+	bool CunilogDisableANSI	(void);
+	bool CunilogIsANSIenabled (void);
+#else
+	#define CunilogEnableANSI()
+	#define CunilogDisableANSI()
+	#define CunilogIsANSIenabled() (true)
+#endif
 
 /*
 	CunilogGetEnv
@@ -391,6 +412,9 @@ TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
 */
 bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
+
+// This seems to be useful.
+#define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
 
 /*
 	InitSCUNILOGTARGETex

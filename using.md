@@ -32,7 +32,7 @@ Example for using the internal static structure:
 SCUNILOGTARGET *put = InitSUNILOGTARGETstatic	(
 			"logs", 4,
 			"MyApp", USE_STRLEN,
-			cunilogLogPath_relativeToHomeDir,
+			cunilogPath_relativeToHomeDir,
 			cunilogMultiThreadedSeparateLoggingThread
 						);
 if (NULL == put)
@@ -83,15 +83,15 @@ Here's the signature of the InitSUNILOGTARGETstatic () function:
 			as (size_t) -1.
 			If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath	One of the values in the enCunilogRelLogPath enumeration that specify
+	relLogPath	One of the values in the enCunilogRelPath enumeration that specify
 			the base path if szLogPath is either relative or NULL. If szLogPath is
 			relative, the path is relative to
-			cunilogLogPath_relativeToExecutable (the executable file),
-			cunilogLogPath_relativeToCurrentDir (the current directory), or
-			cunilogLogPath_relativeToHomeDir (the user's home directory).
+			cunilogPath_relativeToExecutable (the executable file),
+			cunilogPath_relativeToCurrentDir (the current directory), or
+			cunilogPath_relativeToHomeDir (the user's home directory).
 			See cunilogstructs.h for details.
 			The value of this parameter is ignored if szLogPath is an absolute
-			path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
+			path. If this value is cunilogPath_isAbsolute and szLogPath is a
 			relative path or NULL, the function fails.
 
 	type		The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
@@ -109,7 +109,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	, size_t			lenLogPath	// Length of szLogPath
 	, const char			*szApplication	// Application name.
 	, size_t			lenApplication	// Length of szApplication.
-	, enCunilogRelLogPath		relLogPath	// Rel. to home, exe, or current dir.
+	, enCunilogRelPath		relLogPath	// Rel. to home, exe, or current dir.
 	, enum cunilogtype		type
 )
 ;

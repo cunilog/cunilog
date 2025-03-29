@@ -1244,6 +1244,67 @@ static bool StartSeparateLoggingThread_ifNeeded (SCUNILOGTARGET *put)
 	}
 #endif
 
+#ifdef PLATFORM_IS_WINDOWS
+	enum enbANSIescapeSequencesEnabled
+	{
+		ansiEscapeSequsUninitialised,
+		ansiEscapeSequsEnabled,
+		ansiEscapeSequsDisabled
+	};
+	static bool bANSIescapeSequencesEnabled;
+
+	bool CunilogEnableANSI (void)
+	{
+		HANDLE	hConsole	= GetStdHandle (STD_OUTPUT_HANDLE);
+		DWORD	dwMode		= 0;
+
+		if (INVALID_HANDLE_VALUE != hConsole)
+		{
+			if (GetConsoleMode (hConsole, &dwMode))
+			{
+				dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+				if (SetConsoleMode (hConsole, dwMode))
+				{
+					bANSIescapeSequencesEnabled = ansiEscapeSequsEnabled;
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	bool CunilogDisableANSI (void)
+	{
+		HANDLE	hConsole	= GetStdHandle (STD_OUTPUT_HANDLE);
+		DWORD	dwMode		= 0;
+
+		if (INVALID_HANDLE_VALUE != hConsole)
+		{
+			if (GetConsoleMode (hConsole, &dwMode))
+			{
+				dwMode &= ~ ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+				if (SetConsoleMode (hConsole, dwMode))
+				{
+					bANSIescapeSequencesEnabled = ansiEscapeSequsDisabled;
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	bool CunilogIsANSIenabled (void)
+	{
+		return ansiEscapeSequsEnabled == bANSIescapeSequencesEnabled;
+	}
+
+	static inline void CunilogEnableANSIifNotInitialised (void)
+	{
+		if (ansiEscapeSequsUninitialised == bANSIescapeSequencesEnabled)
+			CunilogEnableANSI ();
+	}
+#endif
+
 char *CunilogGetEnv (const char *szName)
 {
 	ubf_assert_non_NULL (szName);
@@ -3101,6 +3162,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	{
 		if (cunilogConsoleIsUninitialised == ourCunilogConsoleOutputCodePage)
 			CunilogSetConsoleTo (cunilogConsoleIsUTF8);
+		CunilogEnableANSIifNotInitialised ();
 
 		if (len)
 		{	// This function expects a NUL-terminated string.
@@ -3132,6 +3194,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	{
 		if (cunilogConsoleIsUninitialised == ourCunilogConsoleOutputCodePage)
 			CunilogSetConsoleTo (cunilogConsoleIsUTF8);
+		CunilogEnableANSIifNotInitialised ();
 
 		if (len)
 		{	// This function expects a NUL-terminated string.

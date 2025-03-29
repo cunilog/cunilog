@@ -18845,8 +18845,19 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	#define CunilogSetConsoleToNone()
 #endif
 
-// This seems to make sense.
-#define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
+/*
+	CunilogEnableANSI
+	CunilogDisableANSI
+
+
+*/
+#ifdef PLATFORM_IS_WINDOWS
+	bool CunilogEnableANSI	(void);
+	bool CunilogDisableANSI	(void);
+#else
+	#define CunilogEnableANSI()
+	#define CunilogDisableANSI()
+#endif
 
 /*
 	CunilogGetEnv
@@ -18868,6 +18879,9 @@ TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
 */
 bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
+
+// This seems to be useful.
+#define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
 
 /*
 	InitSCUNILOGTARGETex

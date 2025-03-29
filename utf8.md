@@ -89,7 +89,7 @@ do. It is a good thing if the console isn't used for anything else. It is a bad
 thing if the application expects the console to be configured differently.
 
 You can tell Cunilog to set up the console beforehand to avoid that the first
-logging function that outputs something to the console changes it.
+logging or print function that outputs something to the console changes it.
 
 __CunilogSetConsoleToUTF8 ()__ sets the console to UTF-8. It is not required to call
 this function as Cunilog calls it automatically just before it outputs something
@@ -98,7 +98,9 @@ function puts () to output to the console. Note that puts () or one of its
 derivatives is literally the only console output function Cunilog ever invokes.
 
 __CunilogSetConsoleToUTF16 ()__ sets the console to UTF-16. Cunilog then uses the
-UTF-16 version of puts (), which is _putws (), for console output. Maybe I'm
+UTF-16 version of puts (), which is _putws (), for console output, of course only
+after the text to ouput has been converted from UTF-8 to UTF-16 first.
+Maybe I'm
 doing it wrong, but this is terribly slow. I haven't measured it but it feels
 like console output is at least 10 or 20 times slower than when the console is
 set up for UTF-8 and puts () is called instead.
