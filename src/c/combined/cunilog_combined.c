@@ -18346,7 +18346,12 @@ static bool StartSeparateLoggingThread_ifNeeded (SCUNILOGTARGET *put)
 		return false;
 	}
 	
-	static inline void CunilogEnableANSIifNot (void)
+	bool CunilogIsANSIenabled (void)
+	{
+		return ansiEscapeSequsEnabled == bANSIescapeSequencesEnabled;
+	}
+
+	static inline void CunilogEnableANSIifNotInitialised (void)
 	{
 		if (ansiEscapeSequsUninitialised == bANSIescapeSequencesEnabled)
 			CunilogEnableANSI ();
@@ -20210,7 +20215,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	{
 		if (cunilogConsoleIsUninitialised == ourCunilogConsoleOutputCodePage)
 			CunilogSetConsoleTo (cunilogConsoleIsUTF8);
-		CunilogEnableANSIifNot ();
+		CunilogEnableANSIifNotInitialised ();
 
 		if (len)
 		{	// This function expects a NUL-terminated string.
@@ -20242,7 +20247,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	{
 		if (cunilogConsoleIsUninitialised == ourCunilogConsoleOutputCodePage)
 			CunilogSetConsoleTo (cunilogConsoleIsUTF8);
-		CunilogEnableANSIifNot ();
+		CunilogEnableANSIifNotInitialised ();
 
 		if (len)
 		{	// This function expects a NUL-terminated string.

@@ -18848,15 +18848,31 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 /*
 	CunilogEnableANSI
 	CunilogDisableANSI
+	CunilogIsANSIenabled
 
+	Enable or disable the Windows console for ANSI escape sequences,
+	or check if the Windows console is configured for ANSI escape sequences.
 
+	Note that these functions configure the Windows console only. They have
+	no influence on what Cunilog sends/writes to the console.
+
+	The functions return true on success, false otherwise.
+	
+	The function CunilogIsANSIenabled () returns true if ANSI escape sequences are
+	enabled, false if not. On POSIX, CunilogIsANSIenabled () always evaluates to
+	true.
 */
 #ifdef PLATFORM_IS_WINDOWS
 	bool CunilogEnableANSI	(void);
+	TYPEDEF_FNCT_PTR (bool, CunilogEnableANSI)	(void);
 	bool CunilogDisableANSI	(void);
+	TYPEDEF_FNCT_PTR (bool, CunilogDisableANSI)	(void);
+	bool CunilogIsANSIenabled (void);
+	TYPEDEF_FNCT_PTR (bool, CunilogIsANSIenabled) (void);
 #else
 	#define CunilogEnableANSI()
 	#define CunilogDisableANSI()
+	#define CunilogIsANSIenabled() (true)
 #endif
 
 /*
