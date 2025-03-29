@@ -100,8 +100,9 @@ derivatives is literally the only console output function Cunilog ever invokes.
 __CunilogSetConsoleToUTF16 ()__ sets the console to UTF-16. Cunilog then uses the
 UTF-16 version of puts (), which is _putws (), for console output, of course only
 after the text to ouput has been converted from UTF-8 to UTF-16 first.
-Maybe I'm
-doing it wrong, but this is terribly slow. I haven't measured it but it feels
+Maybe I'm doing it wrong, but the console output itself, and not the conversion
+from UTF-8 to UTF-16, is terribly slow.
+I haven't measured it but it feels
 like console output is at least 10 or 20 times slower than when the console is
 set up for UTF-8 and puts () is called instead.
 
