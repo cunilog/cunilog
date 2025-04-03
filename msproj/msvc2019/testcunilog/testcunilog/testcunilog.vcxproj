@@ -161,6 +161,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\c\cunilog\cunilog.c" />
     <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogcfgparser.c" />
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogerrors.c" />
     <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogevtcmds.c" />
     <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogevtcmdsstructs.c" />
     <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogstructs.c" />
@@ -208,12 +209,14 @@
     <ClCompile Include="..\..\..\..\src\c\string\struri.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strwildcards.c" />
     <ClCompile Include="..\..\..\..\src\c\string\ubfcharscountsandchecks.c" />
+    <ClCompile Include="..\..\..\..\src\c\testcunilog\CunilogTestFncts.c" />
     <ClCompile Include="..\..\..\..\src\c\testcunilog\testcunilog.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilog.h" />
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogcfgparser.h" />
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogdefs.h" />
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogerrors.h" />
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogevtcmds.h" />
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogevtcmdsstructs.h" />
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogstructs.h" />
@@ -271,6 +274,7 @@
     <ClInclude Include="..\..\..\..\src\c\string\struri.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strwildcards.h" />
     <ClInclude Include="..\..\..\..\src\c\string\ubfcharscountsandchecks.h" />
+    <ClInclude Include="..\..\..\..\src\c\testcunilog\CunilogTestFncts.h" />
     <ClInclude Include="..\..\..\..\src\c\testcunilog\testcunilog.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

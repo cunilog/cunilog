@@ -52,6 +52,7 @@ When		Who				What
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
 	#include "./cunilogdefs.h"
+	#include "./cunilogerrors.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
@@ -258,7 +259,12 @@ enum cunilogpostfix
 	,	cunilogPostfixWeek									// "YYYY-Wnn"
 	,	cunilogPostfixMonth									// "YYYY-MM"
 	,	cunilogPostfixYear									// "YYYY"
-	,	cunilogPostfixDotNumberDescending					// ".<number>.
+	,	cunilogPostfixDotNumberMinutely						// ".<number>", rotation every minute.
+	,	cunilogPostfixDotNumberHourly						// ".<number>", rotation every hour.
+	,	cunilogPostfixDotNumberDaily
+	,	cunilogPostfixDotNumberWeekly
+	,	cunilogPostfixDotNumberMonthly
+	,	cunilogPostfixDotNumberYearly
 	// Do not add anything below this line.
 	,	cunilogPostfixAmountEnumValues						// Used for table sizes.
 	// Do not add anything below cunilogPostfixAmountEnumValues.
@@ -438,6 +444,7 @@ typedef struct cunilog_logfile
 enum cunilogrotationtask
 {
 		cunilogrotationtask_None							// Ignored. No operation.
+	,	cunilogrotationtask_RenameLogfiles					// Rotates by renaming files.
 	,	cunilogrotationtask_FScompressLogfiles				// Compress logfiles with the help
 															//	of the file system.
 	,	cunilogrotationtask_MoveToTrashLogfiles
@@ -854,7 +861,11 @@ typedef struct scunilognpi
 	/*
 		Error/fail callback function.
 	*/
-	typedef errCBretval (*cunilogErrCallback) (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev);
+	typedef errCBretval (*cunilogErrCallback)	(
+						CUNILOG_ERROR				error,
+						CUNILOG_PROCESSOR			*cup,
+						SCUNILOGEVENT				*pev
+												);
 #endif
 
 typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
@@ -957,6 +968,7 @@ typedef struct scunilogtarget
 
 	cueventsevfmtpy					evSeverityType;			// Format of the event severity.
 
+	CUNILOG_ERROR					error;
 	#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
 		cunilogErrCallback			errorCB;				// Error/fail callback function.
 	#endif
@@ -1040,6 +1052,15 @@ typedef struct scunilogtarget
 //	ConfigSCUNILOGTARGETprocessorList () must be called before the target
 //	is usable.
 #define CUNILOGTARGET_NO_DEFAULT_PROCESSORS		SINGLEBIT64 (60)
+
+/*
+	By default, timestamps are created when an event is created.With this bit set,
+	timestamps are created when they are enqueued. This ensures that events that
+	are enqueued later have a newer timestamp but also locks the queue much longer
+	because the timestamp is obtained during this process. Without this flag,
+	timestamps are created when the event is created, and outside the lock.
+*/
+#define CUNILOGTARGET_ENQUEUE_TIMESTAMPS		SINGLEBIT64 (61)
 
 /*
 	Macros for some flags.
@@ -1126,7 +1147,6 @@ typedef struct scunilogtarget
 #define cunilogSetNoWriteToLogfile(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 
-
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#ifndef cunilogHasUseColourForEcho
 		#define cunilogHasUseColourForEcho(pt)			\
@@ -1154,6 +1174,14 @@ typedef struct scunilogtarget
 	#define cunilogClrDebugQueueLocked(pt)
 	#define cunilogSetDebugQueueLocked(pt)
 #endif
+
+#define cunilogHasEnqueueTimestamps(pt)					\
+	((pt)->uiOpts & CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
+#define cunilogClrEnqueueTimestamps(pt)					\
+	((pt)->uiOpts &= ~ CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
+#define cunilogSetEnqueueTimestamps(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
+
 
 /*
 	Event severities.

@@ -28,5 +28,8 @@
     <None Include="..\..\..\..\src\def\libcunilog.def">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="..\..\..\..\scripts\libcunilog_src.def">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

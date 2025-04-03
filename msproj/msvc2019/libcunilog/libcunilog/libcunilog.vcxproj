@@ -73,6 +73,7 @@
     <ClCompile Include="..\..\..\..\src\c\combined\cunilog_combined.c" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\..\scripts\libcunilog_src.def" />
     <None Include="..\..\..\..\src\def\libcunilog.def" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -25,8 +25,9 @@ When		Who				What
 
 #include "./testcunilog.h"
 #include "./../cunilog/cunilog.h"
+#include "./CunilogTestFncts.h"
 
-// For testing.
+// For testing here.
 #include "./../datetime/ISO__DATE__.h"
 #include "./../datetime/ubf_date_and_time.h"
 #include "./../dbg/ubfdebug.h"
@@ -122,7 +123,7 @@ int main (int argc, char *argv [])
 				NULL, 0,
 				cunilogPath_relativeToExecutable,
 				cunilogMultiThreadedSeparateLoggingThread,
-				cunilogPostfixDotNumberDescending,
+				cunilogPostfixDotNumberMinutely,
 				NULL, 0,
 				cunilogEvtTS_Default,
 				cunilogNewLineDefault,

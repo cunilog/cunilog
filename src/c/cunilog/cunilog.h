@@ -420,7 +420,7 @@ bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
 
 // This seems to be useful.
-#define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
+#define requiresSCUNILOGTARGETseparateLoggingThread(p) HAS_SCUNILOGTARGET_A_QUEUE (p)
 
 /*
 	InitSCUNILOGTARGETex
@@ -941,6 +941,17 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstatic)
 	, enum cunilogtype			type
 )
 ;
+
+/*
+	HAS_SCUNILOGTARGET_A_QUEUE
+
+	Macro to check if a SCUNILOGTARGET structure has an event quueue.
+*/
+#define HAS_SCUNILOGTARGET_A_QUEUE(put)					\
+(														\
+		cunilogSingleThreadedSeparateLoggingThread	== put->culogType\
+	||	cunilogMultiThreadedSeparateLoggingThread	== put->culogType\
+)
 
 /*
 	GetAbsoluteLogPathSCUNILOGTARGET

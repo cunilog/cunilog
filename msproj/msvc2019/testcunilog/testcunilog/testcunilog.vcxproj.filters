@@ -165,6 +165,12 @@
     <ClCompile Include="..\..\..\..\src\c\OS\SharedMutex.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\c\testcunilog\CunilogTestFncts.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogerrors.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogstructs.h">
@@ -348,6 +354,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\c\pre\restrict.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\c\testcunilog\CunilogTestFncts.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogerrors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -58,7 +58,7 @@ shared_mutex_t WinInitSharedMutex(const char *name)
 		if (s->h)
 		{
 			DWORD dwErr = GetLastError ();
-			s->bCreatedHere = ERROR_ALREADY_EXISTS == dwErr;
+			s->bCreatedHere = ERROR_ALREADY_EXISTS != dwErr;
 		} else
 			goto fail;
 	}

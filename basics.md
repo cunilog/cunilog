@@ -24,6 +24,9 @@ To distinguish between functions and macros in the documentation and comments, f
 ### Debugging
 
 When compiled for release versions Cunilog carries out only the most imporant parameters and bounds checks.
+
+It neither checks upper nor lower bounds of enumeration types. Function parameters that are not documented to be allowed to be NULL are not checked against being NULL. String parameters complemented by a length argument do not have their buffers examined to see if they're eventually NUL-terminated.
+
 It is recommended to always test debug builds first. Debug builds contain tons of assertions
 and abort messages that should catch most argument mismatches, buffer overruns, out-of-bounds enums, etc.
 

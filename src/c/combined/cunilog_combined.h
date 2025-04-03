@@ -16773,6 +16773,84 @@ EXTERN_C_END
 #endif															// Of UBFCHARSCOUNTSANDCHECKS.
 /****************************************************************************************
 
+	File		cunilogerrors.h
+	Why:		Cunilog return and error codes.
+	OS:			C99
+	Created:	2025-04-03
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-04-03	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef U_CUNILOGERRORS_H
+#define U_CUNILOGERRORS_H
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include <stdbool.h>
+	#include <inttypes.h>
+
+	//
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		//#include "./ubfmem.h"
+	#else
+		#include "./../pre/externC.h"
+		//#include "./../mem/ubfmem.h"
+	#endif
+
+#endif
+
+/*
+	Success/no error.
+*/
+#define CUNILOG_NO_ERROR							(0)
+
+
+EXTERN_C_BEGIN
+
+typedef uint64_t	CUNILOG_ERROR;
+
+
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_CUNILOGERRORS_H.
+/****************************************************************************************
+
 	File:		cunilogstructs.h
 	Why:		Structures for cunilog.
 	OS:			C99.
@@ -16825,6 +16903,7 @@ When		Who				What
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
 	#include "./cunilogdefs.h"
+	#include "./cunilogerrors.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
@@ -17031,7 +17110,12 @@ enum cunilogpostfix
 	,	cunilogPostfixWeek									// "YYYY-Wnn"
 	,	cunilogPostfixMonth									// "YYYY-MM"
 	,	cunilogPostfixYear									// "YYYY"
-	,	cunilogPostfixDotNumberDescending					// ".<number>.
+	,	cunilogPostfixDotNumberMinutely						// ".<number>", rotation every minute.
+	,	cunilogPostfixDotNumberHourly						// ".<number>", rotation every hour.
+	,	cunilogPostfixDotNumberDaily
+	,	cunilogPostfixDotNumberWeekly
+	,	cunilogPostfixDotNumberMonthly
+	,	cunilogPostfixDotNumberYearly
 	// Do not add anything below this line.
 	,	cunilogPostfixAmountEnumValues						// Used for table sizes.
 	// Do not add anything below cunilogPostfixAmountEnumValues.
@@ -17211,6 +17295,7 @@ typedef struct cunilog_logfile
 enum cunilogrotationtask
 {
 		cunilogrotationtask_None							// Ignored. No operation.
+	,	cunilogrotationtask_RenameLogfiles					// Rotates by renaming files.
 	,	cunilogrotationtask_FScompressLogfiles				// Compress logfiles with the help
 															//	of the file system.
 	,	cunilogrotationtask_MoveToTrashLogfiles
@@ -17627,7 +17712,11 @@ typedef struct scunilognpi
 	/*
 		Error/fail callback function.
 	*/
-	typedef errCBretval (*cunilogErrCallback) (int64_t error, CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev);
+	typedef errCBretval (*cunilogErrCallback)	(
+						CUNILOG_ERROR				error,
+						CUNILOG_PROCESSOR			*cup,
+						SCUNILOGEVENT				*pev
+												);
 #endif
 
 typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
@@ -17730,6 +17819,7 @@ typedef struct scunilogtarget
 
 	cueventsevfmtpy					evSeverityType;			// Format of the event severity.
 
+	CUNILOG_ERROR					error;
 	#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
 		cunilogErrCallback			errorCB;				// Error/fail callback function.
 	#endif
@@ -17813,6 +17903,15 @@ typedef struct scunilogtarget
 //	ConfigSCUNILOGTARGETprocessorList () must be called before the target
 //	is usable.
 #define CUNILOGTARGET_NO_DEFAULT_PROCESSORS		SINGLEBIT64 (60)
+
+/*
+	By default, timestamps are created when an event is created.With this bit set,
+	timestamps are created when they are enqueued. This ensures that events that
+	are enqueued later have a newer timestamp but also locks the queue much longer
+	because the timestamp is obtained during this process. Without this flag,
+	timestamps are created when the event is created, and outside the lock.
+*/
+#define CUNILOGTARGET_ENQUEUE_TIMESTAMPS		SINGLEBIT64 (61)
 
 /*
 	Macros for some flags.
@@ -17899,7 +17998,6 @@ typedef struct scunilogtarget
 #define cunilogSetNoWriteToLogfile(pt)					\
 	((pt)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 
-
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#ifndef cunilogHasUseColourForEcho
 		#define cunilogHasUseColourForEcho(pt)			\
@@ -17927,6 +18025,14 @@ typedef struct scunilogtarget
 	#define cunilogClrDebugQueueLocked(pt)
 	#define cunilogSetDebugQueueLocked(pt)
 #endif
+
+#define cunilogHasEnqueueTimestamps(pt)					\
+	((pt)->uiOpts & CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
+#define cunilogClrEnqueueTimestamps(pt)					\
+	((pt)->uiOpts &= ~ CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
+#define cunilogSetEnqueueTimestamps(pt)					\
+	((pt)->uiOpts |= CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
+
 
 /*
 	Event severities.
@@ -18897,7 +19003,7 @@ bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
 
 // This seems to be useful.
-#define requiresSCUNILOGTARGETseparateLoggingThread(p) hasSCUNILOGTARGETqueue (p)
+#define requiresSCUNILOGTARGETseparateLoggingThread(p) HAS_SCUNILOGTARGET_A_QUEUE (p)
 
 /*
 	InitSCUNILOGTARGETex
@@ -19418,6 +19524,17 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstatic)
 	, enum cunilogtype			type
 )
 ;
+
+/*
+	HAS_SCUNILOGTARGET_A_QUEUE
+
+	Macro to check if a SCUNILOGTARGET structure has an event quueue.
+*/
+#define HAS_SCUNILOGTARGET_A_QUEUE(put)					\
+(														\
+		cunilogSingleThreadedSeparateLoggingThread	== put->culogType\
+	||	cunilogMultiThreadedSeparateLoggingThread	== put->culogType\
+)
 
 /*
 	GetAbsoluteLogPathSCUNILOGTARGET

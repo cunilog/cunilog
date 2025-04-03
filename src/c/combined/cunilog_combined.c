@@ -4389,7 +4389,7 @@ shared_mutex_t WinInitSharedMutex(const char *name)
 		if (s->h)
 		{
 			DWORD dwErr = GetLastError ();
-			s->bCreatedHere = ERROR_ALREADY_EXISTS == dwErr;
+			s->bCreatedHere = ERROR_ALREADY_EXISTS != dwErr;
 		} else
 			goto fail;
 	}
@@ -16611,6 +16611,66 @@ size_t ubf_count_char (const char *cc, char c)
 #endif
 /****************************************************************************************
 
+	File		cunilogerrors.c
+	Why:		Cunilog return and error codes.
+	OS:			C99
+	Created:	2025-04-03
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-04-03	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include <stdbool.h>
+	#include <inttypes.h>
+
+	#include "./cunilogerrors.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./ubfmem.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../mem/ubfmem.h"
+	#endif
+
+#endif
+
+/****************************************************************************************
+
 	File:		cunilogstructs.c
 	Why:		Structures for cunilog.
 	OS:			C99.
@@ -17387,7 +17447,13 @@ size_t arrLengthTimeStampFromPostfix [] =					// [unilogPostfixAmountEnumValues]
 	/* cunilogPostfixWeek					*/	,	LEN_ISO8601YEARANDWEEK
 	/* cunilogPostfixMonth					*/	,	LEN_ISO8601YEARANDMONTH
 	/* cunilogPostfixYear					*/	,	LEN_ISO8601YEAR
-	/* cunilogPostfixDotNumberDescending	*/	,	0
+													// Space for "." + UNIT64.
+	/* cunilogPostfixDotNumberMinutely		*/	,	1 + UBF_UINT64_LEN
+	/* cunilogPostfixDotNumberHourly		*/	,	1 + UBF_UINT64_LEN
+	/* cunilogPostfixDotNumberDaily			*/	,	1 + UBF_UINT64_LEN
+	/* cunilogPostfixDotNumberWeekly		*/	,	1 + UBF_UINT64_LEN
+	/* cunilogPostfixDotNumberMonthly		*/	,	1 + UBF_UINT64_LEN
+	/* cunilogPostfixDotNumberYearly		*/	,	1 + UBF_UINT64_LEN
 };
 
 #ifdef DEBUG
@@ -17416,7 +17482,12 @@ const char *arrPostfixWildcardMask []	=		// [cunilogPostfixAmountEnumValues]
 	"\?\?\?\?-W\?\?",							// cunilogPostfixWeek					"YYYY-Wnn".
 	"\?\?\?\?-\?\?",							// cunilogPostfixMonth					"YYYY-MM".
 	"\?\?\?\?"									// cunilogPostfixYear					"YYYY".
-	"",											// cunilogPostfixDotNumberDescending
+	"",											// cunilogPostfixDotNumberMinutely
+	"",											// cunilogPostfixDotNumberHourly
+	"",											// cunilogPostfixDotNumberDaily
+	"",											// cunilogPostfixDotNumberWeekly
+	"",											// cunilogPostfixDotNumberMonthly
+	""											// cunilogPostfixDotNumberYearly
 };
 
 #ifdef DEBUG
@@ -17453,7 +17524,12 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 	/* cunilogPostfixWeek					*/	,	ISO8601YearAndWeek_from_UBF_TIMESTAMPc
 	/* cunilogPostfixMonth					*/	,	ISO8601YearAndMonth_from_UBF_TIMESTAMPc
 	/* cunilogPostfixYear					*/	,	ISO8601Year_from_UBF_TIMESTAMPc
-	/* cunilogPostfixDotNumberDescending	*/	,	noPostfix
+	/* cunilogPostfixDotNumberMinutely		*/	,	noPostfix
+	/* cunilogPostfixDotNumberHourly		*/	,	noPostfix
+	/* cunilogPostfixDotNumberDaily			*/	,	noPostfix
+	/* cunilogPostfixDotNumberWeekly		*/	,	noPostfix
+	/* cunilogPostfixDotNumberMonthly		*/	,	noPostfix
+	/* cunilogPostfixDotNumberYearly		*/	,	noPostfix
 };
 
 #ifdef DEBUG
@@ -17936,33 +18012,32 @@ char *CreateAppNameInSUNILOGTARGET (SCUNILOGTARGET *put, const char *szAppName, 
 	return put->mbAppName.buf.pch;
 }
 
+enum cunilogprocessfrequency frequencyTbl [cunilogPostfixAmountEnumValues] =
+{
+	/* cunilogPostfixNone				*/			cunilogProcessAppliesTo_nAlways
+	/* cunilogPostfixMinute				*/		,	cunilogProcessAppliesTo_MinuteChanged
+	/* cunilogPostfixMinuteT			*/		,	cunilogProcessAppliesTo_MinuteChanged
+	/* cunilogPostfixHour				*/		,	cunilogProcessAppliesTo_HourChanged
+	/* cunilogPostfixHourT				*/		,	cunilogProcessAppliesTo_HourChanged
+	/* cunilogPostfixDay				*/		,	cunilogProcessAppliesTo_DayChanged
+	/* cunilogPostfixWeek				*/		,	cunilogProcessAppliesTo_WeekChanged
+	/* cunilogPostfixMonth				*/		,	cunilogProcessAppliesTo_MonthChanged
+	/* cunilogPostfixYear				*/		,	cunilogProcessAppliesTo_YearChanged
+	/* cunilogPostfixDotNumberMinutely	*/		,	cunilogProcessAppliesTo_MinuteChanged
+	/* cunilogPostfixDotNumberHourly	*/		,	cunilogProcessAppliesTo_HourChanged
+	/* cunilogPostfixDotNumberDaily		*/		,	cunilogProcessAppliesTo_DayChanged
+	/* cunilogPostfixDotNumberWeekly	*/		,	cunilogProcessAppliesTo_WeekChanged
+	/* cunilogPostfixDotNumberMonthly	*/		,	cunilogProcessAppliesTo_MonthChanged
+	/* cunilogPostfixDotNumberYearly	*/		,	cunilogProcessAppliesTo_YearChanged
+};
+
 static inline enum cunilogprocessfrequency defaultFrequencyFromPostfix (SCUNILOGTARGET *put)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert			(0 <= put->culogPostfix);
+	ubf_assert			(cunilogPostfixAmountEnumValues > put->culogPostfix);
 
-	switch (put->culogPostfix)
-	{
-		case cunilogPostfixNone:
-			return cunilogProcessAppliesTo_nAlways;
-		case cunilogPostfixMinute:
-		case cunilogPostfixMinuteT:
-			return cunilogProcessAppliesTo_MinuteChanged;
-		case cunilogPostfixHour:
-		case cunilogPostfixHourT:
-			return cunilogProcessAppliesTo_HourChanged;
-		case cunilogPostfixDay:
-			return cunilogProcessAppliesTo_DayChanged;
-		case cunilogPostfixWeek:
-			return cunilogProcessAppliesTo_WeekChanged;
-		case cunilogPostfixMonth:
-			return cunilogProcessAppliesTo_MonthChanged;
-		case cunilogPostfixYear:
-			return cunilogProcessAppliesTo_YearChanged;
-		case cunilogPostfixAmountEnumValues:
-			ubf_assert_msg (false, "Illegal value");
-			return cunilogProcessAppliesTo_nAlways;
-	}
-	return cunilogProcessAppliesTo_nAlways;
+	return frequencyTbl [put->culogPostfix];
 }
 
 static inline void correctDefaultFrequency (CUNILOG_PROCESSOR *cp, SCUNILOGTARGET *put)
@@ -18103,6 +18178,16 @@ static void prepareSCUNILOGTARGETinitFilenameBuffers (SCUNILOGTARGET *put, size_
 		cunilogSetFileToRotateAllocated (put);
 }
 
+static inline bool hasDotNumberPostfix (SCUNILOGTARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	return	(
+					cunilogPostfixDotNumberMinutely	<= put->culogPostfix
+				&&	cunilogPostfixDotNumberYearly	>= put->culogPostfix
+			);
+}
+
 static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 {
 	ubf_assert_non_NULL (put);
@@ -18116,9 +18201,16 @@ static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 	*/
 
 	size_t lnRoomForStamp	= lenDateTimeStampFromPostfix (put->culogPostfix);
-	size_t lnUnderscore		= lnRoomForStamp ? 1 : 0;			// The underscore that separates
-																//	the appname from the timestamp.
-	ubf_assert (lnRoomForStamp <= LEN_ISO8601DATEHOURANDMINUTE);
+	size_t lnUnderscore;
+
+	// The underscore that separates the appname from the timestamp.switch (put->culogPostfix)
+	switch (put->culogPostfix)
+	{
+		case cunilogPostfixDotNumberMinutely:	lnUnderscore = 0;						break;
+		default:								lnUnderscore = lnRoomForStamp ? 1 : 0;	break;
+	}
+	// The longest one is cunilogPostfixDotNumberDescending.
+	ubf_assert (lnRoomForStamp <= UBF_UINT64_LEN + 1);
 
 	size_t lnTotal;
 	lnTotal = put->lnLogPath + put->lnAppName + lnUnderscore;
@@ -18132,8 +18224,10 @@ static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 				+ 1;	// A terminating NUL character so that we can use the log file's
 						//	name directly in OS APIs.
 	prepareSCUNILOGTARGETinitFilenameBuffers (put, lnTotal);
-
-	if (isUsableSMEMBUF (&put->mbLogfileName) && isUsableSMEMBUF (&put->mbLogFileMask))
+	bool bUsablembs =		isUsableSMEMBUF (&put->mbLogfileName)
+						&&	isUsableSMEMBUF (&put->mbLogFileMask)
+						&&	isUsableSMEMBUF (&put->mbLogFileMask);
+	if (bUsablembs)
 	{
 		// Remember the position of the timestamp for quick and easy update.
 		put->szDateTimeStamp = put->mbLogfileName.buf.pch + idxStamp;
@@ -18150,29 +18244,42 @@ static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 			szWrite += 1;
 		}
 
-		szWrite += lnRoomForStamp;
-		
-		// Note that this memcpy () makes it NUL-terminated.
-		memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
-
-		// Create the wildcard/search mask.
-		copySMEMBUF (&put->mbLogFileMask, &put->mbLogfileName);
-		memcpy	(
-			put->mbLogFileMask.buf.pch + (put->szDateTimeStamp - put->mbLogfileName.buf.pcc),
-			postfixMaskFromLogPostfix (put->culogPostfix),
-			lenDateTimeStampFromPostfix (put->culogPostfix)
-				);
-
-		#ifdef PLATFORM_IS_POSIX
-			// The function ForEachPsxDirEntry () returns every file and doesn't support a search
-			//	mask. The callback function can use the szLogFileMask and its length to check if
-			//	the returned filename fits the mask.
-			put->szLogFileMask	= put->mbLogFileMask.buf.pch + put->lnLogPath;
-			put->lnsLogFileMask	=		put->lnAppName
-									+	lenDateTimeStampFromPostfix (put->culogPostfix)
-									+	lenCunilogLogFileNameExtension
-									+	lnUnderscore;
-		#endif
+		if (hasDotNumberPostfix (put))
+		{
+			memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
+			// Create the wildcard/search mask.
+			copySMEMBUF (&put->mbLogFileMask, &put->mbLogfileName);
+			// We go for "<logpath>/<appname>.log*". This needs to be tested on POSIX.
+			#ifdef PLATFORM_IS_POSIX
+				ubf_assert_msg (false, "File may not be correct for POSIX");
+			#endif
+			char *szAster =		put->mbLogFileMask.buf.pch
+							+	(szWrite - put->mbLogfileName.buf.pch)
+							+	lenCunilogLogFileNameExtension;
+			memcpy (szAster , "*", 2);
+		} else
+		{
+			szWrite += lnRoomForStamp;
+			// Note that this memcpy () makes it NUL-terminated.
+			memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
+			// Create the wildcard/search mask.
+			copySMEMBUF (&put->mbLogFileMask, &put->mbLogfileName);
+			memcpy	(
+				put->mbLogFileMask.buf.pch + (put->szDateTimeStamp - put->mbLogfileName.buf.pcc),
+				postfixMaskFromLogPostfix (put->culogPostfix),
+				lenDateTimeStampFromPostfix (put->culogPostfix)
+					);
+			#ifdef PLATFORM_IS_POSIX
+				// The function ForEachPsxDirEntry () returns every file and doesn't support a search
+				//	mask. The callback function can use the szLogFileMask and its length to check if
+				//	the returned filename fits the mask.
+				put->szLogFileMask	= put->mbLogFileMask.buf.pch + put->lnLogPath;
+				put->lnsLogFileMask	=		put->lnAppName
+										+	lenDateTimeStampFromPostfix (put->culogPostfix)
+										+	lenCunilogLogFileNameExtension
+										+	lnUnderscore;
+			#endif
+		}
 
 		// Create name of the found file.
 		copySMEMBUF (&put->mbFilToRotate, &put->mbLogPath);
@@ -18194,22 +18301,12 @@ static bool prepareSCUNILOGTARGETforLogging (SCUNILOGTARGET *put)
 	}
 }
 
-static bool hasSCUNILOGTARGETqueue (SCUNILOGTARGET *put)
-{
-	ubf_assert_non_NULL (put);
-
-	return	(
-					cunilogSingleThreadedSeparateLoggingThread	== put->culogType
-				||	cunilogMultiThreadedSeparateLoggingThread	== put->culogType
-			);
-}
-
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	bool InitSCUNILOGTARGETqueuesemaphore (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
-		if (hasSCUNILOGTARGETqueue (put))
+		if (HAS_SCUNILOGTARGET_A_QUEUE (put))
 		{
 			#ifdef OS_IS_WINDOWS
 				// See
@@ -18234,7 +18331,7 @@ static bool hasSCUNILOGTARGETqueue (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
-		if (hasSCUNILOGTARGETqueue (put))
+		if (HAS_SCUNILOGTARGET_A_QUEUE (put))
 		{
 			#ifdef OS_IS_WINDOWS
 				CloseHandle (put->sm.hSemaphore);
@@ -18255,7 +18352,7 @@ static bool hasSCUNILOGTARGETqueue (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
-		if (hasSCUNILOGTARGETqueue (put))
+		if (HAS_SCUNILOGTARGET_A_QUEUE (put))
 		{
 			put->qu.first	= NULL;
 			put->qu.last	= NULL;
@@ -18473,6 +18570,7 @@ static inline bool initCommonMembersAndPrepareSCUNILOGTARGET (SCUNILOGTARGET *pu
 {
 	ubf_assert_non_NULL (put);
 
+	put->error								= CUNILOG_NO_ERROR;
 	str_remove_path_navigators (put->mbLogPath.buf.pch, &put->lnLogPath);
 	#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
 		put->errorCB						= NULL;
@@ -20007,13 +20105,29 @@ static SCUNILOGEVENT *CreateSCUNILOGEVENTandData	(
 	if (pev)
 	{
 		unsigned char *pData = (unsigned char *) pev + aln;
-		FillSCUNILOGEVENT	(
-			pev, put,
-			CUNILOGEVENT_ALLOCATED,
-			LocalTime_UBF_TIMESTAMP (),
-			sev, type,
-			pData, siz, ln
-							);
+		
+		if	(	
+					cunilogHasEnqueueTimestamps	(put)
+				&&	HAS_SCUNILOGTARGET_A_QUEUE	(put)
+			)
+		{
+			FillSCUNILOGEVENT	(
+				pev, put,
+				CUNILOGEVENT_ALLOCATED,
+				0,
+				sev, type,
+				pData, siz, ln
+								);
+		} else
+		{
+			FillSCUNILOGEVENT	(
+				pev, put,
+				CUNILOGEVENT_ALLOCATED,
+				LocalTime_UBF_TIMESTAMP (),
+				sev, type,
+				pData, siz, ln
+								);
+		}
 		if (wl)
 		{
 			storeCaptionLength (&pData, wl, lenCapt);
@@ -20376,13 +20490,21 @@ static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, SCUNILO
 		UNREFERENCED_PARAMETER (sz);
 	#endif
 
-	size_t lenPostfixStamp = lenDateTimeStampFromPostfix (put->culogPostfix);
-	ubf_assert (LEN_ISO8601DATEHOURANDMINUTE >= lenPostfixStamp);
-	memcpy (put->cPrevDateTimeStamp, put->szDateTimeStamp, lenPostfixStamp);
+	size_t lenPostfixStamp;
 
-	obtainDateAndTimeStamp (put->szDateTimeStamp, pev->stamp, put->culogPostfix);
-	put->szDateTimeStamp [lenPostfixStamp] = '.';
-	return true;
+	switch (put->culogPostfix)
+	{
+		case cunilogPostfixDotNumberMinutely:
+			return true;
+
+		default:
+			lenPostfixStamp = lenDateTimeStampFromPostfix (put->culogPostfix);
+			ubf_assert (LEN_ISO8601DATEHOURANDMINUTE >= lenPostfixStamp);
+			memcpy (put->cPrevDateTimeStamp, put->szDateTimeStamp, lenPostfixStamp);
+			obtainDateAndTimeStamp (put->szDateTimeStamp, pev->stamp, put->culogPostfix);
+			put->szDateTimeStamp [lenPostfixStamp] = '.';
+			return true;
+	}
 }
 
 static bool cunilogOpenLogFile (CUNILOG_LOGFILE *pl, const char *szLogFileName)
@@ -20602,7 +20724,7 @@ static bool logFromInsideRotatorTextU8fmt (SCUNILOGTARGET *put, const char *fmt,
 		{
 			cunilogSetEventNoRotation (pev);
 			#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-				if (hasSCUNILOGTARGETqueue (put))
+				if (HAS_SCUNILOGTARGET_A_QUEUE (put))
 				{
 					IncrementPendingNoRotationEvents (put);
 					enqueueAndTriggerSeparateLoggingThread (pev);
@@ -20859,23 +20981,24 @@ static int flscmp (const void *p1, const void *p2)
 	const CUNILOG_FLS	*fls2 = p2;
 	int					r = 0;
 
+	ubf_assert_non_0 (fls1->stFilename);
+	ubf_assert_non_0 (fls2->stFilename);
+
 	if (fls1->stFilename == fls2->stFilename)
 	{
 		r = memcmp (fls1->chFilename, fls2->chFilename, fls1->stFilename - 1);
 		return r;
 	}
-	// We should never get here. That's a bug, misconfiguration, or someone inserted
-	//	a unicode character manually.
-	ubf_assert (false);
 	if (fls1->stFilename < fls2->stFilename)
 	{	
-		ubf_assert (false);
 		r = memcmp (fls1->chFilename, fls2->chFilename, fls1->stFilename - 1);
+		return r ? r : -1;
 	}
 	if (fls1->stFilename > fls2->stFilename)
 	{
 		ubf_assert (false);
 		r = memcmp (fls1->chFilename, fls2->chFilename, fls2->stFilename - 1);
+		return r ? r : 1;
 	}
 	return r;
 }
@@ -20927,6 +21050,47 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 	}
 }
 
+/*
+	Returns true if the logfile name ends with ".log" or ".log.<number>".
+*/
+static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
+{
+	ubf_assert_non_NULL	(pfls);
+	ubf_assert_non_NULL	(pfls->chFilename);
+	ubf_assert_non_0	(pfls->stFilename);
+
+	size_t o = pfls->stFilename;
+	size_t d = 0;
+
+	if (o > lenCunilogLogFileNameExtension + 1)
+	{
+		o -= 2;												// NULL and 0 index.
+		while (o && isdigit (pfls->chFilename [o]))
+		{
+			-- o;
+			++ d;
+		}
+		if (d)
+		{
+			if (o && '.' == pfls->chFilename [o])
+			{
+				-- o;
+				++ d;
+			}
+		}
+		char *szfn = pfls->chFilename + pfls->stFilename - sizCunilogLogFileNameExtension - d;
+		if (o > lenCunilogLogFileNameExtension)
+		{
+			return	0 == memcmp	(
+							szCunilogLogFileNameExtension,
+							szfn,
+							lenCunilogLogFileNameExtension
+								);
+		}
+	}
+	return false;
+}
+
 #if defined (PLATFORM_IS_WINDOWS)
 	static bool obtainLogfilesListToRotateCallbackWin (SRDIRONEENTRYSTRUCT *psdE)
 	{
@@ -20939,6 +21103,9 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 		CUNILOG_FLS	fls;
 		// Note that the return value of UTF8_from_WinU16 () already includes a NUL terminator.
 		fls.stFilename = UTF8_from_WinU16 (szU8FileNameOnly, UTF8_MAX_PATH, psdE->pwfd->cFileName);
+		fls.chFilename = szU8FileNameOnly;
+		if (hasDotNumberPostfix (put) && !endsLogFileNameWithDotNumber (&fls))
+			return true;
 		fls.chFilename = GetAlignedMemFromSBULKMEMgrow (&put->sbm, fls.stFilename);
 		ubf_assert_non_NULL (fls.chFilename);
 		if (fls.chFilename)
@@ -21168,14 +21335,23 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 	static inline size_t EnqueueSCUNILOGEVENT (SCUNILOGEVENT *pev)
 	{
 		ubf_assert_non_NULL (pev);
+		ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
 
 		SCUNILOGTARGET	*put = pev->pSCUNILOGTARGET;
-		ubf_assert_non_NULL (put);
-		ubf_assert (hasSCUNILOGTARGETqueue (put));
+		ubf_assert (HAS_SCUNILOGTARGET_A_QUEUE (put));
 
 		size_t r;
 
 		EnterCUNILOG_LOCKER (put);
+
+		// In this case it's more of an enqueuing date/timestamp than a creation date/timestamp.
+		if (0 == pev->stamp)
+		{
+			pev->stamp = LocalTime_UBF_TIMESTAMP ();
+			ubf_assert_msg (false, "Actually not implemented yet");
+		}
+		ubf_assert_non_0 (pev->stamp);
+
 		if (put->qu.first)
 		{
 			SCUNILOGEVENT *l	= put->qu.last;
@@ -21210,7 +21386,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 	static inline SCUNILOGEVENT *DequeueSCUNILOGEVENT (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
-		ubf_assert (hasSCUNILOGTARGETqueue (put));
+		ubf_assert (HAS_SCUNILOGTARGET_A_QUEUE (put));
 
 		SCUNILOGEVENT	*pev	= NULL;
 
@@ -21242,7 +21418,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 	static inline SCUNILOGEVENT *DequeueAllSCUNILOGEVENTs (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
-		ubf_assert (hasSCUNILOGTARGETqueue (put));
+		ubf_assert (HAS_SCUNILOGTARGET_A_QUEUE (put));
 
 		SCUNILOGEVENT	*pev	= NULL;
 		SCUNILOGEVENT	*last;
@@ -21275,7 +21451,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 	static inline void triggerSCUNILOGEVENTloggingThread (SCUNILOGTARGET *put, size_t releaseCount)
 	{
 		ubf_assert_non_NULL (put);
-		ubf_assert (hasSCUNILOGTARGETqueue (put));
+		ubf_assert (HAS_SCUNILOGTARGET_A_QUEUE (put));
 		ubf_assert (0 < releaseCount);						// Caller's responsibility.
 
 		#ifdef OS_IS_WINDOWS
@@ -21313,7 +21489,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 	static bool SepLogThreadWaitForEvents (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
-		ubf_assert (hasSCUNILOGTARGETqueue (put));
+		ubf_assert (HAS_SCUNILOGTARGET_A_QUEUE (put));
 
 		#ifdef OS_IS_WINDOWS
 			DWORD dw = WaitForSingleObject (put->sm.hSemaphore, INFINITE);
@@ -21334,7 +21510,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 	SEPARATE_LOGGING_THREAD_RETURN_TYPE SeparateLoggingThread (SCUNILOGTARGET *put)
 	{
 		ubf_assert_non_NULL (put);
-		ubf_assert (hasSCUNILOGTARGETqueue (put));
+		ubf_assert (HAS_SCUNILOGTARGET_A_QUEUE (put));
 
 		while (SepLogThreadWaitForEvents (put))
 		{
@@ -21388,55 +21564,21 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *p
 	}
 #endif
 
-static void cunilogUpdateCurrentValue (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+static inline bool updateThresholdForAppliesToTimes (CUNILOG_PROCESSOR *cup)
 {
 	ubf_assert_non_NULL (cup);
-	ubf_assert_non_NULL (pev);
 
-	switch (cup->freq)
+	bool bRet = cup->thr && cup->cur > cup->thr;
+	if (0 == cup->thr || cup->cur > cup->thr)
 	{
-		case cunilogProcessAppliesTo_nEvents:
-			++ cup->cur;
-			break;
-		case cunilogProcessAppliesTo_nOctets:
-			cup->cur += pev->lenDataToLog;
-			break;
-		case cunilogProcessAppliesTo_nAlways:
-			break;
-		case cunilogProcessAppliesTo_SecondChanged:
-			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS;
-			break;
-		case cunilogProcessAppliesTo_MinuteChanged:
-			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS;
-			break;
-		case cunilogProcessAppliesTo_HourChanged:
-			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS;
-			break;
-		case cunilogProcessAppliesTo_DayChanged:
-			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS;
-			break;
-		case cunilogProcessAppliesTo_WeekChanged:
-			cup->cur = (pev->stamp & UBF_TIMESTAMP_KEEP_FROM_YEAR_BITS)
-					 + 	GetISO8601WeekNumberFromDate (
-							UBF_TIMESTAMP_YEAR	(pev->stamp),
-							UBF_TIMESTAMP_MONTH	(pev->stamp),
-							UBF_TIMESTAMP_DAY	(pev->stamp),
-							NULL
-													);
-			break;
-		case cunilogProcessAppliesTo_MonthChanged:
-			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_MONTH_BITS;
-			break;
-		case cunilogProcessAppliesTo_YearChanged:
-			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_YEAR_BITS;
-			break;
-		case cunilogProcessAppliesTo_Auto:
-			ubf_assert_msg (false, "Illegal value");
-			break;
+		cup->thr = cup->cur;
 	}
+	return bRet;
 }
 
-static bool thresholdReached (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
+static inline bool updateCurrentValueAndIsThresholdReached	(
+								CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev
+																	)
 {
 	ubf_assert_non_NULL (cup);
 	ubf_assert_non_NULL (pev);
@@ -21447,47 +21589,50 @@ static bool thresholdReached (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	switch (cup->freq)
 	{
 		case cunilogProcessAppliesTo_nEvents:
-		case cunilogProcessAppliesTo_nOctets:
+			++ cup->cur;
 			bRet = cup->cur >= cup->thr;
-			cup->cur = bRet ? 0 : cup->cur;
+			cup->thr = bRet ? 0 : cup->cur;
+			break;
+		case cunilogProcessAppliesTo_nOctets:
+			cup->cur += pev->lenDataToLog;
+			bRet = cup->cur >= cup->thr;
+			cup->thr = bRet ? 0 : cup->cur;
 			break;
 		case cunilogProcessAppliesTo_nAlways:
 			return true;
 		case cunilogProcessAppliesTo_SecondChanged:
-			bRet = 0 < cup->thr && cup->cur != cup->thr;
-			cup->thr = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS;
+			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS;
+			bRet = updateThresholdForAppliesToTimes (cup);
 			break;
 		case cunilogProcessAppliesTo_MinuteChanged:
-			bRet = 0 < cup->thr && cup->cur != cup->thr;
-			cup->thr = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS;
+			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS;
+			bRet = updateThresholdForAppliesToTimes (cup);
 			break;
 		case cunilogProcessAppliesTo_HourChanged:
-			bRet = 0 < cup->thr && cup->cur != cup->thr;
-			cup->thr = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS;
+			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS;
+			bRet = updateThresholdForAppliesToTimes (cup);
 			break;
 		case cunilogProcessAppliesTo_DayChanged:
-			bRet = 0 < cup->thr && cup->cur != cup->thr;
-			cup->thr = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS;
+			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS;
+			bRet = updateThresholdForAppliesToTimes (cup);
 			break;
 		case cunilogProcessAppliesTo_WeekChanged:
-			bRet = 0 < cup->thr && cup->cur != cup->thr;
-			// We keep the year and the week number.
-			cup->thr = (pev->stamp & UBF_TIMESTAMP_KEEP_FROM_YEAR_BITS)
-					 +
-						GetISO8601WeekNumberFromDate (
+			cup->cur = (pev->stamp & UBF_TIMESTAMP_KEEP_FROM_YEAR_BITS)
+					 + 	GetISO8601WeekNumberFromDate (
 							UBF_TIMESTAMP_YEAR	(pev->stamp),
 							UBF_TIMESTAMP_MONTH	(pev->stamp),
 							UBF_TIMESTAMP_DAY	(pev->stamp),
 							NULL
 													);
+			bRet = updateThresholdForAppliesToTimes (cup);
 			break;
 		case cunilogProcessAppliesTo_MonthChanged:
-			bRet = 0 < cup->thr && cup->cur != cup->thr;
-			cup->thr = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_MONTH_BITS;
+			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_MONTH_BITS;
+			bRet = updateThresholdForAppliesToTimes (cup);
 			break;
 		case cunilogProcessAppliesTo_YearChanged:
-			bRet = 0 < cup->thr && cup->cur != cup->thr;
-			cup->thr = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_YEAR_BITS;
+			cup->cur = pev->stamp & UBF_TIMESTAMP_KEEP_FROM_YEAR_BITS;
+			bRet = updateThresholdForAppliesToTimes (cup);
 			break;
 		case cunilogProcessAppliesTo_Auto:
 			ubf_assert_msg (false, "Illegal value");
@@ -21499,8 +21644,12 @@ static bool thresholdReached (CUNILOG_PROCESSOR *cup, SCUNILOGEVENT *pev)
 	if (optCunProcHasOPT_CUNPROC_AT_STARTUP (cup->uiOpts))
 	{
 		optCunProcClrOPT_CUNPROC_AT_STARTUP (cup->uiOpts);
-		bRet = true;
+		return true;
 	}
+
+	// The same applies to the target.
+	if (cunilogHasRunAllProcessorsOnStartup (pev->pSCUNILOGTARGET))
+		return true;
 
 	return bRet;
 }
@@ -21572,11 +21721,7 @@ static bool cunilogProcessProcessor (SCUNILOGEVENT *pev, CUNILOG_PROCESSOR *cup)
 		return true;
 
 	bool bRetProc = true;
-	cunilogUpdateCurrentValue (cup, pev);
-	if	(
-				thresholdReached (cup, pev)
-			||	cunilogHasRunAllProcessorsOnStartup (pev->pSCUNILOGTARGET)
-		)
+	if	(updateCurrentValueAndIsThresholdReached (cup, pev))
 	{
 		// True tells the caller to carry on with the next processor.
 		bRetProc = pickAndRunProcessor [cup->task] (cup, pev);
@@ -21781,6 +21926,7 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 		{
 			pev->pSCUNILOGTARGET = put;
 			cunilogSetEventAllocated (pev);
+			pev->stamp = 1;
 			cunilogProcessOrQueueEvent (pev);
 			return true;
 		}
@@ -21793,7 +21939,7 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 	{
 		ubf_assert_non_NULL (put);
 
-		if (hasSCUNILOGTARGETqueue (put))
+		if (HAS_SCUNILOGTARGET_A_QUEUE (put))
 		{
 			if (queueShutdownEvent (put))
 			{
@@ -21819,7 +21965,7 @@ static bool cunilogProcessOrQueueEvent (SCUNILOGEVENT *pev)
 	{
 		ubf_assert_non_NULL (put);
 
-		if (hasSCUNILOGTARGETqueue (put))
+		if (HAS_SCUNILOGTARGET_A_QUEUE (put))
 		{
 			cunilogSetShutdownTarget (put);
 
@@ -22916,9 +23062,9 @@ int cunilog_printf_sev_fmtpy	(
 	int			iRet		= -1;
 	va_list		args;
 
-	va_start (args, format);
+	va_start	(args, format);
 	iRet = cunilog_printf_sev_fmtpy_vl (sev, sftpy, format, args);
-	va_end (args);
+	va_end		(args);
 
 	return iRet;
 }
@@ -22934,9 +23080,9 @@ int cunilog_printf_sev			(
 	int			iRet		= -1;
 	va_list		args;
 
-	va_start (args, format);
+	va_start	(args, format);
 	iRet = cunilog_printf_sev_fmtpy_vl (sev, cunilogEvtSeverityTypeDefault, format, args);
-	va_end (args);
+	va_end		(args);
 
 	return iRet;
 }
@@ -22951,9 +23097,9 @@ int cunilog_printf				(
 	int			iRet		= -1;
 	va_list		args;
 
-	va_start (args, format);
+	va_start	(args, format);
 	iRet = cunilog_printf_sev_fmtpy_vl (cunilogEvtSeverityNone, cunilogEvtSeverityTypeDefault, format, args);
-	va_end (args);
+	va_end		(args);
 
 	return iRet;
 }
