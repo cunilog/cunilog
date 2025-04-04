@@ -149,10 +149,10 @@ void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
 /*
 	These declarations are from cunilog.h. They are defined in cunilog.c.
 */
-void ConfigSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
-void ConfigSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
-void ConfigSCUNILOGTARGETdisableEchoProcessor (SCUNILOGTARGET *put);
-void ConfigSCUNILOGTARGETenableEchoProcessor (SCUNILOGTARGET *put);
+void ConfigCUNILOG_TARGETdisableTaskProcessors (CUNILOG_TARGET *put, enum cunilogprocesstask task);
+void ConfigCUNILOG_TARGETenableTaskProcessors (CUNILOG_TARGET *put, enum cunilogprocesstask task);
+void ConfigCUNILOG_TARGETdisableEchoProcessor (CUNILOG_TARGET *put);
+void ConfigCUNILOG_TARGETenableEchoProcessor (CUNILOG_TARGET *put);
 
 void culCmdStoreCmdConfigDisableTaskProcessors (unsigned char *szOut, enum cunilogprocesstask task)
 {
@@ -170,7 +170,7 @@ void culCmdStoreCmdConfigEnableTaskProcessors (unsigned char *szOut, enum cunilo
 	memcpy (szOut + sizeof (enum cunilogEvtCmd), &task, sizeof (task));
 }
 
-void culCmdConfigDisableTaskProcessors (SCUNILOGTARGET *put, unsigned char *szData)
+void culCmdConfigDisableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szData)
 {
 	enum cunilogprocesstask task;
 
@@ -178,10 +178,10 @@ void culCmdConfigDisableTaskProcessors (SCUNILOGTARGET *put, unsigned char *szDa
 	ubf_assert (0 <= task);
 	ubf_assert (task < cunilogProcessAmountEnumValues);
 
-	ConfigSCUNILOGTARGETdisableTaskProcessors (put, task);
+	ConfigCUNILOG_TARGETdisableTaskProcessors (put, task);
 }
 
-void culCmdConfigEnableTaskProcessors (SCUNILOGTARGET *put, unsigned char *szData)
+void culCmdConfigEnableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szData)
 {
 	enum cunilogprocesstask task;
 
@@ -189,7 +189,7 @@ void culCmdConfigEnableTaskProcessors (SCUNILOGTARGET *put, unsigned char *szDat
 	ubf_assert (0 <= task);
 	ubf_assert (task < cunilogProcessAmountEnumValues);
 
-	ConfigSCUNILOGTARGETenableTaskProcessors (put, task);
+	ConfigCUNILOG_TARGETenableTaskProcessors (put, task);
 }
 
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
@@ -269,15 +269,15 @@ void culCmdConfigSetLogPriority (unsigned char *szData)
 	#endif
 }
 
-void culCmdChangeCmdConfigFromCommand (SCUNILOGEVENT *pev)
+void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->szDataToLog);
 	ubf_assert_non_0	(pev->lenDataToLog);
-	ubf_assert_non_NULL (pev->pSCUNILOGTARGET);
+	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
 	ubf_assert			(cunilogEvtTypeCommand == pev->evType);
 
-	SCUNILOGTARGET *put = pev->pSCUNILOGTARGET;
+	CUNILOG_TARGET *put = pev->pCUNILOG_TARGET;
 	ubf_assert_non_NULL (put);
 
 	unsigned char		*szData = pev->szDataToLog;
@@ -316,10 +316,10 @@ void culCmdChangeCmdConfigFromCommand (SCUNILOGEVENT *pev)
 			culCmdConfigEnableTaskProcessors (put, szData);
 			break;
 		case cunilogCmdConfigDisableEchoProcessor:
-			ConfigSCUNILOGTARGETdisableEchoProcessor (put);
+			ConfigCUNILOG_TARGETdisableEchoProcessor (put);
 			break;
 		case cunilogCmdConfigEnableEchoProcessor:
-			ConfigSCUNILOGTARGETenableEchoProcessor (put);
+			ConfigCUNILOG_TARGETenableEchoProcessor (put);
 			break;
 		case cunilogCmdConfigSetLogPriority:
 			culCmdConfigSetLogPriority (szData);

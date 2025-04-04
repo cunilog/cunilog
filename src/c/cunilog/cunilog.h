@@ -20,18 +20,18 @@ When		Who				What
 */
 
 /*
-	1. Create a SCUNILOGTARGET structure and initialise it. Use either your own structure
+	1. Create a CUNILOG_TARGET structure and initialise it. Use either your own structure
 		or create a new one with CreateNewSUNILOGTARGET () or InitOrCreateSUNILOGTARGET ().
 		Or use the internal structure of this module with InitSUNILOGTARGETstatic () instead.
 		The latter is most likely what you want.
 
 	2. Use the logging functions repeatedly as you please. Depending on the member unilogType
-		of the SCUNILOGTARGET structure, you might do this from a single or multiple
+		of the CUNILOG_TARGET structure, you might do this from a single or multiple
 		threads.
 
 	4. When not required anymore, probably just before the application exits, call
-		ShutdownSCUNILOGTARGET () or ShutdownSCUNILOGTARGETstatic, depending on the structure
-		you used. Call DoneSUNILOGTARGET () on the the SCUNILOGTARGET structure afterwards,
+		ShutdownCUNILOG_TARGET () or ShutdownCUNILOG_TARGETstatic, depending on the structure
+		you used. Call DoneSUNILOGTARGET () on the the CUNILOG_TARGET structure afterwards,
 		or call DoneSUNILOGTARGETstatic () if the internal structure was used.
 
 		Example for internal static structure:
@@ -43,7 +43,7 @@ When		Who				What
 		logTextU8_static (...);
 
 		// Just before the application exists shut down logging and deallocate its resources.
-		ShutdownSCUNILOGTARGETstatic ();
+		ShutdownCUNILOG_TARGETstatic ();
 		DoneSUNILOGTARGETstatic ();
 */
 
@@ -104,9 +104,6 @@ When		Who				What
 #define CUNILOG_SIZE_ERROR				((size_t) -1)
 #endif
 
-#ifndef CUNILOG_UNKNOWN_ERROR
-#define CUNILOG_UNKNOWN_ERROR			(-1)
-#endif
 
 /*
 	Memory alignments. Use 16 octets/bytes for 64 bit platforms.
@@ -239,10 +236,10 @@ When		Who				What
 EXTERN_C_BEGIN
 
 /*
-	The pointer to the module's internal static SCUNILOGTARGET structure.
+	The pointer to the module's internal static CUNILOG_TARGET structure.
 	The _static versions of the logging functions operate on this structure.
 */
-CUNILOG_DLL_IMPORT extern SCUNILOGTARGET *pSCUNILOGTARGETstatic;
+CUNILOG_DLL_IMPORT extern CUNILOG_TARGET *pCUNILOG_TARGETstatic;
 
 /*
 	Functions
@@ -420,22 +417,22 @@ bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
 
 // This seems to be useful.
-#define requiresSCUNILOGTARGETseparateLoggingThread(p) HAS_SCUNILOGTARGET_A_QUEUE (p)
+#define requiresCUNILOG_TARGETseparateLoggingThread(p) HAS_CUNILOG_TARGET_A_QUEUE (p)
 
 /*
-	InitSCUNILOGTARGETex
+	InitCUNILOG_TARGETex
 
-	Initialises an existing SCUNILOGTARGET structure.
+	Initialises an existing CUNILOG_TARGET structure.
 
 	Parameters
 
-	put					A pointer to an SCUNILOGTARGET structure that holds all required
+	put					A pointer to an CUNILOG_TARGET structure that holds all required
 						parameters. The function does not create a copy of this structure and
 						therefore it must be available/accessible until DoneSUNILOGTARGET ()
-						and ShutdownSCUNILOGTARGET () or CancelSCUNILOGTARGET () are called on
+						and ShutdownCUNILOG_TARGET () or CancelCUNILOG_TARGET () are called on
 						it. In other words the structure is required to either be static or is
 						created as an automatic structure in main ().
-						The function InitSCUNILOGTARGETstatic () uses the module's internal static
+						The function InitCUNILOG_TARGETstatic () uses the module's internal static
 						structure.
 
 	szLogPath			The path where the log files are written to. This can either be an
@@ -485,8 +482,8 @@ TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
 						NULL, in which case a standard set of processors will be used.
 						If this parameter is not NULL, the function does not create a
 						copy of the provided processor list, which means the list must be
-						available/accessible until ShutdownSCUNILOGTARGET () or
-						CancelSCUNILOGTARGET (), and then DoneSCUNILOGTAREGE () are called
+						available/accessible until ShutdownCUNILOG_TARGET () or
+						CancelCUNILOG_TARGET (), and then DoneSCUNILOGTAREGE () are called
 						on it. In other words the list is required to either reside on the
 						heap, is static, or is created as automatic in main ().
 
@@ -505,14 +502,14 @@ TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
 
 	The function returns a pointer to puz on success, NULL otherwise.
 */
-SCUNILOGTARGET *InitSCUNILOGTARGETex
+CUNILOG_TARGET *InitCUNILOG_TARGETex
 (
-	  SCUNILOGTARGET			*put				// Must not be NULL.
+	  CUNILOG_TARGET			*put				// Must not be NULL.
 	, const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -522,14 +519,14 @@ SCUNILOGTARGET *InitSCUNILOGTARGETex
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 ;
-TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETex)
+TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 (
-	  SCUNILOGTARGET			*put				// Must not be NULL.
+	  CUNILOG_TARGET			*put				// Must not be NULL.
 	, const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -541,40 +538,40 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETex)
 ;
 
 /*
-	InitSCUNILOGTARGET
+	InitCUNILOG_TARGET
 
-	Simplified version of InitSCUNILOGTARGETex ().
+	Simplified version of InitCUNILOG_TARGETex ().
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	SCUNILOGTARGET *InitSCUNILOGTARGET
+	CUNILOG_TARGET *InitCUNILOG_TARGET
 	(
-		  SCUNILOGTARGET			*put				// Must not be NULL.
+		  CUNILOG_TARGET			*put				// Must not be NULL.
 		, const char				*szLogPath			// Path to the logging information.
 		, size_t					lenLogPath			// Length of szLogPath
 		, const char				*szAppName			// Application name.
 		, size_t					lenAppName			// Length of szApplication.
-		, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
+		, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 		, enum cunilogtype			type
 	)
 	;
-	TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGET)
+	TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGET)
 	(
-		  SCUNILOGTARGET			*put				// Must not be NULL.
+		  CUNILOG_TARGET			*put				// Must not be NULL.
 		, const char				*szLogPath			// Path to the logging information.
 		, size_t					lenLogPath			// Length of szLogPath
 		, const char				*szAppName			// Application name.
 		, size_t					lenAppName			// Length of szApplication.
-		, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
+		, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 		, enum cunilogtype			type
 	)
 	;
 #else
-	#define InitSCUNILOGTARGET(put,						\
+	#define InitCUNILOG_TARGET(put,						\
 				szLogPath,	lenLogPath,					\
 				szAppName,	lenAppName,					\
 				relLogPath,								\
 				type)									\
-				InitSCUNILOGTARGETex	(				\
+				InitCUNILOG_TARGETex	(				\
 					(put),								\
 					(szLogPath), (lenLogPath),			\
 					(szAppName), (lenAppName),			\
@@ -589,9 +586,9 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETex)
 #endif
 
 /*
-	CreateNewSCUNILOGTARGET
+	CreateNewCUNILOG_TARGET
 
-	Creates a new SCUNILOGTARGET structure on the heap and initialises it.
+	Creates a new CUNILOG_TARGET structure on the heap and initialises it.
 
 	Parameters
 
@@ -642,8 +639,8 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETex)
 						NULL, in which case a standard set of processors will be used.
 						If this parameter is not NULL, the function does not create a
 						copy of the provided processor list, which means the list must be
-						available/accessible until ShutdownSCUNILOGTARGET () or
-						CancelSCUNILOGTARGET (), and then DoneSCUNILOGTAREGE () are called
+						available/accessible until ShutdownCUNILOG_TARGET () or
+						CancelCUNILOG_TARGET (), and then DoneSCUNILOGTAREGE () are called
 						on it. In other words the list is required to either reside on the
 						heap, is static, or is created as automatic in main ().
 
@@ -661,19 +658,19 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETex)
 						first time a logging function is called.
 
 	For performance reasons and to simplify data handling, the function allocates a single memory
-	block that holds enough space for the SCUNILOGTARGET structure as well as szLogPath and
+	block that holds enough space for the CUNILOG_TARGET structure as well as szLogPath and
 	szAppName.
 
 	If the function succeeds it returns a pointer to a valid SUNILOGTARGET structure.
 	If the function fails, the return value is NULL.
 */
-SCUNILOGTARGET *CreateNewSCUNILOGTARGET
+CUNILOG_TARGET *CreateNewCUNILOG_TARGET
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -683,13 +680,13 @@ SCUNILOGTARGET *CreateNewSCUNILOGTARGET
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 ;
-TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, CreateNewSCUNILOGTARGET)
+TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, CreateNewCUNILOG_TARGET)
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -701,39 +698,39 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, CreateNewSCUNILOGTARGET)
 ;
 
 /*
-	InitOrCreateSCUNILOGTARGET
+	InitOrCreateCUNILOG_TARGET
 
-	Initialises an existing SCUNILOGTARGET structure or creates a new one on the heap.
+	Initialises an existing CUNILOG_TARGET structure or creates a new one on the heap.
 
-	If put is NULL, the function calls CreateNewSCUNILOGTARGET () and returns a pointer
-	to the newly allocated and initialised SCUNILOGTARGET structure.
+	If put is NULL, the function calls CreateNewCUNILOG_TARGET () and returns a pointer
+	to the newly allocated and initialised CUNILOG_TARGET structure.
 	
 	If put is not NULL, the function initialises it and returns put by calling
-	InitSCUNILOGTARGET () on it. If put is not NULL, the function does not create a copy of
+	InitCUNILOG_TARGET () on it. If put is not NULL, the function does not create a copy of
 	this structure. The caller therefore must ensure that it is available/accessible until
-	DoneSCUNILOGTARGET () and ShutdownSCUNILOGTARGET () or CancelSCUNILOGTARGET () are called
+	DoneCUNILOG_TARGET () and ShutdownCUNILOG_TARGET () or CancelCUNILOG_TARGET () are called
 	on it, i.e. that the structure is either static or is created as an automatic structure
 	in main ().
 
 	If the cuProcessorList parameter is not NULL, the function does not create a copy of
-	this list and therefore must be available/accessible until DoneSCUNILOGTARGET () and
-	ShutdownSCUNILOGTARGET () or CancelSCUNILOGTARGET () are called on it. In other
+	this list and therefore must be available/accessible until DoneCUNILOG_TARGET () and
+	ShutdownCUNILOG_TARGET () or CancelCUNILOG_TARGET () are called on it. In other
 	words the list is required to either reside on the heap, is static, or is created
 	as automatic in main ().
 
 	The function returns NULL if it fails.
 
-	Call DoneSCUNILOGTARGET () when done with the structure, independent of whether it
+	Call DoneCUNILOG_TARGET () when done with the structure, independent of whether it
 	has been created on the heap or provided as the parameter psu.
 */
-SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
+CUNILOG_TARGET *InitOrCreateCUNILOG_TARGET
 (
-	  SCUNILOGTARGET			*put				// If NULL, a new structure is allocated.
+	  CUNILOG_TARGET			*put				// If NULL, a new structure is allocated.
 	, const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -743,14 +740,14 @@ SCUNILOGTARGET *InitOrCreateSCUNILOGTARGET
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 ;
-TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitOrCreateSCUNILOGTARGET)
+TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitOrCreateCUNILOG_TARGET)
 (
-	  SCUNILOGTARGET			*put				// If NULL, a new structure is allocated.
+	  CUNILOG_TARGET			*put				// If NULL, a new structure is allocated.
 	, const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
 	, const char				*szAppName			// Application name.
 	, size_t					lenAppName			// Length of szApplication.
-	, enCunilogRelPath		relLogPath			// Rel. to home, exe, or current dir.
+	, enCunilogRelPath			relLogPath			// Rel. to home, exe, or current dir.
 	, enum cunilogtype			type
 	, enum cunilogpostfix		postfix
 	, CUNILOG_PROCESSOR			**cuProcessorList	// One or more post-processors.
@@ -762,9 +759,9 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitOrCreateSCUNILOGTARGET)
 ;
 
 /*
-	InitSCUNILOGTARGETstaticEx
+	InitCUNILOG_TARGETstaticEx
 	
-	Initialises the internal SCUNILOGTARGET structure. If the _static versions of the logging
+	Initialises the internal CUNILOG_TARGET structure. If the _static versions of the logging
 	functions are used, an application must call this function before any of these functions
 	are called.
 	
@@ -815,8 +812,8 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitOrCreateSCUNILOGTARGET)
 						NULL, in which case a standard set of processors will be used.
 						If this parameter is not NULL, the function does not create a
 						copy of the provided processor list, which means the list must be
-						available/accessible until ShutdownSCUNILOGTARGET () or
-						CancelSCUNILOGTARGET (), and then DoneSCUNILOGTAREGE () are called
+						available/accessible until ShutdownCUNILOG_TARGET () or
+						CancelCUNILOG_TARGET (), and then DoneSCUNILOGTAREGE () are called
 						on it. In other words the list is required to either reside on the
 						heap, is static, or is created as automatic in main ().
 
@@ -833,12 +830,12 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitOrCreateSCUNILOGTARGET)
 						cunilogDontRunProcessorsOnStartup to run or not run all processors the
 						first time a logging function is called.
 
-	The function returns a pointer to the internal SCUNILOGTARGET cunilognewlinestructure
+	The function returns a pointer to the internal CUNILOG_TARGET cunilognewlinestructure
 	upon success, NULL otherwise.
 
-	Call DoneSCUNILOGTARGETstatic () to free the structure's resources.
+	Call DoneCUNILOG_TARGETstatic () to free the structure's resources.
 */
-SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
+CUNILOG_TARGET *InitCUNILOG_TARGETstaticEx
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
@@ -854,7 +851,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstaticEx
 	, runProcessorsOnStartup	rp					// Run/don't run all processors instantly.
 )
 ;
-TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstaticEx)
+TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstaticEx)
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
@@ -872,9 +869,9 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstaticEx)
 ;
 
 /*
-	InitSCUNILOGTARGETstatic
+	InitCUNILOG_TARGETstatic
 
-	Simplified version of InitSCUNILOGTARGETstaticEx ().
+	Simplified version of InitCUNILOG_TARGETstaticEx ().
 
 	szLogPath			The path where the log files are written to. This can either be an
 						absolute or a relative path. If the path is relative, it is assumed to
@@ -916,12 +913,12 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstaticEx)
 						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
 						ignored and implicitely set to cunilogSingleThreaded.
 
-	The function returns a pointer to the internal SCUNILOGTARGET cunilognewlinestructure
+	The function returns a pointer to the internal CUNILOG_TARGET cunilognewlinestructure
 	upon success, NULL otherwise.
 
-	Call DoneSCUNILOGTARGETstatic () to free the structure's resources.
+	Call DoneCUNILOG_TARGETstatic () to free the structure's resources.
 */
-SCUNILOGTARGET *InitSCUNILOGTARGETstatic
+CUNILOG_TARGET *InitCUNILOG_TARGETstatic
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
@@ -931,7 +928,7 @@ SCUNILOGTARGET *InitSCUNILOGTARGETstatic
 	, enum cunilogtype			type
 )
 ;
-TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstatic)
+TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 (
 	  const char				*szLogPath			// Path to the logging information.
 	, size_t					lenLogPath			// Length of szLogPath
@@ -943,18 +940,18 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstatic)
 ;
 
 /*
-	HAS_SCUNILOGTARGET_A_QUEUE
+	HAS_CUNILOG_TARGET_A_QUEUE
 
-	Macro to check if a SCUNILOGTARGET structure has an event quueue.
+	Macro to check if a CUNILOG_TARGET structure has an event quueue.
 */
-#define HAS_SCUNILOGTARGET_A_QUEUE(put)					\
+#define HAS_CUNILOG_TARGET_A_QUEUE(put)					\
 (														\
 		cunilogSingleThreadedSeparateLoggingThread	== put->culogType\
 	||	cunilogMultiThreadedSeparateLoggingThread	== put->culogType\
 )
 
 /*
-	GetAbsoluteLogPathSCUNILOGTARGET
+	GetAbsoluteLogPathCUNILOG_TARGET
 
 	Returns the absolute path to the folder logfiles are written to, including a directory
 	separator. If plen is not NULL, the function returns the length of the path at the address
@@ -966,18 +963,18 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, InitSCUNILOGTARGETstatic)
 	The function returns NULL if it fails. In this case it will not have changed the address
 	plen points to.
 */
-const char *GetAbsoluteLogPathSCUNILOGTARGET (SCUNILOGTARGET *put, size_t *plen);
-TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET)
-	(SCUNILOGTARGET *put, size_t *plen);
+const char *GetAbsoluteLogPathCUNILOG_TARGET (CUNILOG_TARGET *put, size_t *plen);
+TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET)
+	(CUNILOG_TARGET *put, size_t *plen);
 
 /*
-	GetAbsoluteLogPathSCUNILOGTARGET_static
+	GetAbsoluteLogPathCUNILOG_TARGET_static
 
-	Calls GetAbsoluteLogPathSCUNILOGTARGET () to obtain the absolute path to the folder
-	logfiles for the internal static SCUNILOGTARGET structure are written to.
+	Calls GetAbsoluteLogPathCUNILOG_TARGET () to obtain the absolute path to the folder
+	logfiles for the internal static CUNILOG_TARGET structure are written to.
 */
-const char *GetAbsoluteLogPathSCUNILOGTARGET_static (size_t *plen);
-TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathSCUNILOGTARGET_static)
+const char *GetAbsoluteLogPathCUNILOG_TARGET_static (size_t *plen);
+TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET_static)
 	(size_t *plen);
 
 /*
@@ -1024,35 +1021,35 @@ TYPEDEF_FNCT_PTR (bool, GetAbsPathFromAbsOrRelPath)
 ;
 
 /*
-	ConfigSCUNILOGTARGETcunilogpostfix
+	ConfigCUNILOG_TARGETcunilogpostfix
 
-	Sets the member unilogEvtTSformat of the SCUNILOGTARGET structure put points to to the
+	Sets the member unilogEvtTSformat of the CUNILOG_TARGET structure put points to to the
 	value of tsf.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigSCUNILOGTARGETcunilogpostfix (SCUNILOGTARGET *put, enum cunilogeventTSformat tsf)
+	void ConfigCUNILOG_TARGETcunilogpostfix (CUNILOG_TARGET *put, enum cunilogeventTSformat tsf)
 	;
-	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETcunilogpostfix)
-		(SCUNILOGTARGET *put, enum cunilogeventTSformat tsf);
+	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETcunilogpostfix)
+		(CUNILOG_TARGET *put, enum cunilogeventTSformat tsf);
 #else
-	#define ConfigSCUNILOGTARGETcunilogpostfix(put, f)	\
+	#define ConfigCUNILOG_TARGETcunilogpostfix(put, f)	\
 				(put)->unilogEvtTSformat = (f)
 #endif
 
 /*
-	ConfigSCUNILOGTARGETrunProcessorsOnStartup
+	ConfigCUNILOG_TARGETrunProcessorsOnStartup
 
 	Sets the flag CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP of the uiOpts member of the
-	SCUNILOGTARGET structure put points to according to the value of the runProcessorsOnStartup
+	CUNILOG_TARGET structure put points to according to the value of the runProcessorsOnStartup
 	enumeration rp.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigSCUNILOGTARGETrunProcessorsOnStartup (SCUNILOGTARGET *put, runProcessorsOnStartup rp)
+	void ConfigCUNILOG_TARGETrunProcessorsOnStartup (CUNILOG_TARGET *put, runProcessorsOnStartup rp)
 	;
-	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETrunProcessorsOnStartup)
-		(SCUNILOGTARGET *put, runProcessorsOnStartup rp);
+	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETrunProcessorsOnStartup)
+		(CUNILOG_TARGET *put, runProcessorsOnStartup rp);
 #else
-	#define ConfigSCUNILOGTARGETrunProcessorsOnStartup(put, rp)	\
+	#define ConfigCUNILOG_TARGETrunProcessorsOnStartup(put, rp)	\
 		switch (rp)												\
 		{														\
 			case cunilogRunProcessorsOnStartup:					\
@@ -1068,9 +1065,9 @@ TYPEDEF_FNCT_PTR (bool, GetAbsPathFromAbsOrRelPath)
 #endif
 
 /*
-	ConfigSCUNILOGTARGETcunilognewline
+	ConfigCUNILOG_TARGETcunilognewline
 
-	Sets the member unilogNewLine of the SCUNILOGTARGET structure put points to to the
+	Sets the member unilogNewLine of the CUNILOG_TARGET structure put points to to the
 	value of nl.
 
 	This function should only be called directly after the target has been initialised and
@@ -1078,55 +1075,55 @@ TYPEDEF_FNCT_PTR (bool, GetAbsPathFromAbsOrRelPath)
 	CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl);
-	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETcunilognewline)
-		(SCUNILOGTARGET *put, newline_t nl);
+	void ConfigCUNILOG_TARGETcunilognewline (CUNILOG_TARGET *put, newline_t nl);
+	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETcunilognewline)
+		(CUNILOG_TARGET *put, newline_t nl);
 #else
-	#define ConfigSCUNILOGTARGETcunilognewline(put, nl)			\
+	#define ConfigCUNILOG_TARGETcunilognewline(put, nl)			\
 		(put)->unilogNewLine = (nl)
 #endif
 
 /*
-	ConfigSCUNILOGTARGETeventSeverityFormatType
+	ConfigCUNILOG_TARGETeventSeverityFormatType
 
 	Sets the format type of event severities for the target structure put. It
-	sets the member evSeverityType of the SCUNILOGTARGET structure put to the
+	sets the member evSeverityType of the CUNILOG_TARGET structure put to the
 	value of eventSeverityFormatType.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigSCUNILOGTARGETeventSeverityFormatType	(
-			SCUNILOGTARGET				*put,
+	void ConfigCUNILOG_TARGETeventSeverityFormatType	(
+			CUNILOG_TARGET				*put,
 			cueventsevfmtpy				eventSeverityFormatType
 														)
 	;
-	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETeventSeverityFormatType)
+	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETeventSeverityFormatType)
 														(
-			SCUNILOGTARGET				*put,
+			CUNILOG_TARGET				*put,
 			cueventsevfmtpy				eventSeverityFormatType
 														)
 	;
 #else
-	#define ConfigSCUNILOGTARGETeventSeverityFormatType(put, evstpy)	\
+	#define ConfigCUNILOG_TARGETeventSeverityFormatType(put, evstpy)	\
 		(put)->evSeverityType = (evstpy)
 #endif
 
 /*
-	ConfigSCUNILOGTARGETuseColourForEcho
+	ConfigCUNILOG_TARGETuseColourForEcho
 
 	Switches on/off using colours for console output depending on event severity level.
 
 	The NO_COLOR suggestion at https://no-color.org/ recommends that this function is
 	called after checking the environment variable NO_COLOR first:
-	ConfigSCUNILOGTARGETuseColourForEcho (target, !Cunilog_Have_NO_COLOR ());
+	ConfigCUNILOG_TARGETuseColourForEcho (target, !Cunilog_Have_NO_COLOR ());
 */
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-		void ConfigSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+		void ConfigCUNILOG_TARGETuseColourForEcho (CUNILOG_TARGET *put, bool bUseColour)
 		;
-		TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETuseColourForEcho)
-			(SCUNILOGTARGET *put, bool bUseColour);
+		TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETuseColourForEcho)
+			(CUNILOG_TARGET *put, bool bUseColour);
 	#else
-		#define ConfigSCUNILOGTARGETuseColourForEcho(put, b)	\
+		#define ConfigCUNILOG_TARGETuseColourForEcho(put, b)	\
 			if (bUseColour)										\
 				cunilogSetUseColourForEcho (put);				\
 			else												\
@@ -1135,21 +1132,21 @@ TYPEDEF_FNCT_PTR (bool, GetAbsPathFromAbsOrRelPath)
 #endif
 
 /*
-	ConfigSCUNILOGTARGETprocessorList
+	ConfigCUNILOG_TARGETprocessorList
 
-	Sets the processors for a SCUNILOGTARGET struture.
+	Sets the processors for a CUNILOG_TARGET struture.
 
 	Parameters
 
-	put					A pointer to a SCUNILOGTARGET structure for which the processors
+	put					A pointer to a CUNILOG_TARGET structure for which the processors
 						are set.
 
 	cuProcessorList		A pointer to a list with cunilog processors. This parameter can be
 						NULL, in which case a standard set of processors will be used.
 						If this parameter is not NULL, the function does not create a
 						copy of the provided processor list, which means the list must be
-						available/accessible until ShutdownSCUNILOGTARGET () or
-						CancelSCUNILOGTARGET (), and then DoneSCUNILOGTAREGE () are called
+						available/accessible until ShutdownCUNILOG_TARGET () or
+						CancelCUNILOG_TARGET (), and then DoneSCUNILOGTAREGE () are called
 						on it. In other words the list is required to either reside on the
 						heap, is static, or is created as automatic in main ().
 
@@ -1157,136 +1154,136 @@ TYPEDEF_FNCT_PTR (bool, GetAbsPathFromAbsOrRelPath)
 
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigSCUNILOGTARGETprocessorList	(
-					SCUNILOGTARGET			*put
+	void ConfigCUNILOG_TARGETprocessorList	(
+					CUNILOG_TARGET			*put
 				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
 				,	unsigned int			nProcessors			// Number of processors.
 											)
 	;
-	TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETprocessorList)
+	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETprocessorList)
 											(
-					SCUNILOGTARGET			*put
+					CUNILOG_TARGET			*put
 				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
 				,	unsigned int			nProcessors			// Number of processors.
 											)
 	;
 #else
-	#define ConfigSCUNILOGTARGETprocessorList(put,		\
+	#define ConfigCUNILOG_TARGETprocessorList(put,		\
 				cup, n)									\
 				prepareProcessors (put, cuProcessorList, nProcessors)
 #endif
 
 /*
-	ConfigSCUNILOGTARGETdisableTaskProcessors
-	ConfigSCUNILOGTARGETenableTaskProcessors
+	ConfigCUNILOG_TARGETdisableTaskProcessors
+	ConfigCUNILOG_TARGETenableTaskProcessors
 
 	Disables/enables processors for task task.
 */
-void ConfigSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
-void ConfigSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+void ConfigCUNILOG_TARGETdisableTaskProcessors (CUNILOG_TARGET *put, enum cunilogprocesstask task);
+void ConfigCUNILOG_TARGETenableTaskProcessors (CUNILOG_TARGET *put, enum cunilogprocesstask task);
 
-TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETdisableTaskProcessors)
-	(SCUNILOGTARGET *put, enum cunilogprocesstask task);
-TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETenableTaskProcessors)
-	(SCUNILOGTARGET *put, enum cunilogprocesstask task);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableTaskProcessors)
+	(CUNILOG_TARGET *put, enum cunilogprocesstask task);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableTaskProcessors)
+	(CUNILOG_TARGET *put, enum cunilogprocesstask task);
 
 /*
-	ConfigSCUNILOGTARGETdisableEchoProcessor
-	ConfigSCUNILOGTARGETenableEchoProcessor
+	ConfigCUNILOG_TARGETdisableEchoProcessor
+	ConfigCUNILOG_TARGETenableEchoProcessor
 
 	Disables/enables echo (console output) processors. Echo or console output processors
 	are processors whose task is cunilogProcessEchoToConsole.
 */
-void ConfigSCUNILOGTARGETdisableEchoProcessor	(SCUNILOGTARGET *put);
-void ConfigSCUNILOGTARGETenableEchoProcessor	(SCUNILOGTARGET *put);
+void ConfigCUNILOG_TARGETdisableEchoProcessor	(CUNILOG_TARGET *put);
+void ConfigCUNILOG_TARGETenableEchoProcessor	(CUNILOG_TARGET *put);
 
-TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETdisableEchoProcessor)	(SCUNILOGTARGET *put);
-TYPEDEF_FNCT_PTR (void, ConfigSCUNILOGTARGETenableEchoProcessor)	(SCUNILOGTARGET *put);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableEchoProcessor)	(CUNILOG_TARGET *put);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableEchoProcessor)	(CUNILOG_TARGET *put);
 
 /*
-	EnterSCUNILOGTARGET
-	LockSCUNILOGTARGET
+	EnterCUNILOG_TARGET
+	LockCUNILOG_TARGET
 
-	LeaveSCUNILOGTARGET
-	UnlockSCUNILOGTARGET
+	LeaveCUNILOG_TARGET
+	UnlockCUNILOG_TARGET
 
-	EnterSCUNILOGTARGETstatic
-	LockSCUNILOGTARGETstatic
+	EnterCUNILOG_TARGETstatic
+	LockCUNILOG_TARGETstatic
 
-	LockSCUNILOGTARGETstatic
-	UnlockSCUNILOGTARGETstatic
+	LockCUNILOG_TARGETstatic
+	UnlockCUNILOG_TARGETstatic
 
 	Interface functions/macros to lock (enter) and unlock (leave) the critical section or
-	mutex of the singly-linked events list of the SCUNILOGTARGET structure put points to.
-	The ...static versions lock and unlock the internal static SCUNILOGTARGET structure.
+	mutex of the singly-linked events list of the CUNILOG_TARGET structure put points to.
+	The ...static versions lock and unlock the internal static CUNILOG_TARGET structure.
 
-	Since Cunilog provides several means of accessing the events list of a SCUNILOGTARGET
+	Since Cunilog provides several means of accessing the events list of a CUNILOG_TARGET
 	structure, and since it handles the events list internally, these functions/macros are most
 	likely not required and should probably not be used.
 
-	Note that these functions/macros do NOT lock or unlock access to the SCUNILOGTARGET
+	Note that these functions/macros do NOT lock or unlock access to the CUNILOG_TARGET
 	structure's members. They are merely for locking and unlocking the singly-linked list
 	containing the events to log.
 
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, these macros/functions do nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	void EnterSCUNILOGTARGET (SCUNILOGTARGET *put);
-	void LeaveSCUNILOGTARGET (SCUNILOGTARGET *put);
-	#define LockSCUNILOGTARGET(put)						\
-				EnterSCUNILOGTARGET (put)
-	#define UnlockSCUNILOGTARGET(put)					\
-				LeaveSCUNILOGTARGET (put)
-	#define EnterSCUNILOGTARGETstatic()					\
-				LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
-	#define LeaveSCUNILOGTARGETstatic()					\
-				EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
-	#define LockSCUNILOGTARGETstatic()					\
-				EnterSCUNILOGTARGET (pSCUNILOGTARGETstatic)
-	#define UnlockSCUNILOGTARGETstatic()				\
-				LeaveSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+	void EnterCUNILOG_TARGET (CUNILOG_TARGET *put);
+	void LeaveCUNILOG_TARGET (CUNILOG_TARGET *put);
+	#define LockCUNILOG_TARGET(put)						\
+				EnterCUNILOG_TARGET (put)
+	#define UnlockCUNILOG_TARGET(put)					\
+				LeaveCUNILOG_TARGET (put)
+	#define EnterCUNILOG_TARGETstatic()					\
+				LeaveCUNILOG_TARGET (pCUNILOG_TARGETstatic)
+	#define LeaveCUNILOG_TARGETstatic()					\
+				EnterCUNILOG_TARGET (pCUNILOG_TARGETstatic)
+	#define LockCUNILOG_TARGETstatic()					\
+				EnterCUNILOG_TARGET (pCUNILOG_TARGETstatic)
+	#define UnlockCUNILOG_TARGETstatic()				\
+				LeaveCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 	
-	TYPEDEF_FNCT_PTR (void, EnterSCUNILOGTARGET) (SCUNILOGTARGET *put);
-	TYPEDEF_FNCT_PTR (void, LeaveSCUNILOGTARGET) (SCUNILOGTARGET *put);
+	TYPEDEF_FNCT_PTR (void, EnterCUNILOG_TARGET) (CUNILOG_TARGET *put);
+	TYPEDEF_FNCT_PTR (void, LeaveCUNILOG_TARGET) (CUNILOG_TARGET *put);
 #else
-	#define EnterSCUNILOGTARGET(put)
-	#define LeaveSCUNILOGTARGET(put)
-	#define LockSCUNILOGTARGET(put)
-	#define UnlockSCUNILOGTARGET(put)
-	#define EnterSCUNILOGTARGETstatic()
-	#define LeaveSCUNILOGTARGETstatic()
-	#define LockSCUNILOGTARGETstatic()
-	#define UnlockSCUNILOGTARGETstatic()
+	#define EnterCUNILOG_TARGET(put)
+	#define LeaveCUNILOG_TARGET(put)
+	#define LockCUNILOG_TARGET(put)
+	#define UnlockCUNILOG_TARGET(put)
+	#define EnterCUNILOG_TARGETstatic()
+	#define LeaveCUNILOG_TARGETstatic()
+	#define LockCUNILOG_TARGETstatic()
+	#define UnlockCUNILOG_TARGETstatic()
 #endif
 
 /*
-	DoneSCUNILOGTARGET
+	DoneCUNILOG_TARGET
 
-	Deallocates all resources of the SCUNILOGTARGET put points to. After a structure has been
+	Deallocates all resources of the CUNILOG_TARGET put points to. After a structure has been
 	processed by this function, none of the logging functions can be called on it anymore, but
 	it could however be re-used by initialising it again.
 
-	Before calling this function, call ShutdownSCUNILOGTARGET () or CancelSCUNILOGTARGET ()
+	Before calling this function, call ShutdownCUNILOG_TARGET () or CancelCUNILOG_TARGET ()
 	first to either process or discard the target's event queue.
 
 	The function always returns NULL.
 */
-SCUNILOGTARGET *DoneSCUNILOGTARGET (SCUNILOGTARGET *put);
-TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, DoneSCUNILOGTARGET) (SCUNILOGTARGET *put);
+CUNILOG_TARGET *DoneCUNILOG_TARGET (CUNILOG_TARGET *put);
+TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, DoneCUNILOG_TARGET) (CUNILOG_TARGET *put);
 
 /*
-	DoneSCUNILOGTARGETstatic
+	DoneCUNILOG_TARGETstatic
 	
-	Deallocates all resources of the internal static SCUNILOGTARGET structure by calling
-	DoneSCUNILOGTARGET () on it.
+	Deallocates all resources of the internal static CUNILOG_TARGET structure by calling
+	DoneCUNILOG_TARGET () on it.
 
 	The function always returns NULL.
 */
-#define DoneSCUNILOGTARGETstatic()						\
-			DoneSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#define DoneCUNILOG_TARGETstatic()						\
+			DoneCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 
 /*
-	ShutdownSCUNILOGTARGET
+	ShutdownCUNILOG_TARGET
 
 	Blocks further logging by forcing all logging functions to return false. It then waits
 	for the events of the current queue to be processed and returns after an existing separate
@@ -1300,17 +1297,17 @@ TYPEDEF_FNCT_PTR (SCUNILOGTARGET *, DoneSCUNILOGTARGET) (SCUNILOGTARGET *put);
 	to cancel, meaning that only further logging is blocked and logging functions called
 	afterwards return false.
 
-	This function should be called just before DoneSCUNILOGTARGET ().
+	This function should be called just before DoneCUNILOG_TARGET ().
 
 	The function returns true on success, false otherwise.
 */
-bool ShutdownSCUNILOGTARGET (SCUNILOGTARGET *put);
-TYPEDEF_FNCT_PTR (bool, ShutdownSCUNILOGTARGET) (SCUNILOGTARGET *put);
+bool ShutdownCUNILOG_TARGET (CUNILOG_TARGET *put);
+TYPEDEF_FNCT_PTR (bool, ShutdownCUNILOG_TARGET) (CUNILOG_TARGET *put);
 
 /*
-	ShutdownSCUNILOGTARGETstatic
+	ShutdownCUNILOG_TARGETstatic
 
-	Calls ShutdownSCUNILOGTARGET () on the internal static SUNILOGSTRUCT structure.
+	Calls ShutdownCUNILOG_TARGET () on the internal static SUNILOGSTRUCT structure.
 	This function should be called just before DoneSUNILOGTARGETstatic ();
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, but further logging is blocked. Logging functions called afterwards
@@ -1318,15 +1315,15 @@ TYPEDEF_FNCT_PTR (bool, ShutdownSCUNILOGTARGET) (SCUNILOGTARGET *put);
 
 	The function returns true on success, false otherwise.
 */
-#define ShutdownSCUNILOGTARGETstatic()					\
-			ShutdownSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#define ShutdownCUNILOG_TARGETstatic()					\
+			ShutdownCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 
 /*
-	CancelSCUNILOGTARGET
+	CancelCUNILOG_TARGET
 
-	Empties the logging queue for the SCUNILOGTARGET put without processing its events.
+	Empties the logging queue for the CUNILOG_TARGET put without processing its events.
 	The events currently in the queue are discarded. Logging functions called afterwards
-	for this SCUNILOGTARGET structure fail and return false.
+	for this CUNILOG_TARGET structure fail and return false.
 
 	The function waits for an existing separate logging thread to exit.
 
@@ -1336,26 +1333,26 @@ TYPEDEF_FNCT_PTR (bool, ShutdownSCUNILOGTARGET) (SCUNILOGTARGET *put);
 
 	The function returns true on success, false otherwise.
 */
-bool CancelSCUNILOGTARGET (SCUNILOGTARGET *put);
-TYPEDEF_FNCT_PTR (bool, CancelSCUNILOGTARGET) (SCUNILOGTARGET *put);
+bool CancelCUNILOG_TARGET (CUNILOG_TARGET *put);
+TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 
 /*
-	CancelSCUNILOGTARGETstatic
+	CancelCUNILOG_TARGETstatic
 
-	Calls CancelSCUNILOGTARGET () on the internal static SUNILOGSTRUCT structure.
+	Calls CancelCUNILOG_TARGET () on the internal static SUNILOGSTRUCT structure.
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
 
 	The function returns true on success, false otherwise.
 */
-#define CancelSCUNILOGTARGETstatic ()					\
-			CancelSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+#define CancelCUNILOG_TARGETstatic ()					\
+			CancelCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 
 /*
-	PauseLogSCUNILOGTARGET
+	PauseLogCUNILOG_TARGET
 
-	Pauses/suspends logging to the SCUNILOGTARGET structure put points to while still
+	Pauses/suspends logging to the CUNILOG_TARGET structure put points to while still
 	allowing logging functions to add events. After this function has been called, all
 	future events are added to the queue only, with no actual logging or rotation taking
 	place for these events.
@@ -1363,22 +1360,22 @@ TYPEDEF_FNCT_PTR (bool, CancelSCUNILOGTARGET) (SCUNILOGTARGET *put);
 	The separate logging thread itself is not paused by this function. It still continues
 	to log and rotate logfiles for events enqueued before this function was called.
 
-	Call ResumeLogSCUNILOGTARGET () to resume the separate logging thread.
+	Call ResumeLogCUNILOG_TARGET () to resume the separate logging thread.
 
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
 	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	void PauseLogSCUNILOGTARGET (SCUNILOGTARGET *put);
-	TYPEDEF_FNCT_PTR (void, PauseLogSCUNILOGTARGET) (SCUNILOGTARGET *put);
+	void PauseLogCUNILOG_TARGET (CUNILOG_TARGET *put);
+	TYPEDEF_FNCT_PTR (void, PauseLogCUNILOG_TARGET) (CUNILOG_TARGET *put);
 #else
-	#define PauseLogSCUNILOGTARGET(put)
+	#define PauseLogCUNILOG_TARGET(put)
 #endif
 
 /*
-	PauseLogSCUNILOGTARGETstatic
+	PauseLogCUNILOG_TARGETstatic
 
-	Pauses/suspends logging to the internal SCUNILOGTARGET structure while still
+	Pauses/suspends logging to the internal CUNILOG_TARGET structure while still
 	allowing logging functions to add events. After this function has been called, all
 	future events are added to the queue only, with no actual logging or rotation taking
 	place for these events.
@@ -1386,31 +1383,31 @@ TYPEDEF_FNCT_PTR (bool, CancelSCUNILOGTARGET) (SCUNILOGTARGET *put);
 	The separate logging thread itself is not paused by this function. It still continues
 	to log and rotate logfiles for events enqueued before this function was called.
 
-	Call ResumeLogSCUNILOGTARGETstatic () to resume the separate logging thread again.
+	Call ResumeLogCUNILOG_TARGETstatic () to resume the separate logging thread again.
 
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
 	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	#define PauseLogSCUNILOGTARGETstatic()				\
-		PauseLogSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+	#define PauseLogCUNILOG_TARGETstatic()				\
+		PauseLogCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 #else
-	#define PauseLogSCUNILOGTARGETstatic()
+	#define PauseLogCUNILOG_TARGETstatic()
 #endif
 
 /*
-	ResumeLogSCUNILOGTARGET
+	ResumeLogCUNILOG_TARGET
 
-	Resumes logging to the SCUNILOGTARGET structure put points to after a call to
-	PauseLogSCUNILOGTARGET () and triggers it for each queued event since
-	PauseLogSCUNILOGTARGET () was called.
+	Resumes logging to the CUNILOG_TARGET structure put points to after a call to
+	PauseLogCUNILOG_TARGET () and triggers it for each queued event since
+	PauseLogCUNILOG_TARGET () was called.
 
 	The function returns the number of events in the queue it has triggered for
 	processing by the separate logging thread.
 
 	Note that this function triggers the semaphore of the separate logging thread for
 	every single queue element (logging event) that was queued since the last call
-	to PauseLogSCUNILOGTARGET (). Depending on the amount of queued events, this might
+	to PauseLogCUNILOG_TARGET (). Depending on the amount of queued events, this might
 	be considered a block. Although the WinAPI function ReleaseSemaphore () supports
 	increments of more than one, sem_post () from the POSIX spec does not. Therefore,
 	on POSIX this function loops and increments the semaphore by 1 only and could
@@ -1420,25 +1417,25 @@ TYPEDEF_FNCT_PTR (bool, CancelSCUNILOGTARGET) (SCUNILOGTARGET *put);
 	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	size_t ResumeLogSCUNILOGTARGET (SCUNILOGTARGET *put);
-	TYPEDEF_FNCT_PTR (size_t, ResumeLogSCUNILOGTARGET) (SCUNILOGTARGET *put);
+	size_t ResumeLogCUNILOG_TARGET (CUNILOG_TARGET *put);
+	TYPEDEF_FNCT_PTR (size_t, ResumeLogCUNILOG_TARGET) (CUNILOG_TARGET *put);
 #else
-	#define ResumeLogSCUNILOGTARGET(put)
+	#define ResumeLogCUNILOG_TARGET(put)
 #endif
 
 /*
-	ResumeLogSCUNILOGTARGETstatic
+	ResumeLogCUNILOG_TARGETstatic
 
-	Resumes logging to the internal SCUNILOGTARGET structure after a call to
-	PauseLogSCUNILOGTARGET () and triggers it for each queued event since
-	PauseLogSCUNILOGTARGET () was called.
+	Resumes logging to the internal CUNILOG_TARGET structure after a call to
+	PauseLogCUNILOG_TARGET () and triggers it for each queued event since
+	PauseLogCUNILOG_TARGET () was called.
 
 	The macro returns the number of events in the queue it has triggered for
 	processing by the separate logging thread.
 
 	Note that this function triggers the semaphore of the separate logging thread for
 	every single queue element (logging event) that was queued since the last call
-	to PauseLogSCUNILOGTARGET (). Depending on the amount of queued events, this might
+	to PauseLogCUNILOG_TARGET (). Depending on the amount of queued events, this might
 	be considered a block. Although the WinAPI function ReleaseSemaphore () supports
 	increments of more than one, sem_post () from the POSIX spec does not. Therefore,
 	on POSIX this function loops and increments the semaphore by 1 only and could
@@ -1448,16 +1445,16 @@ TYPEDEF_FNCT_PTR (bool, CancelSCUNILOGTARGET) (SCUNILOGTARGET *put);
 	to nothing.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	#define ResumeLogSCUNILOGTARGETstatic()			\
-				ResumeLogSCUNILOGTARGET (pSCUNILOGTARGETstatic)
+	#define ResumeLogCUNILOG_TARGETstatic()			\
+				ResumeLogCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 #else
-	#define ResumeLogSCUNILOGTARGETstatic()		(0)
+	#define ResumeLogCUNILOG_TARGETstatic()		(0)
 #endif
 
 /*
-	CreateSCUNILOGEVENT_Data
+	CreateCUNILOG_EVENT_Data
 
-	Allocates a buffer that points to a new event structure SCUNILOGEVENT plus data,
+	Allocates a buffer that points to a new event structure CUNILOG_EVENT plus data,
 	initialises it with the function parameters, and returns a pointer to the newly
 	created and initialised structure and data buffer. The event is written out as binary
 	data, which results in a hex dump.
@@ -1466,8 +1463,8 @@ TYPEDEF_FNCT_PTR (bool, CancelSCUNILOGTARGET) (SCUNILOGTARGET *put);
 
 	The function returns false if it fails.
 */
-SCUNILOGEVENT *CreateSCUNILOGEVENT_Data	(
-					SCUNILOGTARGET				*put,
+CUNILOG_EVENT *CreateCUNILOG_EVENT_Data	(
+					CUNILOG_TARGET				*put,
 					cueventseverity				sev,
 					const char					*ccData,
 					size_t						siz,
@@ -1475,9 +1472,9 @@ SCUNILOGEVENT *CreateSCUNILOGEVENT_Data	(
 					size_t						lenCapt
 											)
 ;
-TYPEDEF_FNCT_PTR (SCUNILOGEVENT *, CreateSCUNILOGEVENT_Data)
+TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_Data)
 (
-					SCUNILOGTARGET				*put,
+					CUNILOG_TARGET				*put,
 					cueventseverity				sev,
 					const char					*ccData,
 					size_t						siz,
@@ -1487,22 +1484,22 @@ TYPEDEF_FNCT_PTR (SCUNILOGEVENT *, CreateSCUNILOGEVENT_Data)
 ;
 
 /*
-	CreateSCUNILOGEVENT_Text
+	CreateCUNILOG_EVENT_Text
 
-	This is the text version of CreateSCUNILOGEVENT_Data (). If the string ccText is
+	This is the text version of CreateCUNILOG_EVENT_Data (). If the string ccText is
 	NUL-terminated len can be set to USE_STRLEN, and the function calls strlen () to
 	obtain its length.
 */
-SCUNILOGEVENT *CreateSCUNILOGEVENT_Text		(
-					SCUNILOGTARGET				*put,
+CUNILOG_EVENT *CreateCUNILOG_EVENT_Text		(
+					CUNILOG_TARGET				*put,
 					cueventseverity				sev,
 					const char					*ccText,
 					size_t						len
 											)
 ;
-TYPEDEF_FNCT_PTR (SCUNILOGEVENT *, CreateSCUNILOGEVENT_Text)
+TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_Text)
 (
-					SCUNILOGTARGET				*put,
+					CUNILOG_TARGET				*put,
 					cueventseverity				sev,
 					const char					*ccText,
 					size_t						len
@@ -1510,31 +1507,31 @@ TYPEDEF_FNCT_PTR (SCUNILOGEVENT *, CreateSCUNILOGEVENT_Text)
 ;
 
 /*
-	DuplicateSCUNILOGEVENT
+	DuplicateCUNILOG_EVENT
 
 	Creates a copy of the event pev on the heap. If the event has a size other than
-	sizeof (SCUNILOGEVENT) this is taken into consideration. The target of the newly
+	sizeof (CUNILOG_EVENT) this is taken into consideration. The target of the newly
 	created event is identical to the target of the event pev points to.
 
-	Call DoneSCUNILOGEVENT () to destroy it.
+	Call DoneCUNILOG_EVENT () to destroy it.
 
 	The function returns a pointer to a newly allocated event, which is an exact copy
 	of pev apart from that the newly allocated event has the option flag CUNILOGEVENT_ALLOCATED
 	set regardless of whether this flag was present in pev.
 */
-SCUNILOGEVENT *DuplicateSCUNILOGEVENT (SCUNILOGEVENT *pev);
-TYPEDEF_FNCT_PTR (SCUNILOGEVENT *, DuplicateSCUNILOGEVENT) (SCUNILOGEVENT *pev);
+CUNILOG_EVENT *DuplicateCUNILOG_EVENT (CUNILOG_EVENT *pev);
+TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, DuplicateCUNILOG_EVENT) (CUNILOG_EVENT *pev);
 
 /*
-	DoneSCUNILOGEVENT
+	DoneCUNILOG_EVENT
 
 	Destroys an SUNILOGEVENT structure including all its resources if the event belongs
 	to target put. If put is NULL the event is destroyed regardless.
 
 	The function always returns NULL.
 */
-SCUNILOGEVENT *DoneSCUNILOGEVENT (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
-TYPEDEF_FNCT_PTR (SCUNILOGEVENT *, DoneSCUNILOGEVENT) (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
+CUNILOG_EVENT *DoneCUNILOG_EVENT (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
+TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, DoneCUNILOG_EVENT) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 
 /*
 	Logging functions.
@@ -1545,29 +1542,29 @@ TYPEDEF_FNCT_PTR (SCUNILOGEVENT *, DoneSCUNILOGEVENT) (SCUNILOGTARGET *put, SCUN
 	logEv
 
 	Writes out the event pev points to to the logging target put points to. The function
-	only sets the pSCUNILOGTARGET member of the SCUNILOGEVENT structure and calls
+	only sets the pCUNILOG_TARGET member of the CUNILOG_EVENT structure and calls
 	cunilogProcessOrQueueEvent () on it.
 
-	Returns true on success, false otherwise. The function fails after ShutdownSCUNILOGTARGET ()
-	or CancelSCUNILOGTARGET () have been called on the SCUNILOGTARGET structure put points to.
+	Returns true on success, false otherwise. The function fails after ShutdownCUNILOG_TARGET ()
+	or CancelCUNILOG_TARGET () have been called on the CUNILOG_TARGET structure put points to.
 */
-bool logEv (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
-TYPEDEF_FNCT_PTR (bool, logEv) (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
+bool logEv (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
+TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 
 
 /*
 	logEv_static
 
 	Macro wrapper for the static version of logEv () that uses the module's internal static
-	structure and does not require a pointer to a SCUNILOGTARGET structure as their first
+	structure and does not require a pointer to a CUNILOG_TARGET structure as their first
 	parameter.
 */
-#define logEv_static(pev)	logEv (pSCUNILOGTARGETstatic, (pev))
+#define logEv_static(pev)	logEv (pCUNILOG_TARGETstatic, (pev))
 
 /*
-	The functions expect an SCUNILOGTARGET structure as their first parameter.
+	The functions expect an CUNILOG_TARGET structure as their first parameter.
 	The _static macros use the module's internal static structure and do not require
-	a pointer to a SCUNILOGTARGET structure as their first parameter. If you only intend to
+	a pointer to a CUNILOG_TARGET structure as their first parameter. If you only intend to
 	write to a single logfile, the _static macros are ideal.
 
 	The logText functions or macros expect text output.
@@ -1620,193 +1617,193 @@ TYPEDEF_FNCT_PTR (bool, logEv) (SCUNILOGTARGET *put, SCUNILOGEVENT *pev);
 
 	All functions return true on success, false otherwise. Functions may for instance fail if
 	a memory allocation fails or if a separate logging thread failed to start.
-	They also fail after ShutdownSCUNILOGTARGET () or CancelSCUNILOGTARGET () have been called
-	on the SCUNILOGTARGET structure put points to.
+	They also fail after ShutdownCUNILOG_TARGET () or CancelCUNILOG_TARGET () have been called
+	on the CUNILOG_TARGET structure put points to.
 */
-bool logTextU8sevl			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len);
-bool logTextU8sevlq			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len);
-bool logTextU8sev			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText);
-bool logTextU8sevq			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText);
-bool logTextU8l				(SCUNILOGTARGET *put, const char *ccText, size_t len);
-bool logTextU8lq			(SCUNILOGTARGET *put, const char *ccText, size_t len);
-bool logTextU8				(SCUNILOGTARGET *put, const char *ccText);
-bool logTextU8q				(SCUNILOGTARGET *put, const char *ccText);
-bool logTextU8vfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
-bool logTextU8fmt			(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8qvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
-bool logTextU8qfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8svfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
-bool logTextU8sfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8sqvfmt		(SCUNILOGTARGET *put, const char *fmt, va_list ap);
-bool logTextU8sqfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8svfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, va_list ap);
-bool logTextU8sfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, ...);
-bool logTextU8smbvfmtsev	(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, va_list ap);
-bool logTextU8smbfmtsev		(SCUNILOGTARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, ...);
-bool logTextU8smbvfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, va_list ap);
-bool logTextU8smbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
-bool logHexDumpU8sevl		(SCUNILOGTARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
-bool logHexDumpU8l			(SCUNILOGTARGET *put, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
-bool logHexDump				(SCUNILOGTARGET *put, const void *pBlob, size_t size);
-bool logHexDumpq			(SCUNILOGTARGET *put, const void *pBlob, size_t size);
-bool logHexOrText			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
-bool logHexOrTextq			(SCUNILOGTARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
-bool logHexOrTextU8			(SCUNILOGTARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
+bool logTextU8sevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len);
+bool logTextU8sevlq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len);
+bool logTextU8sev			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText);
+bool logTextU8sevq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText);
+bool logTextU8l				(CUNILOG_TARGET *put, const char *ccText, size_t len);
+bool logTextU8lq			(CUNILOG_TARGET *put, const char *ccText, size_t len);
+bool logTextU8				(CUNILOG_TARGET *put, const char *ccText);
+bool logTextU8q				(CUNILOG_TARGET *put, const char *ccText);
+bool logTextU8vfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap);
+bool logTextU8fmt			(CUNILOG_TARGET *put, const char *fmt, ...);
+bool logTextU8qvfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap);
+bool logTextU8qfmt			(CUNILOG_TARGET *put, const char *fmt, ...);
+bool logTextU8svfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap);
+bool logTextU8sfmt			(CUNILOG_TARGET *put, const char *fmt, ...);
+bool logTextU8sqvfmt		(CUNILOG_TARGET *put, const char *fmt, va_list ap);
+bool logTextU8sqfmt			(CUNILOG_TARGET *put, const char *fmt, ...);
+bool logTextU8svfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, va_list ap);
+bool logTextU8sfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, ...);
+bool logTextU8smbvfmtsev	(CUNILOG_TARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, va_list ap);
+bool logTextU8smbfmtsev		(CUNILOG_TARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, ...);
+bool logTextU8smbvfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, va_list ap);
+bool logTextU8smbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...);
+bool logHexDumpU8sevl		(CUNILOG_TARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
+bool logHexDumpU8l			(CUNILOG_TARGET *put, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption);
+bool logHexDump				(CUNILOG_TARGET *put, const void *pBlob, size_t size);
+bool logHexDumpq			(CUNILOG_TARGET *put, const void *pBlob, size_t size);
+bool logHexOrText			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
+bool logHexOrTextq			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
+bool logHexOrTextU8			(CUNILOG_TARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
 
 #ifdef PLATFORM_IS_WINDOWS
-bool logTextWU16sevl		(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len);
-bool logTextWU16sev			(SCUNILOGTARGET *put, cueventseverity sev, const wchar_t *cwText);
-bool logTextWU16l			(SCUNILOGTARGET *put, const wchar_t *cwText, size_t len);
-bool logTextWU16			(SCUNILOGTARGET *put, const wchar_t *cwText);
+bool logTextWU16sevl		(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len);
+bool logTextWU16sev			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *cwText);
+bool logTextWU16l			(CUNILOG_TARGET *put, const wchar_t *cwText, size_t len);
+bool logTextWU16			(CUNILOG_TARGET *put, const wchar_t *cwText);
 #endif
 
 // Console output only. No other processors are invoked.
-bool logTextU8csevl			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText, size_t len);
-bool logTextU8csev			(SCUNILOGTARGET *put, cueventseverity sev, const char *ccText);
-bool logTextU8cl			(SCUNILOGTARGET *put, const char *ccText, size_t len);
-bool logTextU8c				(SCUNILOGTARGET *put, const char *ccText);
-bool logTextU8cvfmt			(SCUNILOGTARGET *put, const char *fmt, va_list ap);
-bool logTextU8cfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8csfmt			(SCUNILOGTARGET *put, const char *fmt, ...);
-bool logTextU8csmbvfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, va_list ap);
-bool logTextU8csmbfmt		(SCUNILOGTARGET *put, SMEMBUF *smb, const char *fmt, ...);
-bool logTextU8csvfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, va_list ap);
-bool logTextU8csfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *fmt, ...);
+bool logTextU8csevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len);
+bool logTextU8csev			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText);
+bool logTextU8cl			(CUNILOG_TARGET *put, const char *ccText, size_t len);
+bool logTextU8c				(CUNILOG_TARGET *put, const char *ccText);
+bool logTextU8cvfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap);
+bool logTextU8cfmt			(CUNILOG_TARGET *put, const char *fmt, ...);
+bool logTextU8csfmt			(CUNILOG_TARGET *put, const char *fmt, ...);
+bool logTextU8csmbvfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, va_list ap);
+bool logTextU8csmbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...);
+bool logTextU8csvfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, va_list ap);
+bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, ...);
 
-#define logTextU8sevl_static(v, t, l)	logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
-#define logTextU8sevlq_static(v, t, l)	logTextU8sevlq		(pSCUNILOGTARGETstatic, (v), (t), (l))
-#define logTextU8sev_static(v, t)		logTextU8sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
-#define logTextU8sevq_static(v, t)		logTextU8sevq		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
-#define logTextU8l_static(t, l)			logTextU8l			(pSCUNILOGTARGETstatic, (t), (l))
-#define logTextU8lq_static(t, l)		logTextU8lq			(pSCUNILOGTARGETstatic, (t), (l))
-#define logTextU8_static(t)				logTextU8l			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
-#define logTextU8q_static(t)			logTextU8lq			(pSCUNILOGTARGETstatic, (t), USE_STRLEN)
-#define logTextU8fmt_static(...)		logTextU8fmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
-#define logTextU8qvfmt_static(t, ap)	logTextU8qvfmt		(pSCUNILOGTARGETstatic, (t), (ap))
-#define logTextU8qfmt_static(...)		logTextU8qfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
-#define logTextU8sqvfmt_static(t, ap)	logTextU8sqvfmt		(pSCUNILOGTARGETstatic, (t), (ap));
-#define logTextU8sfmt_static(...)		logTextU8sfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__)
-#define logTextU8sfmtsev_static(s, ...)	logTextU8sfmtsev	(pSCUNILOGTARGETstatic, (s), __VA_ARGS__)
+#define logTextU8sevl_static(v, t, l)	logTextU8sevl		(pCUNILOG_TARGETstatic, (v), (t), (l))
+#define logTextU8sevlq_static(v, t, l)	logTextU8sevlq		(pCUNILOG_TARGETstatic, (v), (t), (l))
+#define logTextU8sev_static(v, t)		logTextU8sevl		(pCUNILOG_TARGETstatic, (v), (t), USE_STRLEN)
+#define logTextU8sevq_static(v, t)		logTextU8sevq		(pCUNILOG_TARGETstatic, (v), (t), USE_STRLEN)
+#define logTextU8l_static(t, l)			logTextU8l			(pCUNILOG_TARGETstatic, (t), (l))
+#define logTextU8lq_static(t, l)		logTextU8lq			(pCUNILOG_TARGETstatic, (t), (l))
+#define logTextU8_static(t)				logTextU8l			(pCUNILOG_TARGETstatic, (t), USE_STRLEN)
+#define logTextU8q_static(t)			logTextU8lq			(pCUNILOG_TARGETstatic, (t), USE_STRLEN)
+#define logTextU8fmt_static(...)		logTextU8fmt		(pCUNILOG_TARGETstatic, __VA_ARGS__)
+#define logTextU8qvfmt_static(t, ap)	logTextU8qvfmt		(pCUNILOG_TARGETstatic, (t), (ap))
+#define logTextU8qfmt_static(...)		logTextU8qfmt		(pCUNILOG_TARGETstatic, __VA_ARGS__)
+#define logTextU8sqvfmt_static(t, ap)	logTextU8sqvfmt		(pCUNILOG_TARGETstatic, (t), (ap));
+#define logTextU8sfmt_static(...)		logTextU8sfmt		(pCUNILOG_TARGETstatic, __VA_ARGS__)
+#define logTextU8sfmtsev_static(s, ...)	logTextU8sfmtsev	(pCUNILOG_TARGETstatic, (s), __VA_ARGS__)
 #define logTextU8smbfmtsev_static(s, m, ...)			\
-										logTextU8smbfmtsev	(pSCUNILOGTARGETstatic, (s), (m), __VA_ARGS__)
-#define logTextU8smbfmt_static(m, ...)	logTextU8smbfmt		(pSCUNILOGTARGETstatic, (m), __VA_ARGS__)
+										logTextU8smbfmtsev	(pCUNILOG_TARGETstatic, (s), (m), __VA_ARGS__)
+#define logTextU8smbfmt_static(m, ...)	logTextU8smbfmt		(pCUNILOG_TARGETstatic, (m), __VA_ARGS__)
 #define logHexDumpU8sevl_static(s, d, n, c, l)			\
-										logHexDumpU8sevl	(pSCUNILOGTARGETstatic, (s), (d), (n), (c), (l))
+										logHexDumpU8sevl	(pCUNILOG_TARGETstatic, (s), (d), (n), (c), (l))
 #define logHexDumpU8l_static(d, n, c,					\
-			l)							logHexDumpU8l		(pSCUNILOGTARGETstatic, (d), (n), (c), (l))
-#define logHexDump_static(d, s)			logHexDump			(pSCUNILOGTARGETstatic, (d), (s))
-#define logHexOrText_static(d, s)		logHexOrText		(pSCUNILOGTARGETstatic, (d), (s))
-#define logHexOrTextU8_static(d, s)		logHexOrTextU8		(pSCUNILOGTARGETstatic, (d), (s))
+			l)							logHexDumpU8l		(pCUNILOG_TARGETstatic, (d), (n), (c), (l))
+#define logHexDump_static(d, s)			logHexDump			(pCUNILOG_TARGETstatic, (d), (s))
+#define logHexOrText_static(d, s)		logHexOrText		(pCUNILOG_TARGETstatic, (d), (s))
+#define logHexOrTextU8_static(d, s)		logHexOrTextU8		(pCUNILOG_TARGETstatic, (d), (s))
 
 #ifdef PLATFORM_IS_WINDOWS
-#define logTextWU16sevl_static(v, t, l)	logTextWU16sevl		(pSCUNILOGTARGETstatic, (v), (t), (l))
-#define logTextWU16sev_static(v, t)		logTextWU16sevl		(pSCUNILOGTARGETstatic, (v), (t), USE_STRLEN)
-#define logTextWU16l_static(t, l)		logTextWU16l		(pSCUNILOGTARGETstatic, (t), (l))
-#define logTextWU16_static(t)			logTextWU16l		(pSCUNILOGTARGETstatic, (t), USE_STRLEN);
+#define logTextWU16sevl_static(v, t, l)	logTextWU16sevl		(pCUNILOG_TARGETstatic, (v), (t), (l))
+#define logTextWU16sev_static(v, t)		logTextWU16sevl		(pCUNILOG_TARGETstatic, (v), (t), USE_STRLEN)
+#define logTextWU16l_static(t, l)		logTextWU16l		(pCUNILOG_TARGETstatic, (t), (l))
+#define logTextWU16_static(t)			logTextWU16l		(pCUNILOG_TARGETstatic, (t), USE_STRLEN);
 #endif
 
 // Console output only. No other processors are invoked.
-#define logTextU8csevl_static(s, t, l)	logTextU8csevl		(pSCUNILOGTARGETstatic, (s), (t), (l));
-#define logTextU8csev_static(s, t)		logTextU8csev		(pSCUNILOGTARGETstatic, (s), (t));
-#define logTextU8cl_static(t, l)		logTextU8cl			(pSCUNILOGTARGETstatic, (t), (l));
-#define logTextU8c_static(t)			logTextU8c			(pSCUNILOGTARGETstatic, (t));
-#define logTextU8cvfmt_static(t, ap)	logTextU8cvfmt		(pSCUNILOGTARGETstatic, (t), (ap));
-#define logTextU8cfmt_static(...)		logTextU8cfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__);
-#define logTextU8csfmt_static(...)		logTextU8csfmt		(pSCUNILOGTARGETstatic, __VA_ARGS__);
+#define logTextU8csevl_static(s, t, l)	logTextU8csevl		(pCUNILOG_TARGETstatic, (s), (t), (l));
+#define logTextU8csev_static(s, t)		logTextU8csev		(pCUNILOG_TARGETstatic, (s), (t));
+#define logTextU8cl_static(t, l)		logTextU8cl			(pCUNILOG_TARGETstatic, (t), (l));
+#define logTextU8c_static(t)			logTextU8c			(pCUNILOG_TARGETstatic, (t));
+#define logTextU8cvfmt_static(t, ap)	logTextU8cvfmt		(pCUNILOG_TARGETstatic, (t), (ap));
+#define logTextU8cfmt_static(...)		logTextU8cfmt		(pCUNILOG_TARGETstatic, __VA_ARGS__);
+#define logTextU8csfmt_static(...)		logTextU8csfmt		(pCUNILOG_TARGETstatic, __VA_ARGS__);
 #define logTextU8csmbvfmt_static(m, t, ap)				\
-										logTextU8csmbvfmt	(pSCUNILOGTARGETstatic, (m), (t), (ap));
-#define logTextU8csmbfmt_static(m, ...)	logTextU8csmbfmt	(pSCUNILOGTARGETstatic, (m), __VA_ARGS__);
+										logTextU8csmbvfmt	(pCUNILOG_TARGETstatic, (m), (t), (ap));
+#define logTextU8csmbfmt_static(m, ...)	logTextU8csmbfmt	(pCUNILOG_TARGETstatic, (m), __VA_ARGS__);
 #define logTextU8csvfmtsev_static(s, t, ap)				\
-										logTextU8csvfmtsev	(pSCUNILOGTARGETstatic, (s), (t), (ap));
+										logTextU8csvfmtsev	(pCUNILOG_TARGETstatic, (s), (t), (ap));
 #define logTextU8csfmtsev_static(s, ...)				\
-										logTextU8csfmtsev	(pSCUNILOGTARGETstatic, (s), __VA_ARGS__);
+										logTextU8csfmtsev	(pCUNILOG_TARGETstatic, (s), __VA_ARGS__);
 
 /*
-	ChangeSCUNILOGTARGETuseColourForEcho
-	ChangeSCUNILOGTARGETuseColorForEcho
-	ChangeSCUNILOGTARGETuseColourForEcho_static
-	ChangeSCUNILOGTARGETuseColorForEcho_static
+	ChangeCUNILOG_TARGETuseColourForEcho
+	ChangeCUNILOG_TARGETuseColorForEcho
+	ChangeCUNILOG_TARGETuseColourForEcho_static
+	ChangeCUNILOG_TARGETuseColorForEcho_static
 
 	Creates and queues an event that changes the colour output of event severity
 	types. A value of false for bUseColour disables coloured output. A value of true
 	switches it on.
 
-	The _static versions of the function/macros use the internal static SCUNILOGTARGET
+	The _static versions of the function/macros use the internal static CUNILOG_TARGET
 	structure.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	bool ChangeSCUNILOGTARGETuseColourForEcho (SCUNILOGTARGET *put, bool bUseColour)
+	bool ChangeCUNILOG_TARGETuseColourForEcho (CUNILOG_TARGET *put, bool bUseColour)
 	;
-	#define ChangeSCUNILOGTARGETuseColourForEcho_static(bc)	\
-				ChangeSCUNILOGTARGETuseColourForEcho (pSCUNILOGTARGETstatic, (bc))
-	#define ChangeSCUNILOGTARGETuseColorForEcho(p, bc)		\
-				ChangeSCUNILOGTARGETuseColourForEcho ((p), (bc))
-	#define ChangeSCUNILOGTARGETuseColorForEcho_static(bc)	\
-				ChangeSCUNILOGTARGETuseColourForEcho (pSCUNILOGTARGETstatic, (bc))
+	#define ChangeCUNILOG_TARGETuseColourForEcho_static(bc)	\
+				ChangeCUNILOG_TARGETuseColourForEcho (pCUNILOG_TARGETstatic, (bc))
+	#define ChangeCUNILOG_TARGETuseColorForEcho(p, bc)		\
+				ChangeCUNILOG_TARGETuseColourForEcho ((p), (bc))
+	#define ChangeCUNILOG_TARGETuseColorForEcho_static(bc)	\
+				ChangeCUNILOG_TARGETuseColourForEcho (pCUNILOG_TARGETstatic, (bc))
 #endif
 
 /*
-	ChangeSCUNILOGTARGETcunilognewline
-	ChangeSCUNILOGTARGETcunilognewline_static
+	ChangeCUNILOG_TARGETcunilognewline
+	ChangeCUNILOG_TARGETcunilognewline_static
 
-	Creates and queues an event that changes the member unilogNewLine of the SCUNILOGTARGET
+	Creates and queues an event that changes the member unilogNewLine of the CUNILOG_TARGET
 	structure put points to to the value of nl.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	bool ChangeSCUNILOGTARGETcunilognewline (SCUNILOGTARGET *put, newline_t nl)
+	bool ChangeCUNILOG_TARGETcunilognewline (CUNILOG_TARGET *put, newline_t nl)
 	;
-	#define ChangeSCUNILOGTARGETcunilognewline_static(nl)	\
-				ChangeSCUNILOGTARGETcunilognewline (pSCUNILOGTARGETstatic, (nl))
+	#define ChangeCUNILOG_TARGETcunilognewline_static(nl)	\
+				ChangeCUNILOG_TARGETcunilognewline (pCUNILOG_TARGETstatic, (nl))
 #endif
 
 /*
-	ChangeSCUNILOGTARGETdisableTaskProcessors
-	ChangeSCUNILOGTARGETenableTaskProcessors
+	ChangeCUNILOG_TARGETdisableTaskProcessors
+	ChangeCUNILOG_TARGETenableTaskProcessors
 
 	The functions return true if the event was queued successfully, false otherwise.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	bool ChangeSCUNILOGTARGETdisableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
-	bool ChangeSCUNILOGTARGETenableTaskProcessors (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+	bool ChangeCUNILOG_TARGETdisableTaskProcessors (CUNILOG_TARGET *put, enum cunilogprocesstask task);
+	bool ChangeCUNILOG_TARGETenableTaskProcessors (CUNILOG_TARGET *put, enum cunilogprocesstask task);
 
-	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETdisableTaskProcessors) (SCUNILOGTARGET *put, enum cunilogprocesstask task);
-	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETenableTaskProcessors) (SCUNILOGTARGET *put, enum cunilogprocesstask task);
+	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETdisableTaskProcessors) (CUNILOG_TARGET *put, enum cunilogprocesstask task);
+	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETenableTaskProcessors) (CUNILOG_TARGET *put, enum cunilogprocesstask task);
 #endif
 
 /*
-	ChangeSCUNILOGTARGETdisableEchoProcessor
-	ChangeSCUNILOGTARGETenableEchoProcessor
+	ChangeCUNILOG_TARGETdisableEchoProcessor
+	ChangeCUNILOG_TARGETenableEchoProcessor
 
 	The functions return true if the event was queued successfully, false otherwise.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	bool ChangeSCUNILOGTARGETdisableEchoProcessor	(SCUNILOGTARGET *put);
-	bool ChangeSCUNILOGTARGETenableEchoProcessor	(SCUNILOGTARGET *put);
+	bool ChangeCUNILOG_TARGETdisableEchoProcessor	(CUNILOG_TARGET *put);
+	bool ChangeCUNILOG_TARGETenableEchoProcessor	(CUNILOG_TARGET *put);
 
-	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETdisableEchoProcessor)	(SCUNILOGTARGET *put);
-	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETenableEchoProcessor)	(SCUNILOGTARGET *put);
+	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETdisableEchoProcessor)	(CUNILOG_TARGET *put);
+	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETenableEchoProcessor)	(CUNILOG_TARGET *put);
 #endif
 
 /*
-	ChangeSCUNILOGTARGETeventSeverityFormatType
+	ChangeCUNILOG_TARGETeventSeverityFormatType
 
 	Queues an event to set the format type of event severities for the target structure put.
-	It sets the member evSeverityType of the SCUNILOGTARGET structure put to the
+	It sets the member evSeverityType of the CUNILOG_TARGET structure put to the
 	value of eventSeverityFormatType.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-	bool ChangeSCUNILOGTARGETeventSeverityFormatType (SCUNILOGTARGET *put, cueventsevfmtpy sevTpy);
-	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETeventSeverityFormatType)
-		(SCUNILOGTARGET *put, cueventsevfmtpy sevTpy);
+	bool ChangeCUNILOG_TARGETeventSeverityFormatType (CUNILOG_TARGET *put, cueventsevfmtpy sevTpy);
+	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETeventSeverityFormatType)
+		(CUNILOG_TARGET *put, cueventsevfmtpy sevTpy);
 #endif
 #endif
 
 /*
-	ChangeSCUNILOGTARGETlogPriority
+	ChangeCUNILOG_TARGETlogPriority
 
 	Queues an event to set the priority of the separate logging thread that belongs to the
-	specified SCUNILOGTARGET structure put points to.
+	specified CUNILOG_TARGET structure put points to.
 	
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY or CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS are defined,
 	this is a macro that evaluates to true.
@@ -1832,22 +1829,22 @@ bool logTextU8csfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *f
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
 	to true.
 
-	Returns true on success, false otherwise. If the SCUNILOGTARGET structure doesn't
+	Returns true on success, false otherwise. If the CUNILOG_TARGET structure doesn't
 	have a separate logging thread, the function returns true. The function returns false if the
 	value for prio is invalid.
 */
 #if !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && !defined (CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS)
-	bool ChangeSCUNILOGTARGETlogPriority (SCUNILOGTARGET *put, cunilogprio prio);
-	TYPEDEF_FNCT_PTR (bool, ChangeSCUNILOGTARGETlogPriority) (SCUNILOGTARGET *put, cunilogprio prio);
+	bool ChangeCUNILOG_TARGETlogPriority (CUNILOG_TARGET *put, cunilogprio prio);
+	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETlogPriority) (CUNILOG_TARGET *put, cunilogprio prio);
 #else
-	#define ChangeSCUNILOGTARGETlogPriority(put, prio) (true)
+	#define ChangeCUNILOG_TARGETlogPriority(put, prio) (true)
 #endif
 
 /*
-	ChangeSCUNILOGTARGETlogPriority_static
+	ChangeCUNILOG_TARGETlogPriority_static
 
 	Sets the priority of the separate logging thread that belongs to the internal static
-	SCUNILOGTARGET structure.
+	CUNILOG_TARGET structure.
 
 	The priority levels are based on Windows thread priority levels. See the cunilogprio
 	enum type (parameter prio) for possible values. For POSIX, these have been placed in
@@ -1858,14 +1855,14 @@ bool logTextU8csfmtsev		(SCUNILOGTARGET *put, cueventseverity sev, const char *f
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
 	to true.
 
-	Returns true on success, false otherwise. If the SCUNILOGTARGET structure doesn't
+	Returns true on success, false otherwise. If the CUNILOG_TARGET structure doesn't
 	have a separate logging thread, the function returns true.
 */
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	#define ChangeSCUNILOGTARGETlogPriority_static(prio)	\
-				ChangeSCUNILOGTARGETlogPriority (pSCUNILOGTARGETstatic, prio)
+	#define ChangeCUNILOG_TARGETlogPriority_static(prio)	\
+				ChangeCUNILOG_TARGETlogPriority (pCUNILOG_TARGETstatic, prio)
 #else
-	#define ChangeSCUNILOGTARGETlogPriority_static(prio) (true)
+	#define ChangeCUNILOG_TARGETlogPriority_static(prio) (true)
 #endif
 
 /*

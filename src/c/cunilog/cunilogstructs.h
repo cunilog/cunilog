@@ -320,7 +320,7 @@ enum cunilogpostfix
 
 	cunilogProcessTargetRedirector
 
-	Redirects to another target. The member pData points to a fully initialised SCUNILOGTARGET
+	Redirects to another target. The member pData points to a fully initialised CUNILOG_TARGET
 	structure to which events are redirectred to. After the redirection further processing
 	within the current target is suppressed, meaning that this is the last processor.
 
@@ -369,7 +369,7 @@ enum cunilogprocessfrequency
 	,	cunilogProcessAppliesTo_Auto						// Picks frequency automatically.
 };
 
-typedef struct scunilogtarget SCUNILOGTARGET;
+typedef struct CUNILOG_TARGET CUNILOG_TARGET;
 typedef struct cunilog_processor
 {
 	enum cunilogprocesstask			task;					// What to apply.
@@ -472,7 +472,7 @@ typedef struct cunilog_rotation_data
 															//	file name). Only used when
 															//	CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE
 															//	set. See option flags below.
-	SCUNILOGTARGET				*plogSCUNILOGTARGET;		// Pointer to a logging target.
+	CUNILOG_TARGET				*plogCUNILOG_TARGET;		// Pointer to a logging target.
 															//	If this is NULL, the processor's
 															//	target is logged to, without
 															//	rotation.
@@ -488,11 +488,11 @@ typedef struct cunilog_rotation_data
 #define CUNILOG_ROTATOR_FLAG_INITIALISED		SINGLEBIT64 (0)
 
 // The rotator makes use of the mbSrcMask member. Without this flag, the rotator uses the
-//	member mbLogFileMask of the SCUNILOGTARGET structure.
+//	member mbLogFileMask of the CUNILOG_TARGET structure.
 #define CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK		SINGLEBIT64 (1)
 
 // The rotator makes use of the mbDstFile member. Without this flag, the rotator uses the
-//	member mbFilToRotate of the SCUNILOGTARGET structure
+//	member mbFilToRotate of the CUNILOG_TARGET structure
 #define CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE		SINGLEBIT64 (2)
 
 /*
@@ -541,6 +541,18 @@ typedef struct cunilog_rotation_data
 	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_TRASH()			and
 	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_RECYCLE_BIN()	are identical.
 */
+/*
+	
+*/
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_RENAME_LOGFILES()\
+{														\
+	cunilogrotationtask_RenameLogfiles,					\
+	0, 0, CUNILOG_MAX_ROTATE_AUTO,						\
+	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
+	NULL,												\
+	CUNILOG_ROTATOR_FLAG_NONE							\
+}
+
 /*
 	Argument k is the amount of logfiles to keep/not touch.
 */
@@ -617,6 +629,20 @@ typedef struct cunilog_rotation_data
 }
 /*
 	Argument p is a pointer to a CUNILOG_ROTATION_DATA structure with member
+	tsk set to cunilogrotationtask_RenameLogfiles. Such a structure can
+	be initialised with the CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_RENAME_LOGFILES()
+	macro.
+*/
+#define CUNILOG_INIT_DEF_RENAMELOGFILES_PROCESSOR(p)	\
+{														\
+	cunilogrotationtask_RenameLogfiles,					\
+	cunilogProcessAppliesTo_Auto,						\
+	0, 0,												\
+	(p),							\
+	OPT_CUNPROC_NONE | OPT_CUNPROC_AT_STARTUP			\
+}
+/*
+	Argument p is a pointer to a CUNILOG_ROTATION_DATA structure with member
 	tsk set to cunilogrotationtask_FScompressLogfiles. Such a structure can
 	be initialised with the CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS()
 	macro.
@@ -662,7 +688,7 @@ typedef struct cunilog_rotation_data
 	(cup)->uiOpts	= OPT_CUNPROC_NONE;
 
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	typedef struct scunilogevent SCUNILOGEVENT;
+	typedef struct CUNILOG_EVENT CUNILOG_EVENT;
 #else
 	typedef struct cunilog_locker
 	{
@@ -694,11 +720,11 @@ typedef struct cunilog_rotation_data
 		#endif
 	} CUNILOG_THREAD;
 
-	typedef struct scunilogevent SCUNILOGEVENT;
+	typedef struct CUNILOG_EVENT CUNILOG_EVENT;
 	typedef struct cunilog_queue_base
 	{
-		SCUNILOGEVENT			*first;						// First event.
-		SCUNILOGEVENT			*last;						// Last event.
+		CUNILOG_EVENT			*first;						// First event.
+		CUNILOG_EVENT			*last;						// Last event.
 		size_t					num;						// Current amount of queue
 															//	elements.
 	} CUNILOG_QUEUE_BASE;
@@ -770,7 +796,7 @@ typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 	Base folder for a relative path or path if no path at all is given.
 
 	These are the possible enumeration values of the parameter relLogPath of the
-	SCUNILOGTARGET initialisation functions.
+	CUNILOG_TARGET initialisation functions.
 
 	cunilogPath_isAbsolute
 
@@ -787,11 +813,11 @@ typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 
 	If the path parameter is a relative path, the path is assumed to be relative to the
 	current working directory. If path is NULL, the current working directory is used.
-	The current working directory is obtained by the SCUNILOGTARGET initialisation functions
-	and stays constant during the lifetime of this SCUNILOGTARGET. It is therefore safe for
+	The current working directory is obtained by the CUNILOG_TARGET initialisation functions
+	and stays constant during the lifetime of this CUNILOG_TARGET. It is therefore safe for
 	the application to change this directory any time after the initialisation function
 	returned. Or, an application could set the current working directory to the desired
-	szLogPath, call an SCUNILOGTARGET initialisation function with szLogPath set to NULL.
+	szLogPath, call an CUNILOG_TARGET initialisation function with szLogPath set to NULL.
 
 
 	cunilogPath_relativeToHomeDir
@@ -864,7 +890,7 @@ typedef struct scunilognpi
 	typedef errCBretval (*cunilogErrCallback)	(
 						CUNILOG_ERROR				error,
 						CUNILOG_PROCESSOR			*cup,
-						SCUNILOGEVENT				*pev
+						CUNILOG_EVENT				*pev
 												);
 #endif
 
@@ -896,7 +922,7 @@ typedef enum cunilogeventseveritytpy cueventsevfmtpy;
 	The base config structure for using cunilog. Do not alter any of its members directly.
 	Always use the functions provided to alter its members.
 */
-typedef struct scunilogtarget
+typedef struct CUNILOG_TARGET
 {
 	enum cunilogtype				culogType;
 	enum cunilogpostfix				culogPostfix;
@@ -973,10 +999,10 @@ typedef struct scunilogtarget
 		cunilogErrCallback			errorCB;				// Error/fail callback function.
 	#endif
 	CUNILOG_ROTATOR_ARGS			*prargs;				// Current rotator arguments.
-} SCUNILOGTARGET;
+} CUNILOG_TARGET;
 
 /*
-	Option flags for the uiOpts member of a SCUNILOGTARGET structure.
+	Option flags for the uiOpts member of a CUNILOG_TARGET structure.
 	These still require to be split into internal ones and flags the caller
 	is allowed to provide.
 */
@@ -1049,7 +1075,7 @@ typedef struct scunilogtarget
 
 // Tells the initialiser function(s) not to allocate/assign default processors.
 //	The target is not ready when this option flag is used. The function
-//	ConfigSCUNILOGTARGETprocessorList () must be called before the target
+//	ConfigCUNILOG_TARGETprocessorList () must be called before the target
 //	is usable.
 #define CUNILOGTARGET_NO_DEFAULT_PROCESSORS		SINGLEBIT64 (60)
 
@@ -1238,7 +1264,7 @@ enum cunilogeventtype
 typedef enum cunilogeventtype cueventtype;
 
 /*
-	SCUNILOGEVENT
+	CUNILOG_EVENT
 
 	A logging event structure.
 
@@ -1247,34 +1273,34 @@ typedef enum cunilogeventtype cueventtype;
 	actual dump data. The member lenDataToLog contains the length of the actual dump data
 	*only*,. i.e. neither length field nor caption text count towards lenDataToLog.
 */
-typedef struct scunilogevent
+typedef struct CUNILOG_EVENT
 {
-	SCUNILOGTARGET				*pSCUNILOGTARGET;			// The event's target/destination.
+	CUNILOG_TARGET				*pCUNILOG_TARGET;			// The event's target/destination.
 	uint64_t					uiOpts;						// Option flags.
 	UBF_TIMESTAMP				stamp;						// Its date/timestamp.
 	unsigned char				*szDataToLog;				// Data to log.
 	size_t						lenDataToLog;				// Its length, not NUL-terminated.
 
 	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-		struct scunilogevent	*next;
+		struct CUNILOG_EVENT	*next;
 	#endif
 	cueventseverity				evSeverity;
 	cueventtype					evType;						// The event's type of data.
 	size_t						sizEvent;					// The total allocated size of the
 															//	event. If 0, the size is the size
 															//	of the structure.
-} SCUNILOGEVENT;
+} CUNILOG_EVENT;
 
 /*
-	FillSCUNILOGEVENT
+	FillCUNILOG_EVENT
 
-	Macro to fill a SCUNILOGEVENT structure. Note that the structure doesn't have a
+	Macro to fill a CUNILOG_EVENT structure. Note that the structure doesn't have a
 	->next member if CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined.
 */
 #ifdef CUNILOG_BUILD_SINGLE_THREADED_ONLY
-	#define FillSCUNILOGEVENT(pev, pt,					\
+	#define FillCUNILOG_EVENT(pev, pt,					\
 				opts, dts, sev, tpy, dat, len, siz)		\
-		(pev)->pSCUNILOGTARGET			= pt;			\
+		(pev)->pCUNILOG_TARGET			= pt;			\
 		(pev)->uiOpts					= opts;			\
 		(pev)->stamp					= dts;			\
 		(pev)->szDataToLog				= dat;			\
@@ -1283,9 +1309,9 @@ typedef struct scunilogevent
 		(pev)->evType					= tpy;			\
 		(pev)->sizEvent					= siz
 #else
-	#define FillSCUNILOGEVENT(pev, pt,					\
+	#define FillCUNILOG_EVENT(pev, pt,					\
 				opts, dts, sev, tpy, dat, len, siz)		\
-		(pev)->pSCUNILOGTARGET			= pt;			\
+		(pev)->pCUNILOG_TARGET			= pt;			\
 		(pev)->uiOpts					= opts;			\
 		(pev)->stamp					= dts;			\
 		(pev)->szDataToLog				= dat;			\
@@ -1297,7 +1323,7 @@ typedef struct scunilogevent
 #endif
 
 /*
-	Member uiOpts of a SCUNILOGEVENT structure.
+	Member uiOpts of a CUNILOG_EVENT structure.
 */
 
 #define CUNILOGEVENT_NO_FLAGS			(0)
@@ -1406,7 +1432,7 @@ typedef struct scunilogevent
 /*
 	A callback function of a custom/user defined processor.
 */
-typedef bool (*pfCustProc) (CUNILOG_PROCESSOR *, SCUNILOGEVENT *);
+typedef bool (*pfCustProc) (CUNILOG_PROCESSOR *, CUNILOG_EVENT *);
 
 /*
 	Callback function for cleaning up a custom/user defined processor.
@@ -1445,7 +1471,7 @@ typedef struct cunilog_customprocess
 typedef struct cunilog_rotator_args
 {
 	CUNILOG_PROCESSOR		*cup;
-	SCUNILOGEVENT			*pev;
+	CUNILOG_EVENT			*pev;
 	char					*nam;							// Name of file to rotate.
 	size_t					siz;							// Its size, incl. NUL.
 } CUNILOG_ROTATOR_ARGS;

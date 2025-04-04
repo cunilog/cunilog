@@ -57,7 +57,7 @@ When		Who				What
 const char	ccLogsFolder []	= STR_LOGS_FOLDER;
 size_t		lnLogsFolder	= sizeof (ccLogsFolder) - 1;
 
-bool testV (SCUNILOGTARGET *put, char *sz, ...)
+bool testV (CUNILOG_TARGET *put, char *sz, ...)
 {
 	va_list ap;
 
@@ -116,9 +116,9 @@ int main (int argc, char *argv [])
 	bool			b		= test_cunilog ();
 	ubf_assert_true (b);
 
-	SCUNILOGTARGET	*put;
+	CUNILOG_TARGET	*put;
 
-	put = InitSCUNILOGTARGETstaticEx	(
+	put = InitCUNILOG_TARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
 				cunilogPath_relativeToExecutable,
@@ -131,14 +131,14 @@ int main (int argc, char *argv [])
 									);
 
 	size_t len;
-	const char *szAbsPath = GetAbsoluteLogPathSCUNILOGTARGET (put, &len);
+	const char *szAbsPath = GetAbsoluteLogPathCUNILOG_TARGET (put, &len);
 
 	logTextU8_static ("cunilogPostfixDotNumberDescending");
 
-	ShutdownSCUNILOGTARGETstatic ();
-	DoneSCUNILOGTARGETstatic ();
+	ShutdownCUNILOG_TARGETstatic ();
+	DoneCUNILOG_TARGETstatic ();
 
-	put = CreateNewSCUNILOGTARGET		(
+	put = CreateNewCUNILOG_TARGET		(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
 				cunilogPath_relativeToExecutable,
@@ -150,13 +150,13 @@ int main (int argc, char *argv [])
 				cunilogRunProcessorsOnStartup
 										);
 	ubf_assert_non_NULL (put);
-	szAbsPath = GetAbsoluteLogPathSCUNILOGTARGET (put, &len);
+	szAbsPath = GetAbsoluteLogPathCUNILOG_TARGET (put, &len);
 
-	ShutdownSCUNILOGTARGET (put);
-	DoneSCUNILOGTARGET (put);
+	ShutdownCUNILOG_TARGET (put);
+	DoneCUNILOG_TARGET (put);
 
 
-	put = InitSCUNILOGTARGETstaticEx	(
+	put = InitCUNILOG_TARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
 				cunilogPath_relativeToExecutable,
@@ -168,16 +168,16 @@ int main (int argc, char *argv [])
 				cunilogRunProcessorsOnStartup
 									);
 
-	//configSCUNILOGTARGETdisableEchoProcessor (put);
+	//configCUNILOG_TARGETdisableEchoProcessor (put);
 	UNREFERENCED_PARAMETER (put);
-	//b &= SetLogPrioritySCUNILOGTARGET (put, cunilogPrioIdle);
+	//b &= SetLogPriorityCUNILOG_TARGET (put, cunilogPrioIdle);
 	ubf_assert_true (b);
 
 	logTextU8_static ("");
 	logTextU8_static ("----------");
 	logTextU8_static (STR_HELLO_FROM_EXE);
 	logTextU8_static ("A simple line to go in the logfile.");
-	logTextU8fmt_static ("Log folder: %s", GetAbsoluteLogPathSCUNILOGTARGET_static (NULL));
+	logTextU8fmt_static ("Log folder: %s", GetAbsoluteLogPathCUNILOG_TARGET_static (NULL));
 	char *cData = "ABCDEFGasdfuiolnaoelasdfuaelhaerodclleahcoelandielacsserooot";
 	char *bData = "ABCDEF\0Gasdfuiolnaoelasdfuaelhaerodclleahcoelandielacsserooot";
 	logHexDumpU8sevl_static (cunilogEvtSeverityWarning, cData, 15, "Caption", USE_STRLEN);
@@ -195,7 +195,7 @@ int main (int argc, char *argv [])
 	{
 		logTextU8_static ("Another simple line to go in the logfile (first batch).");
 	}
-	PauseLogSCUNILOGTARGETstatic ();
+	PauseLogCUNILOG_TARGETstatic ();
 	cunilog_puts ("Sleeping (1)...");
 	Sleep (2000);
 	n = 1000;
@@ -205,38 +205,38 @@ int main (int argc, char *argv [])
 	}
 	cunilog_puts ("Sleeping (2)...");
 	Sleep (2000);
-	ResumeLogSCUNILOGTARGETstatic ();
+	ResumeLogCUNILOG_TARGETstatic ();
 
 	logTextU8_static ("This one's in UTF-16 (\xC5\x98), which should be an \"R\" with a flipped roof.");
 	testV (put, "Hello %i", 20);
 	logTextU8sev_static (cunilogEvtSeverityDebug, "This is a debug message");
 	logTextU8sev_static (cunilogEvtSeverityCritical, "This is a critical message");
-	ChangeSCUNILOGTARGETuseColourForEcho_static (false);
+	ChangeCUNILOG_TARGETuseColourForEcho_static (false);
 	logTextU8sev_static (cunilogEvtSeverityCritical, "This is also a critical message");
-	ChangeSCUNILOGTARGETlogPriority_static (cunilogPrioBelowNormal);
-	ChangeSCUNILOGTARGETlogPriority_static (cunilogPrioNormal);
-	ChangeSCUNILOGTARGETuseColourForEcho_static (true);
+	ChangeCUNILOG_TARGETlogPriority_static (cunilogPrioBelowNormal);
+	ChangeCUNILOG_TARGETlogPriority_static (cunilogPrioNormal);
+	ChangeCUNILOG_TARGETuseColourForEcho_static (true);
 	logTextU8sev_static (cunilogEvtSeverityCritical, "This is another critical message");
 
 	logTextU8sev_static (cunilogEvtSeverityNonePass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityNoneFail, "This is a bad one");
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeSCUNILOGTARGETeventSeverityFormatType (pSCUNILOGTARGETstatic, cunilogEvtSeverityTypeChars3InBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityTypeChars3InBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeSCUNILOGTARGETeventSeverityFormatType (pSCUNILOGTARGETstatic, cunilogEvtSeverityTypeChars5InBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityTypeChars5InBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeSCUNILOGTARGETeventSeverityFormatType (pSCUNILOGTARGETstatic, cunilogEvtSeverityTypeChars9InBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityTypeChars9InBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeSCUNILOGTARGETeventSeverityFormatType (pSCUNILOGTARGETstatic, cunilogEvtSeverityTypeChars5InTightBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityTypeChars5InTightBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
 	logTextU8sev_static (cunilogEvtSeverityNone, "None");
 	logTextU8sev_static (cunilogEvtSeverityBlanks, "Blanks");
-	ChangeSCUNILOGTARGETeventSeverityFormatType (pSCUNILOGTARGETstatic, cunilogEvtSeverityTypeChars9InTightBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityTypeChars9InTightBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
 	logTextU8sev_static (cunilogEvtSeverityNone, "None");
@@ -260,9 +260,9 @@ int main (int argc, char *argv [])
 	puts ("This one's in UTF-16 (\xC5\x98), which should be an \"R\" with a flipped roof.");
 	*/
 
-	//CancelSCUNILOGTARGETstatic ();
-	ShutdownSCUNILOGTARGETstatic ();
-	DoneSCUNILOGTARGETstatic ();
+	//CancelCUNILOG_TARGETstatic ();
+	ShutdownCUNILOG_TARGETstatic ();
+	DoneCUNILOG_TARGETstatic ();
 
 	return b ? EXIT_SUCCESS : EXIT_FAILURE;	
 }

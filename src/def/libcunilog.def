@@ -9,7 +9,7 @@
 ;
 ;	Purpose:	Provides ordinals for functions and variables for Windows DLL.
 ;	OS:			Windows
-;	Created:	2025-04-03 20:37:50 (by script script CreateWindowsDLLDef)
+;	Created:	2025-04-04 14:46:15 (by script script CreateWindowsDLLDef)
 ;
 ;	License:	Public domain.
 ;
@@ -28,7 +28,7 @@ EXPORTS
 	sizCunilogLogFileNameExtension					@103	DATA
 
 ; cunilog
-	pSCUNILOGTARGETstatic							@104	DATA
+	pCUNILOG_TARGETstatic							@104	DATA
 
 ; shortmonths
 	ccdtMnths										@105	DATA
@@ -38,44 +38,44 @@ EXPORTS
 	CunilogSetConsoleTo								@108
 	CunilogGetEnv									@109
 	Cunilog_Have_NO_COLOR							@110
-	InitSCUNILOGTARGETex							@111
-	InitSCUNILOGTARGET								@112
-	CreateNewSCUNILOGTARGET							@113
-	InitOrCreateSCUNILOGTARGET						@114
-	InitSCUNILOGTARGETstaticEx						@115
-	InitSCUNILOGTARGETstatic						@116
-	GetAbsoluteLogPathSCUNILOGTARGET				@117
-	GetAbsoluteLogPathSCUNILOGTARGET_static			@118
-	ConfigSCUNILOGTARGETcunilogpostfix				@119
-	ConfigSCUNILOGTARGETrunProcessorsOnStartup		@120
-	ConfigSCUNILOGTARGETcunilognewline				@121
-	ConfigSCUNILOGTARGETeventSeverityFormatType		@122
-	ConfigSCUNILOGTARGETuseColourForEcho			@123
-	ConfigSCUNILOGTARGETprocessorList				@124
-	ConfigSCUNILOGTARGETdisableTaskProcessors		@125
-	ConfigSCUNILOGTARGETenableTaskProcessors		@126
-	ConfigSCUNILOGTARGETdisableEchoProcessor		@127
-	ConfigSCUNILOGTARGETenableEchoProcessor			@128
-;	EnterSCUNILOGTARGET								@nnn	Should not be used.
-;	LeaveSCUNILOGTARGET								@nnn	Should not be used.
-	DoneSCUNILOGTARGET								@129
-	ShutdownSCUNILOGTARGET							@130
-	CancelSCUNILOGTARGET							@131
+	InitCUNILOG_TARGETex							@111
+	InitCUNILOG_TARGET								@112
+	CreateNewCUNILOG_TARGET							@113
+	InitOrCreateCUNILOG_TARGET						@114
+	InitCUNILOG_TARGETstaticEx						@115
+	InitCUNILOG_TARGETstatic						@116
+	GetAbsoluteLogPathCUNILOG_TARGET				@117
+	GetAbsoluteLogPathCUNILOG_TARGET_static			@118
+	ConfigCUNILOG_TARGETcunilogpostfix				@119
+	ConfigCUNILOG_TARGETrunProcessorsOnStartup		@120
+	ConfigCUNILOG_TARGETcunilognewline				@121
+	ConfigCUNILOG_TARGETeventSeverityFormatType		@122
+	ConfigCUNILOG_TARGETuseColourForEcho			@123
+	ConfigCUNILOG_TARGETprocessorList				@124
+	ConfigCUNILOG_TARGETdisableTaskProcessors		@125
+	ConfigCUNILOG_TARGETenableTaskProcessors		@126
+	ConfigCUNILOG_TARGETdisableEchoProcessor		@127
+	ConfigCUNILOG_TARGETenableEchoProcessor			@128
+;	EnterCUNILOG_TARGET								@nnn	Should not be used.
+;	LeaveCUNILOG_TARGET								@nnn	Should not be used.
+	DoneCUNILOG_TARGET								@129
+	ShutdownCUNILOG_TARGET							@130
+	CancelCUNILOG_TARGET							@131
 
-	PauseLogSCUNILOGTARGET							@132
-	ResumeLogSCUNILOGTARGET							@133
-	CreateSCUNILOGEVENT_Data						@134
-	CreateSCUNILOGEVENT_Text						@135
-	DuplicateSCUNILOGEVENT							@136
-	DoneSCUNILOGEVENT								@137
-	ChangeSCUNILOGTARGETuseColourForEcho			@138
-	ChangeSCUNILOGTARGETcunilognewline				@139
-	ChangeSCUNILOGTARGETdisableTaskProcessors		@140
-	ChangeSCUNILOGTARGETenableTaskProcessors		@141
-	ChangeSCUNILOGTARGETdisableEchoProcessor		@142
-	ChangeSCUNILOGTARGETenableEchoProcessor			@143
-	ChangeSCUNILOGTARGETeventSeverityFormatType		@144
-	ChangeSCUNILOGTARGETlogPriority					@145
+	PauseLogCUNILOG_TARGET							@132
+	ResumeLogCUNILOG_TARGET							@133
+	CreateCUNILOG_EVENT_Data						@134
+	CreateCUNILOG_EVENT_Text						@135
+	DuplicateCUNILOG_EVENT							@136
+	DoneCUNILOG_EVENT								@137
+	ChangeCUNILOG_TARGETuseColourForEcho			@138
+	ChangeCUNILOG_TARGETcunilognewline				@139
+	ChangeCUNILOG_TARGETdisableTaskProcessors		@140
+	ChangeCUNILOG_TARGETenableTaskProcessors		@141
+	ChangeCUNILOG_TARGETdisableEchoProcessor		@142
+	ChangeCUNILOG_TARGETenableEchoProcessor			@143
+	ChangeCUNILOG_TARGETeventSeverityFormatType		@144
+	ChangeCUNILOG_TARGETlogPriority					@145
 	CunilogChangeCurrentThreadPriority				@146
 
 	cunilogCheckVersionIntChk						@147

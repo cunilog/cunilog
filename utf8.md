@@ -25,7 +25,7 @@ worst that can happen in most cases is that they end up somewhat crippled in a
 text file. This of course assumes that software used to view or further
 process these logfiles isn't crashing due to malformed UTF-8 sequences.
 
-On the other hand, when a SCUNILOGTARGET structure is initialised with the
+On the other hand, when a CUNILOG_TARGET structure is initialised with the
 dedicated functions and logging folder and application name are provided, who
 knows what kind of filename the operating system produces when creating a logfile?
 Initialisation usually only happens once per target throughout the lifetime of
@@ -114,12 +114,12 @@ but doesn't print unicode characters correctly.
 If you don't need console output, another option is to just suppress it altogether.
 Either set up your own Cunilog processor array/chain that doesn't contain an
 echo processor, or call
-__configSCUNILOGTARGETdisableEchoProcessor ()__ on the target just after
+__configCUNILOG_TARGETdisableEchoProcessor ()__ on the target just after
 it has been initialised and before any of the logging functions have been
 invoked.
 
 Note that when Cunilog changes the console on Windows, this also affects all
-__SCUNILOGTARGET__ Cunilog targets, and of course the application's console output too.
+__CUNILOG_TARGET__ Cunilog targets, and of course the application's console output too.
 A Windows application can only be attached to
 a single console, and changes to this console's configuration affect all
 functions reading from or writing to that console. To be fair, Windows distinguishes

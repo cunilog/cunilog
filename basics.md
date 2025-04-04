@@ -78,9 +78,9 @@ with it. This also applies to the default (static) target.
 Logging functions create events, and events are sent to targets. A target can be configured to fork/duplicate events to other targets. Events can also be redirected to another target.
 
 All logging functions expect as their first parameter a pointer to a target
-structure of type __SCUNILOGTARGET__. For the default (static) target,
+structure of type __CUNILOG_TARGET__. For the default (static) target,
 macros are provided that end in _static. These macros set the target to an
-internal (static) __SCUNILOGTARGET__ structure, which is shared by all these
+internal (static) __CUNILOG_TARGET__ structure, which is shared by all these
 macros/functions.
 
 The characteristics of a Cunilog target are specified when it is initialised. Some of these

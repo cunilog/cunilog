@@ -29,7 +29,7 @@ Example for using the internal static structure:
 ```C
 // Application start
 
-SCUNILOGTARGET *put = InitSUNILOGTARGETstatic	(
+CUNILOG_TARGET *put = InitSUNILOGTARGETstatic	(
 			"logs", 4,
 			"MyApp", USE_STRLEN,
 			cunilogPath_relativeToHomeDir,
@@ -47,16 +47,16 @@ logTextU8l_static ("Another line.", 13);
 logTextU8l_static ("And another one.", USE_STRLEN);
 
 // Just before the application exists shut down logging and deallocate its resources.
-ShutdownSCUNILOGTARGETstatic ();		// Blocks until the queue is empty.
+ShutdownCUNILOG_TARGETstatic ();		// Blocks until the queue is empty.
 DoneSUNILOGTARGETstatic ();
 ```
 
 Here's the signature of the InitSUNILOGTARGETstatic () function:
 ```C
 /*
-	InitSCUNILOGTARGETstatic
+	InitCUNILOG_TARGETstatic
 
-	Simplified version of InitSCUNILOGTARGETstaticEx ().
+	Simplified version of InitCUNILOG_TARGETstaticEx ().
 
 	szLogPath	The path where the log files are written to. This can either be an
 			absolute or a relative path. If the path is relative, it is assumed to
@@ -98,12 +98,12 @@ Here's the signature of the InitSUNILOGTARGETstatic () function:
 			If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
 			ignored and implicitely set to cunilogSingleThreaded.
 
-	The function returns a pointer to the internal SCUNILOGTARGET cunilognewlinestructure
+	The function returns a pointer to the internal CUNILOG_TARGET cunilognewlinestructure
 	upon success, NULL otherwise.
 
-	Call DoneSCUNILOGTARGETstatic () to free the structure's resources.
+	Call DoneCUNILOG_TARGETstatic () to free the structure's resources.
 */
-SCUNILOGTARGET *InitSCUNILOGTARGETstatic
+CUNILOG_TARGET *InitCUNILOG_TARGETstatic
 (
 	  const char			*szLogPath	// Path to the logging information.
 	, size_t			lenLogPath	// Length of szLogPath

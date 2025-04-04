@@ -153,12 +153,12 @@ bool culCmdSetCurrentThreadPriority (cunilogprio prio);
 /*
 	culCmdChangeCmdConfigFromCommand
 
-	Changes members/flags of the SCUNILOGTARGET structure pev->pSCUNILOGTARGET points to
+	Changes members/flags of the CUNILOG_TARGET structure pev->pCUNILOG_TARGET points to
 	for event type cunilogEvtTypeCommand (member pev->evType).
 
 	This function must only be called for events of type cunilogEvtTypeCommand.
 */
-void culCmdChangeCmdConfigFromCommand (SCUNILOGEVENT *pev)
+void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 ;
 
 #endif														// Of #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS.

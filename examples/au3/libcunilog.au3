@@ -105,7 +105,7 @@ Func LoadAndInitCunilog ($LogPath, $AppName)
 	If $CunilogHandle <> -1 Then
 		$CunilogTarget = DllCall	(			_
 			$CunilogHandle, "ptr:cdecl",		_	; Return value and type.
-			"CreateNewSCUNILOGTARGET",			_	; DLL function name.
+			"CreateNewCUNILOG_TARGET",			_	; DLL function name.
 			"str",	$LogPath, "ulong_ptr", -1,	_
 			"str",	$AppName, "ulong_ptr", -1,	_
 			"int",	0,							_
@@ -117,7 +117,7 @@ Func LoadAndInitCunilog ($LogPath, $AppName)
 			"int",	2,							_
 			"int",	0							_
 									)
-		;MsgBox ($MB_APPLMODAL, "CreateNewSCUNILOGTARGET ()", $CunilogTarget [0])
+		;MsgBox ($MB_APPLMODAL, "CreateNewCUNILOG_TARGET ()", $CunilogTarget [0])
 		Return $CunilogTarget
 	Else
 		MsgBox ($MB_APPLMODAL, "Error", "Error loading DLL")	
@@ -126,7 +126,7 @@ Func LoadAndInitCunilog ($LogPath, $AppName)
 EndFunc
 
 Func logTextU8 ($Text)
-		;MsgBox ($MB_APPLMODAL, "CreateNewSCUNILOGTARGET ()", Ptr ($CunilogTarget [0]))
+		;MsgBox ($MB_APPLMODAL, "CreateNewCUNILOG_TARGET ()", Ptr ($CunilogTarget [0]))
 	$bRet = DllCall ($CunilogHandle, "bool", "logTextU8", "ptr", $CunilogTarget [0], "str", $Text)
 	Return $bRet [0]
 EndFunc
@@ -135,7 +135,7 @@ Func logTextU8debug ()
 	If IsPtr ($CunilogTarget [0]) Then
 		If null <> $CunilogTarget [0] Then
 		
-			$ResGetAbsPath = DllCall ($CunilogHandle, "str", "GetAbsoluteLogPathSCUNILOGTARGET", "ptr", $CunilogTarget [0], "ptr", 0)
+			$ResGetAbsPath = DllCall ($CunilogHandle, "str", "GetAbsoluteLogPathCUNILOG_TARGET", "ptr", $CunilogTarget [0], "ptr", 0)
 			MsgBox ($MB_APPLMODAL, "Path", "Path: " & $ResGetAbsPath [0])
 			$bLog = logTextU8 ("Log this line")
 			MsgBox ($MB_APPLMODAL, "Path", "Logged: " & $bLog)
@@ -148,7 +148,7 @@ Func logTextU8debug ()
 EndFunc
 
 Func ShutdownCunilog ()
-	$bRet = DllCall ($CunilogHandle, "bool", "ShutdownSCUNILOGTARGET", "ptr", $CunilogTarget [0])
+	$bRet = DllCall ($CunilogHandle, "bool", "ShutdownCUNILOG_TARGET", "ptr", $CunilogTarget [0])
 	Return $bRet [0]
 EndFunc
 

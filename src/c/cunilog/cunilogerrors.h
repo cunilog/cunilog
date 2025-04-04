@@ -53,25 +53,139 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./platform.h"
 		//#include "./ubfmem.h"
 	#else
 		#include "./../pre/externC.h"
+		#include "./../pre/platform.h"
 		//#include "./../mem/ubfmem.h"
 	#endif
 
 #endif
+
+#ifdef PLATFORM_IS_POSIX
+	#include <errno.h>
+#endif
+
+/*
+	System error codes
+*/
+
+#if defined (PLATFORM_IS_WINDOWS)
+
+	#define CUNILOG_SYSTEM_ERROR_SUCCESS			ERROR_SUCCESS
+	#define CUNILOG_SYSTEM_ERROR_NOT_SUPPORTED		ERROR_NOT_SUPPORTED
+	#define CUNILOG_SYSTEM_ERROR_BUFFER_OVERFLOW	ERROR_BUFFER_OVERFLOW
+
+#elif defined (PLATFORM_IS_POSIX)
+
+	#define CUNILOG_SYSTEM_ERROR_SUCCESS			(0)
+	#define CUNILOG_SYSTEM_ERROR_NOT_SUPPORTED		ENOTSUP
+	#define CUNILOG_SYSTEM_ERROR_BUFFER_OVERFLOW	EOVERFLOW
+
+#elif
+
+	#error Not supported
+
+#endif
+
+/*
+	Cunilog error codes.
+*/
 
 /*
 	Success/no error.
 */
 #define CUNILOG_NO_ERROR							(0)
 
+#define CUNILOG_ERROR_OPENING_LOGFILE				(1)
+#define CUNILOG_ERROR_WRITING_LOGFILE				(2)
+#define CUNILOG_ERROR_FLUSHING_LOGFILE				(3)
+
+/*
+	Mismatch between an absolute or relative path.
+*/
+#define CUNILOG_ERROR_ABS_OR_REL_PATH				(4)
+
+// The base for a path could not be obtained.
+#define CUNILOG_ERROR_PATH_BASE						(5)
+
+// A heap allocation failed/out of memory error.
+#define CUNILOG_ERROR_HEAP_ALLOCATION				(6)
+
+#define CUNILOG_ERROR_SEMAPHORE						(7)
+#define CUNILOG_ERROR_APPNAME						(8)
+#define CUNILOG_ERROR_SEPARATE_LOGGING_THREAD		(9)
+
 
 EXTERN_C_BEGIN
 
+/*
+	CUNILOG_ERROR
+
+					Windows								POSIX
+	------------+-----------------------------------+------------------------------------
+	Bit	 0...31	|	A DWORD containing a Windows	|	A 32 bit int containing a POSIX
+				|	error code						|	error code
+				|
+				|	Use the macro CunilogSystemError() to obtain this error code.
+				|
+	------------+-----------------------------------+------------------------------------
+	Bit 32...63	|	One of the CUNILOG_ constants above
+				|	Use the macro CunilogCunilogError() to obtain it.
+	------------+------------------------------------------------------------------------
+	
+*/
 typedef uint64_t	CUNILOG_ERROR;
 
 
+#define CunilogSystemError(err)							\
+			((err) & 0x00000000FFFFFFFF)
+
+#define CunilogCunilogError(err)						\
+			(((err) >> 32) & 0x00000000FFFFFFFF)
+
+/*
+	SetCunilogError
+
+	Macro to set a CUNILOG_ERROR variable.
+
+	errvar		The name of the CUNILOG_ERROR variable that receives the final
+				error code, consisting of a Cunilog error code and a system error code.
+	cerr		One of the CUNILOG_ERROR_ constants above.
+	serr		System error code. This is either a DWORD on Windows or an int32_t on
+				POSIX.
+*/
+#define SetCunilogError(errvar, cerr, serr)				\
+			(errvar) = (CUNILOG_ERROR)(cerr) << 32;		\
+			(errvar) += (unsigned)(serr)
+
+
+/*
+	SetCunilogSystemError
+
+	Same as SetCunilogError() but obtains the system error implicitely.	
+*/
+#if defined (PLATFORM_IS_WINDOWS)
+
+	#define SetCunilogSystemError(errvar, cerr)			\
+				(errvar) = (CUNILOG_ERROR)(cerr) << 32;	\
+				(errvar) += (unsigned) GetLastError ()
+
+#elif defined (PLATFORM_IS_POSIX)
+
+	#define SetCunilogSystemError(errvar, cerr, serr)	\
+				(errvar) = (CUNILOG_ERROR)(cerr) << 32;	\
+				(errvar) += (unsigned) errno
+
+#elif
+
+	#error Not supported
+
+#endif
+
+#define ResetCunilogError(errvar)						\
+			SetCunilogError ((errvar), CUNILOG_NO_ERROR, CUNILOG_SYSTEM_ERROR_SUCCESS)
 
 EXTERN_C_END
 

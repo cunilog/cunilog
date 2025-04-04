@@ -23,7 +23,7 @@ See [Introducing extended line endings support in Notepad](https://devblogs.micr
 
 With the Notepad hurdle gone, Cunilog's default newline sequence on Windows is also a single Line Feed ASCII character.
 
-If you still need to support versions of Notepad up to Mai 2018, use one of the "__Ex__" Cunilog target initialisation functions, for instance __InitSCUNILOGTARGETstaticEx ()__, which let you specify a line ending for the target during initialisation. Use __cunilogNewLineWindows__ as line ending. This adds
+If you still need to support versions of Notepad up to Mai 2018, use one of the "__Ex__" Cunilog target initialisation functions, for instance __InitCUNILOG_TARGETstaticEx ()__, which let you specify a line ending for the target during initialisation. Use __cunilogNewLineWindows__ as line ending. This adds
 Windows native end of line sequnces of CR + LF.
 
-Alternatively, initialise the target first with an initialisation function whose name doesn't end with "__Ex__" and call __configSCUNILOGTARGETcunilognewline ()__ with line ending argument __cunilogNewLineWindows__ before actual logging has begun (before logging functions have been called).
+Alternatively, initialise the target first with an initialisation function whose name doesn't end with "__Ex__" and call __configCUNILOG_TARGETcunilognewline ()__ with line ending argument __cunilogNewLineWindows__ before actual logging has begun (before logging functions have been called).
