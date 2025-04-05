@@ -3440,6 +3440,11 @@ static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, CUNILOG
 	switch (put->culogPostfix)
 	{
 		case cunilogPostfixDotNumberMinutely:
+		case cunilogPostfixDotNumberHourly:
+		case cunilogPostfixDotNumberDaily:
+		case cunilogPostfixDotNumberWeekly:
+		case cunilogPostfixDotNumberMonthly:
+		case cunilogPostfixDotNumberYearly:
 			return true;
 
 		default:
@@ -3888,7 +3893,7 @@ static void performActualRotation (CUNILOG_ROTATOR_ARGS *prg)
 			ubf_assert (false);
 			break;
 		case cunilogrotationtask_RenameLogfiles:
-			ubf_assert (false);
+			//ubf_assert (false);
 			break;
 		case cunilogrotationtask_FScompressLogfiles:
 			FileSystemCompressLogfile (put);
@@ -3951,9 +3956,49 @@ static int flscmp (const void *p1, const void *p2)
 	return r;
 }
 
-static inline bool needReverseFileList (CUNILOG_TARGET *put)
+static inline bool needReverseFLS (CUNILOG_PROCESSOR *cup)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL (cup);
+
+	if (cunilogProcessRotateLogfiles == cup->task)
+	{
+		CUNILOG_ROTATION_DATA	*rot = cup->pData;
+		ubf_assert_non_NULL (rot);
+
+		return cunilogrotationtask_RenameLogfiles == rot->tsk;
+	}
+	return false;
+}
+
+static inline void sortLogfilesList (CUNILOG_TARGET *put, CUNILOG_PROCESSOR *cup)
+{
+	/*
+		On NTFS, files are returned in descending alphabetical order.
+		This means it's enough to just reverse the order, i.e. start with the last
+		file first and walk downwards. This may also be true for other file systems,
+		though on file systems that return the files randomly we got to sort the vector
+		first.
+	*/
+	if (cunilogTargetHasFSneedsSorting (put))
+		vec_sort (&put->fls, flscmp);
+
+	// The processor may need the files in reverse order.
+	bool bFLSreversedRequired = needReverseFLS (cup);
+	if (bFLSreversedRequired)
+	{
+		if (!cunilogTargetHasFLSreversed (put))
+		{
+			vec_reverse (&put->fls);
+			cunilogTargetSetFLSreversed (put);
+		}
+	} else
+	{
+		if (cunilogTargetHasFLSreversed (put))
+		{
+			vec_reverse (&put->fls);
+			cunilogTargetClrFLSreversed (put);
+		}
+	}
 }
 
 static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
@@ -3968,15 +4013,8 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 	CUNILOG_ROTATION_DATA	*prd = cup->pData;
 	ubf_assert_non_NULL (prd);
 
-	/*
-		On NTFS, files are returned in descending alphabetical order.
-		This means it's enough to just reverse the order, i.e. start with the last
-		file first and walk downwards. This may also be true for other file systems,
-		though on file systems that return the files randomly we got to sort the vector
-		first.
-	*/
-	if (cunilogIsFSneedsSorting (put))
-		vec_sort (&put->fls, flscmp);
+	sortLogfilesList (put, cup);
+
 	size_t iFiles = put->fls.length;
 	uint64_t nToIgnore = prd->nIgnore + put->scuNPI.nIgnoredTotal;
 	uint64_t nMaxToRot =		CUNILOG_MAX_ROTATE_AUTO - nToIgnore <= prd->nMaxToRotate
@@ -4271,7 +4309,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *p
 		ubf_assert_non_NULL (put);
 		ubf_assert (cunilogHasDebugQueueLocked (put));
 
-		if (cunilogIsPaused (put))
+		if (cunilogTargetIsPaused (put))
 		{
 			++ put->nPausedEvents;
 			return 0;
@@ -4664,7 +4702,7 @@ static inline bool cancelOrCarryOnWithNextProcessor	(
 /*
 	Returns true for further processing by the caller.
 */
-static bool cunilogProcessProcessor (CUNILOG_EVENT *pev, CUNILOG_PROCESSOR *cup)
+static inline bool cunilogProcessProcessor (CUNILOG_EVENT *pev, CUNILOG_PROCESSOR *cup)
 {
 	ubf_assert_non_NULL	(pev);
 	ubf_assert_non_NULL	(cup);
@@ -4966,7 +5004,7 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 		ubf_assert_non_NULL (put);
 
 		EnterCUNILOG_LOCKER (put);
-		cunilogSetPaused (put);
+		cunilogTargetSetPaused (put);
 		LeaveCUNILOG_LOCKER (put);
 	}
 #endif
@@ -4979,7 +5017,7 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 		size_t n;
 
 		EnterCUNILOG_LOCKER (put);
-		cunilogClrPaused (put);
+		cunilogTargetClrPaused (put);
 		n = put->nPausedEvents;
 		put->nPausedEvents = 0;
 		LeaveCUNILOG_LOCKER (put);

@@ -357,7 +357,7 @@ BEGIN_C_DECLS
 */
 #define vec_reverse(v)\
   do {\
-    int i__ = (v)->length / 2;\
+    size_t i__ = (v)->length / 2;\
     while (i__--) {\
       vec_swap((v), i__, (v)->length - (i__ + 1));\
     }\
