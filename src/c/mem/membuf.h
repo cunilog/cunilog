@@ -348,7 +348,8 @@ TYPEDEF_FNCT_PTR (void, copySMEMBUF)
 	copySMEMBUFsiz
 
 	Copies the buffer of src into dst up to a size of siz. The buffer size of dst does
-	not shrink.
+	not shrink. The function does not check if the buffer of src is big enough to copy
+	siz bytes/octets. This is the responsibility of the caller.
 
 	The function does not return a value. Check with isUsableSMEMBUF (dst) to see if the
 	copy operation was successful.
@@ -358,6 +359,30 @@ void copySMEMBUFsiz (SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict sr
 TYPEDEF_FNCT_PTR (void, copySMEMBUFsiz)
 	(SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src, size_t siz)
 	;
+
+/*
+	copySMEMBUFreserve
+
+	Sets the buffer size of dst to src->size + reserve and copies the buffer of src to
+	dst.
+
+	The function does not return a value. Check with isUsableSMEMBUF (dst) to see if the
+	copy operation was successful.
+*/
+void copySMEMBUFreserve	(
+		SMEMBUF		*cunilog_restrict dst,
+		SMEMBUF		*cunilog_restrict src,
+		size_t		reserve
+						)
+;
+TYPEDEF_FNCT_PTR (void, copySMEMBUFreserve)
+						(
+		SMEMBUF		*cunilog_restrict dst,
+		SMEMBUF		*cunilog_restrict src,
+		size_t		reserve
+						)
+;
+
 
 EXTERN_C_END
 

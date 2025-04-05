@@ -2089,7 +2089,7 @@ static void DoneCUNILOG_TARGETprocessors (CUNILOG_TARGET *put)
 	CUNILOG_PROCESSOR			*cp;
 	union
 	{
-		CUNILOG_ROTATION_DATA	*rt;
+		CUNILOG_ROTATION_DATA	*prd;
 		CUNILOG_CUSTPROCESS		*up;
 	} upCust;
 
@@ -2115,11 +2115,17 @@ static void DoneCUNILOG_TARGETprocessors (CUNILOG_TARGET *put)
 				CloseCUNILOG_LOGFILEifOpen (cp->pData);
 				break;
 			case cunilogProcessRotateLogfiles:
-				upCust.rt = cp->pData;
-				if (cunilogHasRotatorFlag_USE_MBSRCMASK (upCust.rt))
-					doneSMEMBUF (&upCust.rt->mbSrcMask);
-				if (cunilogHasRotatorFlag_USE_MBDSTFILE (upCust.rt))
-					doneSMEMBUF (&upCust.rt->mbDstFile);
+				upCust.prd = cp->pData;
+				if (cunilogHasRotatorFlag_USE_MBSRCMASK (upCust.prd))
+				{
+					doneSMEMBUF (&upCust.prd->mbSrcMask);
+					cunilogClrRotatorFlag_USE_MBSRCMASK (upCust.prd);
+				}
+				if (cunilogHasRotatorFlag_USE_MBDSTFILE (upCust.prd))
+				{
+					doneSMEMBUF (&upCust.prd->mbDstFile);
+					cunilogClrRotatorFlag_USE_MBDSTFILE (upCust.prd);
+				}
 				break;
 		}
 	}
@@ -3523,9 +3529,10 @@ static bool cunilogWriteDataToLogFile (CUNILOG_LOGFILE *pl, char *pData, size_t 
 		DWORD toWrite = addNewLineToLogEventLine (pData, lnData, nl) & 0xFFFFFFFF;
 		// The file has been opened with FILE_APPEND_DATA, i.e. we don't need to
 		//	seek ourselves.
-		//LARGE_INTEGER	z = {0, 0};
-		//SetFilePointerEx (pl->hLogFile, z, NULL, FILE_END);
+		//	LARGE_INTEGER	z = {0, 0};
+		//	SetFilePointerEx (pl->hLogFile, z, NULL, FILE_END);
 		bool b = WriteFile (pl->hLogFile, pData, toWrite, &dwWritten, NULL);
+		pData [lnData] = ASCII_NUL;
 		return b;
 	#else
 		long lToWrite = (long) addNewLineToLogEventLine (pData, lnData, nl);
@@ -3533,6 +3540,7 @@ static bool cunilogWriteDataToLogFile (CUNILOG_LOGFILE *pl, char *pData, size_t 
 		//	A call "fseek (pl->fLogFile, (long) 0, SEEK_END);" is not required
 		//	because we opened the file in append mode.
 		size_t st = fwrite (pData, 1, lToWrite, pl->fLogFile);
+		pData [lnData] = ASCII_NUL;
 		return st == lnData;
 	#endif
 }
@@ -3707,6 +3715,108 @@ static bool logFromInsideRotatorTextU8fmt (CUNILOG_TARGET *put, const char *fmt,
 	}
 #endif
 
+/*
+	Increments the dot number part of a filename, i.e. ".1234".
+	Can also be "", which is the case for the original file.
+	Assumes that there's always enough space available to write out
+	the incremented value.
+
+	Like:
+	"file.log"		-> ""
+	"file.log.1"	-> ".1"
+	"file.log.2"	-> ".2"
+	"file.log.900"	-> ".900"
+
+	Returns the new length of the dot number part, including the dot.
+*/
+static inline size_t incrementDotNumberName (char *sz)
+{
+	ubf_assert_non_NULL	(sz);
+	ubf_assert_non_0	(sz [0]);
+
+	if ('.' == sz [0])
+	{
+		++ sz;
+		uint64_t	ui = 0;;
+		ubf_uint64_from_str (&ui, sz);
+		++ ui;
+		size_t written = ubf_str_from_uint64 (sz, ui);
+		return written;
+	} else
+	{
+		++ sz;
+		memcpy (sz, ".1", 3);
+		return 2;
+	}
+}
+
+static void RenameLogfile (CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL	(put->prargs);
+	ubf_assert_non_NULL	(put->prargs->cup);
+	ubf_assert_non_NULL	(put->prargs->cup->pData);
+	ubf_assert			(isInitialisedSMEMBUF (&put->mbFilToRotate));
+	ubf_assert_non_0	(put->stFilToRotate);
+	ubf_assert_non_0	(1 < put->stFilToRotate);
+	
+	if (!hasDotNumberPostfix (put))
+		return;
+
+	CUNILOG_ROTATION_DATA	*prd = put->prargs->cup->pData;
+
+	if (!cunilogHasRotatorFlag_USE_MBDSTFILE (prd))
+	{
+		initSMEMBUFtoSize	(
+			&prd->mbDstFile,
+			put->stFilToRotate + lenDateTimeStampFromPostfix (put->culogPostfix)
+							);
+		cunilogSetRotatorFlag_USE_MBDSTFILE (prd);
+	}
+	growToSizeSMEMBUF	(
+		&prd->mbDstFile,
+		put->stFilToRotate + lenDateTimeStampFromPostfix (put->culogPostfix)
+						);
+	if (isUsableSMEMBUF (&prd->mbDstFile))
+	{
+		memcpy (prd->mbDstFile.buf.pch, put->mbFilToRotate.buf.pch, put->stFilToRotate);
+
+		// Obtain the dot number part.
+		size_t ln = put->stFilToRotate - 1;
+		-- ln;
+		while (ln)
+		{
+			if (!isdigit (prd->mbDstFile.buf.pch [ln]))
+				break;
+			-- ln;
+		}
+		char *sz = prd->mbDstFile.buf.pch + ln;
+		size_t ol = put->stFilToRotate - 1 - ln;
+		size_t nl = incrementDotNumberName (sz);
+		UNUSED (ol);
+		UNUSED (nl);
+
+		bool bMoved;
+
+		#ifdef PLATFORM_IS_WINDOWS
+			bMoved = MoveFileU8long (put->mbFilToRotate.buf.pch, prd->mbDstFile.buf.pcc);
+			if (bMoved)
+			{
+				logFromInsideRotatorTextU8fmt	(
+					put, "File \"%s\" moved/renamed to \"%s\".",
+					put->mbFilToRotate.buf.pcc,
+					prd->mbDstFile.buf.pcc
+												);
+			} else
+			{
+				ubf_assert_msg (false, "To be implemented...");
+			}
+		#else
+			bMoved = false;
+		#endif
+	}
+}
+
 static void FileSystemCompressLogfile (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
@@ -3719,23 +3829,23 @@ static void FileSystemCompressLogfile (CUNILOG_TARGET *put)
 	{
 		case fscompress_uncompressed:
 			logFromInsideRotatorTextU8fmt	(
-				put, "Initiating file system compression for file \"%s\"...\n",
-				put->mbFilToRotate.buf.pch
+				put, "Initiating file system compression for file \"%s\"...",
+				put->mbFilToRotate.buf.pcc
 											);
-			b = FScompressFileByName (put->mbFilToRotate.buf.pch);
+			b = FScompressFileByName (put->mbFilToRotate.buf.pcc);
 			if (b)
 			{
 				logFromInsideRotatorTextU8fmt	(
-					put, "File system compression for file \"%s\" initiated.\n",
-				put->mbFilToRotate.buf.pch
+					put, "File system compression for file \"%s\" initiated.",
+				put->mbFilToRotate.buf.pcc
 												);
 			} else
 			{
 				GetTextForLastError (szErr);
 				logFromInsideRotatorTextU8fmt	(
 					put,
-					"Error %s while attempting to initiate file system compression for file \"%s\".\n",
-					szErr, put->mbFilToRotate.buf.pch
+					"Error %s while attempting to initiate file system compression for file \"%s\".",
+					szErr, put->mbFilToRotate.buf.pcc
 										);
 			}
 			break;
@@ -3745,8 +3855,8 @@ static void FileSystemCompressLogfile (CUNILOG_TARGET *put)
 			GetTextForLastError (szErr);
 			logFromInsideRotatorTextU8fmt	(
 				put,
-				"Error %s while attempting to check file system compression for file \"%s\".\n",
-				szErr, put->mbFilToRotate.buf.pch
+				"Error %s while attempting to check file system compression for file \"%s\".",
+				szErr, put->mbFilToRotate.buf.pcc
 									);
 			break;
 	}
@@ -3758,16 +3868,23 @@ static void FileSystemCompressLogfile (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
-		logFromInsideRotatorTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pch);
-		bool b = MoveToRecycleBinU8 (put->mbFilToRotate.buf.pch);
+		logFromInsideRotatorTextU8fmt	(
+			put, "Moving obsolete logfile \"%s\" to recycle bin...", put->mbFilToRotate.buf.pcc
+										);
+		bool b = MoveToRecycleBinU8 (put->mbFilToRotate.buf.pcc);
 		if (b)
 		{
-			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt	(
+				put, "Obsolete logfile \"%s\" moved to recycle bin.", put->mbFilToRotate.buf.pcc
+											);
 		} else
 		{
 			char szErr [CUNILOG_STD_MSG_SIZE];
 			GetTextForLastError (szErr);
-			logFromInsideRotatorTextU8fmt (put, "Error %s while attempting to move obsolete logfile \"%s\" to recycle bin.\n", szErr, put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt	(
+				put,
+				"Error %s while attempting to move obsolete logfile \"%s\" to recycle bin.", szErr, put->mbFilToRotate.buf.pcc
+											);
 		}
 	}
 
@@ -3780,13 +3897,13 @@ static void FileSystemCompressLogfile (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
-		logFromInsideRotatorTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pch);
-		if (LIBTRASHCAN_SUCCESS == trashcan_soft_delete_apple (put->mbFilToRotate.buf.pch))
+		logFromInsideRotatorTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pcc);
+		if (LIBTRASHCAN_SUCCESS == trashcan_soft_delete_apple (put->mbFilToRotate.buf.pcc))
 		{
-			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pcc);
 		} else
 		{
-			logFromInsideRotatorTextU8fmt (put, "Error while attempting to move obsolete logfile \"%s\" to recycle bin.\n", put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Error while attempting to move obsolete logfile \"%s\" to recycle bin.\n", put->mbFilToRotate.buf.pcc);
 		}
 	}
 
@@ -3796,16 +3913,16 @@ static void FileSystemCompressLogfile (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
-		logFromInsideRotatorTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pch);
-		bool b = MoveFileToTrashPOSIX (put->mbFilToRotate.buf.pch);
+		logFromInsideRotatorTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pcc);
+		bool b = MoveFileToTrashPOSIX (put->mbFilToRotate.buf.pcc);
 		if (b)
 		{
-			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pcc);
 		} else
 		{
 			char szErr [CUNILOG_STD_MSG_SIZE];
 			GetTextForLastError (szErr);
-			logFromInsideRotatorTextU8fmt (put, "Error %s while attempting to move obsolete logfile \"%s\" to recycle bin.\n", szErr, put->mbFilToRotate.buf.pch);
+			logFromInsideRotatorTextU8fmt (put, "Error %s while attempting to move obsolete logfile \"%s\" to recycle bin.\n", szErr, put->mbFilToRotate.buf.pcc);
 		}
 	}
 
@@ -3893,7 +4010,7 @@ static void performActualRotation (CUNILOG_ROTATOR_ARGS *prg)
 			ubf_assert (false);
 			break;
 		case cunilogrotationtask_RenameLogfiles:
-			//ubf_assert (false);
+			RenameLogfile (put);
 			break;
 		case cunilogrotationtask_FScompressLogfiles:
 			FileSystemCompressLogfile (put);
@@ -3922,6 +4039,7 @@ static void prepareU8fullFileNameToRotate (CUNILOG_ROTATOR_ARGS *prg)
 	if (isUsableSMEMBUF (&put->mbFilToRotate))
 	{
 		memcpy (put->mbFilToRotate.buf.pch + put->lnLogPath, prg->nam, prg->siz);
+		put->stFilToRotate = put->lnLogPath + prg->siz;
 	}
 }
 
@@ -3960,6 +4078,9 @@ static inline bool needReverseFLS (CUNILOG_PROCESSOR *cup)
 {
 	ubf_assert_non_NULL (cup);
 
+	/*
+		Example:
+
 	if (cunilogProcessRotateLogfiles == cup->task)
 	{
 		CUNILOG_ROTATION_DATA	*rot = cup->pData;
@@ -3967,18 +4088,24 @@ static inline bool needReverseFLS (CUNILOG_PROCESSOR *cup)
 
 		return cunilogrotationtask_RenameLogfiles == rot->tsk;
 	}
+	*/
 	return false;
 }
 
+/*
+	On NTFS, files are returned in descending alphabetical order.
+
+	This means it is enough to just reverse the order, i.e. start with the last
+	file first and walk downwards, and this is what prapareLogfilesListAndRotate ()
+	does.
+	
+	Other file systems may also return files in descending alphabetical order,
+	but on file systems that return the files randomly we got to sort the vector
+	first. If sorting descending alphabetically is required, we expect the target option
+	flag CUNILOGTARGET_FS_NEEDS_SORTING.
+*/
 static inline void sortLogfilesList (CUNILOG_TARGET *put, CUNILOG_PROCESSOR *cup)
 {
-	/*
-		On NTFS, files are returned in descending alphabetical order.
-		This means it's enough to just reverse the order, i.e. start with the last
-		file first and walk downwards. This may also be true for other file systems,
-		though on file systems that return the files randomly we got to sort the vector
-		first.
-	*/
 	if (cunilogTargetHasFSneedsSorting (put))
 		vec_sort (&put->fls, flscmp);
 

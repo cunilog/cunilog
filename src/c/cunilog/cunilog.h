@@ -89,9 +89,11 @@ When		Who				What
 #endif
 
 // To build the test functions.
+/*
 #ifndef CUNILOG_BUILD_TEST_FNCTS
 #define CUNILOG_BUILD_TEST_FNCTS
 #endif
+*/
 
 // Some functions accept string lengths of (size_t) -1 to obtain a length via a call
 //	to strlen ().
@@ -112,25 +114,39 @@ When		Who				What
 	Also, see https://learn.microsoft.com/en-us/cpp/build/reference/zp-struct-member-alignment?view=msvc-170 .
 */
 #if defined (_M_X64)
+	#ifndef CUNILOG_DEFAULT_ALIGNMENT
 	#define CUNILOG_DEFAULT_ALIGNMENT	(16)
+	#endif
 #else
+	#ifndef CUNILOG_DEFAULT_ALIGNMENT
 	#define CUNILOG_DEFAULT_ALIGNMENT	(8)
+	#endif
 #endif
 #if defined (_M_X64)
+	#ifndef CUNILOG_POINTER_ALIGNMENT
 	#define CUNILOG_POINTER_ALIGNMENT	(8)
+	#endif
 #else
+	#ifndef CUNILOG_POINTER_ALIGNMENT
 	#define CUNILOG_POINTER_ALIGNMENT	(8)
+	#endif
 #endif
 
 
 // Our standard size for error messages on the stack.
+#ifndef CUNILOG_STD_MSG_SIZE
 #define CUNILOG_STD_MSG_SIZE			(256)
+#endif
 
 // Our standard size for bulk memory allocations.
+#ifndef CUNILOG_STD_BULK_ALLOC_SIZE
 #define CUNILOG_STD_BULK_ALLOC_SIZE		(4096 - sizeof (SBULKMEMBLOCK))
+#endif
 
 // The size we're going to expand the vector containing the names of logfiles.
+#ifndef CUNILOG_STD_VECT_EXP_SIZE
 #define CUNILOG_STD_VECT_EXP_SIZE		(128)
+#endif
 
 // The stack/heap threshold for the ...sfmt type logging functions.
 #ifndef CUNILOG_DEFAULT_SFMT_SIZE

@@ -178,10 +178,30 @@ void copySMEMBUFsiz (SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict sr
 	ubf_assert			(isInitialisedSMEMBUF (dst));
 	ubf_assert			(isInitialisedSMEMBUF (src));
 	ubf_assert			(dst != src);
+	ubf_assert			(siz <= src->size);
 
 	growToSizeSMEMBUF (dst, siz);
 	if (isUsableSMEMBUF (dst))
 	{
 		memcpy (dst->buf.pch, src->buf.pch, siz);
+	}
+}
+
+void copySMEMBUFreserve	(
+		SMEMBUF		*cunilog_restrict dst,
+		SMEMBUF		*cunilog_restrict src,
+		size_t		reserve
+						)
+{
+	ubf_assert_non_NULL	(dst);
+	ubf_assert_non_NULL	(src);
+	ubf_assert			(isInitialisedSMEMBUF (dst));
+	ubf_assert			(isInitialisedSMEMBUF (src));
+	ubf_assert			(dst != src);
+
+	growToSizeSMEMBUF (dst, src->size + reserve);
+	if (isUsableSMEMBUF (dst))
+	{
+		memcpy (dst->buf.pch, src->buf.pch, src->size);
 	}
 }

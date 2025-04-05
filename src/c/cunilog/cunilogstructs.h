@@ -498,19 +498,19 @@ typedef struct cunilog_rotation_data
 /*
 	Macros for checking, setting, and clearing some of the flags above.
 */
-#define cunilogHasRotatorFlag_USE_MBSRCMASK(pt)			\
-	((pt)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
-#define cunilogSetRotatorFlag_USE_MBSRCMASK(pt)			\
-	((pt)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
-#define cunilogClrRotatorFlag_USE_MBSRCMASK(pt)			\
-	((pt)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
+#define cunilogHasRotatorFlag_USE_MBSRCMASK(prd)		\
+	((prd)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
+#define cunilogSetRotatorFlag_USE_MBSRCMASK(prd)		\
+	((prd)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
+#define cunilogClrRotatorFlag_USE_MBSRCMASK(prd)		\
+	((prd)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
 
-#define cunilogHasRotatorFlag_USE_MBDSTFILE(pt)			\
-	((pt)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
-#define cunilogSetRotatorFlag_USE_MBDSTFILE(pt)			\
-	((pt)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
-#define cunilogClrRotatorFlag_USE_MBDSTFILE(pt)			\
-	((pt)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
+#define cunilogHasRotatorFlag_USE_MBDSTFILE(prd)		\
+	((prd)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
+#define cunilogSetRotatorFlag_USE_MBDSTFILE(prd)		\
+	((prd)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
+#define cunilogClrRotatorFlag_USE_MBDSTFILE(prd)		\
+	((prd)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
 
 
 // Value of member nMaxToRotate of a CUNILOG_ROTATION_DATA structure to be obtained
@@ -953,6 +953,7 @@ typedef struct CUNILOG_TARGET
 		size_t						lnsLogFileMask;			// Its length.
 	#endif
 	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
+	size_t							stFilToRotate;			// Its length including the NUL terminator.
 	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.
 	size_t							lnLogEventLine;			// The current length of the event line.
 

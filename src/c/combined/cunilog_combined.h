@@ -1706,7 +1706,8 @@ TYPEDEF_FNCT_PTR (void, copySMEMBUF)
 	copySMEMBUFsiz
 
 	Copies the buffer of src into dst up to a size of siz. The buffer size of dst does
-	not shrink.
+	not shrink. The function does not check if the buffer of src is big enough to copy
+	siz bytes/octets. This is the responsibility of the caller.
 
 	The function does not return a value. Check with isUsableSMEMBUF (dst) to see if the
 	copy operation was successful.
@@ -1716,6 +1717,30 @@ void copySMEMBUFsiz (SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict sr
 TYPEDEF_FNCT_PTR (void, copySMEMBUFsiz)
 	(SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict src, size_t siz)
 	;
+
+/*
+	copySMEMBUFreserve
+
+	Sets the buffer size of dst to src->size + reserve and copies the buffer of src to
+	dst.
+
+	The function does not return a value. Check with isUsableSMEMBUF (dst) to see if the
+	copy operation was successful.
+*/
+void copySMEMBUFreserve	(
+		SMEMBUF		*cunilog_restrict dst,
+		SMEMBUF		*cunilog_restrict src,
+		size_t		reserve
+						)
+;
+TYPEDEF_FNCT_PTR (void, copySMEMBUFreserve)
+						(
+		SMEMBUF		*cunilog_restrict dst,
+		SMEMBUF		*cunilog_restrict src,
+		size_t		reserve
+						)
+;
+
 
 EXTERN_C_END
 
@@ -9708,7 +9733,7 @@ BEGIN_C_DECLS
 */
 #define vec_reverse(v)\
   do {\
-    int i__ = (v)->length / 2;\
+    size_t i__ = (v)->length / 2;\
     while (i__--) {\
       vec_swap((v), i__, (v)->length - (i__ + 1));\
     }\
@@ -17463,19 +17488,19 @@ typedef struct cunilog_rotation_data
 /*
 	Macros for checking, setting, and clearing some of the flags above.
 */
-#define cunilogHasRotatorFlag_USE_MBSRCMASK(pt)			\
-	((pt)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
-#define cunilogSetRotatorFlag_USE_MBSRCMASK(pt)			\
-	((pt)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
-#define cunilogClrRotatorFlag_USE_MBSRCMASK(pt)			\
-	((pt)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
+#define cunilogHasRotatorFlag_USE_MBSRCMASK(prd)		\
+	((prd)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
+#define cunilogSetRotatorFlag_USE_MBSRCMASK(prd)		\
+	((prd)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
+#define cunilogClrRotatorFlag_USE_MBSRCMASK(prd)		\
+	((prd)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBSRCMASK)
 
-#define cunilogHasRotatorFlag_USE_MBDSTFILE(pt)			\
-	((pt)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
-#define cunilogSetRotatorFlag_USE_MBDSTFILE(pt)			\
-	((pt)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
-#define cunilogClrRotatorFlag_USE_MBDSTFILE(pt)			\
-	((pt)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
+#define cunilogHasRotatorFlag_USE_MBDSTFILE(prd)		\
+	((prd)->uiFlgs & CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
+#define cunilogSetRotatorFlag_USE_MBDSTFILE(prd)		\
+	((prd)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
+#define cunilogClrRotatorFlag_USE_MBDSTFILE(prd)		\
+	((prd)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
 
 
 // Value of member nMaxToRotate of a CUNILOG_ROTATION_DATA structure to be obtained
@@ -17600,7 +17625,7 @@ typedef struct cunilog_rotation_data
 */
 #define CUNILOG_INIT_DEF_RENAMELOGFILES_PROCESSOR(p)	\
 {														\
-	cunilogrotationtask_RenameLogfiles,					\
+	cunilogProcessRotateLogfiles,						\
 	cunilogProcessAppliesTo_Auto,						\
 	0, 0,												\
 	(p),							\
@@ -17918,6 +17943,7 @@ typedef struct CUNILOG_TARGET
 		size_t						lnsLogFileMask;			// Its length.
 	#endif
 	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
+	size_t							stFilToRotate;			// Its length including the NUL terminator.
 	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.
 	size_t							lnLogEventLine;			// The current length of the event line.
 
@@ -17967,9 +17993,8 @@ typedef struct CUNILOG_TARGET
 } CUNILOG_TARGET;
 
 /*
-	Option flags for the uiOpts member of a CUNILOG_TARGET structure.
-	These still require to be split into internal ones and flags the caller
-	is allowed to provide.
+	Internal option flags for the uiOpts member of a CUNILOG_TARGET structure.
+	These should not be changed by callers/users.
 */
 
 // The initialiser.
@@ -18011,12 +18036,15 @@ typedef struct CUNILOG_TARGET
 //	descending alphabetic order.
 #define CUNILOGTARGET_FS_NEEDS_SORTING			SINGLEBIT64 (10)
 
-// The separate logging thread, if one exists, is paused.
-#define CUNILOGTARGET_PAUSED					SINGLEBIT64 (11)
+// The elements of the member fls (a vecotr) are in reversed order.
+#define CUNILOGTARGET_FLS_REVERSED				SINGLEBIT64 (11)
 
-// Debug versions ensure that one of the initialisation functions has been called.
+// The separate logging thread, if one exists, is paused.
+#define CUNILOGTARGET_PAUSED					SINGLEBIT64 (12)
+
+// Debug versions ensure that one of the initialisation function has been called.
 #ifdef DEBUG
-	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (12)
+	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (13)
 	#define cunilogSetTargetInitialised(pt)				\
 			((pt)->uiOpts |= CUNILOGTARGET_INITIALISED)
 	#define cunilogIsTargetInitialised(pt)				\
@@ -18026,23 +18054,20 @@ typedef struct CUNILOG_TARGET
 	#define cunilogIsTargetInitialised(pt)	(true)
 #endif
 
-// The echo/console output processor is skipped.
-#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (13)
-
-// The processor that writes to the logfile is skipped.
-#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (14)
-
-// Colour information should be used.
-#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (15)
-
 // Debug flag when the queue is locked. To be removed in the future.
-#define CUNILOGTARGET_DEBUG_QUEUE_LOCKED		SINGLEBIT64 (16)
+#define CUNILOGTARGET_DEBUG_QUEUE_LOCKED		SINGLEBIT64 (20)
+
+
+/*
+	Public option flags for the uiOpts member of a CUNILOG_TARGET structure.
+	Flags callers/users can change/use.
+*/
 
 // Tells the initialiser function(s) not to allocate/assign default processors.
 //	The target is not ready when this option flag is used. The function
 //	ConfigCUNILOG_TARGETprocessorList () must be called before the target
 //	is usable.
-#define CUNILOGTARGET_NO_DEFAULT_PROCESSORS		SINGLEBIT64 (60)
+#define CUNILOGTARGET_NO_DEFAULT_PROCESSORS		SINGLEBIT64 (32)
 
 /*
 	By default, timestamps are created when an event is created.With this bit set,
@@ -18051,127 +18076,143 @@ typedef struct CUNILOG_TARGET
 	because the timestamp is obtained during this process. Without this flag,
 	timestamps are created when the event is created, and outside the lock.
 */
-#define CUNILOGTARGET_ENQUEUE_TIMESTAMPS		SINGLEBIT64 (61)
+#define CUNILOGTARGET_ENQUEUE_TIMESTAMPS		SINGLEBIT64 (33)
+
+// The echo/console output processor is skipped.
+#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (34)
+
+// The processor that writes to the logfile is skipped.
+#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (35)
+
+// Colour information should be used.
+#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (36)
 
 /*
 	Macros for some flags.
 */
-#define cunilogSetShutdownTarget(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_SHUTDOWN)
-#define cunilogIsShutdownTarget(pt)						\
-	((pt)->uiOpts & CUNILOGTARGET_SHUTDOWN)
+#define cunilogSetShutdownTarget(put)					\
+	((put)->uiOpts |= CUNILOGTARGET_SHUTDOWN)
+#define cunilogIsShutdownTarget(put)						\
+	((put)->uiOpts & CUNILOGTARGET_SHUTDOWN)
 
-#define cunilogSetTargetHasShutdown(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_HAS_SHUT_DOWN)
-#define cunilogIsTargetHasShutdown(pt)					\
+#define cunilogSetTargetHasShutdown(put)					\
+	((put)->uiOpts |= CUNILOGTARGET_HAS_SHUT_DOWN)
+#define cunilogIsTargetHasShutdown(put)					\
 	((pt)->uiOpts & CUNILOGTARGET_HAS_SHUT_DOWN)
 
-#define cunilogSetTargetAllocated(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_ALLOCATED)
-#define cunilogIsTargetAllocated(pt)					\
-	((pt)->uiOpts & CUNILOGTARGET_ALLOCATED)
+#define cunilogSetTargetAllocated(put)					\
+	((put)->uiOpts |= CUNILOGTARGET_ALLOCATED)
+#define cunilogIsTargetAllocated(put)					\
+	((put)->uiOpts & CUNILOGTARGET_ALLOCATED)
 
-#define cunilogSetLogPathAllocated(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_LOGPATH_ALLOCATED)
-#define cunilogIsLogPathAllocated(pt)					\
-	((pt)->uiOpts & CUNILOGTARGET_LOGPATH_ALLOCATED)
+#define cunilogSetLogPathAllocated(put)					\
+	((put)->uiOpts |= CUNILOGTARGET_LOGPATH_ALLOCATED)
+#define cunilogIsLogPathAllocated(put)					\
+	((put)->uiOpts & CUNILOGTARGET_LOGPATH_ALLOCATED)
 
-#define cunilogSetAppNameAllocated(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_APPNAME_ALLOCATED)
-#define cunilogIsAppNameAllocated(pt)					\
-	((pt)->uiOpts & CUNILOGTARGET_APPNAME_ALLOCATED)
+#define cunilogSetAppNameAllocated(put)					\
+	((put)->uiOpts |= CUNILOGTARGET_APPNAME_ALLOCATED)
+#define cunilogIsAppNameAllocated(put)					\
+	((put)->uiOpts & CUNILOGTARGET_APPNAME_ALLOCATED)
 
-#define cunilogSetLogFileAllocated(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_LOGFILE_ALLOCATED)
-#define cunilogIsLogFileAllocated(pt)					\
-	((pt)->uiOpts & CUNILOGTARGET_LOGFILE_ALLOCATED)
+#define cunilogSetLogFileAllocated(put)					\
+	((put)->uiOpts |= CUNILOGTARGET_LOGFILE_ALLOCATED)
+#define cunilogIsLogFileAllocated(put)					\
+	((put)->uiOpts & CUNILOGTARGET_LOGFILE_ALLOCATED)
 
-#define cunilogSetLogFileMaskAllocated(pt)				\
-	((pt)->uiOpts |= CUNILOGTARGET_LOGF_MASK_ALLOCATED)
-#define cunilogIsLogFileMaskAllocated(pt)				\
-	((pt)->uiOpts & CUNILOGTARGET_LOGF_MASK_ALLOCATED)
+#define cunilogSetLogFileMaskAllocated(put)				\
+	((put)->uiOpts |= CUNILOGTARGET_LOGF_MASK_ALLOCATED)
+#define cunilogIsLogFileMaskAllocated(put)				\
+	((put)->uiOpts & CUNILOGTARGET_LOGF_MASK_ALLOCATED)
 
-#define cunilogSetFileToRotateAllocated(pt)				\
-	((pt)->uiOpts |= CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
-#define cunilogIsFileToRotateAllocated(pt)				\
-	((pt)->uiOpts & CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
+#define cunilogSetFileToRotateAllocated(put)				\
+	((put)->uiOpts |= CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
+#define cunilogIsFileToRotateAllocated(put)				\
+	((put)->uiOpts & CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
 
-#define cunilogSetProcessorsAllocated(pt)				\
-	((pt)->uiOpts |= CUNILOGTARGET_PROCESSORS_ALLOCATED)
-#define cunilogClrProcessorsAllocated(pt)				\
-	((pt)->uiOpts &= ~ CUNILOGTARGET_PROCESSORS_ALLOCATED)
-#define cunilogIsProcessorsAllocated(pt)				\
-	((pt)->uiOpts & CUNILOGTARGET_PROCESSORS_ALLOCATED)
+#define cunilogSetProcessorsAllocated(put)				\
+	((put)->uiOpts |= CUNILOGTARGET_PROCESSORS_ALLOCATED)
+#define cunilogClrProcessorsAllocated(put)				\
+	((put)->uiOpts &= ~ CUNILOGTARGET_PROCESSORS_ALLOCATED)
+#define cunilogIsProcessorsAllocated(put)				\
+	((put)->uiOpts & CUNILOGTARGET_PROCESSORS_ALLOCATED)
 
-#define cunilogHasRunAllProcessorsOnStartup(pt)			\
-	((pt)->uiOpts & CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
-#define cunilogClrRunAllProcessorsOnStartup(pt)			\
-	((pt)->uiOpts &= ~ CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
-#define cunilogSetRunAllProcessorsOnStartup(pt)			\
-	((pt)->uiOpts |= CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
+#define cunilogHasRunAllProcessorsOnStartup(put)			\
+	((put)->uiOpts & CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
+#define cunilogClrRunAllProcessorsOnStartup(put)			\
+	((put)->uiOpts &= ~ CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
+#define cunilogSetRunAllProcessorsOnStartup(put)			\
+	((put)->uiOpts |= CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
 
-#define cunilogIsFSneedsSorting(pt)						\
-	((pt)->uiOpts & CUNILOGTARGET_FS_NEEDS_SORTING)
-#define cunilogClrFSneedsSorting(pt)					\
-	((pt)->uiOpts &= ~ CUNILOGTARGET_FS_NEEDS_SORTING)
-#define cunilogSetFSneedsSorting(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_FS_NEEDS_SORTING)
+#define cunilogTargetHasFSneedsSorting(put)				\
+	((put)->uiOpts & CUNILOGTARGET_FS_NEEDS_SORTING)
+#define cunilogTargetClrFSneedsSorting(put)				\
+	((put)->uiOpts &= ~ CUNILOGTARGET_FS_NEEDS_SORTING)
+#define cunilogTargetSetFSneedsSorting(put)				\
+	((put)->uiOpts |= CUNILOGTARGET_FS_NEEDS_SORTING)
 
-#define cunilogIsPaused(pt)								\
-	((pt)->uiOpts & CUNILOGTARGET_PAUSED)
-#define cunilogClrPaused(pt)							\
-	((pt)->uiOpts &= ~ CUNILOGTARGET_PAUSED)
-#define cunilogSetPaused(pt)							\
-	((pt)->uiOpts |= CUNILOGTARGET_PAUSED)
+#define cunilogTargetHasFLSreversed(put)					\
+	((put)->uiOpts & CUNILOGTARGET_FLS_REVERSED)
+#define cunilogTargetClrFLSreversed(put)					\
+	((put)->uiOpts &= ~ CUNILOGTARGET_FLS_REVERSED)
+#define cunilogTargetSetFLSreversed(put)					\
+	((put)->uiOpts |= CUNILOGTARGET_FLS_REVERSED)
 
-#define cunilogIsNoEcho(pt)								\
-	((pt)->uiOpts & CUNILOGTARGET_NO_ECHO)
-#define cunilogClrNoEcho(pt)							\
-	((pt)->uiOpts &= ~ CUNILOGTARGET_NO_ECHO)
-#define cunilogSetNoEcho(pt)							\
-	((pt)->uiOpts |= CUNILOGTARGET_NO_ECHO)
+#define cunilogTargetIsPaused(put)						\
+	((put)->uiOpts & CUNILOGTARGET_PAUSED)
+#define cunilogTargetClrPaused(put)						\
+	((put)->uiOpts &= ~ CUNILOGTARGET_PAUSED)
+#define cunilogTargetSetPaused(put)						\
+	((put)->uiOpts |= CUNILOGTARGET_PAUSED)
 
-#define cunilogHasDontWriteToLogfile(pt)				\
-	((pt)->uiOpts & CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
-#define cunilogClrNoWriteToLogfile(pt)					\
-	((pt)->uiOpts &= ~ CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
-#define cunilogSetNoWriteToLogfile(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
+#define cunilogIsNoEcho(put)								\
+	((put)->uiOpts & CUNILOGTARGET_NO_ECHO)
+#define cunilogClrNoEcho(put)							\
+	((put)->uiOpts &= ~ CUNILOGTARGET_NO_ECHO)
+#define cunilogSetNoEcho(put)							\
+	((put)->uiOpts |= CUNILOGTARGET_NO_ECHO)
+
+#define cunilogHasDontWriteToLogfile(put)				\
+	((put)->uiOpts & CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
+#define cunilogClrNoWriteToLogfile(put)					\
+	((put)->uiOpts &= ~ CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
+#define cunilogSetNoWriteToLogfile(put)					\
+	((put)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#ifndef cunilogHasUseColourForEcho
-		#define cunilogHasUseColourForEcho(pt)			\
-			((pt)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+		#define cunilogHasUseColourForEcho(put)			\
+			((put)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 	#endif
 	#ifndef cunilogClrUseColourForEcho
-		#define cunilogClrUseColourForEcho(pt)			\
-			((pt)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+		#define cunilogClrUseColourForEcho(put)			\
+			((put)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 	#endif
 	#ifndef cunilogSetUseColourForEcho
-		#define cunilogSetUseColourForEcho(pt)			\
-			((pt)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+		#define cunilogSetUseColourForEcho(put)			\
+			((put)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 	#endif
 #endif
 
 #if defined (DEBUG) && !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
-	#define cunilogHasDebugQueueLocked(pt)				\
-		((pt)->uiOpts & CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
-	#define cunilogClrDebugQueueLocked(pt)				\
-		((pt)->uiOpts &= ~ CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
-	#define cunilogSetDebugQueueLocked(pt)				\
-		((pt)->uiOpts |= CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+	#define cunilogHasDebugQueueLocked(put)				\
+		((put)->uiOpts & CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+	#define cunilogClrDebugQueueLocked(put)				\
+		((put)->uiOpts &= ~ CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+	#define cunilogSetDebugQueueLocked(put)				\
+		((put)->uiOpts |= CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
 #else
-	#define cunilogHasDebugQueueLocked(pt)	(true)
-	#define cunilogClrDebugQueueLocked(pt)
-	#define cunilogSetDebugQueueLocked(pt)
+	#define cunilogHasDebugQueueLocked(put)	(true)
+	#define cunilogClrDebugQueueLocked(put)
+	#define cunilogSetDebugQueueLocked(put)
 #endif
 
-#define cunilogHasEnqueueTimestamps(pt)					\
-	((pt)->uiOpts & CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
-#define cunilogClrEnqueueTimestamps(pt)					\
-	((pt)->uiOpts &= ~ CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
-#define cunilogSetEnqueueTimestamps(pt)					\
-	((pt)->uiOpts |= CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
+#define cunilogHasEnqueueTimestamps(put)					\
+	((put)->uiOpts & CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
+#define cunilogClrEnqueueTimestamps(put)					\
+	((put)->uiOpts &= ~ CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
+#define cunilogSetEnqueueTimestamps(put)					\
+	((put)->uiOpts |= CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
 
 
 /*
@@ -18812,9 +18853,11 @@ When		Who				What
 #endif
 
 // To build the test functions.
+/*
 #ifndef CUNILOG_BUILD_TEST_FNCTS
 #define CUNILOG_BUILD_TEST_FNCTS
 #endif
+*/
 
 // Some functions accept string lengths of (size_t) -1 to obtain a length via a call
 //	to strlen ().
@@ -18835,25 +18878,39 @@ When		Who				What
 	Also, see https://learn.microsoft.com/en-us/cpp/build/reference/zp-struct-member-alignment?view=msvc-170 .
 */
 #if defined (_M_X64)
+	#ifndef CUNILOG_DEFAULT_ALIGNMENT
 	#define CUNILOG_DEFAULT_ALIGNMENT	(16)
+	#endif
 #else
+	#ifndef CUNILOG_DEFAULT_ALIGNMENT
 	#define CUNILOG_DEFAULT_ALIGNMENT	(8)
+	#endif
 #endif
 #if defined (_M_X64)
+	#ifndef CUNILOG_POINTER_ALIGNMENT
 	#define CUNILOG_POINTER_ALIGNMENT	(8)
+	#endif
 #else
+	#ifndef CUNILOG_POINTER_ALIGNMENT
 	#define CUNILOG_POINTER_ALIGNMENT	(8)
+	#endif
 #endif
 
 
 // Our standard size for error messages on the stack.
+#ifndef CUNILOG_STD_MSG_SIZE
 #define CUNILOG_STD_MSG_SIZE			(256)
+#endif
 
 // Our standard size for bulk memory allocations.
+#ifndef CUNILOG_STD_BULK_ALLOC_SIZE
 #define CUNILOG_STD_BULK_ALLOC_SIZE		(4096 - sizeof (SBULKMEMBLOCK))
+#endif
 
 // The size we're going to expand the vector containing the names of logfiles.
+#ifndef CUNILOG_STD_VECT_EXP_SIZE
 #define CUNILOG_STD_VECT_EXP_SIZE		(128)
+#endif
 
 // The stack/heap threshold for the ...sfmt type logging functions.
 #ifndef CUNILOG_DEFAULT_SFMT_SIZE
