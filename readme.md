@@ -75,7 +75,7 @@ very quick. The software's origins are in automation with realtime constraints.
 ## What it is not
 
 - It is not a replacement for existing logging facilities like syslog or logrotate
-	on Linux systems or Windows event logging.
+	on Linux systems or Windows event logging. However, it can mimic logrotate's dot-number file naming scheme.
 
 - It is even further away from software like Apache Kafka and Pulsar. These serve
 	totally different purposes.
