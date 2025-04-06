@@ -4275,12 +4275,27 @@ static inline bool needReverseFLS (CUNILOG_TARGET *put, CUNILOG_PROCESSOR *cup)
 */
 static inline void sortLogfilesList (CUNILOG_TARGET *put, CUNILOG_PROCESSOR *cup)
 {
+	/*
+	CUNILOG_ROTATION_DATA	*prd = cup->pData;
+
+	size_t iFiles = put->fls.length;
+	printf ("\nList sort in: %d\n", prd->tsk);
+	while (iFiles --)
+	{
+		puts (put->fls.data [iFiles].chFilename);
+	}
+	*/
+
 	if (cunilogTargetHasFSneedsSorting (put))
 	{
-		if (cunilogTargetHasNumberSorting (put))
-			vec_sort (&put->fls, flscmp_dotnum);
-		else
-			vec_sort (&put->fls, flscmp_default);
+		if (!cunilogTargetHasFLSisSorted (put))
+		{
+			if (cunilogTargetHasNumberSorting (put))
+				vec_sort (&put->fls, flscmp_dotnum);
+			else
+				vec_sort (&put->fls, flscmp_default);
+			cunilogTargetSetFLSisSorted (put);
+		}
 	}
 
 	// The processor may need the files in reverse order.
@@ -4301,6 +4316,16 @@ static inline void sortLogfilesList (CUNILOG_TARGET *put, CUNILOG_PROCESSOR *cup
 			cunilogTargetClrFLSreversed (put);
 		}
 	}
+
+	/*
+	printf ("\nList sort out: %d\n", prd->tsk);
+	iFiles = put->fls.length;
+	while (iFiles --)
+	{
+		puts (put->fls.data [iFiles].chFilename);
+	}
+	;
+	*/
 }
 
 static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
@@ -4315,14 +4340,26 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 	CUNILOG_ROTATION_DATA	*prd = cup->pData;
 	ubf_assert_non_NULL (prd);
 
+	size_t iFiles = put->fls.length;
+
+	/*
+	printf ("\nList in: %d\n", prd->tsk);
+	while (iFiles --)
+	{
+		puts (put->fls.data [iFiles].chFilename);
+	}
+	iFiles = put->fls.length;
+	*/
+
 	sortLogfilesList (put, cup);
 
-	size_t iFiles = put->fls.length;
 	uint64_t nToIgnore = prd->nIgnore + put->scuNPI.nIgnoredTotal;
 	uint64_t nMaxToRot =		CUNILOG_MAX_ROTATE_AUTO - nToIgnore <= prd->nMaxToRotate
 							?	prd->nMaxToRotate
 							:	nToIgnore + prd->nMaxToRotate;
+	
 	/*
+	printf ("\nList sorted: %d\n", prd->tsk);
 	while (iFiles --)
 	{
 		puts (put->fls.data [iFiles].chFilename);
@@ -4489,12 +4526,24 @@ static inline void obtainLogfilesListToRotate (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
-	#if defined (PLATFORM_IS_WINDOWS)
-		obtainLogfilesListToRotateWin (put);
-	#elif defined (PLATFORM_IS_POSIX)
-		obtainLogfilesListToRotatePsx (put);
-	#endif
-	cunilogTargetClrFLSreversed (put);
+	if (0 == put->fls.length)
+	{
+		#if defined (PLATFORM_IS_WINDOWS)
+			obtainLogfilesListToRotateWin (put);
+		#elif defined (PLATFORM_IS_POSIX)
+			obtainLogfilesListToRotatePsx (put);
+		#endif
+		cunilogTargetClrFLSreversed (put);
+	}
+}
+
+static inline void cunilogResetFilesList (CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	vec_clear (&put->fls);
+	EmptySBULKMEM (&put->sbm);
+	cunilogTargetClrFLSisSorted (put);
 }
 
 static bool cunilogProcessRotateLogfilesFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
@@ -4510,25 +4559,25 @@ static bool cunilogProcessRotateLogfilesFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EV
 	CUNILOG_ROTATION_DATA	*prd = cup->pData;
 	ubf_assert_non_NULL (prd);
 
-	// Reset.
-	vec_clear (&put->fls);
-	EmptySBULKMEM (&put->sbm);
 	prd->nCnt = 0;
 
 	CUNILOG_ROTATOR_ARGS	args;
 	args.cup = cup;
 	args.pev = pev;
 
+	obtainLogfilesListToRotate		(put);
 	switch (prd->tsk)
 	{
 		case cunilogrotationtask_None:
 			break;
 		case cunilogrotationtask_RenameLogfiles:
+			prapareLogfilesListAndRotate	(&args);
+			//cunilogResetFilesList			(put);
+			break;
 		case cunilogrotationtask_FScompressLogfiles:
 		case cunilogrotationtask_MoveToRecycleBinLogfiles:
 		case cunilogrotationtask_DeleteLogfiles:
-			obtainLogfilesListToRotate (put);
-			prapareLogfilesListAndRotate (&args);
+			prapareLogfilesListAndRotate	(&args);
 			break;
 	}
 	return true;
@@ -5047,6 +5096,9 @@ static void cunilogProcessProcessors (CUNILOG_EVENT *pev)
 
 	pev->pCUNILOG_TARGET->scuNPI.nIgnoredTotal = 0;
 	cunilogClrEventStopProcessing (pev);
+
+	CUNILOG_TARGET *put = pev->pCUNILOG_TARGET;
+	cunilogResetFilesList (put);
 
 	unsigned int ui = 0;
 	while (ui < pev->pCUNILOG_TARGET->nprocessors)
