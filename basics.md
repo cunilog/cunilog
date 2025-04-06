@@ -11,15 +11,15 @@ information to understand their purposes and how to use them appropriately.
 
 Often the descriptions are detailed enough to recreate functions from scratch without having seen
 their code. However, this may not always be the case for simplicity reasons and to allow for comments
-that get straight to the point from a user's/caller's perspective. If in doubt, check the source code.
+that get straight to the point from the caller's perspective. If in doubt, check the source code.
 
 If the description isn't detailed enough, then the function, macro, or object is most likely a variation
 of one of the functions, macros, or objects before/above. These comments may contain only differences
 to the previous object, function, or macro, and necessary information is found there.
 
-If something consistently requires looking at the code in order to understand how to call or use it, though, this is considered a bug and should be rectified.
+If something consistently requires referring to the code in order to understand its use, it is considered a bug and should be rectified.
 
-To distinguish between functions and macros in the documentation and comments, functions are normally referred to as __function_name ()__ with a single space between name and opening bracket while macros are referred to as __macro_name()__ without space.
+To distinguish between functions and macros, in the documentation and comments, functions are normally referred to as __function_name ()__ with a single space between name and opening bracket while macros are referred to as __macro_name()__ without space.
 
 ### Debugging
 
@@ -27,11 +27,11 @@ When compiled for release versions Cunilog carries out only the most imporant pa
 
 It neither checks upper nor lower bounds of enumeration types. Function parameters that are not documented to be allowed to be NULL are not checked against being NULL. String parameters complemented by a length argument do not have their buffers examined to see if they're eventually NUL-terminated.
 
-It is recommended to always test debug builds first. Debug builds contain tons of assertions
+It is recommended to always test debug builds first. Debug builds include extensive assertions
 and abort messages that should catch most argument mismatches, buffer overruns, out-of-bounds enums, etc.
 
 First, build a debug version of your application and make sure you also use a Cunilog debug
-build, then test it to ensure all function and macro arguments are good and that there are no
+build.  Then test it to ensure all function and macro arguments are good and that there are no
 buffer overruns or accidental NULL pointers.
 
 ### Name collisions
@@ -65,9 +65,9 @@ For more information on Cunilog and UTF-8, please refer to [Cunilog and UTF-8](u
 
 ## Logging target
 
-In Cunilog terms a log file is called a target. In fact, a target
+In Cunilog a log file is called a target. In fact, a target
 can be anything from console output to log file or both or a database or
-whatever. This is entirely configurable. Whatever the target is, all
+any other destination. This is entirely configurable. Whatever the target is, all
 logging functions expect a target.
 
 An application can create an arbitrary number of targets for Cunilog, or just
@@ -75,7 +75,7 @@ use the default (static) target. Logging to targets can be suspended and resumed
 Every target, however, needs to be configured first so that Cunilog knows what to do
 with it. This also applies to the default (static) target.
 
-Logging functions create events, and events are sent to targets. A target can be configured to fork/duplicate events to other targets. Events can also be redirected to another target.
+Logging functions create events and events are sent to targets. A target can be configured to fork/duplicate events to other targets. Events can also be redirected to another target.
 
 All logging functions expect as their first parameter a pointer to a target
 structure of type __CUNILOG_TARGET__. For the default (static) target,
@@ -85,7 +85,7 @@ macros/functions.
 
 The characteristics of a Cunilog target are specified when it is initialised. Some of these
 characteristics can be changed afterwards but need to be applied before the first logging
-function that uses this target is called. Other characteristics can still be changed even after
+function that uses this target is called. Some characteristics can still be changed even after
 logging functions have been called. If the application only has a single thread and the target
 has been initialised for a single thread only, all of its characterisitcs can be changed if
 enough care is taken.
@@ -99,7 +99,7 @@ If the path is relative, the enumeration __enCunilogRelLogPath__ decides on an a
 
 ### Threading
 
-The tpye of a Cunilog target is probably its most relevant characteristic. This type cannot be changed
+The type of a Cunilog target is probably its most important characteristic. This type cannot be changed
 later unless the application and the target are both single-threaded.
 
 The __enum cunilogtype__ denotes the type of a target.
@@ -113,7 +113,7 @@ The __enum cunilogtype__ denotes the type of a target.
 
 Note that __cunilogSingleThreadedSeparateLoggingThread__ is meant for a single application thread only but the actual logging tasks are delegated to a separate logging thread via an event queue. On the other hand __cunilogMultiThreadedSeparateLoggingThread__ is meant to do the same in a multi-threaded application. However, both are currently implemented identically.
 
-If unsure, __cunilogMultiThreadedSeparateLoggingThread__ is most likely what you should pick. For more details on Cunilog target types, check the comments in the header file or have a look at the code.
+If unsure, __cunilogMultiThreadedSeparateLoggingThread__ is most likely what you should use. For more details on Cunilog target types, check the comments in the header file or have a look at the code.
 
 ## Processors
 
