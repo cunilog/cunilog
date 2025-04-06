@@ -17284,6 +17284,7 @@ typedef struct cunilog_processor
 /*
 	Our default static pData structures for our standard processors.
 */
+/*
 CUNILOG_LOGFILE			defcuppLogFile						=
 	CUNILOG_INIT_DEF_CUNILOG_LOGFILE ();
 CUNILOG_ROTATION_DATA	defcuppRotatorRenameLogfiles		=
@@ -17298,9 +17299,11 @@ CUNILOG_ROTATION_DATA	defcuppRotatorMove_to_recycle_bin	=
 CUNILOG_ROTATION_DATA	defcuppRotatorDelete				=
 	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_DELETE
 		(CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED);
+*/
 /*
 	Our default processors. Only used for our static CUNILOG_TARGET structure.
 */
+/*
 CUNILOG_PROCESSOR		defcuppEcho							=
 	CUNILOG_INIT_DEF_ECHO_PROCESSOR;
 CUNILOG_PROCESSOR		defcuppUpdateLogfileName			=
@@ -17315,8 +17318,9 @@ CUNILOG_PROCESSOR		defcuppRotateLogfilesFScompress		=
 	CUNILOG_INIT_DEF_LOGFILESFSCOMPRESS_PROCESSOR	(&defcuppRotatorFS_compress);
 CUNILOG_PROCESSOR		defcuppRotateLogfilesMoveToTrash	=
 	CUNILOG_INIT_DEF_LOGFILESMOVETOTRASH_PROCESSOR	(&defcuppRotatorMove_to_recycle_bin);
-
+*/
 // The list with the processors.
+/*
 CUNILOG_PROCESSOR	*defcupp [] =
 {
 	&defcuppEcho,											// Writes to console.
@@ -17328,6 +17332,7 @@ CUNILOG_PROCESSOR	*defcupp [] =
 	&defcuppRotateLogfilesFScompress,						// Rotates the log files.
 	&defcuppRotateLogfilesMoveToTrash						// Rotates the log files.
 };
+*/
 
 CUNILOG_PROCESSOR **CreateCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [], unsigned int n)
 {
@@ -17349,7 +17354,9 @@ CUNILOG_PROCESSOR **CreateCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [], uns
 		switch (cps [u]->task)
 		{
 			case cunilogProcessWriteToLogFile:
+				/* The CUNILOG_LOGFILE structure now belongs to the target.
 				stTot += ALIGNED_SIZE (sizeof (CUNILOG_LOGFILE), CUNILOG_POINTER_ALIGNMENT);
+				*/
 				break;
 			case cunilogProcessRotateLogfiles:
 				stTot += ALIGNED_SIZE (sizeof (CUNILOG_ROTATION_DATA), CUNILOG_POINTER_ALIGNMENT);
@@ -17378,9 +17385,11 @@ CUNILOG_PROCESSOR **CreateCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [], uns
 			switch (cps [u]->task)
 			{
 				case cunilogProcessWriteToLogFile:
+					/* The CUNILOG_LOGFILE structure now belongs to the target.
 					memcpy (p, cps [u]->pData, sizeof (CUNILOG_LOGFILE));
 					cpn [u]->pData = p;
 					p += ALIGNED_SIZE (sizeof (CUNILOG_LOGFILE), CUNILOG_POINTER_ALIGNMENT);
+					*/
 					break;
 				case cunilogProcessRotateLogfiles:
 					memcpy (p, cps [u]->pData, sizeof (CUNILOG_ROTATION_DATA));
@@ -17417,8 +17426,6 @@ CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn)
 		We simply place default processors on the stack andcreate a copy of them on the heap.
 	*/
 	// Our pData structures.
-	CUNILOG_LOGFILE			stkcuppLogFile =
-		CUNILOG_INIT_DEF_CUNILOG_LOGFILE ();
 	CUNILOG_ROTATION_DATA	stkcuppRotatorRenameLogfiles		=
 		CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_RENAME_LOGFILES
 			();
@@ -17439,7 +17446,7 @@ CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn)
 	CUNILOG_PROCESSOR		stkcuppUpdateLogfileName			=
 		CUNILOG_INIT_DEF_UPDATELOGFILENAME_PROCESSOR;
 	CUNILOG_PROCESSOR		stkcuppWriteToLogfile				=
-		CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR		(&stkcuppLogFile);
+		CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR;
 	CUNILOG_PROCESSOR		stkcuppFlushLogFile					=
 		CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR;
 	CUNILOG_PROCESSOR		stkcuppRotateLogfilesRename			=
@@ -17462,7 +17469,7 @@ CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn)
 		&stkcuppRotateLogfilesMoveToTrash						// Rotates the log files.
 	};
 
-	unsigned int n = ARRAYSIZE (defcupp);
+	unsigned int n = ARRAYSIZE (stkcupp);
 	CUNILOG_PROCESSOR **cps = CreateCopyCUNILOG_PROCESSORs (stkcupp, n);
 	if (cps)
 		*pn = n;
@@ -17925,7 +17932,7 @@ bool GetAbsPathFromAbsOrRelPath	(
 	return true;
 }
 
-char *CreateLogPathInSUNILOGTARGET	(
+char *createLogPathInCUNILOG_TARGET	(
 		CUNILOG_TARGET *put, const char *szLogPath, size_t len, enCunilogRelPath relLogPath
 									)
 {
@@ -18038,7 +18045,7 @@ static inline const char *RemoveSlashesFromStart (const char *szAppName, size_t 
 	return szAppName;
 }
 
-char *CreateAppNameInSUNILOGTARGET (CUNILOG_TARGET *put, const char *szAppName, size_t len)
+char *createAppNameInCUNILOG_TARGET (CUNILOG_TARGET *put, const char *szAppName, size_t len)
 {
 	ubf_assert_non_NULL (put);
 
@@ -18124,6 +18131,16 @@ static inline void correctDefaultFrequency (CUNILOG_PROCESSOR *cp, CUNILOG_TARGE
 	}
 }
 
+static inline bool hasDotNumberPostfix (CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	return	(
+					cunilogPostfixDotNumberMinutely	<= put->culogPostfix
+				&&	cunilogPostfixDotNumberYearly	>= put->culogPostfix
+			);
+}
+
 static inline void defaultProcessorParameters (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL	(put);
@@ -18133,7 +18150,7 @@ static inline void defaultProcessorParameters (CUNILOG_TARGET *put)
 	CUNILOG_PROCESSOR		*cp;
 	CUNILOG_ROTATION_DATA	*prPrev				= NULL;
 	CUNILOG_ROTATION_DATA	*prCurr;
-	CUNILOG_LOGFILE			*pLF				= NULL;
+	//CUNILOG_LOGFILE			*pLF				= NULL;
 
 	unsigned int n = 0;
 	while (n < put->nprocessors)
@@ -18143,21 +18160,36 @@ static inline void defaultProcessorParameters (CUNILOG_TARGET *put)
 		switch (cp->task)
 		{
 			case cunilogProcessRotateLogfiles:
-				prCurr = cp->pData;
-				if (prPrev && CUNILOG_MAX_ROTATE_AUTO == prPrev->nMaxToRotate)
-					prPrev->nMaxToRotate = prCurr->nIgnore;
-				prPrev = prCurr;
+				if (hasDotNumberPostfix (put))
+				{	// For this rotator the trick with remembering how many files we've
+					//	had so far doesn't work. However, we need to sort the retrieved
+					//	files list with active dot number sorting.
+					cunilogTargetSetFSneedsSorting	(put);
+					cunilogTargetSetNumberSorting	(put);
+				} else
+				{
+					prCurr = cp->pData;
+					if (prPrev && CUNILOG_MAX_ROTATE_AUTO == prPrev->nMaxToRotate)
+						prPrev->nMaxToRotate = prCurr->nIgnore;
+					prPrev = prCurr;
+				}
 				break;
 			case cunilogProcessWriteToLogFile:
+				ubf_assert_NULL (cp->pData);
+				/*
 				pLF = cp->pData;
+				*/
 				break;
 			case cunilogProcessFlushLogFile:
+				ubf_assert_NULL (cp->pData);
+				/*	Now belongs to the target.
 				// If we abort here, the caller has supplied a cunilogProcessFlushLogFile
 				//	processor without supplying a cunilogProcessWriteToLogFile processor
 				//	first.
 				ubf_assert_non_NULL (pLF);
 				if (NULL == cp->pData)
 					cp->pData = pLF;
+				*/
 				break;
 		}
 		++ n;
@@ -18190,27 +18222,25 @@ static bool prepareProcessors (CUNILOG_TARGET *put, CUNILOG_PROCESSOR **cp, unsi
 		return true;
 	}
 
+	/*
 	if (put->cprocessors && put->nprocessors)
 	{
 		DoneCUNILOG_TARGETprocessors (put);
 	}
+	*/
 
 	if (NULL == cp || 0 == np)
 	{
-		if (pCUNILOG_TARGETstatic == put)
+		ubf_assert (NULL == cp);
+		ubf_assert (0 == np);
+
+		put->cprocessors = CreateNewDefaultProcessors (&put->nprocessors);
+		if (put->cprocessors)
+			cunilogSetProcessorsAllocated (put);
+		else
 		{
-			put->cprocessors = defcupp;
-			put->nprocessors = GET_ARRAY_LEN (defcupp);
-		} else
-		{
-			put->cprocessors = CreateNewDefaultProcessors (&put->nprocessors);
-			if (put->cprocessors)
-				cunilogSetProcessorsAllocated (put);
-			else
-			{
-				SetCunilogSystemError (put->error, CUNILOG_ERROR_HEAP_ALLOCATION);
-				return false;
-			}
+			SetCunilogSystemError (put->error, CUNILOG_ERROR_HEAP_ALLOCATION);
+			return false;
 		}
 	} else
 	{
@@ -18234,16 +18264,6 @@ static void prepareCUNILOG_TARGETinitFilenameBuffers (CUNILOG_TARGET *put, size_
 	initSMEMBUFtoSize (&put->mbFilToRotate, lnTotal);
 	if (isUsableSMEMBUF (&put->mbFilToRotate))
 		cunilogSetFileToRotateAllocated (put);
-}
-
-static inline bool hasDotNumberPostfix (CUNILOG_TARGET *put)
-{
-	ubf_assert_non_NULL (put);
-
-	return	(
-					cunilogPostfixDotNumberMinutely	<= put->culogPostfix
-				&&	cunilogPostfixDotNumberYearly	>= put->culogPostfix
-			);
 }
 
 static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
@@ -18630,6 +18650,58 @@ static inline void initPrevTimestamp (CUNILOG_TARGET *put)
 	#define InitCUNILOG_TARGETmbLogFold(x)
 #endif
 
+static inline void cunilogInitCUNILOG_LOGFILE (CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	#ifdef OS_IS_WINDOWS
+		put->logfile.hLogFile = NULL;
+	#else
+		put->logfile.fLogFile = NULL;
+	#endif
+}
+
+static inline bool cunilogOpenLogFile (CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert			(isInitialisedSMEMBUF (&put->mbLogfileName));
+
+	#ifdef PLATFORM_IS_WINDOWS
+		put->logfile.hLogFile = CreateFileU8	(
+						put->mbLogfileName.buf.pcc,
+						CUNILOG_DEFAULT_OPEN_MODE,
+						FILE_SHARE_DELETE | FILE_SHARE_READ,
+						NULL, OPEN_ALWAYS,
+						FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+						NULL
+									);
+		return NULL != put->logfile.hLogFile && INVALID_HANDLE_VALUE != put->logfile.hLogFile;
+	#else
+		// We always (and automatically) append.
+		put->logfile.fLogFile = fopen (put->mbLogfileName.buf.pcc, CUNILOG_DEFAULT_OPEN_MODE);
+		return NULL != put->logfile.fLogFile;
+	#endif
+}
+
+static inline void cunilogCloseCUNILOG_LOGFILEifOpen (CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	#ifdef OS_IS_WINDOWS
+		if (put->logfile.hLogFile)
+		{
+			CloseHandle (put->logfile.hLogFile);
+			put->logfile.hLogFile = NULL;
+		}
+	#else
+		if (put->logfile.fLogFile)
+		{
+			fclose (put->logfile.fLogFile);
+			put->logfile.fLogFile = NULL;
+		}
+	#endif
+}
+
 static inline bool initCommonMembersAndPrepareCUNILOG_TARGET (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
@@ -18654,6 +18726,7 @@ static inline bool initCommonMembersAndPrepareCUNILOG_TARGET (CUNILOG_TARGET *pu
 	InitCUNILOG_TARGETqueuesemaphore		(put);
 	InitCUNILOG_TARGETqueue					(put);
 	initFilesListInCUNILOG_TARGET			(put);
+	cunilogInitCUNILOG_LOGFILE						(put);
 	bool b;
 	b = StartSeparateLoggingThread_ifNeeded	(put);
 	if (b)
@@ -18723,7 +18796,7 @@ CUNILOG_TARGET *InitCUNILOG_TARGETex
 	put->unilogNewLine		= unilogNewLine;
 
 	// The function sets put->error for us.
-	char *szLP = CreateLogPathInSUNILOGTARGET (put, szLogPath, lnLogPath, relLogPath);
+	char *szLP = createLogPathInCUNILOG_TARGET (put, szLogPath, lnLogPath, relLogPath);
 	if (NULL == szLP && cunilogPath_isAbsolute == relLogPath)
 	{
 		SetCunilogError	(
@@ -18731,7 +18804,7 @@ CUNILOG_TARGET *InitCUNILOG_TARGETex
 						);
 		return NULL;
 	}
-	char *sz = CreateAppNameInSUNILOGTARGET (put, szAppName, lnAppName);
+	char *sz = createAppNameInCUNILOG_TARGET (put, szAppName, lnAppName);
 	if (NULL == sz)
 	{
 		SetCunilogSystemError (put->error, CUNILOG_ERROR_APPNAME);
@@ -19187,32 +19260,6 @@ void ConfigCUNILOG_TARGETenableEchoProcessor (CUNILOG_TARGET *put)
 	}
 #endif
 
-static inline void InitCUNILOG_LOGFILE (CUNILOG_LOGFILE *cl)
-{
-	#ifdef OS_IS_WINDOWS
-		cl->hLogFile = NULL;
-	#else
-		cl->fLogFile = NULL;
-	#endif
-}
-
-static inline void CloseCUNILOG_LOGFILEifOpen (CUNILOG_LOGFILE *cl)
-{
-	#ifdef OS_IS_WINDOWS
-		if (cl->hLogFile)
-		{
-			CloseHandle (cl->hLogFile);
-			cl->hLogFile = NULL;
-		}
-	#else
-		if (cl->fLogFile)
-		{
-			fclose (cl->fLogFile);
-			cl->fLogFile = NULL;
-		}
-	#endif
-}
-
 static void DoneCUNILOG_TARGETprocessors (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
@@ -19245,7 +19292,7 @@ static void DoneCUNILOG_TARGETprocessors (CUNILOG_TARGET *put)
 			case cunilogProcessAmountEnumValues:
 				break;
 			case cunilogProcessWriteToLogFile:
-				CloseCUNILOG_LOGFILEifOpen (cp->pData);
+				cunilogCloseCUNILOG_LOGFILEifOpen (put);
 				break;
 			case cunilogProcessRotateLogfiles:
 				upCust.prd = cp->pData;
@@ -19266,6 +19313,7 @@ static void DoneCUNILOG_TARGETprocessors (CUNILOG_TARGET *put)
 	if (cunilogIsProcessorsAllocated (put))
 	{
 		ubf_free (put->cprocessors);
+		zeroProcessors (put);
 		cunilogClrProcessorsAllocated (put);
 	}
 }
@@ -20596,49 +20644,38 @@ static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, CUNILOG
 	}
 }
 
-static bool cunilogOpenLogFile (CUNILOG_LOGFILE *pl, const char *szLogFileName)
-{
-	#ifdef PLATFORM_IS_WINDOWS
-		pl->hLogFile = CreateFileU8	(
-						szLogFileName, CUNILOG_DEFAULT_OPEN_MODE,
-						FILE_SHARE_DELETE | FILE_SHARE_READ,
-						NULL, OPEN_ALWAYS,
-						FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-						NULL
-									);
-		return NULL != pl->hLogFile && INVALID_HANDLE_VALUE != pl->hLogFile;
-	#else
-		// We always (and automatically) append.
-		pl->fLogFile = fopen (szLogFileName, CUNILOG_DEFAULT_OPEN_MODE);
-		return NULL != pl->fLogFile;
-	#endif
-}
-
 /*
 	Closes the previous file and opens the new one.
 */
-static bool cunilogOpenNewLogFile (CUNILOG_LOGFILE *pl, const char *szLogFileName)
+static inline bool cunilogOpenNewLogFile (CUNILOG_TARGET *put)
 {
+	ubf_assert_non_NULL	(put);
+	ubf_assert			(isInitialisedSMEMBUF (&put->mbLogfileName));
+
 	#ifdef OS_IS_WINDOWS
-		CloseHandle (pl->hLogFile);
-		return cunilogOpenLogFile (pl, szLogFileName);
+		CloseHandle (put->logfile.hLogFile);
+		return cunilogOpenLogFile (put);
 	#else
-		fclose (pl->fLogFile);
-		return cunilogOpenLogFile (pl, szLogFileName);
+		fclose (put->logfile.fLogFile);
+		return cunilogOpenLogFile (put);
 	#endif
 }
 
-static inline bool requiresOpenLogFile (CUNILOG_LOGFILE *pl)
+static inline bool requiresOpenLogFile (CUNILOG_TARGET *put)
 {
-	#ifdef OS_IS_WINDOWS
-		return NULL == pl->hLogFile || INVALID_HANDLE_VALUE == pl->hLogFile;
+	ubf_assert_non_NULL (put);
+
+#ifdef OS_IS_WINDOWS
+		return NULL == put->logfile.hLogFile || INVALID_HANDLE_VALUE == put->logfile.hLogFile;
 	#else
-		return NULL == pl->fLogFile;
+		return NULL == put->logfile.fLogFile;
 	#endif
 }
 
 static inline bool requiresNewLogFile (CUNILOG_TARGET *put)
 {
+	ubf_assert_non_NULL (put);
+
 	return memcmp	(
 		put->cPrevDateTimeStamp, put->szDateTimeStamp,
 		lenDateTimeStampFromPostfix (put->culogPostfix)
@@ -20655,8 +20692,14 @@ static inline size_t addNewLineToLogEventLine (char *pData, size_t lnData, enum 
 	return lnData + len;
 }
 
-static bool cunilogWriteDataToLogFile (CUNILOG_LOGFILE *pl, char *pData, size_t lnData, enum enLineEndings nl)
+static bool cunilogWriteDataToLogFile (CUNILOG_TARGET *put)
 {
+	ubf_assert_non_NULL (put);
+
+	char				*pData	= put->mbLogEventLine.buf.pch;
+	size_t				lnData	= put->lnLogEventLine;
+	enum enLineEndings	nl		= put->unilogNewLine;
+
 	#ifdef OS_IS_WINDOWS
 		DWORD dwWritten;
 		DWORD toWrite = addNewLineToLogEventLine (pData, lnData, nl) & 0xFFFFFFFF;
@@ -20664,7 +20707,7 @@ static bool cunilogWriteDataToLogFile (CUNILOG_LOGFILE *pl, char *pData, size_t 
 		//	seek ourselves.
 		//	LARGE_INTEGER	z = {0, 0};
 		//	SetFilePointerEx (pl->hLogFile, z, NULL, FILE_END);
-		bool b = WriteFile (pl->hLogFile, pData, toWrite, &dwWritten, NULL);
+		bool b = WriteFile (put->logfile.hLogFile, pData, toWrite, &dwWritten, NULL);
 		pData [lnData] = ASCII_NUL;
 		return b;
 	#else
@@ -20672,7 +20715,7 @@ static bool cunilogWriteDataToLogFile (CUNILOG_LOGFILE *pl, char *pData, size_t 
 		// See https://www.man7.org/linux/man-pages/man3/fopen.3.html .
 		//	A call "fseek (pl->fLogFile, (long) 0, SEEK_END);" is not required
 		//	because we opened the file in append mode.
-		size_t st = fwrite (pData, 1, lToWrite, pl->fLogFile);
+		size_t st = fwrite (pData, 1, lToWrite, put->logfile.fLogFile);
 		pData [lnData] = ASCII_NUL;
 		return st == lnData;
 	#endif
@@ -20690,26 +20733,24 @@ static bool cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EV
 	if (cunilogHasDontWriteToLogfile (put))
 		return true;
 
+	/*
 	CUNILOG_LOGFILE	*pl	= cup->pData;
 	ubf_assert_non_NULL (pl);
+	*/
 
 	if (isUsableSMEMBUF (&put->mbLogfileName))
 	{
-		if (requiresOpenLogFile (pl))
+		if (requiresOpenLogFile (put))
 		{
-			if (!cunilogOpenLogFile (pl, put->mbLogfileName.buf.pcc))
+			if (!cunilogOpenLogFile (put))
 				cunilogSetTargetErrorAndInvokeErrorCallback (CUNILOG_ERROR_OPENING_LOGFILE, cup, pev);
 		} else
 		if (requiresNewLogFile (put))
 		{
-			if (!cunilogOpenNewLogFile (pl, put->mbLogfileName.buf.pcc))
+			if (!cunilogOpenNewLogFile (put))
 				cunilogSetTargetErrorAndInvokeErrorCallback (CUNILOG_ERROR_OPENING_LOGFILE, cup, pev);
 		}
-		if	(
-				!cunilogWriteDataToLogFile	(
-					pl, put->mbLogEventLine.buf.pch, put->lnLogEventLine, put->unilogNewLine
-											)
-			)
+		if (!cunilogWriteDataToLogFile (put))
 				cunilogSetTargetErrorAndInvokeErrorCallback (CUNILOG_ERROR_WRITING_LOGFILE, cup, pev);
 	}
 	return true;
@@ -20725,13 +20766,11 @@ static bool cunilogProcessFlushFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 	if (cunilogHasDontWriteToLogfile (put))
 		return true;
 
-	CUNILOG_LOGFILE *pcl = cup->pData;
-
 	#ifdef OS_IS_WINDOWS
-		if (!FlushFileBuffers (pcl->hLogFile))
+		if (!FlushFileBuffers (put->logfile.hLogFile))
 			cunilogSetTargetErrorAndInvokeErrorCallback (CUNILOG_ERROR_FLUSHING_LOGFILE, cup, pev);
 	#else
-		if (0 != fflush (pcl->fLogFile))
+		if (0 != fflush (put->logfile.fLogFile))
 			cunilogInvokeErrorCallback (CUNILOG_ERROR_FLUSHING_LOGFILE, cup, pev);
 	#endif
 	return true;
@@ -20830,21 +20869,23 @@ static bool logFromInsideRotatorTextU8fmt (CUNILOG_TARGET *put, const char *fmt,
 }
 
 #ifdef OS_IS_WINDOWS
-	static void GetTextForLastError (char *szErrMsg)
+	static DWORD GetTextForLastError (char *szErrMsg)
 	{
 		ubf_assert_non_NULL (szErrMsg);
 
 		// Note that we expect a buffer of CUNILOG_STD_MSG_SIZE octets.
 		DWORD dwError = GetLastError ();
 		GetWinErrorTextU8 (szErrMsg, CUNILOG_STD_MSG_SIZE, dwError);
+		return dwError;
 	}
 #else
-	static void GetTextForLastError (char *szErrMsg)
+	static int GetTextForLastError (char *szErrMsg)
 	{
 		ubf_assert_non_NULL (szErrMsg);
 
 		char szErr [] = "\"Not implemented\"";
 		memcpy (szErrMsg, szErr, sizeof (szErr));
+		return -1;
 	}
 #endif
 
@@ -20874,6 +20915,7 @@ static inline size_t incrementDotNumberName (char *sz)
 		ubf_uint64_from_str (&ui, sz);
 		++ ui;
 		size_t written = ubf_str_from_uint64 (sz, ui);
+		++ written;											// The '.'
 		return written;
 	} else
 	{
@@ -20883,7 +20925,69 @@ static inline size_t incrementDotNumberName (char *sz)
 	}
 }
 
-static void RenameLogfile (CUNILOG_TARGET *put)
+static inline char *findDotNumberPart (size_t *pln, CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL (pln);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL	(put->prargs);
+
+	CUNILOG_ROTATION_DATA	*prd = put->prargs->cup->pData;
+
+	// Obtain the dot number part.
+	size_t ln = put->stFilToRotate - 1;
+	-- ln;
+	while (ln)
+	{
+		if (!isdigit (prd->mbDstFile.buf.pch [ln]))
+			break;
+		-- ln;
+	}
+	char *sz = prd->mbDstFile.buf.pch + ln;
+	*pln = ln;
+	return sz;
+}
+
+static inline void copyDotNumberToFLS (CUNILOG_TARGET *put, size_t nLen, size_t oLen)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL	(put->prargs);
+
+	CUNILOG_ROTATOR_ARGS	*prg = put->prargs;
+	CUNILOG_ROTATION_DATA	*prd = put->prargs->cup->pData;
+
+	char		*szDst;
+	const char	*ccSrc;
+
+	if (nLen > oLen)
+	{
+		char	*sz	= put->fls.data [prg->idx].chFilename;
+		size_t	ln	= put->fls.data [prg->idx].stFilename - oLen + nLen;
+		put->fls.data [prg->idx].chFilename = GetAlignedMemFromSBULKMEMgrow (&put->sbm, ln);
+		char *szFls = put->fls.data [prg->idx].chFilename;
+		if (NULL == szFls)
+		{	// Bulk memory allocation failed. There's not much we can do.
+			ubf_assert_msg (false, "Bulk memory allocation failed");
+			return;
+		}
+		memcpy (szFls, sz, put->fls.data [prg->idx].stFilename);
+		put->fls.data [prg->idx].stFilename = ln;
+
+		// Since the new vector entry is empty, we also need to copy the NUL terminator.
+		++ nLen;
+	}
+
+	szDst	=	put->fls.data [prg->idx].chFilename
+			+	put->lnAppName
+			+	lenCunilogLogFileNameExtension;
+
+	ccSrc	=	prd->mbDstFile.buf.pcc
+			+	put->lnLogPath
+			+	put->lnAppName
+			+	lenCunilogLogFileNameExtension;
+	memcpy (szDst, ccSrc, nLen);
+}
+
+static void cunilogRenameLogfile (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL	(put->prargs);
@@ -20896,6 +21000,7 @@ static void RenameLogfile (CUNILOG_TARGET *put)
 	if (!hasDotNumberPostfix (put))
 		return;
 
+	//CUNILOG_ROTATOR_ARGS	*prg = put->prargs;
 	CUNILOG_ROTATION_DATA	*prd = put->prargs->cup->pData;
 
 	if (!cunilogHasRotatorFlag_USE_MBDSTFILE (prd))
@@ -20914,25 +21019,37 @@ static void RenameLogfile (CUNILOG_TARGET *put)
 	{
 		memcpy (prd->mbDstFile.buf.pch, put->mbFilToRotate.buf.pch, put->stFilToRotate);
 
-		// Obtain the dot number part.
-		size_t ln = put->stFilToRotate - 1;
-		-- ln;
-		while (ln)
-		{
-			if (!isdigit (prd->mbDstFile.buf.pch [ln]))
-				break;
-			-- ln;
-		}
-		char *sz = prd->mbDstFile.buf.pch + ln;
+		size_t ln;
+		char *sz = findDotNumberPart (&ln, put);
+
+		// Either ".log.<number>" orr "g" from ".log".
+		ubf_assert ('.' == sz [0] || 'g' == sz [0]);
+		bool bLogfileNeedsClosing = 'g' == sz [0];
+
 		size_t ol = put->stFilToRotate - 1 - ln;
 		size_t nl = incrementDotNumberName (sz);
-		UNUSED (ol);
-		UNUSED (nl);
+		copyDotNumberToFLS (put, nl, ol);
 
 		bool bMoved;
 
 		#ifdef PLATFORM_IS_WINDOWS
+			if (bLogfileNeedsClosing)
+				cunilogCloseCUNILOG_LOGFILEifOpen (put);
 			bMoved = MoveFileU8long (put->mbFilToRotate.buf.pch, prd->mbDstFile.buf.pcc);
+			if (bLogfileNeedsClosing)
+			{
+				if (requiresOpenLogFile (put))
+				{
+					if (!cunilogOpenLogFile (put))
+					{
+						SetCunilogSystemError (put->error, CUNILOG_ERROR_OPENING_LOGFILE);
+						cunilogSetTargetErrorAndInvokeErrorCallback	(
+							CUNILOG_ERROR_OPENING_LOGFILE,
+							put->prargs->cup, put->prargs->pev
+																	);
+					}
+				}
+			}
 			if (bMoved)
 			{
 				logFromInsideRotatorTextU8fmt	(
@@ -20942,7 +21059,15 @@ static void RenameLogfile (CUNILOG_TARGET *put)
 												);
 			} else
 			{
-				ubf_assert_msg (false, "To be implemented...");
+				char szErr [CUNILOG_STD_MSG_SIZE];
+				DWORD dwErr = GetTextForLastError (szErr);
+
+				logFromInsideRotatorTextU8fmt	(
+					put,
+					"Error %s while attempting to move file \"%s\" to \"%s\".",
+					szErr, put->mbFilToRotate.buf.pcc, prd->mbDstFile.buf.pcc
+												);
+				SetCunilogError (put->error, CUNILOG_ERROR_RENAMING_LOGFILE, dwErr);
 			}
 		#else
 			bMoved = false;
@@ -20950,7 +21075,7 @@ static void RenameLogfile (CUNILOG_TARGET *put)
 	}
 }
 
-static void FileSystemCompressLogfile (CUNILOG_TARGET *put)
+static void cunilogFileSystemCompressLogfile (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
@@ -21068,7 +21193,7 @@ static void FileSystemCompressLogfile (CUNILOG_TARGET *put)
 /*
 	Platform-independent wrapper function.
 */
-static inline void cuMoveFileToRecycleBin (CUNILOG_TARGET *put)
+static inline void cunilogMoveFileToRecycleBin (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
@@ -21084,7 +21209,7 @@ static inline void cuMoveFileToRecycleBin (CUNILOG_TARGET *put)
 }
 
 #ifdef PLATFORM_IS_WINDOWS
-	static void DeleteObsoleteLogfile (CUNILOG_TARGET *put)
+	static void cunilogDeleteObsoleteLogfile (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 	
@@ -21143,16 +21268,16 @@ static void performActualRotation (CUNILOG_ROTATOR_ARGS *prg)
 			ubf_assert (false);
 			break;
 		case cunilogrotationtask_RenameLogfiles:
-			RenameLogfile (put);
+			cunilogRenameLogfile (put);
 			break;
 		case cunilogrotationtask_FScompressLogfiles:
-			FileSystemCompressLogfile (put);
+			cunilogFileSystemCompressLogfile (put);
 			break;
 		case cunilogrotationtask_MoveToRecycleBinLogfiles:
-			cuMoveFileToRecycleBin (put);
+			cunilogMoveFileToRecycleBin (put);
 			break;
 		case cunilogrotationtask_DeleteLogfiles:
-			DeleteObsoleteLogfile (put);
+			cunilogDeleteObsoleteLogfile (put);
 			break;
 	}
 
@@ -21176,10 +21301,59 @@ static void prepareU8fullFileNameToRotate (CUNILOG_ROTATOR_ARGS *prg)
 	}
 }
 
+static inline int cmpflsnums (const char *sz1, size_t l1, const char *sz2, size_t l2)
+{
+	const char *szo1 = sz1;
+	const char *szo2 = sz2;
+
+	while (szo1 [0] == szo2 [0])
+	{
+		++ szo1;
+		-- l1;
+		++ szo2;
+		-- l2;
+	}
+	if (l1 || l2)
+	{
+		// The shorter the higher up.
+		if (l1 < l2)
+			return -1;
+		if (l1 > l2)
+			return 1;
+		if (isdigit (szo1 [0]) && isdigit (szo2 [0]))
+		{
+			uint64_t	ui1;
+			uint64_t	ui2;
+
+			//printf ("%s - %s\n", szo1, szo2);
+			ubf_uint64_from_str (&ui1, szo1);
+			ubf_uint64_from_str (&ui2, szo2);
+			if (ui1 == ui2)
+				return 0;
+			// "file.1" is greater than "file.2".
+			return ui1 > ui2 ? 1 : -1;
+		}
+	}
+	return 0;
+}
+
 /*
-	Compare function for vec_sort ().
+	Compare functions for vec_sort ().
 */
-static int flscmp (const void *p1, const void *p2)
+static int flscmp_dotnum (const void *p1, const void *p2)
+{
+	const CUNILOG_FLS	*fls1 = p1;
+	const CUNILOG_FLS	*fls2 = p2;
+	int					r = 0;
+
+	ubf_assert_non_0 (fls1->stFilename);
+	ubf_assert_non_0 (fls2->stFilename);
+
+	r = cmpflsnums (fls1->chFilename, fls1->stFilename - 1, fls2->chFilename, fls2->stFilename - 1);
+	return r;
+}
+
+static int flscmp_default (const void *p1, const void *p2)
 {
 	const CUNILOG_FLS	*fls1 = p1;
 	const CUNILOG_FLS	*fls2 = p2;
@@ -21200,29 +21374,22 @@ static int flscmp (const void *p1, const void *p2)
 	}
 	if (fls1->stFilename > fls2->stFilename)
 	{
-		ubf_assert (false);
 		r = memcmp (fls1->chFilename, fls2->chFilename, fls2->stFilename - 1);
 		return r ? r : 1;
 	}
 	return r;
 }
 
-static inline bool needReverseFLS (CUNILOG_PROCESSOR *cup)
+static inline bool needReverseFLS (CUNILOG_TARGET *put, CUNILOG_PROCESSOR *cup)
 {
+	ubf_assert_non_NULL (put);
 	ubf_assert_non_NULL (cup);
 
-	/*
-		Example:
-
-	if (cunilogProcessRotateLogfiles == cup->task)
-	{
-		CUNILOG_ROTATION_DATA	*rot = cup->pData;
-		ubf_assert_non_NULL (rot);
-
-		return cunilogrotationtask_RenameLogfiles == rot->tsk;
-	}
-	*/
-	return false;
+	CUNILOG_ROTATION_DATA	*prd = cup->pData;
+	
+	bool bRet;
+	bRet = cunilogTargetHasNumberSorting (put) && cunilogrotationtask_RenameLogfiles != prd->tsk;
+	return bRet;
 }
 
 /*
@@ -21236,14 +21403,22 @@ static inline bool needReverseFLS (CUNILOG_PROCESSOR *cup)
 	but on file systems that return the files randomly we got to sort the vector
 	first. If sorting descending alphabetically is required, we expect the target option
 	flag CUNILOGTARGET_FS_NEEDS_SORTING.
+
+	For the dot number postfix we need to sort in any case.
 */
 static inline void sortLogfilesList (CUNILOG_TARGET *put, CUNILOG_PROCESSOR *cup)
 {
 	if (cunilogTargetHasFSneedsSorting (put))
-		vec_sort (&put->fls, flscmp);
+	{
+		if (cunilogTargetHasNumberSorting (put))
+			vec_sort (&put->fls, flscmp_dotnum);
+		else
+			vec_sort (&put->fls, flscmp_default);
+	}
 
 	// The processor may need the files in reverse order.
-	bool bFLSreversedRequired = needReverseFLS (cup);
+
+	bool bFLSreversedRequired = needReverseFLS (put, cup);
 	if (bFLSreversedRequired)
 	{
 		if (!cunilogTargetHasFLSreversed (put))
@@ -21280,6 +21455,14 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 	uint64_t nMaxToRot =		CUNILOG_MAX_ROTATE_AUTO - nToIgnore <= prd->nMaxToRotate
 							?	prd->nMaxToRotate
 							:	nToIgnore + prd->nMaxToRotate;
+	/*
+	while (iFiles --)
+	{
+		puts (put->fls.data [iFiles].chFilename);
+	}
+	iFiles = put->fls.length;
+	*/
+
 	while (iFiles --)
 	{
 		//puts (put->fls.data [iFiles].chFilename);
@@ -21290,6 +21473,7 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 			{
 				prg->nam = put->fls.data [iFiles].chFilename;
 				prg->siz = put->fls.data [iFiles].stFilename;
+				prg->idx = iFiles;
 				prepareU8fullFileNameToRotate (prg);
 				performActualRotation (prg);
 			} else
@@ -21443,6 +21627,7 @@ static inline void obtainLogfilesListToRotate (CUNILOG_TARGET *put)
 	#elif defined (PLATFORM_IS_POSIX)
 		obtainLogfilesListToRotatePsx (put);
 	#endif
+	cunilogTargetClrFLSreversed (put);
 }
 
 static bool cunilogProcessRotateLogfilesFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)

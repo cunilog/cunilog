@@ -292,18 +292,14 @@ enum cunilogpostfix
 
 	cunilogProcessWriteToLogFile
 
-	Carries out the actual write operation to the logfile. The member pData points to a
-	CUNILOG_LOGFILE structure. If the file doesn't exist yet it is created and opened for
-	writing. If the logfile exists, it is opened for writing. The file is closed when no
-	longer required.
+	Carries out the actual write operation to the logfile. The member pData must be NULL.
+	If the file doesn't exist yet it is created and opened for writing. If the logfile exists,
+	it is opened for writing. The file is closed when no longer required.
 
 
 	cunilogProcessFlushLogFile
 
-	Flushes the logfile. The member pData points to the same CUNILOG_LOGFILE structure the
-	cunilogProcessWriteToLogFile processor points to. If pData is NULL, the target
-	initialisation functions automatically set to the same CUNILOG_LOGFILE structure the
-	cunilogProcessWriteToLogFile processor points to.
+	Flushes the logfile. The member pData must be NULL.
 
 
 	cunilogProcessRotateLogfiles
@@ -520,21 +516,6 @@ typedef struct cunilog_rotation_data
 #endif
 
 /*
-	Initialiser for a CUNILOG_LOGFILE structure.
-*/
-#ifdef OS_IS_WINDOWS
-	#define CUNILOG_INIT_DEF_CUNILOG_LOGFILE()				\
-	{														\
-		NULL												\
-	}
-#else
-	#define CUNILOG_INIT_DEF_CUNILOG_LOGFILE()				\
-	{														\
-		NULL												\
-	}
-#endif
-
-/*
 	Initialisers for CUNILOG_ROTATION_DATA structures.
 
 	Note that
@@ -611,12 +592,12 @@ typedef struct cunilog_rotation_data
 /*
 	Argument plf is a pointer to a CUNILOG_LOGFILE structure.
 */
-#define CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR(plf)	\
+#define CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR		\
 {														\
 	cunilogProcessWriteToLogFile,						\
 	cunilogProcessAppliesTo_nAlways,					\
 	0, 0,												\
-	(plf),												\
+	NULL,												\
 	OPT_CUNPROC_NONE									\
 }
 #define CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR			\
@@ -986,6 +967,7 @@ typedef struct CUNILOG_TARGET
 
 	enum cunilogeventTSformat		unilogEvtTSformat;		// The format of an event timestamp.
 	newline_t						unilogNewLine;
+	CUNILOG_LOGFILE					logfile;
 	SBULKMEM						sbm;					// Bulk memory block.
 	vec_cunilog_fls					fls;					// The vector with str pointers to
 															//	the files to rotate within sbm.
@@ -1046,15 +1028,18 @@ typedef struct CUNILOG_TARGET
 //	descending alphabetic order.
 #define CUNILOGTARGET_FS_NEEDS_SORTING			SINGLEBIT64 (10)
 
+// The "file.log.1" (dot number postfix) requires this.
+#define CUNILOGTARGET_NEEDS_NUMBER_SORTING		SINGLEBIT64 (11)
+
 // The elements of the member fls (a vecotr) are in reversed order.
-#define CUNILOGTARGET_FLS_REVERSED				SINGLEBIT64 (11)
+#define CUNILOGTARGET_FLS_REVERSED				SINGLEBIT64 (12)
 
 // The separate logging thread, if one exists, is paused.
-#define CUNILOGTARGET_PAUSED					SINGLEBIT64 (12)
+#define CUNILOGTARGET_PAUSED					SINGLEBIT64 (13)
 
 // Debug versions ensure that one of the initialisation function has been called.
 #ifdef DEBUG
-	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (13)
+	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (14)
 	#define cunilogSetTargetInitialised(pt)				\
 			((pt)->uiOpts |= CUNILOGTARGET_INITIALISED)
 	#define cunilogIsTargetInitialised(pt)				\
@@ -1102,10 +1087,10 @@ typedef struct CUNILOG_TARGET
 */
 #define cunilogSetShutdownTarget(put)					\
 	((put)->uiOpts |= CUNILOGTARGET_SHUTDOWN)
-#define cunilogIsShutdownTarget(put)						\
+#define cunilogIsShutdownTarget(put)					\
 	((put)->uiOpts & CUNILOGTARGET_SHUTDOWN)
 
-#define cunilogSetTargetHasShutdown(put)					\
+#define cunilogSetTargetHasShutdown(put)				\
 	((put)->uiOpts |= CUNILOGTARGET_HAS_SHUT_DOWN)
 #define cunilogIsTargetHasShutdown(put)					\
 	((pt)->uiOpts & CUNILOGTARGET_HAS_SHUT_DOWN)
@@ -1135,7 +1120,7 @@ typedef struct CUNILOG_TARGET
 #define cunilogIsLogFileMaskAllocated(put)				\
 	((put)->uiOpts & CUNILOGTARGET_LOGF_MASK_ALLOCATED)
 
-#define cunilogSetFileToRotateAllocated(put)				\
+#define cunilogSetFileToRotateAllocated(put)			\
 	((put)->uiOpts |= CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
 #define cunilogIsFileToRotateAllocated(put)				\
 	((put)->uiOpts & CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
@@ -1147,11 +1132,11 @@ typedef struct CUNILOG_TARGET
 #define cunilogIsProcessorsAllocated(put)				\
 	((put)->uiOpts & CUNILOGTARGET_PROCESSORS_ALLOCATED)
 
-#define cunilogHasRunAllProcessorsOnStartup(put)			\
+#define cunilogHasRunAllProcessorsOnStartup(put)		\
 	((put)->uiOpts & CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
-#define cunilogClrRunAllProcessorsOnStartup(put)			\
+#define cunilogClrRunAllProcessorsOnStartup(put)		\
 	((put)->uiOpts &= ~ CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
-#define cunilogSetRunAllProcessorsOnStartup(put)			\
+#define cunilogSetRunAllProcessorsOnStartup(put)		\
 	((put)->uiOpts |= CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
 
 #define cunilogTargetHasFSneedsSorting(put)				\
@@ -1161,11 +1146,18 @@ typedef struct CUNILOG_TARGET
 #define cunilogTargetSetFSneedsSorting(put)				\
 	((put)->uiOpts |= CUNILOGTARGET_FS_NEEDS_SORTING)
 
-#define cunilogTargetHasFLSreversed(put)					\
+#define cunilogTargetHasNumberSorting(put)				\
+	((put)->uiOpts & CUNILOGTARGET_NEEDS_NUMBER_SORTING)
+#define cunilogTargetClrNumberSorting(put)				\
+	((put)->uiOpts &= ~ CUNILOGTARGET_NEEDS_NUMBER_SORTING)
+#define cunilogTargetSetNumberSorting(put)				\
+	((put)->uiOpts |= CUNILOGTARGET_NEEDS_NUMBER_SORTING)
+
+#define cunilogTargetHasFLSreversed(put)				\
 	((put)->uiOpts & CUNILOGTARGET_FLS_REVERSED)
-#define cunilogTargetClrFLSreversed(put)					\
+#define cunilogTargetClrFLSreversed(put)				\
 	((put)->uiOpts &= ~ CUNILOGTARGET_FLS_REVERSED)
-#define cunilogTargetSetFLSreversed(put)					\
+#define cunilogTargetSetFLSreversed(put)				\
 	((put)->uiOpts |= CUNILOGTARGET_FLS_REVERSED)
 
 #define cunilogTargetIsPaused(put)						\
@@ -1175,7 +1167,7 @@ typedef struct CUNILOG_TARGET
 #define cunilogTargetSetPaused(put)						\
 	((put)->uiOpts |= CUNILOGTARGET_PAUSED)
 
-#define cunilogIsNoEcho(put)								\
+#define cunilogIsNoEcho(put)							\
 	((put)->uiOpts & CUNILOGTARGET_NO_ECHO)
 #define cunilogClrNoEcho(put)							\
 	((put)->uiOpts &= ~ CUNILOGTARGET_NO_ECHO)
@@ -1217,11 +1209,11 @@ typedef struct CUNILOG_TARGET
 	#define cunilogSetDebugQueueLocked(put)
 #endif
 
-#define cunilogHasEnqueueTimestamps(put)					\
+#define cunilogHasEnqueueTimestamps(put)				\
 	((put)->uiOpts & CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
-#define cunilogClrEnqueueTimestamps(put)					\
+#define cunilogClrEnqueueTimestamps(put)				\
 	((put)->uiOpts &= ~ CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
-#define cunilogSetEnqueueTimestamps(put)					\
+#define cunilogSetEnqueueTimestamps(put)				\
 	((put)->uiOpts |= CUNILOGTARGET_ENQUEUE_TIMESTAMPS)
 
 
@@ -1490,6 +1482,7 @@ typedef struct cunilog_rotator_args
 	CUNILOG_EVENT			*pev;
 	char					*nam;							// Name of file to rotate.
 	size_t					siz;							// Its size, incl. NUL.
+	size_t					idx;							// Vector index of curr file.
 } CUNILOG_ROTATOR_ARGS;
 
 /*
