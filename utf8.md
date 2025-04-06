@@ -3,7 +3,7 @@
 
 Cunilog does not understand the concept of UTF-8. All strings are handled like
 ASCII strings. Cunilog treats a UTF-8 codepoint consisting of two or more
-octets/bytes like a string that consists of two or more ASCII characters.
+octets/bytes, like a string that consists of two or more ASCII characters.
 
 For this reason Cunilog generally does not check if UTF-8 strings provided are
 actually well-formed and valid UTF-8. An exception are functions that
@@ -53,7 +53,7 @@ a lot of details here. Long filenames (longer than 260 characters) still don't
 seem to be possible when using "A" API versions and most APIs still don't support
 UTF-8.
 
-Cunilog therefore still converts UTF-8 strings to Windows UTF-16 before calling
+Cunilog, therefore, still converts UTF-8 strings to Windows UTF-16 before calling
 most of the system APIs. It does the opposite with strings coming back from the
 Windows API. One reason for this is to support very long filenames. (However, this
 is a different topic altogether, as many Windows APIs don't support very long
