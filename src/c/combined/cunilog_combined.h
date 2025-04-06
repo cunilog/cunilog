@@ -18018,18 +18018,20 @@ typedef struct CUNILOG_TARGET
 //	descending alphabetic order.
 #define CUNILOGTARGET_FS_NEEDS_SORTING			SINGLEBIT64 (10)
 
+#define CUNILOGTARGET_FLS_IS_SORTED				SINGLEBIT64 (11)
+
 // The "file.log.1" (dot number postfix) requires this.
-#define CUNILOGTARGET_NEEDS_NUMBER_SORTING		SINGLEBIT64 (11)
+#define CUNILOGTARGET_NEEDS_NUMBER_SORTING		SINGLEBIT64 (12)
 
 // The elements of the member fls (a vecotr) are in reversed order.
-#define CUNILOGTARGET_FLS_REVERSED				SINGLEBIT64 (12)
+#define CUNILOGTARGET_FLS_REVERSED				SINGLEBIT64 (13)
 
 // The separate logging thread, if one exists, is paused.
-#define CUNILOGTARGET_PAUSED					SINGLEBIT64 (13)
+#define CUNILOGTARGET_PAUSED					SINGLEBIT64 (14)
 
 // Debug versions ensure that one of the initialisation function has been called.
 #ifdef DEBUG
-	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (14)
+	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (15)
 	#define cunilogSetTargetInitialised(pt)				\
 			((pt)->uiOpts |= CUNILOGTARGET_INITIALISED)
 	#define cunilogIsTargetInitialised(pt)				\
@@ -18135,6 +18137,13 @@ typedef struct CUNILOG_TARGET
 	((put)->uiOpts &= ~ CUNILOGTARGET_FS_NEEDS_SORTING)
 #define cunilogTargetSetFSneedsSorting(put)				\
 	((put)->uiOpts |= CUNILOGTARGET_FS_NEEDS_SORTING)
+
+#define cunilogTargetHasFLSisSorted(put)				\
+	((put)->uiOpts & CUNILOGTARGET_FLS_IS_SORTED)
+#define cunilogTargetClrFLSisSorted(put)				\
+	((put)->uiOpts &= ~ CUNILOGTARGET_FLS_IS_SORTED)
+#define cunilogTargetSetFLSisSorted(put)				\
+	((put)->uiOpts |= CUNILOGTARGET_FLS_IS_SORTED)
 
 #define cunilogTargetHasNumberSorting(put)				\
 	((put)->uiOpts & CUNILOGTARGET_NEEDS_NUMBER_SORTING)
