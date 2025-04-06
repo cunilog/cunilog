@@ -6,9 +6,8 @@
 Cunilog is a simple and easy-to-use platform-independent module/unit written
 in C to log events in high-performance applications.
 
-It serves as a drop-in module where you just add the two files, the
-combined source code and the combined header files, to your own project and
-build everything together. It can also be built as statically or dynamically linked libraries.
+It serves as a drop-in module where you just add the two files (combined source code and combined header files) 
+to your own project and build everything together. It can also be built as statically or dynamically linked libraries.
 
 ## Disclaimer and Status
 
@@ -34,7 +33,7 @@ characteristics:
 	20 KiB when rarely used features are removed.
 - Single and multi-threaded.
 - Available as drop-in module, or as static or dynamic library.
-- Platform independent without build automation system. No cmake or autotools
+- Platform independent, without build automation system. No cmake or autotools
 	are needed to build the module. Simply build it alongside your application.
 - UTF-8 by default but some UTF-16 functions are available on Windows.
 - Preprocessor definitions to include or remove rarely used features.
@@ -61,8 +60,8 @@ Cunilog's predecessor to POSIX platforms.
 
 ## Purpose
 
-Cunilog writes event texts to the console and/or logfiles. It compresses and/or
-deletes less recent files. Basically, its main purpose is to write out something
+Cunilog writes event text to the console and/or logfiles. It compresses and/or
+deletes less recent files. Essentially, its main purpose is to write out something
 like this:
 
 	2024-08-02 23:36:00.076+01:00 
@@ -85,8 +84,7 @@ very quick. The software's origins are in automation with realtime constraints.
 
 It builds and works on Windows with MSVC. It's not fully tested yet.
 
-It is prepared for Linux but neither builds nor works. Some preparational work
-has been done for MacOS but it won't build and certainly won't work either.
+Preparation work has been made for Linux and MacOS but it will currently not build.
 
 Once it builds and works on Linux it will most likely also build for and work on
 Android.
