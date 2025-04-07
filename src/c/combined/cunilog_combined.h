@@ -17515,7 +17515,7 @@ typedef struct cunilog_rotation_data
 /*
 	
 */
-#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_RENAME_LOGFILES()\
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_RENAME_LOGFILES \
 {														\
 	cunilogrotationtask_RenameLogfiles,					\
 	0, 0, CUNILOG_MAX_ROTATE_AUTO,						\
@@ -18973,7 +18973,7 @@ When		Who				What
 #endif
 
 // The default rotation thresholds in debug and release versions.
-#ifdef DEBUG
+#ifdef CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES
 
 	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED
 	#define CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED	(2)

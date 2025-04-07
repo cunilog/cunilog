@@ -24,8 +24,8 @@ size_t		lnLogsFolder	= sizeof (ccLogsFolder) - 1;
 
 int main (void)
 {
-	SCUNILOGTARGET *put;
-	put = InitSCUNILOGTARGETstaticEx	(
+	CUNILOG_TARGET *put;
+	put = InitCUNILOG_TARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
 				cunilogPath_relativeToExecutable,
@@ -44,6 +44,6 @@ int main (void)
 
 	ourLogText ("A simple line to go in the logfile.");
 	
-	ShutdownSCUNILOGTARGETstatic ();
-	DoneSCUNILOGTARGETstatic ();
+	ShutdownCUNILOG_TARGETstatic ();
+	DoneCUNILOG_TARGETstatic ();
 }

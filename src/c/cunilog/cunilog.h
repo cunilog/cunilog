@@ -207,7 +207,7 @@ When		Who				What
 #endif
 
 // The default rotation thresholds in debug and release versions.
-#ifdef DEBUG
+#ifdef CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES
 
 	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED
 	#define CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED	(2)

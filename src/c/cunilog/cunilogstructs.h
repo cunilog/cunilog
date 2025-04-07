@@ -525,7 +525,7 @@ typedef struct cunilog_rotation_data
 /*
 	
 */
-#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_RENAME_LOGFILES()\
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_RENAME_LOGFILES \
 {														\
 	cunilogrotationtask_RenameLogfiles,					\
 	0, 0, CUNILOG_MAX_ROTATE_AUTO,						\

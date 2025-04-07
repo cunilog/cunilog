@@ -294,8 +294,7 @@ CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn)
 	*/
 	// Our pData structures.
 	CUNILOG_ROTATION_DATA	stkcuppRotatorRenameLogfiles		=
-		CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_RENAME_LOGFILES
-			();
+		CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_RENAME_LOGFILES;
 	CUNILOG_ROTATION_DATA	stkcuppRotatorFS_compress			=
 		CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS
 			(CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED);
@@ -1286,11 +1285,12 @@ static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
 			#ifdef OS_IS_WINDOWS
 				bool b = CloseHandle (put->sm.hSemaphore);
 				ubf_assert_true (b);
+				UNUSED (b);
 				put->sm.hSemaphore = NULL;
 			#else
 				int i = sem_destroy (&put->sm.tSemaphore);
 				ubf_assert (0 == i);
-				UNREFERENCED_PARAMETER (i);
+				UNUSED (i);
 			#endif
 		}
 	}
@@ -3854,6 +3854,42 @@ static inline void copyDotNumberToFLS (CUNILOG_TARGET *put, size_t nLen, size_t 
 	memcpy (szDst, ccSrc, nLen);
 }
 
+/*
+	Checks if the current/active logfile has been renamed. If this is the case
+	the next rotator would have to read the directory listing from disk again,
+	but we may not have logfile.log again yet, if no event has been written to it,
+	which would mean the amount of files to ignore is one too high.
+
+	We therefore need to insert the current/active logfile's name.
+	Since the vector is sorted with the current logfile at index 0, vec_insert() is
+	invoked instead of vec_push().
+
+					-> logfile.log		<- Inserted by vec_insert() below.
+	logfile.log		-> logfile.log.1
+	logfile.log.1	-> logfile.log.2
+
+*/
+static inline void cunilogPushIfActiveLogfile (bool bIsActiveLogfile, CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	if (bIsActiveLogfile)
+	{
+		CUNILOG_FLS	currFls;
+		currFls.stFilename = put->lnAppName + sizCunilogLogFileNameExtension;
+		currFls.chFilename = GetAlignedMemFromSBULKMEMgrow (&put->sbm, currFls.stFilename);
+		if (currFls.chFilename)
+		{
+			memcpy (currFls.chFilename, put->mbAppName.buf.pcc, put->lnAppName);
+			memcpy (currFls.chFilename + put->lnAppName, szCunilogLogFileNameExtension,
+						sizCunilogLogFileNameExtension);
+			if (0 == vec_insert (&put->fls, 0, currFls))
+				return;
+		}
+		SetCunilogSystemError (put->error, CUNILOG_ERROR_HEAP_ALLOCATION);
+	}
+}
+
 static void cunilogRenameLogfile (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL	(put);
@@ -3891,19 +3927,18 @@ static void cunilogRenameLogfile (CUNILOG_TARGET *put)
 
 		// Either ".log.<number>" orr "g" from ".log".
 		ubf_assert ('.' == sz [0] || 'g' == sz [0]);
-		bool bLogfileNeedsClosing = 'g' == sz [0];
+		bool bIsActiveLogfile = 'g' == sz [0];
 
 		size_t ol = put->stFilToRotate - 1 - ln;
 		size_t nl = incrementDotNumberName (sz);
-		copyDotNumberToFLS (put, nl, ol);
 
 		bool bMoved;
 
 		#ifdef PLATFORM_IS_WINDOWS
-			if (bLogfileNeedsClosing)
+			if (bIsActiveLogfile)
 				cunilogCloseCUNILOG_LOGFILEifOpen (put);
 			bMoved = MoveFileU8long (put->mbFilToRotate.buf.pch, prd->mbDstFile.buf.pcc);
-			if (bLogfileNeedsClosing)
+			if (bIsActiveLogfile)
 			{
 				if (requiresOpenLogFile (put))
 				{
@@ -3919,6 +3954,8 @@ static void cunilogRenameLogfile (CUNILOG_TARGET *put)
 			}
 			if (bMoved)
 			{
+				copyDotNumberToFLS (put, nl, ol);
+				cunilogPushIfActiveLogfile (bIsActiveLogfile, put);
 				logFromInsideRotatorTextU8fmt	(
 					put, "File \"%s\" moved/renamed to \"%s\".",
 					put->mbFilToRotate.buf.pcc,
@@ -4182,7 +4219,7 @@ static inline int cmpflsnums (const char *sz1, size_t l1, const char *sz2, size_
 	}
 	if (l1 || l2)
 	{
-		// The shorter the higher up.
+		// The shorter the greater, i.e. "file.9" is greater than "file.10".
 		if (l1 < l2)
 			return -1;
 		if (l1 > l2)
