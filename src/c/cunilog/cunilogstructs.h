@@ -240,7 +240,7 @@ enum cunilogtype
 /*
 	The postfix applied to the application name.
 
-	Example:
+	Example for cunilogPostfixMinute:
 	"MyApp" + "_" + "YYYY-MM-DD HH_MI"
 
 	Postfixes are ascending by default, meaning that newer logfiles cantain
@@ -250,7 +250,7 @@ enum cunilogtype
 enum cunilogpostfix
 {
 		cunilogPostfixNone
-	,	cunilogPostfixMinute								// "YYYY-MM-DD HH_MI"	
+	,	cunilogPostfixMinute								// "YYYY-MM-DD HH_MI"
 	,	cunilogPostfixMinuteT								// "YYYY-MM-DDTHH_MI"
 	,	cunilogPostfixHour									// "YYYY-MM-DD HH"
 	,	cunilogPostfixHourT									// "YYYY-MM-DDTHH"
@@ -259,6 +259,19 @@ enum cunilogpostfix
 	,	cunilogPostfixWeek									// "YYYY-Wnn"
 	,	cunilogPostfixMonth									// "YYYY-MM"
 	,	cunilogPostfixYear									// "YYYY"
+
+	// Current/active logfile has no postfix, but less recent ones have.
+	//	"file.log", "file_YYYY-MM-DD HH_MI.log", etc.
+	,	cunilogPostfixLogMinute
+	,	cunilogPostfixLogMinuteT
+	,	cunilogPostfixLogHour
+	,	cunilogPostfixLogHourT
+	,	cunilogPostfixLogDay
+	,	cunilogPostfixLogWeek
+	,	cunilogPostfixLogMonth
+	,	cunilogPostfixLogYear
+
+	//	"file.log", "file.log.1", "file.log.2", etc.
 	,	cunilogPostfixDotNumberMinutely						// ".<number>", rotation every minute.
 	,	cunilogPostfixDotNumberHourly						// ".<number>", rotation every hour.
 	,	cunilogPostfixDotNumberDaily

@@ -342,6 +342,9 @@ CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn)
 	return cps;
 }
 
+/*
+	Space required for the date/timestamp in a filename.
+*/
 size_t arrLengthTimeStampFromPostfix [] =					// [unilogPostfixAmountEnumValues]
 {
 	/* cunilogPostfixNone					*/		0
@@ -353,6 +356,16 @@ size_t arrLengthTimeStampFromPostfix [] =					// [unilogPostfixAmountEnumValues]
 	/* cunilogPostfixWeek					*/	,	LEN_ISO8601YEARANDWEEK
 	/* cunilogPostfixMonth					*/	,	LEN_ISO8601YEARANDMONTH
 	/* cunilogPostfixYear					*/	,	LEN_ISO8601YEAR
+
+	/* cunilogPostfixLogMinute				*/	,	LEN_ISO8601DATEHOURANDMINUTE
+	/* cunilogPostfixLogMinuteT				*/	,	LEN_ISO8601DATEHOURANDMINUTE
+	/* cunilogPostfixLogHour				*/	,	LEN_ISO8601DATEANDHOUR
+	/* cunilogPostfixLogHourT				*/	,	LEN_ISO8601DATEANDHOUR
+	/* cunilogPostfixLogDay					*/	,	LEN_ISO8601DATE
+	/* cunilogPostfixLogWeek				*/	,	LEN_ISO8601YEARANDWEEK
+	/* cunilogPostfixLogMonth				*/	,	LEN_ISO8601YEARANDMONTH
+	/* cunilogPostfixLogYear				*/	,	LEN_ISO8601YEAR
+
 													// Space for "." + UNIT64.
 	/* cunilogPostfixDotNumberMinutely		*/	,	1 + UBF_UINT64_LEN
 	/* cunilogPostfixDotNumberHourly		*/	,	1 + UBF_UINT64_LEN
@@ -387,7 +400,20 @@ const char *arrPostfixWildcardMask []	=		// [cunilogPostfixAmountEnumValues]
 	"\?\?\?\?-\?\?-\?\?",						// cunilogPostfixDay					"YYYY-MM-DD".
 	"\?\?\?\?-W\?\?",							// cunilogPostfixWeek					"YYYY-Wnn".
 	"\?\?\?\?-\?\?",							// cunilogPostfixMonth					"YYYY-MM".
-	"\?\?\?\?"									// cunilogPostfixYear					"YYYY".
+	"\?\?\?\?",									// cunilogPostfixYear					"YYYY".
+
+	// Current/active logfile has no postfix.
+	//	"file.log", "file_YYYY-MM-DD HH_MI.log", etc.
+	"\?\?\?\?-\?\?-\?\? \?\?_\?\?",				// cunilogPostfixLogMinute				"YYYY-MM-DD HH_MI".
+	"\?\?\?\?-\?\?-\?\?T\?\?_\?\?",				// cunilogPostfixLogMinuteT				"YYYY-MM-DDTHH_MI".
+	"\?\?\?\?-\?\?-\?\? \?\?",					// cunilogPostfixLogHour				"YYYY-MM-DD HH".
+	"\?\?\?\?-\?\?-\?\?T\?\?",					// cunilogPostfixLogHourT				"YYYY-MM-DDTHH".
+	"\?\?\?\?-\?\?-\?\?",						// cunilogPostfixLogDay					"YYYY-MM-DD".
+	"\?\?\?\?-W\?\?",							// cunilogPostfixLogWeek				"YYYY-Wnn".
+	"\?\?\?\?-\?\?",							// cunilogPostfixLogMonth				"YYYY-MM".
+	"\?\?\?\?",									// cunilogPostfixLogYear				"YYYY".
+
+	//	"file.log", "file.log.1", "file.log.2", etc.
 	"",											// cunilogPostfixDotNumberMinutely
 	"",											// cunilogPostfixDotNumberHourly
 	"",											// cunilogPostfixDotNumberDaily
@@ -430,6 +456,16 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 	/* cunilogPostfixWeek					*/	,	ISO8601YearAndWeek_from_UBF_TIMESTAMPc
 	/* cunilogPostfixMonth					*/	,	ISO8601YearAndMonth_from_UBF_TIMESTAMPc
 	/* cunilogPostfixYear					*/	,	ISO8601Year_from_UBF_TIMESTAMPc
+
+	/* cunilogPostfixLogMinute				*/	,	ISO8601DateHourAndMinute_from_UBF_TIMESTAMP_
+	/* cunilogPostfixLogMinuteT				*/	,	ISO8601TDateHourAndMinute_from_UBF_TIMESTAMP_
+	/* cunilogPostfixLogHour				*/	,	ISO8601DateAndHour_from_UBF_TIMESTAMPc
+	/* cunilogPostfixLogHourT				*/	,	ISO8601TDateAndHour_from_UBF_TIMESTAMPc
+	/* cunilogPostfixLogDay					*/	,	ISO8601Date_from_UBF_TIMESTAMPc
+	/* cunilogPostfixLogWeek				*/	,	ISO8601YearAndWeek_from_UBF_TIMESTAMPc
+	/* cunilogPostfixLogMonth				*/	,	ISO8601YearAndMonth_from_UBF_TIMESTAMPc
+	/* cunilogPostfixLogYear				*/	,	ISO8601Year_from_UBF_TIMESTAMPc
+
 	/* cunilogPostfixDotNumberMinutely		*/	,	noPostfix
 	/* cunilogPostfixDotNumberHourly		*/	,	noPostfix
 	/* cunilogPostfixDotNumberDaily			*/	,	noPostfix
@@ -818,10 +854,7 @@ char *createLogPathInCUNILOG_TARGET	(
 										);
 		if (!b)
 		{
-			SetCunilogError	(
-				put->error,
-				CUNILOG_ERROR_ABS_OR_REL_PATH, CUNILOG_SYSTEM_ERROR_NOT_SUPPORTED
-							);
+			SetCunilogError (put, CUNILOG_ERROR_ABS_OR_REL_PATH, CUNILOG_SYSTEM_ERROR_NOT_SUPPORTED);
 			return NULL;
 		}
 	} else
@@ -832,10 +865,7 @@ char *createLogPathInCUNILOG_TARGET	(
 		// Cannot be absolute.
 		if (cunilogPath_isAbsolute == relLogPath)
 		{
-			SetCunilogError	(
-				put->error,
-				CUNILOG_ERROR_ABS_OR_REL_PATH, CUNILOG_SYSTEM_ERROR_NOT_SUPPORTED
-							);
+			SetCunilogError	(put, CUNILOG_ERROR_ABS_OR_REL_PATH, CUNILOG_SYSTEM_ERROR_NOT_SUPPORTED);
 			return NULL;
 		}
 
@@ -843,19 +873,12 @@ char *createLogPathInCUNILOG_TARGET	(
 		put->lnLogPath = ObtainRelativeLogPathBase (&put->mbLogPath, relLogPath);
 		if (CUNILOG_SIZE_ERROR == put->lnLogPath)
 		{
-			SetCunilogError (put->error, 
-				CUNILOG_ERROR_PATH_BASE,
-				CUNILOG_SYSTEM_ERROR_BUFFER_OVERFLOW
-							);
+			SetCunilogError (put, CUNILOG_ERROR_PATH_BASE, CUNILOG_SYSTEM_ERROR_BUFFER_OVERFLOW);
 			return NULL;
 		}
 		if (0 == put->lnLogPath)
 		{
-			SetCunilogError	(
-				put->error,
-				CUNILOG_ERROR_PATH_BASE,
-				CUNILOG_SYSTEM_ERROR_NOT_SUPPORTED
-							);
+			SetCunilogError	(put, CUNILOG_ERROR_PATH_BASE, CUNILOG_SYSTEM_ERROR_NOT_SUPPORTED);
 			return NULL;
 		}
 	}
@@ -1105,7 +1128,7 @@ static bool prepareProcessors (CUNILOG_TARGET *put, CUNILOG_PROCESSOR **cp, unsi
 			cunilogSetProcessorsAllocated (put);
 		else
 		{
-			SetCunilogSystemError (put->error, CUNILOG_ERROR_HEAP_ALLOCATION);
+			SetCunilogSystemError (put, CUNILOG_ERROR_HEAP_ALLOCATION);
 			return false;
 		}
 	} else
@@ -1135,14 +1158,6 @@ static void prepareCUNILOG_TARGETinitFilenameBuffers (CUNILOG_TARGET *put, size_
 static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
-
-	// A little helper for debugging.
-	/*
-	if (cunilogPostfixDotNumberDescending == put->culogPostfix)
-	{
-		size_t lnAfterDotLog = 0;
-	}
-	*/
 
 	size_t lnRoomForStamp	= lenDateTimeStampFromPostfix (put->culogPostfix);
 	size_t lnUnderscore;
@@ -1239,9 +1254,9 @@ static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
 		return true;
 	} else
 	{
-		SetCunilogSystemError (put->error, CUNILOG_ERROR_HEAP_ALLOCATION);
+		SetCunilogSystemError (put, CUNILOG_ERROR_HEAP_ALLOCATION);
 		put->szDateTimeStamp = NULL;
-		ubf_assert_non_NULL (put->szDateTimeStamp);
+		ubf_assert (false);
 		return false;
 	}
 }
@@ -1258,7 +1273,7 @@ static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
 				//	https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createsemaphorew .
 				put->sm.hSemaphore = CreateSemaphoreW (NULL, 0, MAXLONG, NULL);
 				if (NULL == put->sm.hSemaphore)
-					SetCunilogSystemError (put->error, CUNILOG_ERROR_SEMAPHORE);
+					SetCunilogSystemError (put, CUNILOG_ERROR_SEMAPHORE);
 				return NULL != put->sm.hSemaphore;
 			#else
 				int i = sem_init (&put->sm.tSemaphore, 0, 0);
@@ -1598,7 +1613,7 @@ static inline bool initCommonMembersAndPrepareCUNILOG_TARGET (CUNILOG_TARGET *pu
 	b = StartSeparateLoggingThread_ifNeeded	(put);
 	if (b)
 	{
-		ResetCunilogError (put->error);
+		ResetCunilogError (put);
 		return prepareCUNILOG_TARGETforLogging	(put);
 	}
 	return false;
@@ -1666,15 +1681,13 @@ CUNILOG_TARGET *InitCUNILOG_TARGETex
 	char *szLP = createLogPathInCUNILOG_TARGET (put, szLogPath, lnLogPath, relLogPath);
 	if (NULL == szLP && cunilogPath_isAbsolute == relLogPath)
 	{
-		SetCunilogError	(
-			put->error, CUNILOG_ERROR_ABS_OR_REL_PATH, CUNILOG_SYSTEM_ERROR_NOT_SUPPORTED
-						);
+		SetCunilogError (put, CUNILOG_ERROR_ABS_OR_REL_PATH, CUNILOG_SYSTEM_ERROR_NOT_SUPPORTED);
 		return NULL;
 	}
 	char *sz = createAppNameInCUNILOG_TARGET (put, szAppName, lnAppName);
 	if (NULL == sz)
 	{
-		SetCunilogSystemError (put->error, CUNILOG_ERROR_APPNAME);
+		SetCunilogSystemError (put, CUNILOG_ERROR_APPNAME);
 		return NULL;
 	}
 	zeroProcessors (put);
@@ -3269,7 +3282,7 @@ CUNILOG_EVENT *DoneCUNILOG_EVENT (CUNILOG_TARGET *put, CUNILOG_EVENT *pev)
 		#else
 			int32_t syserror = errno;
 		#endif
-		SetCunilogError (pev->pCUNILOG_TARGET->error, cunilog_error, syserror);
+		SetCunilogError (pev->pCUNILOG_TARGET, cunilog_error, syserror);
 
 		if (pev->pCUNILOG_TARGET->errorCB)
 		{
@@ -3493,6 +3506,16 @@ static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, CUNILOG
 
 	switch (put->culogPostfix)
 	{
+		case cunilogPostfixLogMinute:
+		case cunilogPostfixLogMinuteT:
+		case cunilogPostfixLogHour:
+		case cunilogPostfixLogHourT:
+		case cunilogPostfixLogDay:
+		case cunilogPostfixLogWeek:
+		case cunilogPostfixLogMonth:
+		case cunilogPostfixLogYear:
+			return true;
+
 		case cunilogPostfixDotNumberMinutely:
 		case cunilogPostfixDotNumberHourly:
 		case cunilogPostfixDotNumberDaily:
@@ -3886,7 +3909,7 @@ static inline void cunilogPushIfActiveLogfile (bool bIsActiveLogfile, CUNILOG_TA
 			if (0 == vec_insert (&put->fls, 0, currFls))
 				return;
 		}
-		SetCunilogSystemError (put->error, CUNILOG_ERROR_HEAP_ALLOCATION);
+		SetCunilogSystemError (put, CUNILOG_ERROR_HEAP_ALLOCATION);
 	}
 }
 
@@ -3944,7 +3967,7 @@ static void cunilogRenameLogfile (CUNILOG_TARGET *put)
 				{
 					if (!cunilogOpenLogFile (put))
 					{
-						SetCunilogSystemError (put->error, CUNILOG_ERROR_OPENING_LOGFILE);
+						SetCunilogSystemError (put, CUNILOG_ERROR_OPENING_LOGFILE);
 						cunilogSetTargetErrorAndInvokeErrorCallback	(
 							CUNILOG_ERROR_OPENING_LOGFILE,
 							put->prargs->cup, put->prargs->pev
@@ -3971,7 +3994,7 @@ static void cunilogRenameLogfile (CUNILOG_TARGET *put)
 					"Error %s while attempting to move file \"%s\" to \"%s\".",
 					szErr, put->mbFilToRotate.buf.pcc, prd->mbDstFile.buf.pcc
 												);
-				SetCunilogError (put->error, CUNILOG_ERROR_RENAMING_LOGFILE, dwErr);
+				SetCunilogError (put, CUNILOG_ERROR_RENAMING_LOGFILE, dwErr);
 			}
 		#else
 			bMoved = false;
@@ -4934,7 +4957,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *p
 				HANDLE h = CreateThread (NULL, 0, SeparateLoggingThread, put, 0, NULL);
 				ubf_assert_non_NULL (h);
 				if (NULL == h)
-					SetCunilogSystemError (put->error, CUNILOG_ERROR_SEPARATE_LOGGING_THREAD);
+					SetCunilogSystemError (put, CUNILOG_ERROR_SEPARATE_LOGGING_THREAD);
 				put->th.hThread = h;
 				return NULL != h;
 			#else
@@ -6628,12 +6651,30 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 
 		// Check that the length assignments are correct.
 		ubf_assert (LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixMinute));
+		ubf_assert (LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixMinuteT));
 		ubf_assert (LEN_ISO8601DATEANDHOUR			== lenDateTimeStampFromPostfix (cunilogPostfixHour));
+		ubf_assert (LEN_ISO8601DATEANDHOUR			== lenDateTimeStampFromPostfix (cunilogPostfixHourT));
 		ubf_assert (LEN_ISO8601DATE					== lenDateTimeStampFromPostfix (cunilogPostfixDay));
 		ubf_assert (LEN_ISO8601DATE					== lenDateTimeStampFromPostfix (cunilogPostfixDefault));
 		ubf_assert (LEN_ISO8601YEARANDWEEK			== lenDateTimeStampFromPostfix (cunilogPostfixWeek));
 		ubf_assert (LEN_ISO8601YEARANDMONTH			== lenDateTimeStampFromPostfix (cunilogPostfixMonth));
 		ubf_assert (LEN_ISO8601YEAR					== lenDateTimeStampFromPostfix (cunilogPostfixYear));
+
+		ubf_assert (LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixLogMinute));
+		ubf_assert (LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixLogMinuteT));
+		ubf_assert (LEN_ISO8601DATEANDHOUR			== lenDateTimeStampFromPostfix (cunilogPostfixLogHour));
+		ubf_assert (LEN_ISO8601DATEANDHOUR			== lenDateTimeStampFromPostfix (cunilogPostfixLogHourT));
+		ubf_assert (LEN_ISO8601DATE					== lenDateTimeStampFromPostfix (cunilogPostfixLogDay));
+		ubf_assert (LEN_ISO8601YEARANDWEEK			== lenDateTimeStampFromPostfix (cunilogPostfixLogWeek));
+		ubf_assert (LEN_ISO8601YEARANDMONTH			== lenDateTimeStampFromPostfix (cunilogPostfixLogMonth));
+		ubf_assert (LEN_ISO8601YEAR					== lenDateTimeStampFromPostfix (cunilogPostfixLogYear));
+
+		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberMinutely));
+		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberHourly));
+		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberDaily));
+		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberWeekly));
+		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberMonthly));
+		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberYearly));
 
 		/*
 			Check consistency between unilogstruct.h and the declarations in this code file.

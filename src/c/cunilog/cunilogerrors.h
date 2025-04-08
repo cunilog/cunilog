@@ -156,9 +156,9 @@ typedef uint64_t	CUNILOG_ERROR;
 	serr		System error code. This is either a DWORD on Windows or an int32_t on
 				POSIX.
 */
-#define SetCunilogError(errvar, cerr, serr)				\
-			(errvar) = (CUNILOG_ERROR)(cerr) << 32;		\
-			(errvar) += (unsigned)(serr)
+#define SetCunilogError(put, cerr, serr)				\
+	((put)->error) = (CUNILOG_ERROR)(cerr) << 32;		\
+	((put)->error) += (unsigned)(serr)
 
 
 /*
@@ -168,15 +168,15 @@ typedef uint64_t	CUNILOG_ERROR;
 */
 #if defined (PLATFORM_IS_WINDOWS)
 
-	#define SetCunilogSystemError(errvar, cerr)			\
-				(errvar) = (CUNILOG_ERROR)(cerr) << 32;	\
-				(errvar) += (unsigned) GetLastError ()
+	#define SetCunilogSystemError(put, cerr)			\
+		((put)->error) = (CUNILOG_ERROR)(cerr) << 32;	\
+		((put)->error) += (unsigned) GetLastError ()
 
 #elif defined (PLATFORM_IS_POSIX)
 
-	#define SetCunilogSystemError(errvar, cerr, serr)	\
-				(errvar) = (CUNILOG_ERROR)(cerr) << 32;	\
-				(errvar) += (unsigned) errno
+	#define SetCunilogSystemError(put, cerr, serr)		\
+		((put)->error) = (CUNILOG_ERROR)(cerr) << 32;	\
+		((put)->error) += (unsigned) errno
 
 #elif
 
@@ -184,8 +184,8 @@ typedef uint64_t	CUNILOG_ERROR;
 
 #endif
 
-#define ResetCunilogError(errvar)						\
-			SetCunilogError ((errvar), CUNILOG_NO_ERROR, CUNILOG_SYSTEM_ERROR_SUCCESS)
+#define ResetCunilogError(put)							\
+			SetCunilogError ((put), CUNILOG_NO_ERROR, CUNILOG_SYSTEM_ERROR_SUCCESS)
 
 EXTERN_C_END
 
