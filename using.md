@@ -29,7 +29,7 @@ Example for using the internal static structure:
 ```C
 // Application start
 
-CUNILOG_TARGET *put = InitSUNILOGTARGETstatic	(
+CUNILOG_TARGET *put = InitCUNILOG_TARGETstatic	(
 			"logs", 4,
 			"MyApp", USE_STRLEN,
 			cunilogPath_relativeToHomeDir,
@@ -37,7 +37,7 @@ CUNILOG_TARGET *put = InitSUNILOGTARGETstatic	(
 						);
 if (NULL == put)
 {
-	// InitSUNILOGTARGETstatic () failed.
+	// InitCUNILOG_TARGETstatic () failed.
 	exit (EXIT_FAILURE);
 }
 
@@ -48,10 +48,10 @@ logTextU8l_static ("And another one.", USE_STRLEN);
 
 // Just before the application exists shut down logging and deallocate its resources.
 ShutdownCUNILOG_TARGETstatic ();		// Blocks until the queue is empty.
-DoneSUNILOGTARGETstatic ();
+DoneCUNILOG_TARGETstatic ();
 ```
 
-Here's the signature of the InitSUNILOGTARGETstatic () function:
+Here's the signature of the InitCUNILOG_TARGETstatic () function:
 ```C
 /*
 	InitCUNILOG_TARGETstatic
