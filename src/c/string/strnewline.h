@@ -183,7 +183,7 @@ unsigned int strIsNewLine (char *ch, size_t stLen, size_t *stJump);
 	The function returns the amount of new lines found, or 0 if ch does not point
 	to at least one new line marker.
 */
-size_t strIsLineEndings (char *ch, size_t stLen, size_t *stJump)
+size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 ;
 
 /*
@@ -282,6 +282,24 @@ size_t lnLineEnding (newline_t nl);
 */
 const char *szLineEnding (newline_t, size_t *pln);
 
+/*
+	strRemoveLineEndingsFromEnd
+
+	Removes line endings from the right side of sz.
+	
+	The string parameter cannot be NULL but the function does not check this.
+
+	The parameter len specifies the length of sz. The string does not have to be
+	NUL-terminated.
+
+	If len is USE_STRLEN, the function calls strlen () on sz. Note that sz must be
+	NUL-terminated in this case.
+
+	The function returns the new length of sz, which excludes the found line endings.
+*/
+size_t strRemoveLineEndingsFromEnd (const char *sz, size_t len);
+
+
 #ifdef DEBUG
 	#ifndef STRNEWLINE_BUILD_TEST
 	#define STRNEWLINE_BUILD_TEST
@@ -292,9 +310,9 @@ const char *szLineEnding (newline_t, size_t *pln);
 	Test function.
 */
 #ifdef STRNEWLINE_BUILD_TEST
-	void test_strnewline (void);
+	bool test_strnewline (void);
 #else
-	#define test_strnewline()
+	#define test_strnewline()	(true)
 #endif
 
 EXTERN_C_END

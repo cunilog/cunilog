@@ -14653,7 +14653,7 @@ unsigned int strIsNewLine (char *ch, size_t stLen, size_t *stJump);
 	The function returns the amount of new lines found, or 0 if ch does not point
 	to at least one new line marker.
 */
-size_t strIsLineEndings (char *ch, size_t stLen, size_t *stJump)
+size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 ;
 
 /*
@@ -14752,6 +14752,24 @@ size_t lnLineEnding (newline_t nl);
 */
 const char *szLineEnding (newline_t, size_t *pln);
 
+/*
+	strRemoveLineEndingsFromEnd
+
+	Removes line endings from the right side of sz.
+	
+	The string parameter cannot be NULL but the function does not check this.
+
+	The parameter len specifies the length of sz. The string does not have to be
+	NUL-terminated.
+
+	If len is USE_STRLEN, the function calls strlen () on sz. Note that sz must be
+	NUL-terminated in this case.
+
+	The function returns the new length of sz, which excludes the found line endings.
+*/
+size_t strRemoveLineEndingsFromEnd (const char *sz, size_t len);
+
+
 #ifdef DEBUG
 	#ifndef STRNEWLINE_BUILD_TEST
 	#define STRNEWLINE_BUILD_TEST
@@ -14762,7 +14780,7 @@ const char *szLineEnding (newline_t, size_t *pln);
 	Test function.
 */
 #ifdef STRNEWLINE_BUILD_TEST
-	void test_strnewline (void);
+	bool test_strnewline (void);
 #else
 	#define test_strnewline()
 #endif
@@ -16916,6 +16934,17 @@ When		Who				What
 #define CUNILOG_ERROR_SEPARATE_LOGGING_THREAD		(9)
 #define CUNILOG_ERROR_RENAMING_LOGFILE				(10)
 
+#define CUNILOG_ERROR_FIRST_UNUSED_ERROR			(5000)
+
+/*
+	Error codes only used when CUNILOG_BUILD_WITH_TEST_ERRORCB
+	defined.
+*/
+#define CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE		(CUNILOG_ERROR_FIRST_UNUSED_ERROR + 1)
+#define CUNILOG_ERROR_TEST_AFTER_THRESHOLD_UPDATE		(CUNILOG_ERROR_FIRST_UNUSED_ERROR + 2)
+#define CUNILOG_ERROR_TEST_BEFORE_REQUIRES_NEW_LOGFILE	(CUNILOG_ERROR_FIRST_UNUSED_ERROR + 3)
+#define CUNILOG_ERROR_TEST_AFTER_REQUIRES_NEW_LOGFILE	(CUNILOG_ERROR_FIRST_UNUSED_ERROR + 4)
+
 EXTERN_C_BEGIN
 
 /*
@@ -16954,9 +16983,9 @@ typedef uint64_t	CUNILOG_ERROR;
 	serr		System error code. This is either a DWORD on Windows or an int32_t on
 				POSIX.
 */
-#define SetCunilogError(errvar, cerr, serr)				\
-			(errvar) = (CUNILOG_ERROR)(cerr) << 32;		\
-			(errvar) += (unsigned)(serr)
+#define SetCunilogError(put, cerr, serr)				\
+	((put)->error) = (CUNILOG_ERROR)(cerr) << 32;		\
+	((put)->error) += (unsigned)(serr)
 
 
 /*
@@ -16966,15 +16995,15 @@ typedef uint64_t	CUNILOG_ERROR;
 */
 #if defined (PLATFORM_IS_WINDOWS)
 
-	#define SetCunilogSystemError(errvar, cerr)			\
-				(errvar) = (CUNILOG_ERROR)(cerr) << 32;	\
-				(errvar) += (unsigned) GetLastError ()
+	#define SetCunilogSystemError(put, cerr)			\
+		((put)->error) = (CUNILOG_ERROR)(cerr) << 32;	\
+		((put)->error) += (unsigned) GetLastError ()
 
 #elif defined (PLATFORM_IS_POSIX)
 
-	#define SetCunilogSystemError(errvar, cerr, serr)	\
-				(errvar) = (CUNILOG_ERROR)(cerr) << 32;	\
-				(errvar) += (unsigned) errno
+	#define SetCunilogSystemError(put, cerr, serr)		\
+		((put)->error) = (CUNILOG_ERROR)(cerr) << 32;	\
+		((put)->error) += (unsigned) errno
 
 #elif
 
@@ -16982,8 +17011,8 @@ typedef uint64_t	CUNILOG_ERROR;
 
 #endif
 
-#define ResetCunilogError(errvar)						\
-			SetCunilogError ((errvar), CUNILOG_NO_ERROR, CUNILOG_SYSTEM_ERROR_SUCCESS)
+#define ResetCunilogError(put)							\
+			SetCunilogError ((put), CUNILOG_NO_ERROR, CUNILOG_SYSTEM_ERROR_SUCCESS)
 
 EXTERN_C_END
 
@@ -17230,7 +17259,7 @@ enum cunilogtype
 /*
 	The postfix applied to the application name.
 
-	Example:
+	Example for cunilogPostfixMinute:
 	"MyApp" + "_" + "YYYY-MM-DD HH_MI"
 
 	Postfixes are ascending by default, meaning that newer logfiles cantain
@@ -17240,7 +17269,7 @@ enum cunilogtype
 enum cunilogpostfix
 {
 		cunilogPostfixNone
-	,	cunilogPostfixMinute								// "YYYY-MM-DD HH_MI"	
+	,	cunilogPostfixMinute								// "YYYY-MM-DD HH_MI"
 	,	cunilogPostfixMinuteT								// "YYYY-MM-DDTHH_MI"
 	,	cunilogPostfixHour									// "YYYY-MM-DD HH"
 	,	cunilogPostfixHourT									// "YYYY-MM-DDTHH"
@@ -17249,6 +17278,19 @@ enum cunilogpostfix
 	,	cunilogPostfixWeek									// "YYYY-Wnn"
 	,	cunilogPostfixMonth									// "YYYY-MM"
 	,	cunilogPostfixYear									// "YYYY"
+
+	// Current/active logfile has no postfix, but less recent ones have.
+	//	"file.log", "file_YYYY-MM-DD HH_MI.log", etc.
+	,	cunilogPostfixLogMinute
+	,	cunilogPostfixLogMinuteT
+	,	cunilogPostfixLogHour
+	,	cunilogPostfixLogHourT
+	,	cunilogPostfixLogDay
+	,	cunilogPostfixLogWeek
+	,	cunilogPostfixLogMonth
+	,	cunilogPostfixLogYear
+
+	//	"file.log", "file.log.1", "file.log.2", etc.
 	,	cunilogPostfixDotNumberMinutely						// ".<number>", rotation every minute.
 	,	cunilogPostfixDotNumberHourly						// ".<number>", rotation every hour.
 	,	cunilogPostfixDotNumberDaily
@@ -17831,6 +17873,8 @@ typedef struct scunilognpi
 	/*
 		Possible return values of the error/fail callback function.
 
+		cunilogErrCB_ignore					Just carry on as if nothing happened.			
+
 		cunilogErrCB_next_processor			The current processor is cancelled and the next
 											processor is going to be processed. The error/fail
 											callback function is called again for the next
@@ -17845,7 +17889,8 @@ typedef struct scunilognpi
 	*/
 	enum enErrCBretval
 	{
-			cunilogErrCB_next_processor
+			cunilogErrCB_ignore
+		,	cunilogErrCB_next_processor
 		,	cunilogErrCB_next_event
 		,	cunilogErrCB_shutdown
 		,	cunilogErrCB_cancel
@@ -18041,42 +18086,18 @@ typedef struct CUNILOG_TARGET
 	#define cunilogIsTargetInitialised(pt)	(true)
 #endif
 
+// The callback function errorCB is called as often as possible,
+//	even when there's no error. Used for tests.
+//	Requires CUNILOG_BUILD_WITH_TEST_ERRORCB.
+//	Ignored when CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+//	is defined.
+//	Error code is usually one of the CUNILOG_ERROR_TEST_ definitions
+//	in cunilogerrors.h.
+#define CUNILOGTARGET_ALWAYS_CALL_ERRORCB		SINGLEBIT64 (16)
+
 // Debug flag when the queue is locked. To be removed in the future.
 #define CUNILOGTARGET_DEBUG_QUEUE_LOCKED		SINGLEBIT64 (20)
 
-
-/*
-	Public option flags for the uiOpts member of a CUNILOG_TARGET structure.
-	Flags callers/users can change/use.
-*/
-
-// Tells the initialiser function(s) not to allocate/assign default processors.
-//	The target is not ready when this option flag is used. The function
-//	ConfigCUNILOG_TARGETprocessorList () must be called before the target
-//	is usable.
-#define CUNILOGTARGET_NO_DEFAULT_PROCESSORS		SINGLEBIT64 (32)
-
-/*
-	By default, timestamps are created when an event is created.With this bit set,
-	timestamps are created when they are enqueued. This ensures that events that
-	are enqueued later have a newer timestamp but also locks the queue much longer
-	because the timestamp is obtained during this process. Without this flag,
-	timestamps are created when the event is created, and outside the lock.
-*/
-#define CUNILOGTARGET_ENQUEUE_TIMESTAMPS		SINGLEBIT64 (33)
-
-// The echo/console output processor is skipped.
-#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (34)
-
-// The processor that writes to the logfile is skipped.
-#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (35)
-
-// Colour information should be used.
-#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (36)
-
-/*
-	Macros for some flags.
-*/
 #define cunilogSetShutdownTarget(put)					\
 	((put)->uiOpts |= CUNILOGTARGET_SHUTDOWN)
 #define cunilogIsShutdownTarget(put)					\
@@ -18121,7 +18142,7 @@ typedef struct CUNILOG_TARGET
 	((put)->uiOpts |= CUNILOGTARGET_PROCESSORS_ALLOCATED)
 #define cunilogClrProcessorsAllocated(put)				\
 	((put)->uiOpts &= ~ CUNILOGTARGET_PROCESSORS_ALLOCATED)
-#define cunilogIsProcessorsAllocated(put)				\
+#define cunilogHasProcessorsAllocated(put)				\
 	((put)->uiOpts & CUNILOGTARGET_PROCESSORS_ALLOCATED)
 
 #define cunilogHasRunAllProcessorsOnStartup(put)		\
@@ -18166,6 +18187,59 @@ typedef struct CUNILOG_TARGET
 #define cunilogTargetSetPaused(put)						\
 	((put)->uiOpts |= CUNILOGTARGET_PAUSED)
 
+#if defined (DEBUG) && !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
+	#define cunilogHasDebugQueueLocked(put)				\
+		((put)->uiOpts & CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+	#define cunilogClrDebugQueueLocked(put)				\
+		((put)->uiOpts &= ~ CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+	#define cunilogSetDebugQueueLocked(put)				\
+		((put)->uiOpts |= CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+#else
+	#define cunilogHasDebugQueueLocked(put)	(true)
+	#define cunilogClrDebugQueueLocked(put)
+	#define cunilogSetDebugQueueLocked(put)
+#endif
+
+#define cunilogTargetHasAlwaysCallErrorCB(put)			\
+	((put)->uiOpts & CUNILOGTARGET_ALWAYS_CALL_ERRORCB)
+#define cunilogTargetClrAlwaysCallErrorCB(put)			\
+	((put)->uiOpts &= ~ CUNILOGTARGET_ALWAYS_CALL_ERRORCB)
+#define cunilogTargetSetAlwaysCallErrorCB(put)			\
+	((put)->uiOpts |= CUNILOGTARGET_ALWAYS_CALL_ERRORCB)
+
+
+/*
+	Public option flags for the uiOpts member of a CUNILOG_TARGET structure.
+	Flags callers/users can change/use.
+*/
+
+// Tells the initialiser function(s) not to allocate/assign default processors.
+//	The target is not ready when this option flag is used. The function
+//	ConfigCUNILOG_TARGETprocessorList () must be called before the target
+//	is usable.
+#define CUNILOGTARGET_NO_DEFAULT_PROCESSORS		SINGLEBIT64 (32)
+
+/*
+	By default, timestamps are created when an event is created.With this bit set,
+	timestamps are created when they are enqueued. This ensures that events that
+	are enqueued later have a newer timestamp but also locks the queue much longer
+	because the timestamp is obtained during this process. Without this flag,
+	timestamps are created when the event is created, and outside the lock.
+*/
+#define CUNILOGTARGET_ENQUEUE_TIMESTAMPS		SINGLEBIT64 (33)
+
+// The echo/console output processor is skipped.
+#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (34)
+
+// The processor that writes to the logfile is skipped.
+#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (35)
+
+// Colour information should be used.
+#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (36)
+
+/*
+	Macros for public/user/caller flags.
+*/
 #define cunilogIsNoEcho(put)							\
 	((put)->uiOpts & CUNILOGTARGET_NO_ECHO)
 #define cunilogClrNoEcho(put)							\
@@ -18193,19 +18267,6 @@ typedef struct CUNILOG_TARGET
 		#define cunilogSetUseColourForEcho(put)			\
 			((put)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 	#endif
-#endif
-
-#if defined (DEBUG) && !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
-	#define cunilogHasDebugQueueLocked(put)				\
-		((put)->uiOpts & CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
-	#define cunilogClrDebugQueueLocked(put)				\
-		((put)->uiOpts &= ~ CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
-	#define cunilogSetDebugQueueLocked(put)				\
-		((put)->uiOpts |= CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
-#else
-	#define cunilogHasDebugQueueLocked(put)	(true)
-	#define cunilogClrDebugQueueLocked(put)
-	#define cunilogSetDebugQueueLocked(put)
 #endif
 
 #define cunilogHasEnqueueTimestamps(put)				\
@@ -19198,6 +19259,49 @@ TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
 bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
 
+/*
+	CunilogGetAbsPathFromAbsOrRelPath
+
+	Obtains an absolute path from a relative path. The parameter absOrRelPath specifies
+	to what a relative path is relative to.
+
+	The function adds a forward or backward slash to the buffer psmb points to, as it
+	assumes the parameters are paths, not filenames. However, the function also works
+	with paths to filenames but since it adds a slash the caller needs to remove this
+	manually, for example by overwriting it with an ASCII_NUL character.
+
+	psmb			A pointer to an SMEMBUF structure whose buffer receives the absolut
+					path.
+
+	plmb			A pointer to a size_t that receives the length of the buffer.
+
+	szAbsOrRelPath	The path. Can be relative or absolute.
+
+	lnAbsOrRelPath	Its length as would be retrieved by strlen (). Can be USE_STRLEN,
+					in which case the function calls strlen (szAbsOrRelPath) to obtain
+					it.
+
+	absOrRelPath	An enum that specifies what the path is relative to. The the enum
+					enCunilogRelPath for possible values.
+*/
+bool CunilogGetAbsPathFromAbsOrRelPath	(
+		SMEMBUF				*psmb,
+		size_t				*plmb,
+		const char			*szAbsOrRelPath,
+		size_t				lnAbsOrRelPath,
+		enCunilogRelPath	absOrRelPath
+										)
+;
+TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
+								(
+		SMEMBUF				*psmb,
+		size_t				*plmb,
+		const char			*szAbsOrRelPath,
+		size_t				lnAbsOrRelPath,
+		enCunilogRelPath	absOrRelPath
+								)
+;
+
 // This seems to be useful.
 #define requiresCUNILOG_TARGETseparateLoggingThread(p) HAS_CUNILOG_TARGET_A_QUEUE (p)
 
@@ -19760,58 +19864,28 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET_static)
 	(size_t *plen);
 
 /*
-	GetAbsPathFromAbsOrRelPath
+	ConfigCUNILOG_TARGETerrorCallbackFunction
 
-	Obtains an absolute path from a relative path. The parameter absOrRelPath specifies
-	to what a relative path is relative to.
-
-	The function adds a forward or backward slash to the buffer psmb points to, as it
-	assumes the parameters are paths, not filenames. However, the function also works
-	with paths to filenames but since it adds a slash the caller needs to remove this
-	manually, for example by overwriting it with an ASCII_NUL character.
-
-	psmb			A pointer to an SMEMBUF structure whose buffer receives the absolut
-					path.
-
-	plmb			A pointer to a size_t that receives the length of the buffer.
-
-	szAbsOrRelPath	The path. Can be relative or absolute.
-
-	lnAbsOrRelPath	Its length as would be retrieved by strlen (). Can be USE_STRLEN,
-					in which case the function calls strlen (szAbsOrRelPath) to obtain
-					it.
-
-	absOrRelPath	An enum that specifies what the path is relative to. The the enum
-					enCunilogRelPath for possible values.
+	Sets the error callback function of the specified Cunilog target put points to.
 */
-bool GetAbsPathFromAbsOrRelPath	(
-		SMEMBUF				*psmb,
-		size_t				*plmb,
-		const char			*szAbsOrRelPath,
-		size_t				lnAbsOrRelPath,
-		enCunilogRelPath	absOrRelPath
-								)
-;
-TYPEDEF_FNCT_PTR (bool, GetAbsPathFromAbsOrRelPath)
-								(
-		SMEMBUF				*psmb,
-		size_t				*plmb,
-		const char			*szAbsOrRelPath,
-		size_t				lnAbsOrRelPath,
-		enCunilogRelPath	absOrRelPath
-								)
-;
+#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+	void ConfigCUNILOG_TARGETerrorCallbackFunction (CUNILOG_TARGET *put, cunilogErrCallback errorCB);
+	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETerrorCallbackFunction)
+		(CUNILOG_TARGET *put, cunilogErrCallback errorCB);
+#else
+	#define ConfigCUNILOG_TARGETerrorCallbackFunction(put, errorCB)
+#endif
 
 /*
-	ConfigCUNILOG_TARGETcunilogpostfix
+	ConfigCUNILOG_TARGETeventStampFormat
 
 	Sets the member unilogEvtTSformat of the CUNILOG_TARGET structure put points to to the
 	value of tsf.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigCUNILOG_TARGETcunilogpostfix (CUNILOG_TARGET *put, enum cunilogeventTSformat tsf)
+	void ConfigCUNILOG_TARGETeventStampFormat (CUNILOG_TARGET *put, enum cunilogeventTSformat tsf)
 	;
-	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETcunilogpostfix)
+	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETeventStampFormat)
 		(CUNILOG_TARGET *put, enum cunilogeventTSformat tsf);
 #else
 	#define ConfigCUNILOG_TARGETcunilogpostfix(put, f)	\

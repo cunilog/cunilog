@@ -126,7 +126,7 @@ unsigned int strIsNewLine (char *ch, size_t stLen, size_t *stJump)
 	return uiRet;
 }
 
-size_t strIsLineEndings (char *ch, size_t stLen, size_t *stJump)
+size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 {
 	ubf_assert_non_NULL (ch);
 
@@ -276,12 +276,38 @@ const char *szLineEnding (newline_t nl, size_t *pln)
 	return aszLineEndings [nl];
 }
 
+size_t strRemoveLineEndingsFromEnd (const char *sz, size_t len)
+{
+	ubf_assert_non_NULL (sz);
+
+	int		i;
+	size_t	ln	= USE_STRLEN == len ? strlen (sz) : len;
+
+	do
+	{
+		len = ln;
+		i	= 0;
+		while (ln && i < cunilogNewLineAmountEnumValues)
+		{
+			if (ln >= lenLineEndings [i])
+				if (!memcmp (sz + ln - lenLineEndings [i], aszLineEndings [i], lenLineEndings [i]))
+				{
+					ln -= lenLineEndings [i];
+					break;
+				}
+			++ i;
+		}
+	} while (len != ln);
+	return ln;
+}
+
 #ifdef STRNEWLINE_BUILD_TEST
-	void test_strnewline (void)
+	bool test_strnewline (void)
 	{
 		ubf_assert (GET_ARRAY_LEN (aszLineEndings)				==	cunilogNewLineAmountEnumValues);
 		ubf_assert (GET_ARRAY_LEN (lenLineEndings)				==	cunilogNewLineAmountEnumValues);
 
+		bool			b			= true;
 		size_t			st;
 		size_t			us;
 		char			sz [1024];
@@ -289,8 +315,28 @@ const char *szLineEnding (newline_t nl, size_t *pln)
 		strcpy (sz, "\r\n\r");
 		us = strIsLineEndings (sz, strlen (sz), &st);
 		ubf_assert (2 == us);
+		b &= 2 == us;
+
 		strcpy (sz, "\na");
 		us = strIsLineEndings (sz, strlen (sz), &st);
 		ubf_assert (1 == us);
+		b &= 1 == us;
+
+		strcpy (sz, "\r\n\r");
+		us = strRemoveLineEndingsFromEnd (sz, strlen (sz));
+		ubf_assert (0 == us);
+		b &= 0 == us;
+
+		strcpy (sz, "ABC\r\n\r");
+		us = strRemoveLineEndingsFromEnd (sz, strlen (sz));
+		ubf_assert (3 == us);
+		b &= 3 == us;
+
+		strcpy (sz, "A\rBC\r\n\r");
+		us = strRemoveLineEndingsFromEnd (sz, strlen (sz));
+		ubf_assert (4 == us);
+		b &= 4 == us;
+
+		return b;
 	}
 #endif

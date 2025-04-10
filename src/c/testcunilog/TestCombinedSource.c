@@ -14,36 +14,33 @@ When		Who				What
 
 ****************************************************************************************/
 
-#include "./../combined/cunilog_combined.h"
 #include "./TestCombinedSource.h"
+#include "./../combined/cunilog_combined.h"
+#include "./CunilogTestFncts.h"
 
 const char	ccLogsFolder []	= STR_LOGS_FOLDER;
 size_t		lnLogsFolder	= sizeof (ccLogsFolder) - 1;
 
 #define ourLogText(txt)	logTextU8_static (txt)
 
-int main (void)
+int main (int argc, char *argv [])
 {
-	CUNILOG_TARGET *put;
-	put = InitCUNILOG_TARGETstaticEx	(
-				ccLogsFolder, lnLogsFolder,
-				NULL, 0,
-				cunilogPath_relativeToExecutable,
-				cunilogSingleThreaded,
-				cunilogPostfixDefault,
-				NULL, 0,
-				cunilogEvtTS_Default,
-				cunilogNewLineDefault,
-				cunilogRunProcessorsOnStartup
-										);
-	if (!put)
-	{
-		puts ("InitSUNILOGTARGETstatic () failed.");
-		return EXIT_FAILURE;
-	}
+	UNREFERENCED_PARAMETER (argc);
+	UNREFERENCED_PARAMETER (argv);
 
-	ourLogText ("A simple line to go in the logfile.");
-	
-	ShutdownCUNILOG_TARGETstatic ();
-	DoneCUNILOG_TARGETstatic ();
+	bool b = true;
+
+	cunilog_puts ("Testing Cunilog...");
+	cunilog_puts ("");
+
+	CunilogTestFnctStartTestToConsole ("Basic internal tests...");
+	b &= test_cunilog ();
+	ubf_assert_true (b);
+	CunilogTestFnctResultToConsole (b);
+
+	b = CunilogTestFunction	(
+			ccLogsFolder, lnLogsFolder, STR_HELLO_FROM_EXE
+							);
+
+	return b ? EXIT_SUCCESS : EXIT_FAILURE;	
 }

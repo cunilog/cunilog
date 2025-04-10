@@ -46,6 +46,8 @@ When		Who				What
 #define U_CUNILOGTESTFNCTS_H
 
 #include <stdbool.h>
+#include <inttypes.h>
+#include <stddef.h>
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
@@ -62,11 +64,28 @@ When		Who				What
 EXTERN_C_BEGIN
 
 /*
+	CunilogTestFnctStartTestToConsole
+
+*/
+void CunilogTestFnctStartTestToConsole (const char *ccTestText);
+
+/*
+	CunilogTestFnctResultToConsole
+
+	Result (pass or fail) goes to the console only.
+*/
+void CunilogTestFnctResultToConsole (bool bResult);
+
+/*
 	CunilogTest
 
 */
-bool CunilogTestFunction (void);
-
+bool CunilogTestFunction	(
+		const char				*ccLogsFolder,
+		size_t					lnLogsFolder,
+		const char				*ccHello
+							)
+;
 
 EXTERN_C_END
 

@@ -769,13 +769,13 @@ static size_t ObtainRelativeLogPathBase (SMEMBUF *mb, enCunilogRelPath relLogPat
 	return 0;
 }
 
-bool GetAbsPathFromAbsOrRelPath	(
+bool CunilogGetAbsPathFromAbsOrRelPath	(
 		SMEMBUF				*psmb,
 		size_t				*plmb,
 		const char			*szAbsOrRelPath,
 		size_t				lnAbsOrRelPath,
 		enCunilogRelPath	absOrRelPath
-								)
+										)
 {
 	ubf_assert_non_NULL (psmb);
 	ubf_assert_non_NULL (szAbsOrRelPath);
@@ -849,9 +849,9 @@ char *createLogPathInCUNILOG_TARGET	(
 
 		// The function only fails if szLogPath is NULL or relative but cunilogLogPath_isAbsolute
 		//	has been given.
-		b = GetAbsPathFromAbsOrRelPath	(
+		b = CunilogGetAbsPathFromAbsOrRelPath (
 				&put->mbLogPath, &put->lnLogPath, szLogPath, len, relLogPath
-										);
+												);
 		if (!b)
 		{
 			SetCunilogError (put, CUNILOG_ERROR_ABS_OR_REL_PATH, CUNILOG_SYSTEM_ERROR_NOT_SUPPORTED);
@@ -898,9 +898,7 @@ char *CreateLogPath_smb	(
 		ubf_assert (0 != len);
 
 		bool b;
-		b = GetAbsPathFromAbsOrRelPath	(
-				psmb, psiz, szLogPath, len, relLogPath
-										);
+		b = CunilogGetAbsPathFromAbsOrRelPath (psmb, psiz, szLogPath, len, relLogPath);
 		// The function only fails if szLogPath is NULL or relative but cunilogLogPath_isAbsolute
 		//	has been given.
 		if (!b)
@@ -1494,8 +1492,38 @@ static inline void initPrevTimestamp (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
-	size_t lenPostfixStamp = lenDateTimeStampFromPostfix (put->culogPostfix);
-	memset (put->cPrevDateTimeStamp, 0, lenPostfixStamp);
+	memset (put->cPrevDateTimeStamp, 0, LEN_ISO8601DATEHOURANDMINUTE);
+}
+
+static inline void savePrevTimestamp (CUNILOG_EVENT *pev)
+{
+	ubf_assert_non_NULL (pev);
+	
+	CUNILOG_TARGET	*put = pev->pCUNILOG_TARGET;
+	ubf_assert_non_NULL (put);
+
+	ubf_assert (cunilogPostfixYear >= put->culogPostfix);
+
+	size_t lenPostfixStamp;
+	lenPostfixStamp = lenDateTimeStampFromPostfix (put->culogPostfix);
+	ubf_assert (0 < lenPostfixStamp);
+	ubf_assert (LEN_ISO8601DATEHOURANDMINUTE >= lenPostfixStamp);
+
+	memcpy (put->cPrevDateTimeStamp, put->szDateTimeStamp, lenPostfixStamp);
+	obtainDateAndTimeStamp (put->szDateTimeStamp, pev->stamp, put->culogPostfix);
+	put->szDateTimeStamp [lenPostfixStamp] = '.';
+}
+
+static inline bool requiresNewLogFile (CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+
+	int r = memcmp	(
+				put->szDateTimeStamp, put->cPrevDateTimeStamp,
+				lenDateTimeStampFromPostfix (put->culogPostfix)
+					);
+	return r > 0;
 }
 
 #ifdef PLATFORM_IS_POSIX
@@ -1977,8 +2005,17 @@ const char *GetAbsoluteLogPathCUNILOG_TARGET_static (size_t *plen)
 	return GetAbsoluteLogPathCUNILOG_TARGET (pCUNILOG_TARGETstatic, plen);
 }
 
+#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+	void ConfigCUNILOG_TARGETerrorCallbackFunction (CUNILOG_TARGET *put, cunilogErrCallback errorCB)
+	{
+		ubf_assert_non_NULL (put);
+
+		put->errorCB = errorCB;
+	}
+#endif
+
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigCUNILOG_TARGETcunilogpostfix (CUNILOG_TARGET *put, enum cunilogeventTSformat tsf)
+	void ConfigCUNILOG_TARGETeventStampFormat (CUNILOG_TARGET *put, enum cunilogeventTSformat tsf)
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(0 <= tsf);
@@ -2190,7 +2227,7 @@ static void DoneCUNILOG_TARGETprocessors (CUNILOG_TARGET *put)
 		}
 	}
 
-	if (cunilogIsProcessorsAllocated (put))
+	if (cunilogHasProcessorsAllocated (put))
 	{
 		ubf_free (put->cprocessors);
 		zeroProcessors (put);
@@ -3206,8 +3243,11 @@ CUNILOG_EVENT *CreateCUNILOG_EVENT_Text		(
 
 	len = USE_STRLEN == len ? strlen (ccText) : len;
 
+	/*
 	while (len && ('\n' == ccText [len - 1] || '\r' == ccText [len - 1]))
 		-- len;
+	*/
+	len = strRemoveLineEndingsFromEnd (ccText, len);
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENTandData	(
 							put, sev, NULL, 0, cunilogEvtTypeNormalText,
@@ -3270,7 +3310,7 @@ CUNILOG_EVENT *DoneCUNILOG_EVENT (CUNILOG_TARGET *put, CUNILOG_EVENT *pev)
 
 #ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
 	void cunilogSetTargetErrorAndInvokeErrorCallback	(
-				int64_t cunilog_error, CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev
+			CUNILOG_ERROR cunilog_error, CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev
 														)
 	{
 		ubf_assert_non_NULL (cup);
@@ -3295,6 +3335,8 @@ CUNILOG_EVENT *DoneCUNILOG_EVENT (CUNILOG_TARGET *put, CUNILOG_EVENT *pev)
 
 			switch (rv)
 			{
+				case cunilogErrCB_ignore:
+					break;
 				case cunilogErrCB_next_processor:
 					break;
 				case cunilogErrCB_next_event:
@@ -3321,8 +3363,35 @@ CUNILOG_EVENT *DoneCUNILOG_EVENT (CUNILOG_TARGET *put, CUNILOG_EVENT *pev)
 			}
 		}
 	}
+
+	/*
+		cunilogTestErrorCB
+	*/
+	#ifdef CUNILOG_BUILD_WITH_TEST_ERRORCB
+		void cunilogTestErrorCB	(
+				CUNILOG_ERROR cunilog_error, CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev
+								)
+		{
+			ubf_assert_non_NULL (cup);
+			ubf_assert_non_NULL (pev);
+			ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
+
+			if (cunilogTargetHasAlwaysCallErrorCB (pev->pCUNILOG_TARGET))
+			{
+				errCBretval rv = pev->pCUNILOG_TARGET->errorCB	(
+										cunilog_error, cup, pev
+																);
+				UNUSED (rv);
+				ubf_assert (0 <= rv);
+				ubf_assert (cunilogErrCB_AmountEnumValues > rv);
+			}
+		}
+	#else
+		#define cunilogTestErrorCB(error, cup, pev)
+	#endif
 #else
 	#define cunilogInvokeErrorCallback(error, cup, pev)
+	#define cunilogTestErrorCB(error, cup, pev)
 #endif
 
 /*
@@ -3491,7 +3560,8 @@ static bool cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 }
 
 static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
-{	UNREFERENCED_PARAMETER (cup);
+{
+	UNREFERENCED_PARAMETER (cup);
 	ubf_assert_non_NULL (pev);
 	
 	CUNILOG_TARGET	*put = pev->pCUNILOG_TARGET;
@@ -3502,10 +3572,22 @@ static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, CUNILOG
 		UNREFERENCED_PARAMETER (sz);
 	#endif
 
-	size_t lenPostfixStamp;
-
 	switch (put->culogPostfix)
 	{
+		case cunilogPostfixNone:
+			return true;
+
+		case cunilogPostfixMinute:
+		case cunilogPostfixMinuteT:
+		case cunilogPostfixHour:
+		case cunilogPostfixHourT:
+		case cunilogPostfixDay:
+		case cunilogPostfixWeek:
+		case cunilogPostfixMonth:
+		case cunilogPostfixYear:
+			savePrevTimestamp (pev);
+			return true;
+
 		case cunilogPostfixLogMinute:
 		case cunilogPostfixLogMinuteT:
 		case cunilogPostfixLogHour:
@@ -3525,11 +3607,7 @@ static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, CUNILOG
 			return true;
 
 		default:
-			lenPostfixStamp = lenDateTimeStampFromPostfix (put->culogPostfix);
-			ubf_assert (LEN_ISO8601DATEHOURANDMINUTE >= lenPostfixStamp);
-			memcpy (put->cPrevDateTimeStamp, put->szDateTimeStamp, lenPostfixStamp);
-			obtainDateAndTimeStamp (put->szDateTimeStamp, pev->stamp, put->culogPostfix);
-			put->szDateTimeStamp [lenPostfixStamp] = '.';
+			ubf_assert_msg (false, "Bug!");
 			return true;
 	}
 }
@@ -3562,15 +3640,37 @@ static inline bool requiresOpenLogFile (CUNILOG_TARGET *put)
 	#endif
 }
 
-static inline bool requiresNewLogFile (CUNILOG_TARGET *put)
-{
-	ubf_assert_non_NULL (put);
+#ifdef CUNILOG_BUILD_WITH_TEST_ERRORCB
+#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+	static inline bool requiresNewLogFileCunilogTest	(
+							CUNILOG_TARGET		*put,
+							CUNILOG_PROCESSOR	*cup,
+							CUNILOG_EVENT		*pev
+														)
+	{
+		ubf_assert_non_NULL (put);
 
-	return memcmp	(
-		put->cPrevDateTimeStamp, put->szDateTimeStamp,
-		lenDateTimeStampFromPostfix (put->culogPostfix)
-					);
-}
+		cunilogTestErrorCB (CUNILOG_ERROR_TEST_BEFORE_REQUIRES_NEW_LOGFILE, cup, pev);
+		int r = requiresNewLogFile (put);
+		cunilogTestErrorCB (CUNILOG_ERROR_TEST_AFTER_REQUIRES_NEW_LOGFILE, cup, pev);
+
+		return r > 0;
+	}
+#endif
+#endif
+
+#ifdef CUNILOG_BUILD_WITH_TEST_ERRORCB
+	#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+		#define REQUIRES_NEW_LOGFILE(put, cup, pev)		\
+				requiresNewLogFileCunilogTest (put, cup, pev)
+	#else
+		#define REQUIRES_NEW_LOGFILE(put, cup, pev)		\
+				requiresNewLogFile (put)
+	#endif
+#else
+	#define REQUIRES_NEW_LOGFILE(put, cup, pev)			\
+				requiresNewLogFile (put)
+#endif
 
 static inline size_t addNewLineToLogEventLine (char *pData, size_t lnData, enum enLineEndings nl)
 {	// At least one octet has been reserved for a newline character, and one
@@ -3635,7 +3735,7 @@ static bool cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EV
 			if (!cunilogOpenLogFile (put))
 				cunilogSetTargetErrorAndInvokeErrorCallback (CUNILOG_ERROR_OPENING_LOGFILE, cup, pev);
 		} else
-		if (requiresNewLogFile (put))
+		if (REQUIRES_NEW_LOGFILE (put, cup, pev))
 		{
 			if (!cunilogOpenNewLogFile (put))
 				cunilogSetTargetErrorAndInvokeErrorCallback (CUNILOG_ERROR_OPENING_LOGFILE, cup, pev);
@@ -5003,6 +5103,7 @@ static inline bool updateCurrentValueAndIsThresholdReached	(
 
 	bool bRet = false;
 
+	cunilogTestErrorCB (CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE, cup, pev);
 	switch (cup->freq)
 	{
 		case cunilogProcessAppliesTo_nEvents:
@@ -5056,6 +5157,7 @@ static inline bool updateCurrentValueAndIsThresholdReached	(
 			bRet = true;
 			break;
 	}
+	cunilogTestErrorCB (CUNILOG_ERROR_TEST_AFTER_THRESHOLD_UPDATE, cup, pev);
 
 	// The flag OPT_CUNPROC_AT_STARTUP tells us to run the processor in any case.
 	if (optCunProcHasOPT_CUNPROC_AT_STARTUP (cup->uiOpts))

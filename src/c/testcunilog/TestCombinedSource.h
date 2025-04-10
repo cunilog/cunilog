@@ -33,7 +33,7 @@ When		Who				What
 	#define STR_LOGS_FOLDER				"..\\..\\..\\..\\..\\"			LOGS_FOLDER_NAME
 	#endif
 	#ifndef STR_HELLO_FROM_EXE
-	#define STR_HELLO_FROM_EXE			"Hello from a 64 bit MSVC build!"
+	#define STR_HELLO_FROM_EXE			"Hello from a 64 bit MSVC build (TestCombinedSource)!"
 	#endif
 #endif
 
@@ -43,6 +43,6 @@ When		Who				What
 	#define STR_LOGS_FOLDER				"..\\..\\..\\..\\"				LOGS_FOLDER_NAME
 	#endif
 	#ifndef STR_HELLO_FROM_EXE
-	#define STR_HELLO_FROM_EXE			"Hello from a 32 bit MSVC build!"
+	#define STR_HELLO_FROM_EXE			"Hello from a 32 bit MSVC build (TestCombinedSource)!"
 	#endif
 #endif

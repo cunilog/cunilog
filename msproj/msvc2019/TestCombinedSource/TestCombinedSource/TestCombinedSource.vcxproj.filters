@@ -21,12 +21,18 @@
     <ClCompile Include="..\..\..\..\src\c\combined\cunilog_combined.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\c\testcunilog\CunilogTestFncts.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\c\combined\cunilog_combined.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\c\testcunilog\TestCombinedSource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\c\testcunilog\CunilogTestFncts.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

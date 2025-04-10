@@ -432,6 +432,49 @@ TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
 bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
 
+/*
+	CunilogGetAbsPathFromAbsOrRelPath
+
+	Obtains an absolute path from a relative path. The parameter absOrRelPath specifies
+	to what a relative path is relative to.
+
+	The function adds a forward or backward slash to the buffer psmb points to, as it
+	assumes the parameters are paths, not filenames. However, the function also works
+	with paths to filenames but since it adds a slash the caller needs to remove this
+	manually, for example by overwriting it with an ASCII_NUL character.
+
+	psmb			A pointer to an SMEMBUF structure whose buffer receives the absolut
+					path.
+
+	plmb			A pointer to a size_t that receives the length of the buffer.
+
+	szAbsOrRelPath	The path. Can be relative or absolute.
+
+	lnAbsOrRelPath	Its length as would be retrieved by strlen (). Can be USE_STRLEN,
+					in which case the function calls strlen (szAbsOrRelPath) to obtain
+					it.
+
+	absOrRelPath	An enum that specifies what the path is relative to. The the enum
+					enCunilogRelPath for possible values.
+*/
+bool CunilogGetAbsPathFromAbsOrRelPath	(
+		SMEMBUF				*psmb,
+		size_t				*plmb,
+		const char			*szAbsOrRelPath,
+		size_t				lnAbsOrRelPath,
+		enCunilogRelPath	absOrRelPath
+										)
+;
+TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
+								(
+		SMEMBUF				*psmb,
+		size_t				*plmb,
+		const char			*szAbsOrRelPath,
+		size_t				lnAbsOrRelPath,
+		enCunilogRelPath	absOrRelPath
+								)
+;
+
 // This seems to be useful.
 #define requiresCUNILOG_TARGETseparateLoggingThread(p) HAS_CUNILOG_TARGET_A_QUEUE (p)
 
@@ -994,58 +1037,28 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET_static)
 	(size_t *plen);
 
 /*
-	GetAbsPathFromAbsOrRelPath
+	ConfigCUNILOG_TARGETerrorCallbackFunction
 
-	Obtains an absolute path from a relative path. The parameter absOrRelPath specifies
-	to what a relative path is relative to.
-
-	The function adds a forward or backward slash to the buffer psmb points to, as it
-	assumes the parameters are paths, not filenames. However, the function also works
-	with paths to filenames but since it adds a slash the caller needs to remove this
-	manually, for example by overwriting it with an ASCII_NUL character.
-
-	psmb			A pointer to an SMEMBUF structure whose buffer receives the absolut
-					path.
-
-	plmb			A pointer to a size_t that receives the length of the buffer.
-
-	szAbsOrRelPath	The path. Can be relative or absolute.
-
-	lnAbsOrRelPath	Its length as would be retrieved by strlen (). Can be USE_STRLEN,
-					in which case the function calls strlen (szAbsOrRelPath) to obtain
-					it.
-
-	absOrRelPath	An enum that specifies what the path is relative to. The the enum
-					enCunilogRelPath for possible values.
+	Sets the error callback function of the specified Cunilog target put points to.
 */
-bool GetAbsPathFromAbsOrRelPath	(
-		SMEMBUF				*psmb,
-		size_t				*plmb,
-		const char			*szAbsOrRelPath,
-		size_t				lnAbsOrRelPath,
-		enCunilogRelPath	absOrRelPath
-								)
-;
-TYPEDEF_FNCT_PTR (bool, GetAbsPathFromAbsOrRelPath)
-								(
-		SMEMBUF				*psmb,
-		size_t				*plmb,
-		const char			*szAbsOrRelPath,
-		size_t				lnAbsOrRelPath,
-		enCunilogRelPath	absOrRelPath
-								)
-;
+#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+	void ConfigCUNILOG_TARGETerrorCallbackFunction (CUNILOG_TARGET *put, cunilogErrCallback errorCB);
+	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETerrorCallbackFunction)
+		(CUNILOG_TARGET *put, cunilogErrCallback errorCB);
+#else
+	#define ConfigCUNILOG_TARGETerrorCallbackFunction(put, errorCB)
+#endif
 
 /*
-	ConfigCUNILOG_TARGETcunilogpostfix
+	ConfigCUNILOG_TARGETeventStampFormat
 
 	Sets the member unilogEvtTSformat of the CUNILOG_TARGET structure put points to to the
 	value of tsf.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigCUNILOG_TARGETcunilogpostfix (CUNILOG_TARGET *put, enum cunilogeventTSformat tsf)
+	void ConfigCUNILOG_TARGETeventStampFormat (CUNILOG_TARGET *put, enum cunilogeventTSformat tsf)
 	;
-	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETcunilogpostfix)
+	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETeventStampFormat)
 		(CUNILOG_TARGET *put, enum cunilogeventTSformat tsf);
 #else
 	#define ConfigCUNILOG_TARGETcunilogpostfix(put, f)	\

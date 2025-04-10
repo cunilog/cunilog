@@ -854,6 +854,8 @@ typedef struct scunilognpi
 	/*
 		Possible return values of the error/fail callback function.
 
+		cunilogErrCB_ignore					Just carry on as if nothing happened.			
+
 		cunilogErrCB_next_processor			The current processor is cancelled and the next
 											processor is going to be processed. The error/fail
 											callback function is called again for the next
@@ -868,7 +870,8 @@ typedef struct scunilognpi
 	*/
 	enum enErrCBretval
 	{
-			cunilogErrCB_next_processor
+			cunilogErrCB_ignore
+		,	cunilogErrCB_next_processor
 		,	cunilogErrCB_next_event
 		,	cunilogErrCB_shutdown
 		,	cunilogErrCB_cancel
@@ -1064,42 +1067,18 @@ typedef struct CUNILOG_TARGET
 	#define cunilogIsTargetInitialised(pt)	(true)
 #endif
 
+// The callback function errorCB is called as often as possible,
+//	even when there's no error. Used for tests.
+//	Requires CUNILOG_BUILD_WITH_TEST_ERRORCB.
+//	Ignored when CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
+//	is defined.
+//	Error code is usually one of the CUNILOG_ERROR_TEST_ definitions
+//	in cunilogerrors.h.
+#define CUNILOGTARGET_ALWAYS_CALL_ERRORCB		SINGLEBIT64 (16)
+
 // Debug flag when the queue is locked. To be removed in the future.
 #define CUNILOGTARGET_DEBUG_QUEUE_LOCKED		SINGLEBIT64 (20)
 
-
-/*
-	Public option flags for the uiOpts member of a CUNILOG_TARGET structure.
-	Flags callers/users can change/use.
-*/
-
-// Tells the initialiser function(s) not to allocate/assign default processors.
-//	The target is not ready when this option flag is used. The function
-//	ConfigCUNILOG_TARGETprocessorList () must be called before the target
-//	is usable.
-#define CUNILOGTARGET_NO_DEFAULT_PROCESSORS		SINGLEBIT64 (32)
-
-/*
-	By default, timestamps are created when an event is created.With this bit set,
-	timestamps are created when they are enqueued. This ensures that events that
-	are enqueued later have a newer timestamp but also locks the queue much longer
-	because the timestamp is obtained during this process. Without this flag,
-	timestamps are created when the event is created, and outside the lock.
-*/
-#define CUNILOGTARGET_ENQUEUE_TIMESTAMPS		SINGLEBIT64 (33)
-
-// The echo/console output processor is skipped.
-#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (34)
-
-// The processor that writes to the logfile is skipped.
-#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (35)
-
-// Colour information should be used.
-#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (36)
-
-/*
-	Macros for some flags.
-*/
 #define cunilogSetShutdownTarget(put)					\
 	((put)->uiOpts |= CUNILOGTARGET_SHUTDOWN)
 #define cunilogIsShutdownTarget(put)					\
@@ -1144,7 +1123,7 @@ typedef struct CUNILOG_TARGET
 	((put)->uiOpts |= CUNILOGTARGET_PROCESSORS_ALLOCATED)
 #define cunilogClrProcessorsAllocated(put)				\
 	((put)->uiOpts &= ~ CUNILOGTARGET_PROCESSORS_ALLOCATED)
-#define cunilogIsProcessorsAllocated(put)				\
+#define cunilogHasProcessorsAllocated(put)				\
 	((put)->uiOpts & CUNILOGTARGET_PROCESSORS_ALLOCATED)
 
 #define cunilogHasRunAllProcessorsOnStartup(put)		\
@@ -1189,6 +1168,59 @@ typedef struct CUNILOG_TARGET
 #define cunilogTargetSetPaused(put)						\
 	((put)->uiOpts |= CUNILOGTARGET_PAUSED)
 
+#if defined (DEBUG) && !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
+	#define cunilogHasDebugQueueLocked(put)				\
+		((put)->uiOpts & CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+	#define cunilogClrDebugQueueLocked(put)				\
+		((put)->uiOpts &= ~ CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+	#define cunilogSetDebugQueueLocked(put)				\
+		((put)->uiOpts |= CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
+#else
+	#define cunilogHasDebugQueueLocked(put)	(true)
+	#define cunilogClrDebugQueueLocked(put)
+	#define cunilogSetDebugQueueLocked(put)
+#endif
+
+#define cunilogTargetHasAlwaysCallErrorCB(put)			\
+	((put)->uiOpts & CUNILOGTARGET_ALWAYS_CALL_ERRORCB)
+#define cunilogTargetClrAlwaysCallErrorCB(put)			\
+	((put)->uiOpts &= ~ CUNILOGTARGET_ALWAYS_CALL_ERRORCB)
+#define cunilogTargetSetAlwaysCallErrorCB(put)			\
+	((put)->uiOpts |= CUNILOGTARGET_ALWAYS_CALL_ERRORCB)
+
+
+/*
+	Public option flags for the uiOpts member of a CUNILOG_TARGET structure.
+	Flags callers/users can change/use.
+*/
+
+// Tells the initialiser function(s) not to allocate/assign default processors.
+//	The target is not ready when this option flag is used. The function
+//	ConfigCUNILOG_TARGETprocessorList () must be called before the target
+//	is usable.
+#define CUNILOGTARGET_NO_DEFAULT_PROCESSORS		SINGLEBIT64 (32)
+
+/*
+	By default, timestamps are created when an event is created.With this bit set,
+	timestamps are created when they are enqueued. This ensures that events that
+	are enqueued later have a newer timestamp but also locks the queue much longer
+	because the timestamp is obtained during this process. Without this flag,
+	timestamps are created when the event is created, and outside the lock.
+*/
+#define CUNILOGTARGET_ENQUEUE_TIMESTAMPS		SINGLEBIT64 (33)
+
+// The echo/console output processor is skipped.
+#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (34)
+
+// The processor that writes to the logfile is skipped.
+#define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (35)
+
+// Colour information should be used.
+#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (36)
+
+/*
+	Macros for public/user/caller flags.
+*/
 #define cunilogIsNoEcho(put)							\
 	((put)->uiOpts & CUNILOGTARGET_NO_ECHO)
 #define cunilogClrNoEcho(put)							\
@@ -1216,19 +1248,6 @@ typedef struct CUNILOG_TARGET
 		#define cunilogSetUseColourForEcho(put)			\
 			((put)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 	#endif
-#endif
-
-#if defined (DEBUG) && !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
-	#define cunilogHasDebugQueueLocked(put)				\
-		((put)->uiOpts & CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
-	#define cunilogClrDebugQueueLocked(put)				\
-		((put)->uiOpts &= ~ CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
-	#define cunilogSetDebugQueueLocked(put)				\
-		((put)->uiOpts |= CUNILOGTARGET_DEBUG_QUEUE_LOCKED)
-#else
-	#define cunilogHasDebugQueueLocked(put)	(true)
-	#define cunilogClrDebugQueueLocked(put)
-	#define cunilogSetDebugQueueLocked(put)
 #endif
 
 #define cunilogHasEnqueueTimestamps(put)				\
