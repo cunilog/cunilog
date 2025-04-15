@@ -701,9 +701,16 @@ void ubf_get_system_time_ULONGLONG_rel (ULONGLONG *pulltime)
 	}
 #endif
 
-bool IsLeapYear (uint32_t Y)
+bool IsLeapYear (uint32_t uiYear)
 {	// Implements (2) and (3). See below.
-	return (((Y % 4 == 0) && (Y % 100 != 0)) || (Y % 400 == 0)) ? true : false;
+
+	/*
+		Which one looks better or is easier to read/understand?
+
+		return 0 == uiYear % 4 && uiYear % 100 || 0 == uiYear % 400;
+		return 0 == uiYear % 400 ? true : 0 == uiYear % 100 ? false : 0 == uiYear % 4 ? true : false;
+	*/
+	return 0 == uiYear % 4 && uiYear % 100 || 0 == uiYear % 400;
 }
 
 // The lookup table for GetISO8601DayOfYear ().
@@ -1753,7 +1760,7 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 }
 
 #ifdef UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION
-	void Test_ubf_times_functions (void)
+	bool Test_ubf_times_functions (void)
 	{
 		char			ch [FORMATTEDMILLISECONDS_SIZE];
 		UBF_DEF_GUARD_VAR (var, "0123456789");
@@ -1764,8 +1771,46 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		SUBF_TIMESTRUCT	ts;
 		char			cOut [1024];
 
+		b = true;
+
+		// Some tests for obtaining the leap year.
+		b &=  IsLeapYear (1600);
+		b &= !IsLeapYear (1700);
+		b &= !IsLeapYear (1800);
+		b &= !IsLeapYear (1900);
+		b &=  IsLeapYear (2000);
+		b &=  IsLeapYear (2016);
+		b &=  IsLeapYear (2020);
+		b &= !IsLeapYear (2021);
+		b &= !IsLeapYear (2022);
+		b &= !IsLeapYear (2023);
+		b &=  IsLeapYear (2024);
+		b &=  IsLeapYear (2028);
+		b &=  IsLeapYear (2032);
+		b &= !IsLeapYear (2033);
+		b &= !IsLeapYear (2034);
+		b &= !IsLeapYear (2033);
+		b &=  IsLeapYear (2036);
+		b &= !IsLeapYear (2037);
+		b &= !IsLeapYear (2038);
+		b &= !IsLeapYear (2039);
+		b &=  IsLeapYear (2040);
+		b &=  IsLeapYear (2052);
+		b &=  IsLeapYear (2056);
+		b &=  IsLeapYear (2060);
+		b &=  IsLeapYear (2096);
+		b &= !IsLeapYear (2097);
+		b &= !IsLeapYear (2099);
+		b &= !IsLeapYear (2100);
+		b &= !IsLeapYear (2101);
+		b &=  IsLeapYear (2104);
+		b &= !IsLeapYear (2200);
+		b &= !IsLeapYear (2300);
+		b &=  IsLeapYear (2400);
+
 		GetSystemTime_UBF_TIMESTAMP (&ut);
-		ubf_assert (IsBuildYearOrNewer_UBF_TIMESTAMP (&ut));
+		b &= IsBuildYearOrNewer_UBF_TIMESTAMP (&ut);
+		ubf_assert (b);
 
 		u = 1000;
 		while (u --)
@@ -1773,11 +1818,13 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 			GetSystemTime_UBF_TIMESTAMP (&ut);
 			SUBF_TIMESTRUCT_from_UBF_TIMESTAMP (&ts, ut);
 			UBF_TIMESTAMP_from_SUBF_TIMESTRUCT (&ut2, &ts);
-			ubf_assert (ut == ut2);
+			b &= ut == ut2;
+			ubf_assert (b);
 			GetLocalTime_UBF_TIMESTAMP (&ut);
 			SUBF_TIMESTRUCT_from_UBF_TIMESTAMP (&ts, ut);
 			UBF_TIMESTAMP_from_SUBF_TIMESTRUCT (&ut2, &ts);
-			ubf_assert (ut == ut2);
+			b &= ut == ut2;
+			ubf_assert (b);
 		}
 
 		// Create our own timestamp.
@@ -1796,25 +1843,31 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		//ASSERT (false);
 		ut = UBF_TIMESTAMP_OFFSET_BITS (&ts);
 		// 84h = 8 for uOffsetHours, 4 for 30 offset minutes.
+		b &= 0x84 == ut;
 		ubf_assert (0x84 == ut);
 		ts.uOffsetHours			= 1;
 		ut = UBF_TIMESTAMP_OFFSET_BITS (&ts);
 		// 14h = 1 for uOffsetHours, 4 for 30 offset minutes.
-		ubf_assert (0x14 == ut);
+		b &= 0x14 == ut;
+		ubf_assert (b);
 		u = UBF_TIMESTAMP_OFFSETMINUTES (ut);
+		b &= 30 == u;
 		ubf_assert (30 == u);
 		ts.uOffsetHours			= 0;
 		ts.uOffsetMinutes		= 45;
 		ut = UBF_TIMESTAMP_OFFSET_BITS (&ts);
 		u = UBF_TIMESTAMP_OFFSETMINUTES (ut);
+		b &= 45 == u;
 		ubf_assert (45 == u);
 		ts.uOffsetMinutes		= 15;
 		ut = UBF_TIMESTAMP_OFFSET_BITS (&ts);
 		u = UBF_TIMESTAMP_OFFSETMINUTES (ut);
+		b &= 15 == u;
 		ubf_assert (15 == u);
 		ts.uOffsetMinutes		= 0;
 		ut = UBF_TIMESTAMP_OFFSET_BITS (&ts);
 		u = UBF_TIMESTAMP_OFFSETMINUTES (ut);
+		b &= 0 == u;
 		ubf_assert (0 == u);
 
 		ts.uOffsetHours			= 8;
@@ -1832,40 +1885,45 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		uint32_t uYear;
 		uint32_t uWeek = GetISO8601WeekNumberFromDate (ts.uYear, ts.uMonth, ts.uDay, &uYear);
 		UNUSED_PARAMETER (uWeek);
+		b &= 44 == uWeek;
+		b &= 2022 == uYear;
+		ubf_assert (b);
 		ubf_assert (44 == uWeek);
 		ubf_assert (2022 == uYear);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
+		b &= !memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK);
+		ubf_assert (b);
+
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601Year_from_UBF_TIMESTAMPs (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601Year_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601DateAndHour_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601DateAndHour_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400+08:30", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16:20:07.400+08:30", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400+08:30", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16:20:07.400+08:30", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndMonth_from_UBF_TIMESTAMPs (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11", SIZ_ISO8601YEARANDMONTH));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11", SIZ_ISO8601YEARANDMONTH));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndMonth_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11", SIZ_ISO8601YEARANDMONTH));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11", SIZ_ISO8601YEARANDMONTH));
 
 		// The same again but with a negative offset of 45 minutes.
 		ts.uOffsetHours			= 8;
@@ -1882,86 +1940,86 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ut |= UBF_TIMESTAMP_MICROSECOND_BITS (&ts);
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601Year_from_UBF_TIMESTAMPs (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601Year_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601DateAndHour_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601DateAndHour_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400-08:45", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16:20:07.400-08:45", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400-08:45", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16:20:07.400-08:45", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 
 		u = 0;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
 		ubf_assert (!memcmp (ch, "00:00:00.000", FORMATTEDMILLISECONDS_SIZE));
 		u = 500;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "00:00:00.500", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "00:00:00.500", FORMATTEDMILLISECONDS_SIZE));
 		u = 999;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "00:00:00.999", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "00:00:00.999", FORMATTEDMILLISECONDS_SIZE));
 		u = 1999;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "00:00:01.999", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "00:00:01.999", FORMATTEDMILLISECONDS_SIZE));
 		u = 59999;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "00:00:59.999", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "00:00:59.999", FORMATTEDMILLISECONDS_SIZE));
 		u = 50 * 1000 * 3600;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "50:00:00.000", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "50:00:00.000", FORMATTEDMILLISECONDS_SIZE));
 		u = 99 * 1000 * 3600;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "99:00:00.000", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "99:00:00.000", FORMATTEDMILLISECONDS_SIZE));
 		u = (99 * 1000 * 3600) + (1000 * 59);
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "99:00:59.000", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "99:00:59.000", FORMATTEDMILLISECONDS_SIZE));
 		u = (99 * 1000 * 3600) + (1000 * 59 * 60) + (1000 * 59);
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "99:59:59.000", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "99:59:59.000", FORMATTEDMILLISECONDS_SIZE));
 		u = (99 * 1000 * 3600) + (1000 * 59 * 60) + (1000 * 59) + 999;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "99:59:59.999", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "99:59:59.999", FORMATTEDMILLISECONDS_SIZE));
 		// Should cause an overflow and lead to a return value of FALSE.
 		u = (99 * 1000 * 3600) + (1000 * 59 * 60) + (1000 * 59) + 999 + 1;
-		b = FormattedMilliseconds (ch, u);
+		b &= !FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
-		ubf_assert (false == b);
+		ubf_assert (true == b);
 		// Should not have been touched by the function due to it returning FALSE.
-		ubf_assert (!memcmp (ch, "99:59:59.999", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "99:59:59.999", FORMATTEDMILLISECONDS_SIZE));
 
 		// Test bit constants.
 		UBF_TIMESTAMP	stamp;
@@ -1969,48 +2027,52 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		GetLocalTime_UBF_TIMESTAMP (&stamp);
 		uint64_t uio1 = UBF_TIMESTAMP_OFFSETMINUTES (stamp);
 		uint64_t uio2 = UBF_TIMESTAMP_OFFSETMINUTES (stamp & UBF_TIMESTAMP_KEEP_OFFSET_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		uio1 = UBF_TIMESTAMP_OFFSETHOURS (stamp);
 		uio2 = UBF_TIMESTAMP_OFFSETHOURS (stamp & UBF_TIMESTAMP_KEEP_OFFSET_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		uio1 = UBF_TIMESTAMP_SECOND (stamp);
 		uio2 = UBF_TIMESTAMP_SECOND (stamp & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		uio1 = UBF_TIMESTAMP_MINUTE (stamp);
 		uio2 = UBF_TIMESTAMP_MINUTE (stamp & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		maskd = stamp & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS;
+		ubf_expect_bool_AND (b, 0 == UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
 		ubf_assert_0 (UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
 		uio1 = UBF_TIMESTAMP_HOUR (stamp);
 		uio2 = UBF_TIMESTAMP_HOUR (stamp & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		maskd = stamp & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS;
+		ubf_expect_bool_AND (b, 0 == UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
+		ubf_expect_bool_AND (b, 0 == UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
 		ubf_assert_0 (UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
 		ubf_assert_0 (UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
 		uio1 = UBF_TIMESTAMP_DAY (stamp);
 		uio2 = UBF_TIMESTAMP_DAY (stamp & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		maskd = stamp & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS;
 		ubf_assert_0 (UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
 		uio1 = UBF_TIMESTAMP_MONTH (stamp);
 		uio2 = UBF_TIMESTAMP_MONTH (stamp & UBF_TIMESTAMP_KEEP_FROM_MONTH_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		maskd = stamp & UBF_TIMESTAMP_KEEP_FROM_MONTH_BITS;
-		ubf_assert_0 (UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_DAY (maskd & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_DAY (maskd & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS));
 		uio1 = UBF_TIMESTAMP_YEAR (stamp);
 		uio2 = UBF_TIMESTAMP_YEAR (stamp & UBF_TIMESTAMP_KEEP_FROM_YEAR_BITS);
 		ubf_assert (uio1 == uio2);
 		maskd = stamp & UBF_TIMESTAMP_KEEP_FROM_YEAR_BITS;
-		ubf_assert_0 (UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_DAY (maskd & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_MONTH (maskd & UBF_TIMESTAMP_KEEP_FROM_MONTH_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_DAY (maskd & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_MONTH (maskd & UBF_TIMESTAMP_KEEP_FROM_MONTH_BITS));
 
 		char sz1 [1024];
 		char sz2 [1024];
@@ -2021,9 +2083,11 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		{	// We assume the test ran just the moment the week number changed.
 			GetISO8601Week_s (sz1);
 			GetISO8601Week_c (sz2);
+			b &= !memcmp (sz1, sz2, SIZ_ISO8601WEEK);
 			ubf_assert (!memcmp (sz1, sz2, SIZ_ISO8601WEEK));
 		} else
 		{
+			b &= !memcmp (sz1, sz2, SIZ_ISO8601WEEK);
 			ubf_assert (!memcmp (sz1, sz2, SIZ_ISO8601WEEK));
 		}
 
@@ -2041,12 +2105,12 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		
 		ISO8601_from_UBF_TIMESTAMP	(szTS1, tt);
 		ISO8601_from_UBF_TIMESTAMPc	(szTS2, tt);
-		ubf_assert (!memcmp (szTS1, szTS2, SIZ_ISO8601DATETIMESTAMPMS));
+		ubf_expect_bool_AND (b, !memcmp (szTS1, szTS2, SIZ_ISO8601DATETIMESTAMPMS));
 
 		tt = LocalTime_UBF_TIMESTAMP ();
 		ISO8601T_from_UBF_TIMESTAMP  (szTS1, tt);
 		ISO8601T_from_UBF_TIMESTAMPc (szTS2, tt);
-		ubf_assert (!memcmp (szTS1, szTS2, SIZ_ISO8601DATETIMESTAMPMS));
+		ubf_expect_bool_AND (b, !memcmp (szTS1, szTS2, SIZ_ISO8601DATETIMESTAMPMS));
 
 		char szISO_1 [SIZ_ISO8601DATETIMESTAMP_NO_OFFS];
 		char szISO_2 [SIZ_ISO8601DATETIMESTAMP_NO_OFFS];
@@ -2058,17 +2122,17 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 			GetLocalDateTime_ISO8601T_noMSnoOffs	(szISO_1);
 			GetLocalDateTime_ISO8601T_noMSnoOffs_n	(szISO_2);
 		}
-		ubf_assert_0 (memcmp (szISO_1, szISO_2, LEN_ISO8601DATETIMESTAMP_NO_OFFS));
-		ubf_assert ('X'		== szISO_1 [LEN_ISO8601DATETIMESTAMP_NO_OFFS]);
-		ubf_assert ('\0'	== szISO_2 [LEN_ISO8601DATETIMESTAMP_NO_OFFS]);
+		ubf_expect_bool_AND_0 (b, memcmp (szISO_1, szISO_2, LEN_ISO8601DATETIMESTAMP_NO_OFFS));
+		ubf_expect_bool_AND (b, 'X'		== szISO_1 [LEN_ISO8601DATETIMESTAMP_NO_OFFS]);
+		ubf_expect_bool_AND (b, '\0'	== szISO_2 [LEN_ISO8601DATETIMESTAMP_NO_OFFS]);
 
 		// Test the NCSA datetime stamp. We're not really testing here. We only
 		//	check for a buffer overrun.
 		char ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME + 1];
 		ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME] = '#';
 		NCSADATETIME_from_UBF_TIMESTAMP (ctncsa, GetSystemTimeAsUBF_TIMESTAMP ());
-		ubf_assert (ASCII_NUL == ctncsa [LEN_NCSA_COMMON_LOG_DATETIME]);
-		ubf_assert ('#' == ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME]);
+		ubf_expect_bool_AND (b, ASCII_NUL == ctncsa [LEN_NCSA_COMMON_LOG_DATETIME]);
+		ubf_expect_bool_AND (b, '#' == ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME]);
 
 
 		// Timings.
@@ -2148,6 +2212,7 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		exit (0);
 		*/
 
+		return b;
 	}
 #endif
 

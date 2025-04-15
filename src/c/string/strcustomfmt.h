@@ -180,7 +180,7 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 ;
 
 #ifdef DEBUG
-	#define STRCUSTOMFMT_BUILD_TEST_FNCTS
+	//#define STRCUSTOMFMT_BUILD_TEST_FNCTS
 #endif
 
 /*
@@ -189,9 +189,9 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 	Test function.
 */
 #ifdef STRCUSTOMFMT_BUILD_TEST_FNCTS
-	void TestStrCustomFmt (void);
+	bool TestStrCustomFmt (void);
 #else
-	#define TestStrCustomFmt()
+	#define TestStrCustomFmt()	(true)
 #endif
 
 EXTERN_C_END

@@ -49,8 +49,13 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
+		#include "./ubf_date_and_time.h"
 		#include "./cunilog.h"
 		#include "./unref.h"
+		#include "./memstrstr.h"
+		#include "./strcustomfmt.h"
+		#include "./strwildcards.h"
+		#include "./check_utf8.h"
 
 		// Required for the tests.
 		#include "./ubfdebug.h"
@@ -58,7 +63,12 @@ When		Who				What
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
 		#include "./../cunilog/cunilog.h"
+		#include "./../datetime/ubf_date_and_time.h"
 		#include "./../pre/unref.h"
+		#include "./../mem/memstrstr.h"
+		#include "./../string/strcustomfmt.h"
+		#include "./../string/strwildcards.h"
+		#include "./../string/check_utf8.h"
 
 		// Required for the tests.
 		#include "./../dbg/ubfdebug.h"
@@ -88,7 +98,13 @@ void CunilogTestFnctDisabledToConsole (bool bResult)
 {
 	UNUSED (bResult);
 
-	cunilog_puts_sev (cunilogEvtSeverityNoneWarn, "\tUntested/Test not built");
+	if (bResult)
+		cunilog_puts_sev (cunilogEvtSeverityNoneWarn, "\tUntested/Test not built");
+	else
+	{
+		cunilog_puts_sev (cunilogEvtSeverityNoneFail, "\tFail");
+		ubf_assert (false);
+	}
 
 }
 
@@ -109,6 +125,8 @@ errCBretval CunilogTestFnctTestInitialThreshold (CUNILOG_ERROR error, CUNILOG_PR
 	ubf_assert_non_NULL (cup);
 
 	//cunilog_printf ("Task: %d.\n", cup->task);
+	static size_t stFlushLogFile;
+	static size_t stRotateLogFile;
 
 	switch (cup->task)
 	{
@@ -132,24 +150,32 @@ errCBretval CunilogTestFnctTestInitialThreshold (CUNILOG_ERROR error, CUNILOG_PR
 			if (CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE == error)
 			{
 				CunilogTestFnctStartTestToConsole ("Checking initial threshold for cunilogProcessFlushLogFile...");
-				CunilogTestFnctResultToConsole (0 == cup->thr && 0 == cup->cur);
+				if (0 == stFlushLogFile)
+					CunilogTestFnctResultToConsole (0 == cup->thr && 0 == cup->cur);
+				else
+					CunilogTestFnctResultToConsole (cup->thr == cup->cur);
+				++ stFlushLogFile;
 			} else
 			if (CUNILOG_ERROR_TEST_AFTER_THRESHOLD_UPDATE == error)
 			{
 				CunilogTestFnctStartTestToConsole ("Checking second threshold for cunilogProcessFlushLogFile...");
-				CunilogTestFnctResultToConsole (0 == cup->thr && 1 == cup->cur);
+				CunilogTestFnctResultToConsole (cup->thr == cup->cur);
 			}
 			break;
 		case cunilogProcessRotateLogfiles:
 			if (CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE == error)
 			{
 				CunilogTestFnctStartTestToConsole ("Checking initial threshold for cunilogProcessRotateLogfiles...");
-				CunilogTestFnctResultToConsole (0 == cup->thr && 0 == cup->cur);
+				if (0 == stRotateLogFile)
+					CunilogTestFnctResultToConsole (0 == cup->thr && 0 == cup->cur);
+				else
+					CunilogTestFnctResultToConsole (cup->thr == cup->cur);
+				++ stRotateLogFile;
 			} else
 			if (CUNILOG_ERROR_TEST_AFTER_THRESHOLD_UPDATE == error)
 			{
 				CunilogTestFnctStartTestToConsole ("Checking second threshold for cunilogProcessRotateLogfiles...");
-				CunilogTestFnctResultToConsole (0 == cup->thr && 1 == cup->cur);
+				CunilogTestFnctResultToConsole (cup->thr == cup->cur);
 			}
 			break;
 		case cunilogProcessCustomProcessor:
@@ -169,6 +195,40 @@ errCBretval CunilogTestFnctTestInitialThreshold (CUNILOG_ERROR error, CUNILOG_PR
 			CunilogTestFnctResultToConsole (false);
 	}
 	return cunilogErrCB_ignore;
+}
+
+errCBretval CunilogTestFnctErrCallback0002	(
+						CUNILOG_ERROR		error,
+						CUNILOG_PROCESSOR	*cup,
+						CUNILOG_EVENT		*pev
+											)
+{
+	if (2 == stTestState)
+	{
+		CunilogTestFnctResultToConsole (true);
+	}
+
+	bool b = true;
+	CunilogTestFnctStartTestToConsole ("Checking parameters...");
+	b &= NULL != cup;
+	b &= NULL != pev;
+	CunilogTestFnctResultToConsole (b);
+
+	ubf_assert_non_NULL (cup);
+	ubf_assert_non_NULL (pev);
+
+	if (2 == stTestState && cunilogProcessEchoToConsole == cup->task)
+		stTestState = 3;
+
+	return cunilogErrCB_cancel;
+
+	if (100 == stTestState)
+	{
+		// Should never be reached.
+		CunilogTestFnctStartTestToConsole ("CunilogTestFnctErrCallback0002 called...");
+		CunilogTestFnctResultToConsole (false);
+		return cunilogErrCB_cancel;
+	}
 }
 
 errCBretval CunilogTestFnctErrCallback	(
@@ -192,7 +252,31 @@ errCBretval CunilogTestFnctErrCallback	(
 
 	if (1 == stTestState)
 	{
-		CunilogTestFnctStartTestToConsole ("Checking before or after threshold update...");
+		switch (error)
+		{
+			case CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE:
+				CunilogTestFnctStartTestToConsole ("Checking before threshold update...");
+				break;
+			case CUNILOG_ERROR_TEST_AFTER_THRESHOLD_UPDATE:
+				CunilogTestFnctStartTestToConsole ("Checking after threshold update...");
+				break;
+			case CUNILOG_ERROR_TEST_BEFORE_REQUIRES_NEW_LOGFILE:
+				CunilogTestFnctStartTestToConsole ("Checking before requires new logfile...");
+				break;
+			case CUNILOG_ERROR_TEST_AFTER_REQUIRES_NEW_LOGFILE:
+				CunilogTestFnctStartTestToConsole ("Checking after requires new logfile...");
+				break;
+			case CUNILOG_ERROR_TEST_BEFORE_ROTATOR:
+				// Rotation is yearly, i.e. we must not be called.
+				CunilogTestFnctStartTestToConsole ("Callback before rotator...");
+				CunilogTestFnctResultToConsole (false);
+				break;
+			case CUNILOG_ERROR_TEST_AFTER_ROTATOR:
+				// Rotation is yearly, i.e. we must not be called.
+				CunilogTestFnctStartTestToConsole ("Callback after rotator...");
+				CunilogTestFnctResultToConsole (false);
+				break;
+		}
 		CunilogTestFnctResultToConsole	(
 						CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE		== error
 					||	CUNILOG_ERROR_TEST_AFTER_THRESHOLD_UPDATE		== error
@@ -218,30 +302,101 @@ errCBretval CunilogTestFnctErrCallback	(
 
 bool CunilogTestFunction	(
 		const char *ccLogsFolder,
-		size_t					lnLogsFolder,
+		size_t		lnLogsFolder,
 		const char *ccHello
-)
+							)
 {
 	bool b = true;
 
-	CUNILOG_TARGET *put;
+	CUNILOG_TARGET		*put;
+	CUNILOG_PROCESSOR	*cup;
 
 	cunilog_puts ("Starting Cunilog tests...");
 
 	CunilogTestFnctStartTestToConsole ("Internal test of module strnewline...");
 	#ifdef STRNEWLINE_BUILD_TEST
-	CunilogTestFnctResultToConsole (test_strnewline ());
+		CunilogTestFnctResultToConsole (test_strnewline ());
 	#else
-	CunilogTestFnctDisabledToConsole (test_strnewline ());
+		CunilogTestFnctDisabledToConsole (test_strnewline ());
+	#endif
+	CunilogTestFnctStartTestToConsole ("Internal test of module bulkmalloc...");
+	#ifdef BUILD_BULKMALLOC_TEST_FUNCTIONS
+		CunilogTestFnctResultToConsole (bulkmalloc_test_fnct ());
+	#else
+		CunilogTestFnctDisabledToConsole (bulkmalloc_test_fnct ());
 	#endif
 
-	CunilogTestFnctStartTestToConsole ("Init static target with cunilogPostfixDotNumberMinutely...");
+	CunilogTestFnctStartTestToConsole ("Internal test of module strintuint...");
+	#ifdef UBF_BUILD_STRINTUINT_TEST
+		b &= ubf_test_str_from_uint8 ();
+		b &= ubf_test_str0 ();
+		b &= Test_strintuint ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		b &= ubf_test_str_from_uint8 ();
+		b &= ubf_test_str0 ();
+		b &= Test_strintuint ();
+		// Each macro should expand to (true).
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macros tested. Internal test of module strintuint...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	#ifdef STRCUSTOMFMT_BUILD_TEST_FNCTS
+		CunilogTestFnctStartTestToConsole ("Self-test module strcustomfmt...");
+		b &= TestStrCustomFmt ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		CunilogTestFnctStartTestToConsole ("Self-test module strcustomfmt...");
+		b &= TestStrCustomFmt ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. self-test module strcustomfmt...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	#if STRWILDCARDS_BUILD_TEST_FNCT
+		CunilogTestFnctStartTestToConsole ("Self-test module strwildcards...");
+		b &= strwildcards_test_function ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		CunilogTestFnctStartTestToConsole ("Self-test module strwildcards...");
+		b &= strwildcards_test_function ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. self-test module strwildcards...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	#ifdef UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION
+		CunilogTestFnctStartTestToConsole ("Self-test module ubf_date_and_time and ubf_times...");
+		b &= Test_ubf_times_functions ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		CunilogTestFnctStartTestToConsole ("Self-test module ubf_date_and_time and ubf_times...");
+		b &= Test_ubf_times_functions ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module ubf_date_and_time and ubf_times...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	#ifdef U_CHECK_UTF8_BUILD_TEST_FNCT
+		CunilogTestFnctStartTestToConsole ("Self-test module check_utf8...");
+		b &= Check_utf8_test_function ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		CunilogTestFnctStartTestToConsole ("Self-test module check_utf8...");
+		b &= Check_utf8_test_function ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module check_utf8...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Init static target with cunilogPostfixDotNumberYearly...");
 	put = InitCUNILOG_TARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
 				cunilogPath_relativeToExecutable,
 				cunilogSingleThreaded,
-				cunilogPostfixDotNumberMinutely,
+				cunilogPostfixDotNumberYearly,
 				NULL, 0,
 				cunilogEvtTS_Default,
 				cunilogNewLineDefault,
@@ -258,10 +413,23 @@ bool CunilogTestFunction	(
 	b &= pCUNILOG_TARGETstatic == put;
 	b &= NULL != put->cprocessors;
 	b &= NULL == put->errorCB;
-	b &= cunilogPostfixDotNumberMinutely == put->culogPostfix;
+	b &= cunilogPostfixDotNumberYearly == put->culogPostfix;
 	b &= cunilogSingleThreaded == put->culogType;
-	b &= !cunilogHasRunAllProcessorsOnStartup (put);
-	b &= !cunilogIsShutdownTarget (put);
+	b &= !cunilogTargetHasRunProcessorsOnStartup (put) ? true : false;
+	b &= !cunilogTargetHasShutdownInitiatedFlag (put) ? true : false;
+	CunilogTestFnctResultToConsole (b);
+
+	// We got no postfix. Check that this is correct.
+	CunilogTestFnctStartTestToConsole ("Checking application name...");
+	char *szName = memstrstr	(
+		put->mbLogfileName.buf.pcc,	put->lnLogPath + put->lnAppName,
+		put->mbAppName.buf.pcc,		put->lnAppName
+								);
+	szName += put->lnAppName;
+	b &= '.' == szName [0];
+	b &= 0 == memcmp (szName, szCunilogLogFileNameExtension, lenCunilogLogFileNameExtension);
+	// Should be NUL-terminated.
+	b &= 0 == memcmp (szName, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
 	CunilogTestFnctResultToConsole (b);
 
 	CunilogTestFnctStartTestToConsole ("Test state...");
@@ -300,31 +468,103 @@ bool CunilogTestFunction	(
 	} else
 		CunilogTestFnctResultToConsole (false);
 
+	CunilogTestFnctStartTestToConsole ("Removing dummy event...");
+	pev = DoneCUNILOG_EVENT (put, pev);
+	CunilogTestFnctResultToConsole (NULL == pev);
+
+	CunilogTestFnctStartTestToConsole ("Obtaining echo/console output processor...");
+	cup = GetCUNILOG_PROCESSOR (put, cunilogProcessEchoToConsole, 0);
+	CunilogTestFnctResultToConsole (NULL != cup && cunilogProcessEchoToConsole == cup->task);
+
+	CunilogTestFnctStartTestToConsole ("Obtaining processor cunilogProcessUpdateLogFileName...");
+	cup = GetCUNILOG_PROCESSOR (put, cunilogProcessUpdateLogFileName, 0);
+	CunilogTestFnctResultToConsole (NULL != cup && cunilogProcessUpdateLogFileName == cup->task);
+
+	CunilogTestFnctStartTestToConsole ("Obtaining rotation task cunilogrotationtask_RenameLogfiles...");
+	cup = GetCUNILOG_PROCESSORrotationTask (put, cunilogrotationtask_RenameLogfiles, 0);
+	CunilogTestFnctResultToConsole (NULL != cup);
+
 	stTestState = 1;
 	logTextU8_static ("cunilogPostfixDotNumberDescending");
-	Sleep (5000);
+
+	CunilogTestFnctStartTestToConsole ("Shutting down static target...");
+	ShutdownCUNILOG_TARGETstatic ();
+	b &= cunilogTargetHasShutdownCompleteFlag (put) ? true : false;
+	CunilogTestFnctResultToConsole (b);
+
+	CunilogTestFnctStartTestToConsole ("Destroying target...");
+	put = DoneCUNILOG_TARGETstatic ();
+	CunilogTestFnctResultToConsole (NULL == put);
+
 	stTestState = 2;
 
-	ShutdownCUNILOG_TARGETstatic ();
-	DoneCUNILOG_TARGETstatic ();
+	put = InitCUNILOG_TARGETstaticEx	(
+				ccLogsFolder, lnLogsFolder,
+				NULL, 0,
+				cunilogPath_relativeToExecutable,
+				cunilogSingleThreaded,
+				cunilogPostfixMinute,
+				NULL, 0,
+				cunilogEvtTS_Default,
+				cunilogNewLineDefault,
+				cunilogRunProcessorsOnStartup
+	);
+	CunilogTestFnctResultToConsole (NULL != put);
+	if (NULL == put)
+		return false;
+	logTextU8 (put, "What?");
+	ShutdownCUNILOG_TARGET (put);
+	DoneCUNILOG_TARGET (put);
 
+	CunilogTestFnctStartTestToConsole ("Creating new target...");
 	put = CreateNewCUNILOG_TARGET		(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
 				cunilogPath_relativeToExecutable,
-				cunilogMultiThreadedSeparateLoggingThread,
-				cunilogPostfixMinute,
+				cunilogSingleThreaded,
+				cunilogPostfixDotNumberYearly,
 				NULL, 0,
 				cunilogEvtTS_Default,
 				cunilogNewLineDefault,
 				cunilogRunProcessorsOnStartup
 										);
 	ubf_assert_non_NULL (put);
-	szAbsPath = GetAbsoluteLogPathCUNILOG_TARGET (put, &len);
+	CunilogTestFnctResultToConsole (NULL != put);
 
+	CunilogTestFnctStartTestToConsole ("New target initislised...");
+	CunilogTestFnctResultToConsole (cunilogIsTargetInitialised (put));
+
+
+	CunilogTestFnctStartTestToConsole ("Do we have a path?");
+	szAbsPath = GetAbsoluteLogPathCUNILOG_TARGET (put, &len);
+	CunilogTestFnctResultToConsole (NULL != szAbsPath);
+
+	cunilogTargetSetAlwaysCallErrorCB (put);
+	ConfigCUNILOG_TARGETerrorCallbackFunction (put, CunilogTestFnctErrCallback0002);
+
+	CunilogTestFnctStartTestToConsole ("Checking target members...");
+	b &= NULL != put->cprocessors;
+	b &= CunilogTestFnctErrCallback0002 == put->errorCB;
+	b &= cunilogPostfixDotNumberYearly == put->culogPostfix;
+	b &= cunilogSingleThreaded == put->culogType;
+	b &= cunilogTargetHasRunProcessorsOnStartup (put) ? true : false;
+	b &= !cunilogTargetHasShutdownInitiatedFlag (put) ? true : false;
+	CunilogTestFnctResultToConsole (b);
+
+	CunilogTestFnctStartTestToConsole ("Issuing test event...");
+	b &= logTextU8 (put, "First non-static event");
+	CunilogTestFnctResultToConsole (b);
+
+	ASSERT (false);
+
+	CunilogTestFnctStartTestToConsole ("Shutting down target...");
 	ShutdownCUNILOG_TARGET (put);
+	b &= cunilogTargetHasShutdownCompleteFlag (put) ? true : false;
+	CunilogTestFnctResultToConsole (b);
+
 	DoneCUNILOG_TARGET (put);
 
+	ASSERT (false);
 
 	put = InitCUNILOG_TARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
@@ -336,7 +576,7 @@ bool CunilogTestFunction	(
 				cunilogEvtTS_Default,
 				cunilogNewLineDefault,
 				cunilogRunProcessorsOnStartup
-									);
+										);
 
 	//configCUNILOG_TARGETdisableEchoProcessor (put);
 	UNREFERENCED_PARAMETER (put);

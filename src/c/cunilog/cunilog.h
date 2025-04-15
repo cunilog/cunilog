@@ -1037,6 +1037,59 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET_static)
 	(size_t *plen);
 
 /*
+	GetCUNILOG_PROCESSOR
+
+	Returns a pointer to the nth processor that performs processing task task.
+	If n is 0, the function finds the first processor of task task, if it is
+	1, it returns the second procossor of task task.
+	Returns NULL if a processor for task task does not exist or if n is higher
+	than the number of task processors - 1. For instance, if a processor list
+	only contains one echo processor, and if n = 1, the function returns NULL.
+
+	For example, to obtain the echo processor:
+	CUNILOG_PROCESSOR *cup = GetCUNILOG_PROCESSOR	(
+								put, cunilogProcessEchoToConsole, 0
+													);
+*/
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
+						CUNILOG_TARGET				*put,
+						enum cunilogprocesstask		task,
+						unsigned int				n
+										)
+;
+TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_PROCESSOR)
+										(
+						CUNILOG_TARGET				*put,
+						enum cunilogprocesstask		task,
+						unsigned int				n
+										)
+;
+
+/*
+	GetCUNILOG_PROCESSORrotationTask
+
+	Returns a pointer to the nth rotation processor that performs rotation task rot.
+	If n is 0, the function finds the first rotation processor of task rot, if it is
+	1, it returns the second rotation procossor of task rot.
+	Returns NULL if a rotation processor for task rot does not exist or if n is higher
+	than the number of this type of ratation processors - 1. For instance, if a processor
+	list only contains one cunilogrotationtask_MoveToTrashLogfiles rotation processor,
+	and if n = 1, the function returns NULL.
+
+	For example, to obtain a pointer to the rotation processor that moves files to the
+	recycle bin/trash:
+	CUNILOG_PROCESSOR *cup = GetCUNILOG_PROCESSORrotationTask	(
+								put, cunilogrotationtask_MoveToTrashLogfiles, 0
+																);
+*/
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
+						CUNILOG_TARGET				*put,
+						enum cunilogrotationtask	rot,
+						unsigned int				n
+													)
+;
+
+/*
 	ConfigCUNILOG_TARGETerrorCallbackFunction
 
 	Sets the error callback function of the specified Cunilog target put points to.

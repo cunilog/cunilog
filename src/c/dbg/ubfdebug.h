@@ -535,6 +535,10 @@ EXTERN_C_BEGIN
 			(b) &= (expectation);						\
 			ubf_assert (true == (b))
 
+#define ubf_expect_bool_AND_0(b, expectation)			\
+			(b) &= (0 == (expectation));				\
+			ubf_assert (0 == (expectation))
+
 /*
 	ubf_assert_TRUE
 	ubf_assert_FALSE

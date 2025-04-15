@@ -7919,6 +7919,10 @@ EXTERN_C_BEGIN
 			(b) &= (expectation);						\
 			ubf_assert (true == (b))
 
+#define ubf_expect_bool_AND_0(b, expectation)			\
+			(b) &= (0 == (expectation));				\
+			ubf_assert (0 == (expectation))
+
 /*
 	ubf_assert_TRUE
 	ubf_assert_FALSE
@@ -9223,7 +9227,7 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 // To build the test function.
 #ifdef DEBUG
 	#ifndef BUILD_BULKMALLOC_TEST_FUNCTIONS
-	#define BUILD_BULKMALLOC_TEST_FUNCTIONS
+	//#define BUILD_BULKMALLOC_TEST_FUNCTIONS
 	#endif
 #endif
 
@@ -11336,9 +11340,9 @@ void ubf_get_system_time_ULONGLONG_rel (ULONGLONG *pulltime);
 /*
 	IsLeapYear
 
-	Returns TRUE if the year in Y is a leap year, FALSE otherwise.
+	Returns true if the year in Y is a leap year, false otherwise.
 */
-bool IsLeapYear (uint32_t Y);
+bool IsLeapYear (uint32_t uiYear);
 
 /*
 	GetISO8601DayOfYear
@@ -12084,9 +12088,9 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 	Test function.
 */
 #ifdef UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION
-		void Test_ubf_times_functions (void);
+		bool Test_ubf_times_functions (void);
 #else
-		#define Test_ubf_times_functions()
+		#define Test_ubf_times_functions()	(true)
 #endif
 
 
@@ -12942,6 +12946,10 @@ EXTERN_C_BEGIN
 			(b) &= (expectation);						\
 			ubf_assert (true == (b))
 
+#define ubf_expect_bool_AND_0(b, expectation)			\
+			(b) &= (0 == (expectation));				\
+			ubf_assert (0 == (expectation))
+
 /*
 	ubf_assert_TRUE
 	ubf_assert_FALSE
@@ -13271,6 +13279,7 @@ When		Who				What
 
 /*
 	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+	For the original unchanged version, see https://github.com/yasuoka/check_utf8 .
 */
 
 /*
@@ -13317,6 +13326,12 @@ EXTERN_C_BEGIN
 
 bool c_check_utf8(const char *str, size_t len);
 TYPEDEF_FNCT_PTR (bool, c_check_utf8) (const char *str, size_t len);
+
+#ifdef U_CHECK_UTF8_BUILD_TEST_FNCT
+	bool Check_utf8_test_function (void);
+#else
+	#define Check_utf8_test_function() (true)
+#endif
 
 EXTERN_C_END
 
@@ -13503,7 +13518,7 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 ;
 
 #ifdef DEBUG
-	#define STRCUSTOMFMT_BUILD_TEST_FNCTS
+	//#define STRCUSTOMFMT_BUILD_TEST_FNCTS
 #endif
 
 /*
@@ -13512,9 +13527,9 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 	Test function.
 */
 #ifdef STRCUSTOMFMT_BUILD_TEST_FNCTS
-	void TestStrCustomFmt (void);
+	bool TestStrCustomFmt (void);
 #else
-	#define TestStrCustomFmt()
+	#define TestStrCustomFmt()	(true)
 #endif
 
 EXTERN_C_END
@@ -14720,7 +14735,8 @@ size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 		,	cunilogNewLineIBMzOS							// EBCDIC NL (15h)
 		,	cunilogNewLineNEL								// Unicode newline NEL (U+0085)
 		,	cunilogNewLineLS								// Unicode line separator LS (U+2028)
-		,	cunilogNewLinePS								// Unicode paragraph separator PS (U+2029)
+		,	cunilogNewLinePS								// Unicode paragraph separator PS
+															//	(U+2029)
 		// Do not add anything below this line.
 		,	cunilogNewLineAmountEnumValues					// Used for table sizes.
 		// Do not add anything below unilogNewLineAmountEnumValues.
@@ -14782,7 +14798,7 @@ size_t strRemoveLineEndingsFromEnd (const char *sz, size_t len);
 #ifdef STRNEWLINE_BUILD_TEST
 	bool test_strnewline (void);
 #else
-	#define test_strnewline()
+	#define test_strnewline()	(true)
 #endif
 
 EXTERN_C_END
@@ -15844,7 +15860,7 @@ bool ubf_uint16_from_str (uint16_t *pus, const char *chStr);
 */
 #ifdef DEBUG
 	#ifndef UBF_BUILD_STRINTUINT_TEST
-	#define UBF_BUILD_STRINTUINT_TEST
+	//#define UBF_BUILD_STRINTUINT_TEST
 	#endif
 #endif
 #ifdef UBF_BUILD_STRINTUINT_TEST
@@ -16444,7 +16460,7 @@ When		Who				What
 */
 #ifdef DEBUG
 	#ifndef STRWILDCARDS_BUILD_TEST_FNCT
-	#define STRWILDCARDS_BUILD_TEST_FNCT
+	//#define STRWILDCARDS_BUILD_TEST_FNCT
 	#endif
 #endif
 
@@ -16550,7 +16566,7 @@ bool globMatch	(
 #ifdef STRWILDCARDS_BUILD_TEST_FNCT
 	bool strwildcards_test_function (void);
 #else
-	#define strwildcards_test_function() true
+	#define strwildcards_test_function() (true)
 #endif
 
 EXTERN_C_END
@@ -16944,6 +16960,8 @@ When		Who				What
 #define CUNILOG_ERROR_TEST_AFTER_THRESHOLD_UPDATE		(CUNILOG_ERROR_FIRST_UNUSED_ERROR + 2)
 #define CUNILOG_ERROR_TEST_BEFORE_REQUIRES_NEW_LOGFILE	(CUNILOG_ERROR_FIRST_UNUSED_ERROR + 3)
 #define CUNILOG_ERROR_TEST_AFTER_REQUIRES_NEW_LOGFILE	(CUNILOG_ERROR_FIRST_UNUSED_ERROR + 4)
+#define CUNILOG_ERROR_TEST_BEFORE_ROTATOR				(CUNILOG_ERROR_FIRST_UNUSED_ERROR + 5)
+#define CUNILOG_ERROR_TEST_AFTER_ROTATOR				(CUNILOG_ERROR_FIRST_UNUSED_ERROR + 6)
 
 EXTERN_C_BEGIN
 
@@ -17368,7 +17386,7 @@ enum cunilogprocesstask
 	,	cunilogProcessTargetRedirector						// Redirect to different target.
 	,	cunilogProcessTargetFork							// Fork the event to another target.
 	// Do not add anything below this line.
-	,	cunilogProcessAmountEnumValues						// Used for table sizes.
+	,	cunilogProcessXAmountEnumValues						// Used for table sizes.
 	// Do not add anything below cunilogProcessAmountEnumValues.
 };
 
@@ -17478,6 +17496,10 @@ enum cunilogrotationtask
 	,	cunilogrotationtask_MoveToTrashLogfiles
 	,	cunilogrotationtask_MoveToRecycleBinLogfiles = cunilogrotationtask_MoveToTrashLogfiles
 	,	cunilogrotationtask_DeleteLogfiles
+
+	// Do not add anything below this line.
+	,	cunilogrotationtask_XAmountEnumValues				// Used for table sizes.
+	// Do not add anything below cunilogrotationtask_XAmountEnumValues.
 };
 
 /*
@@ -17616,7 +17638,7 @@ typedef struct cunilog_rotation_data
 #define CUNILOG_INIT_DEF_UPDATELOGFILENAME_PROCESSOR	\
 {														\
 	cunilogProcessUpdateLogFileName,					\
-	cunilogProcessAppliesTo_nAlways,					\
+	cunilogProcessAppliesTo_Auto,						\
 	0, 0,												\
 	NULL,												\
 	OPT_CUNPROC_FORCE_NEXT								\
@@ -17651,8 +17673,8 @@ typedef struct cunilog_rotation_data
 	cunilogProcessRotateLogfiles,						\
 	cunilogProcessAppliesTo_Auto,						\
 	0, 0,												\
-	(p),							\
-	OPT_CUNPROC_NONE | OPT_CUNPROC_AT_STARTUP			\
+	(p),												\
+	OPT_CUNPROC_NONE									\
 }
 /*
 	Argument p is a pointer to a CUNILOG_ROTATION_DATA structure with member
@@ -17665,8 +17687,8 @@ typedef struct cunilog_rotation_data
 	cunilogProcessRotateLogfiles,						\
 	cunilogProcessAppliesTo_Auto,						\
 	0, 0,												\
-	(p),							\
-	OPT_CUNPROC_NONE | OPT_CUNPROC_AT_STARTUP			\
+	(p),												\
+	OPT_CUNPROC_NONE									\
 }
 /*
 	Argument p is a pointer to a CUNILOG_ROTATION_DATA structure with member
@@ -17678,7 +17700,7 @@ typedef struct cunilog_rotation_data
 	cunilogProcessAppliesTo_Auto,						\
 	0, 0,												\
 	(p),												\
-	OPT_CUNPROC_NONE | OPT_CUNPROC_AT_STARTUP			\
+	OPT_CUNPROC_NONE									\
 }
 
 
@@ -18029,10 +18051,10 @@ typedef struct CUNILOG_TARGET
 
 // Event queue is shutting down or has shut down already.
 //	This flags prevents further logging.
-#define CUNILOGTARGET_SHUTDOWN					SINGLEBIT64 (0)
+#define CUNILOGTARGET_SHUTDOWN_INITIATED		SINGLEBIT64 (0)
 
 // Separate logging thread has shut down.
-#define CUNILOGTARGET_HAS_SHUT_DOWN				SINGLEBIT64 (1)
+#define CUNILOGTARGET_SHUTDOWN_COMPLETE			SINGLEBIT64 (1)
 
 // The structure has been allocated on the heap. This is for DoneSUNILOGTARGET ()
 //	to deallocate it.
@@ -18098,58 +18120,58 @@ typedef struct CUNILOG_TARGET
 // Debug flag when the queue is locked. To be removed in the future.
 #define CUNILOGTARGET_DEBUG_QUEUE_LOCKED		SINGLEBIT64 (20)
 
-#define cunilogSetShutdownTarget(put)					\
-	((put)->uiOpts |= CUNILOGTARGET_SHUTDOWN)
-#define cunilogIsShutdownTarget(put)					\
-	((put)->uiOpts & CUNILOGTARGET_SHUTDOWN)
+#define cunilogTargetSetShutdownInitiatedFlag(put)		\
+	((put)->uiOpts |= CUNILOGTARGET_SHUTDOWN_INITIATED)
+#define cunilogTargetHasShutdownInitiatedFlag(put)		\
+	((put)->uiOpts & CUNILOGTARGET_SHUTDOWN_INITIATED)
 
-#define cunilogSetTargetHasShutdown(put)				\
-	((put)->uiOpts |= CUNILOGTARGET_HAS_SHUT_DOWN)
-#define cunilogIsTargetHasShutdown(put)					\
-	((pt)->uiOpts & CUNILOGTARGET_HAS_SHUT_DOWN)
+#define cunilogTargetSetShutdownCompleteFlag(put)		\
+	((put)->uiOpts |= CUNILOGTARGET_SHUTDOWN_COMPLETE)
+#define cunilogTargetHasShutdownCompleteFlag(put)		\
+	((put)->uiOpts & CUNILOGTARGET_SHUTDOWN_COMPLETE)
 
-#define cunilogSetTargetAllocated(put)					\
+#define cunilogTargetSetTargetAllocatedFlag(put)		\
 	((put)->uiOpts |= CUNILOGTARGET_ALLOCATED)
-#define cunilogIsTargetAllocated(put)					\
+#define cunilogTargetHasTargetAllocatedFlag(put)		\
 	((put)->uiOpts & CUNILOGTARGET_ALLOCATED)
 
-#define cunilogSetLogPathAllocated(put)					\
+#define cunilogTargetSetLogPathAllocatedFlag(put)		\
 	((put)->uiOpts |= CUNILOGTARGET_LOGPATH_ALLOCATED)
-#define cunilogIsLogPathAllocated(put)					\
+#define cunilogTargetHasLogPathAllocatedFlag(put)		\
 	((put)->uiOpts & CUNILOGTARGET_LOGPATH_ALLOCATED)
 
-#define cunilogSetAppNameAllocated(put)					\
+#define cunilogTargetSetAppNameAllocatedFlag(put)		\
 	((put)->uiOpts |= CUNILOGTARGET_APPNAME_ALLOCATED)
-#define cunilogIsAppNameAllocated(put)					\
+#define cunilogTargetHasAppNameAllocatedFlag(put)		\
 	((put)->uiOpts & CUNILOGTARGET_APPNAME_ALLOCATED)
 
-#define cunilogSetLogFileAllocated(put)					\
+#define cunilogTargetSetLogFileAllocatedFlag(put)		\
 	((put)->uiOpts |= CUNILOGTARGET_LOGFILE_ALLOCATED)
-#define cunilogIsLogFileAllocated(put)					\
+#define cunilogTargetHasLogFileAllocatedFlag(put)		\
 	((put)->uiOpts & CUNILOGTARGET_LOGFILE_ALLOCATED)
 
-#define cunilogSetLogFileMaskAllocated(put)				\
+#define cunilogTargetSetLogFileMaskAllocatedFlag(put)	\
 	((put)->uiOpts |= CUNILOGTARGET_LOGF_MASK_ALLOCATED)
-#define cunilogIsLogFileMaskAllocated(put)				\
+#define cunilogTargetHasLogFileMaskAllocatedFlag(put)	\
 	((put)->uiOpts & CUNILOGTARGET_LOGF_MASK_ALLOCATED)
 
-#define cunilogSetFileToRotateAllocated(put)			\
+#define cunilogTargetSetFileToRotateAllocatedFlag(put)	\
 	((put)->uiOpts |= CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
-#define cunilogIsFileToRotateAllocated(put)				\
+#define cunilogTargetHasFileToRotateAllocatedFlag(put)	\
 	((put)->uiOpts & CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED)
 
-#define cunilogSetProcessorsAllocated(put)				\
+#define cunilogTargetSetProcessorsAllocatedFlag(put)	\
 	((put)->uiOpts |= CUNILOGTARGET_PROCESSORS_ALLOCATED)
-#define cunilogClrProcessorsAllocated(put)				\
+#define cunilogTargetClrProcessorsAllocatedFlag(put)	\
 	((put)->uiOpts &= ~ CUNILOGTARGET_PROCESSORS_ALLOCATED)
-#define cunilogHasProcessorsAllocated(put)				\
+#define cunilogTargetHasProcessorsAllocatedFlag(put)	\
 	((put)->uiOpts & CUNILOGTARGET_PROCESSORS_ALLOCATED)
 
-#define cunilogHasRunAllProcessorsOnStartup(put)		\
+#define cunilogTargetHasRunProcessorsOnStartup(put)		\
 	((put)->uiOpts & CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
-#define cunilogClrRunAllProcessorsOnStartup(put)		\
+#define cunilogTargetClrRunProcessorsOnStartup(put)		\
 	((put)->uiOpts &= ~ CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
-#define cunilogSetRunAllProcessorsOnStartup(put)		\
+#define cunilogTargetSetRunProcessorsOnStartup(put)		\
 	((put)->uiOpts |= CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP)
 
 #define cunilogTargetHasFSneedsSorting(put)				\
@@ -18180,11 +18202,11 @@ typedef struct CUNILOG_TARGET
 #define cunilogTargetSetFLSreversed(put)				\
 	((put)->uiOpts |= CUNILOGTARGET_FLS_REVERSED)
 
-#define cunilogTargetIsPaused(put)						\
+#define cunilogTargetHasIsPaused(put)					\
 	((put)->uiOpts & CUNILOGTARGET_PAUSED)
-#define cunilogTargetClrPaused(put)						\
+#define cunilogTargetClrIsPaused(put)					\
 	((put)->uiOpts &= ~ CUNILOGTARGET_PAUSED)
-#define cunilogTargetSetPaused(put)						\
+#define cunilogTargetSetIsPaused(put)					\
 	((put)->uiOpts |= CUNILOGTARGET_PAUSED)
 
 #if defined (DEBUG) && !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
@@ -18255,16 +18277,16 @@ typedef struct CUNILOG_TARGET
 	((put)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-	#ifndef cunilogHasUseColourForEcho
-		#define cunilogHasUseColourForEcho(put)			\
+	#ifndef cunilogTargetHasUseColourForEcho
+		#define cunilogTargetHasUseColourForEcho(put)	\
 			((put)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 	#endif
-	#ifndef cunilogClrUseColourForEcho
-		#define cunilogClrUseColourForEcho(put)			\
+	#ifndef cunilogTargetClrUseColourForEcho
+		#define cunilogTargetClrUseColourForEcho(put)	\
 			((put)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 	#endif
-	#ifndef cunilogSetUseColourForEcho
-		#define cunilogSetUseColourForEcho(put)			\
+	#ifndef cunilogTargetSetUseColourForEcho
+		#define cunilogTargetSetUseColourForEcho(put)	\
 			((put)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
 	#endif
 #endif
@@ -18398,47 +18420,49 @@ typedef struct CUNILOG_EVENT
 
 // The structure has been allocated on the heap. This is for DoneSUNILOGEVENT ()
 //	to deallocate it.
-#define CUNILOGEVENT_ALLOCATED			SINGLEBIT64 (0)
+#define CUNILOGEVENT_ALLOCATED					SINGLEBIT64 (0)
 
 // The data has been allocated. This is also for DoneSUNILOGEVENT ().
-#define CUNILOGEVENT_DATA_ALLOCATED		SINGLEBIT64 (1)
+#define CUNILOGEVENT_DATA_ALLOCATED				SINGLEBIT64 (1)
 
 // Shuts down logging.
-#define CUNILOGEVENT_SHUTDOWN			SINGLEBIT64 (2)
+#define CUNILOGEVENT_SHUTDOWN					SINGLEBIT64 (2)
 
 // Suppresses echo/console output processor.
-#define CUNILOGEVENT_NO_ECHO			SINGLEBIT64 (3)
+#define CUNILOGEVENT_NO_ECHO					SINGLEBIT64 (3)
 
-// The data is to be written out as a binary dump.
-//	Replaced by cueventtype.
-//#define CUNILOGEVENT_AS_HEXDUMP			SINGLEBIT64 (4)
+// This is an internal event. Internal events are generated
+//	within processors.
+#define CUNILOGEVENT_IS_INTERNAL				SINGLEBIT64 (4)
 
 // Add fullstop automatically.
-#define CUNILOGEVENT_AUTO_FULLSTOP		SINGLEBIT64 (5)
+#define CUNILOGEVENT_AUTO_FULLSTOP				SINGLEBIT64 (5)
 
 // No rotation for this event. This is very fast/quick logging.
 //	It is also used for internal logging.
-#define CUNILOGEVENT_NOROTATION			SINGLEBIT64 (6)
+#define CUNILOGEVENT_NOROTATION					SINGLEBIT64 (6)
 
 // Suppresses the remaining processors.
-#define CUNILOGEVENT_STOP_PROCESSING	SINGLEBIT64	(7)
+#define CUNILOGEVENT_IGNORE_REMAINING_PROCESSORS\
+												SINGLEBIT64	(7)
 
 // Only process the echo processor. All others are suppressed.
-#define CUNILOGEVENT_ECHO_ONLY			SINGLEBIT64 (8)
+#define CUNILOGEVENT_ECHO_ONLY					SINGLEBIT64 (8)
 
 // Macros to set and check flags.
-#define cunilogSetEventAllocated(pue)					\
-	((pue)->uiOpts |= CUNILOGEVENT_ALLOCATED)
-#define cunilogIsEventAllocated(pue)					\
-	((pue)->uiOpts & CUNILOGEVENT_ALLOCATED)
-#define cunilogIsEventDataAllocated(pue)				\
-	((pue)->uiOpts & CUNILOGEVENT_DATA_ALLOCATED)
-#define cunilogSetEventShutdown(pue)					\
-	((pue)->uiOpts |= CUNILOGEVENT_SHUTDOWN)
-#define cunilogIsEventShutdown(pue)						\
-	((pue)->uiOpts & CUNILOGEVENT_SHUTDOWN)
-#define cunilogIsEventCancel(pue)						\
-	((pue)->uiOpts & CUNILOGEVENT_CANCEL)
+#define cunilogSetEventAllocated(pev)					\
+	((pev)->uiOpts |= CUNILOGEVENT_ALLOCATED)
+#define cunilogIsEventAllocated(pev)					\
+	((pev)->uiOpts & CUNILOGEVENT_ALLOCATED)
+#define cunilogIsEventDataAllocated(pev)				\
+	((pev)->uiOpts & CUNILOGEVENT_DATA_ALLOCATED)
+
+#define cunilogSetEventShutdown(pev)					\
+	((pev)->uiOpts |= CUNILOGEVENT_SHUTDOWN)
+#define cunilogIsEventShutdown(pev)						\
+	((pev)->uiOpts & CUNILOGEVENT_SHUTDOWN)
+#define cunilogIsEventCancel(pev)						\
+	((pev)->uiOpts & CUNILOGEVENT_CANCEL)
 
 #define cunilogSetEventNoEcho(pev)						\
 	((pev)->uiOpts |= CUNILOGEVENT_NO_ECHO)
@@ -18447,22 +18471,29 @@ typedef struct CUNILOG_EVENT
 #define cunilogHasEventNoEcho(pev)						\
 	((pev)->uiOpts & CUNILOGEVENT_NO_ECHO)
 
-#define cunilogSetEventAutoFullstop(pue)				\
-	((pue)->uiOpts |= CUNILOGEVENT_AUTO_FULLSTOP)
-#define cunilogIsEventAutoFullstop(pue)					\
-	((pue)->uiOpts & CUNILOGEVENT_AUTO_FULLSTOP)
+#define cunilogSetEventInternal(pev)					\
+	((pev)->uiOpts |= CUNILOGEVENT_IS_INTERNAL)
+#define cunilogClrEventInternal(pev)					\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_IS_INTERNAL)
+#define cunilogIsEventInternal(pev)						\
+	((pev)->uiOpts & CUNILOGEVENT_IS_INTERNAL)
 
-#define cunilogHasEventNoRotation(pue)					\
-	((pue)->uiOpts & CUNILOGEVENT_NOROTATION)
-#define cunilogSetEventNoRotation(pue)					\
-	((pue)->uiOpts |= CUNILOGEVENT_NOROTATION)
+#define cunilogSetEventAutoFullstop(pev)				\
+	((pev)->uiOpts |= CUNILOGEVENT_AUTO_FULLSTOP)
+#define cunilogIsEventAutoFullstop(pev)					\
+	((pev)->uiOpts & CUNILOGEVENT_AUTO_FULLSTOP)
 
-#define cunilogSetEventStopProcessing(pev)				\
-	((pev)->uiOpts |= CUNILOGEVENT_STOP_PROCESSING)
-#define cunilogClrEventStopProcessing(pev)				\
-	((pev)->uiOpts &= ~ CUNILOGEVENT_STOP_PROCESSING)
-#define cunilogHasEventStopProcessing(pev)				\
-	((pev)->uiOpts & CUNILOGEVENT_STOP_PROCESSING)
+#define cunilogHasEventNoRotation(pev)					\
+	((pev)->uiOpts & CUNILOGEVENT_NOROTATION)
+#define cunilogSetEventNoRotation(pev)					\
+	((pev)->uiOpts |= CUNILOGEVENT_NOROTATION)
+
+#define cunilogEventSetIgnoreRemainingProcessors(pev)	\
+	((pev)->uiOpts |= CUNILOGEVENT_IGNORE_REMAINING_PROCESSORS)
+#define cunilogEventClrIgnoreRemainingProcessors(pev)	\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_IGNORE_REMAINING_PROCESSORS)
+#define cunilogEventHasIgnoreRemainingProcessors(pev)	\
+	((pev)->uiOpts & CUNILOGEVENT_IGNORE_REMAINING_PROCESSORS)
 
 #define cunilogSetEventEchoOnly(pev)					\
 	((pev)->uiOpts |= CUNILOGEVENT_ECHO_ONLY)
@@ -19862,6 +19893,59 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET)
 const char *GetAbsoluteLogPathCUNILOG_TARGET_static (size_t *plen);
 TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET_static)
 	(size_t *plen);
+
+/*
+	GetCUNILOG_PROCESSOR
+
+	Returns a pointer to the nth processor that performs processing task task.
+	If n is 0, the function finds the first processor of task task, if it is
+	1, it returns the second procossor of task task.
+	Returns NULL if a processor for task task does not exist or if n is higher
+	than the number of task processors - 1. For instance, if a processor list
+	only contains one echo processor, and if n = 1, the function returns NULL.
+
+	For example, to obtain the echo processor:
+	CUNILOG_PROCESSOR *cup = GetCUNILOG_PROCESSOR	(
+								put, cunilogProcessEchoToConsole, 0
+													);
+*/
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
+						CUNILOG_TARGET				*put,
+						enum cunilogprocesstask		task,
+						unsigned int				n
+										)
+;
+TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_PROCESSOR)
+										(
+						CUNILOG_TARGET				*put,
+						enum cunilogprocesstask		task,
+						unsigned int				n
+										)
+;
+
+/*
+	GetCUNILOG_PROCESSORrotationTask
+
+	Returns a pointer to the nth rotation processor that performs rotation task rot.
+	If n is 0, the function finds the first rotation processor of task rot, if it is
+	1, it returns the second rotation procossor of task rot.
+	Returns NULL if a rotation processor for task rot does not exist or if n is higher
+	than the number of this type of ratation processors - 1. For instance, if a processor
+	list only contains one cunilogrotationtask_MoveToTrashLogfiles rotation processor,
+	and if n = 1, the function returns NULL.
+
+	For example, to obtain a pointer to the rotation processor that moves files to the
+	recycle bin/trash:
+	CUNILOG_PROCESSOR *cup = GetCUNILOG_PROCESSORrotationTask	(
+								put, cunilogrotationtask_MoveToTrashLogfiles, 0
+																);
+*/
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
+						CUNILOG_TARGET				*put,
+						enum cunilogrotationtask	rot,
+						unsigned int				n
+													)
+;
 
 /*
 	ConfigCUNILOG_TARGETerrorCallbackFunction

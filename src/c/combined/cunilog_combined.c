@@ -7218,7 +7218,7 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 #ifdef BUILD_BULKMALLOC_TEST_FUNCTIONS
 	bool bulkmalloc_test_fnct (void)
 	{
-		bool			b		= false;
+		bool			b		= true;
 		SBULKMEM		sbm		= SBULKMEM_INITIALISER (128);
 		//SBULKMEM		*pbm;
 		void			*p;
@@ -7227,31 +7227,42 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 		// The SBULKMEM structure doesn't have any memory block attached.
 		p = GetUnalignedMemFromSBULKMEMnogrow (&sbm, 1);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 		p = GetAlignedMemFromSBULKMEMnogrow (&sbm, 1);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 		p = GetUnalignedMemFromSBULKMEMnogrow (&sbm, 1024);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 		p = GetAlignedMemFromSBULKMEMnogrow (&sbm, 1024);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 		p = GetAlignedMemFromSBULKMEMnogrow (&sbm, 1022);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 
 		pbmb = GrowSBULKMEM (&sbm, 0);
 		ubf_assert_non_NULL (pbmb);
+		b &= NULL != pbmb;
 		pbmb = GrowSBULKMEM (&sbm, 12);
 		ubf_assert_non_NULL (pbmb);
+		b &= NULL != pbmb;
 		p = GetAlignedMemFromSBULKMEMnogrow (&sbm, 1022);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 		// This should succeed.
 		p = GetAlignedMemFromSBULKMEMnogrow (&sbm, 16);
 		ubf_assert_non_NULL (p);
+		b &= NULL != p;
 		p = GetAlignedMemFromSBULKMEMgrow (&sbm, 12);
 		ubf_assert_non_NULL (p);
+		b &= NULL != p;
 
 		DoneSBULKMEM (&sbm);
 
 		p = GetAlignedMemFromSBULKMEMgrow (&sbm, 1024);
 		ubf_assert_non_NULL (p);
+		b &= NULL != p;
 		if (p)
 		{
 			memset (p, 0, 1024);
@@ -7272,7 +7283,6 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 		uint64_t	ut1, ut2, ut3;
 		uint64_t	u;
 
-		puts ("Starting...");
 		GetSystemTimeAsFileTime (&ft1);
 		char *pCh [100000];
 		for (u = 0; u < 100000; ++u)
@@ -7294,7 +7304,7 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 		ut2 += ft2.dwLowDateTime;
 		ut3 = ut2 - ut1;
 		ut3 /= 10000;			// milliseconds.
-		printf ("Diff - malloc (): %" PRIu64 " ms.\n", ut3);
+		printf ("\nTime taken by malloc ():\t\t %" PRIu64 " ms.\n", ut3);
 
 		GetSystemTimeAsFileTime (&ft1);
 		pTest = AllocInitSBULKMEM (NULL, 200 * 1024 * 1024);
@@ -7316,7 +7326,7 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 			ut2 += ft2.dwLowDateTime;
 			ut3 = ut2 - ut1;
 			ut3 /= 10000;			// milliseconds.
-			printf ("Diff - memblock:  %" PRIu64 " ms.\n", ut3);
+			printf ("Time taken by GetMemFromSBULKMEM ():\t %" PRIu64 " ms.\n", ut3);
 		}
 		/*
 			End of speed comparison.
@@ -7361,8 +7371,6 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 			DoneSBULKMEM (&sbulk);
 		}
 		//	<-
-
-
 
 		return b;
 	}
@@ -8974,9 +8982,16 @@ void ubf_get_system_time_ULONGLONG_rel (ULONGLONG *pulltime)
 	}
 #endif
 
-bool IsLeapYear (uint32_t Y)
+bool IsLeapYear (uint32_t uiYear)
 {	// Implements (2) and (3). See below.
-	return (((Y % 4 == 0) && (Y % 100 != 0)) || (Y % 400 == 0)) ? true : false;
+
+	/*
+		Which one looks better or is easier to read/understand?
+
+		return 0 == uiYear % 4 && uiYear % 100 || 0 == uiYear % 400;
+		return 0 == uiYear % 400 ? true : 0 == uiYear % 100 ? false : 0 == uiYear % 4 ? true : false;
+	*/
+	return 0 == uiYear % 4 && uiYear % 100 || 0 == uiYear % 400;
 }
 
 // The lookup table for GetISO8601DayOfYear ().
@@ -10026,7 +10041,7 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 }
 
 #ifdef UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION
-	void Test_ubf_times_functions (void)
+	bool Test_ubf_times_functions (void)
 	{
 		char			ch [FORMATTEDMILLISECONDS_SIZE];
 		UBF_DEF_GUARD_VAR (var, "0123456789");
@@ -10037,8 +10052,46 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		SUBF_TIMESTRUCT	ts;
 		char			cOut [1024];
 
+		b = true;
+
+		// Some tests for obtaining the leap year.
+		b &=  IsLeapYear (1600);
+		b &= !IsLeapYear (1700);
+		b &= !IsLeapYear (1800);
+		b &= !IsLeapYear (1900);
+		b &=  IsLeapYear (2000);
+		b &=  IsLeapYear (2016);
+		b &=  IsLeapYear (2020);
+		b &= !IsLeapYear (2021);
+		b &= !IsLeapYear (2022);
+		b &= !IsLeapYear (2023);
+		b &=  IsLeapYear (2024);
+		b &=  IsLeapYear (2028);
+		b &=  IsLeapYear (2032);
+		b &= !IsLeapYear (2033);
+		b &= !IsLeapYear (2034);
+		b &= !IsLeapYear (2033);
+		b &=  IsLeapYear (2036);
+		b &= !IsLeapYear (2037);
+		b &= !IsLeapYear (2038);
+		b &= !IsLeapYear (2039);
+		b &=  IsLeapYear (2040);
+		b &=  IsLeapYear (2052);
+		b &=  IsLeapYear (2056);
+		b &=  IsLeapYear (2060);
+		b &=  IsLeapYear (2096);
+		b &= !IsLeapYear (2097);
+		b &= !IsLeapYear (2099);
+		b &= !IsLeapYear (2100);
+		b &= !IsLeapYear (2101);
+		b &=  IsLeapYear (2104);
+		b &= !IsLeapYear (2200);
+		b &= !IsLeapYear (2300);
+		b &=  IsLeapYear (2400);
+
 		GetSystemTime_UBF_TIMESTAMP (&ut);
-		ubf_assert (IsBuildYearOrNewer_UBF_TIMESTAMP (&ut));
+		b &= IsBuildYearOrNewer_UBF_TIMESTAMP (&ut);
+		ubf_assert (b);
 
 		u = 1000;
 		while (u --)
@@ -10046,11 +10099,13 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 			GetSystemTime_UBF_TIMESTAMP (&ut);
 			SUBF_TIMESTRUCT_from_UBF_TIMESTAMP (&ts, ut);
 			UBF_TIMESTAMP_from_SUBF_TIMESTRUCT (&ut2, &ts);
-			ubf_assert (ut == ut2);
+			b &= ut == ut2;
+			ubf_assert (b);
 			GetLocalTime_UBF_TIMESTAMP (&ut);
 			SUBF_TIMESTRUCT_from_UBF_TIMESTAMP (&ts, ut);
 			UBF_TIMESTAMP_from_SUBF_TIMESTRUCT (&ut2, &ts);
-			ubf_assert (ut == ut2);
+			b &= ut == ut2;
+			ubf_assert (b);
 		}
 
 		// Create our own timestamp.
@@ -10069,25 +10124,31 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		//ASSERT (false);
 		ut = UBF_TIMESTAMP_OFFSET_BITS (&ts);
 		// 84h = 8 for uOffsetHours, 4 for 30 offset minutes.
+		b &= 0x84 == ut;
 		ubf_assert (0x84 == ut);
 		ts.uOffsetHours			= 1;
 		ut = UBF_TIMESTAMP_OFFSET_BITS (&ts);
 		// 14h = 1 for uOffsetHours, 4 for 30 offset minutes.
-		ubf_assert (0x14 == ut);
+		b &= 0x14 == ut;
+		ubf_assert (b);
 		u = UBF_TIMESTAMP_OFFSETMINUTES (ut);
+		b &= 30 == u;
 		ubf_assert (30 == u);
 		ts.uOffsetHours			= 0;
 		ts.uOffsetMinutes		= 45;
 		ut = UBF_TIMESTAMP_OFFSET_BITS (&ts);
 		u = UBF_TIMESTAMP_OFFSETMINUTES (ut);
+		b &= 45 == u;
 		ubf_assert (45 == u);
 		ts.uOffsetMinutes		= 15;
 		ut = UBF_TIMESTAMP_OFFSET_BITS (&ts);
 		u = UBF_TIMESTAMP_OFFSETMINUTES (ut);
+		b &= 15 == u;
 		ubf_assert (15 == u);
 		ts.uOffsetMinutes		= 0;
 		ut = UBF_TIMESTAMP_OFFSET_BITS (&ts);
 		u = UBF_TIMESTAMP_OFFSETMINUTES (ut);
+		b &= 0 == u;
 		ubf_assert (0 == u);
 
 		ts.uOffsetHours			= 8;
@@ -10105,40 +10166,45 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		uint32_t uYear;
 		uint32_t uWeek = GetISO8601WeekNumberFromDate (ts.uYear, ts.uMonth, ts.uDay, &uYear);
 		UNUSED_PARAMETER (uWeek);
+		b &= 44 == uWeek;
+		b &= 2022 == uYear;
+		ubf_assert (b);
 		ubf_assert (44 == uWeek);
 		ubf_assert (2022 == uYear);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
+		b &= !memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK);
+		ubf_assert (b);
+
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601Year_from_UBF_TIMESTAMPs (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601Year_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601DateAndHour_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601DateAndHour_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400+08:30", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16:20:07.400+08:30", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400+08:30", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16:20:07.400+08:30", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndMonth_from_UBF_TIMESTAMPs (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11", SIZ_ISO8601YEARANDMONTH));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11", SIZ_ISO8601YEARANDMONTH));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndMonth_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11", SIZ_ISO8601YEARANDMONTH));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11", SIZ_ISO8601YEARANDMONTH));
 
 		// The same again but with a negative offset of 45 minutes.
 		ts.uOffsetHours			= 8;
@@ -10155,86 +10221,86 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ut |= UBF_TIMESTAMP_MICROSECOND_BITS (&ts);
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601Year_from_UBF_TIMESTAMPs (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601Year_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601DateAndHour_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601DateAndHour_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400-08:45", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16:20:07.400-08:45", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-11-04 16:20:07.400-08:45", SIZ_ISO8601YEAR));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-11-04 16:20:07.400-08:45", SIZ_ISO8601YEAR));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMP (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601YearAndWeek_from_UBF_TIMESTAMPc (cOut, ut);
-		ubf_assert (!memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
+		ubf_expect_bool_AND (b, !memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK));
 
 		u = 0;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
 		ubf_assert (!memcmp (ch, "00:00:00.000", FORMATTEDMILLISECONDS_SIZE));
 		u = 500;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "00:00:00.500", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "00:00:00.500", FORMATTEDMILLISECONDS_SIZE));
 		u = 999;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "00:00:00.999", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "00:00:00.999", FORMATTEDMILLISECONDS_SIZE));
 		u = 1999;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "00:00:01.999", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "00:00:01.999", FORMATTEDMILLISECONDS_SIZE));
 		u = 59999;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "00:00:59.999", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "00:00:59.999", FORMATTEDMILLISECONDS_SIZE));
 		u = 50 * 1000 * 3600;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "50:00:00.000", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "50:00:00.000", FORMATTEDMILLISECONDS_SIZE));
 		u = 99 * 1000 * 3600;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "99:00:00.000", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "99:00:00.000", FORMATTEDMILLISECONDS_SIZE));
 		u = (99 * 1000 * 3600) + (1000 * 59);
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "99:00:59.000", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "99:00:59.000", FORMATTEDMILLISECONDS_SIZE));
 		u = (99 * 1000 * 3600) + (1000 * 59 * 60) + (1000 * 59);
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "99:59:59.000", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "99:59:59.000", FORMATTEDMILLISECONDS_SIZE));
 		u = (99 * 1000 * 3600) + (1000 * 59 * 60) + (1000 * 59) + 999;
-		b = FormattedMilliseconds (ch, u);
+		b &= FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
 		ubf_assert (true == b);
-		ubf_assert (!memcmp (ch, "99:59:59.999", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "99:59:59.999", FORMATTEDMILLISECONDS_SIZE));
 		// Should cause an overflow and lead to a return value of FALSE.
 		u = (99 * 1000 * 3600) + (1000 * 59 * 60) + (1000 * 59) + 999 + 1;
-		b = FormattedMilliseconds (ch, u);
+		b &= !FormattedMilliseconds (ch, u);
 		UBF_TST_GUARD_VAR (var, "0123456789");
-		ubf_assert (false == b);
+		ubf_assert (true == b);
 		// Should not have been touched by the function due to it returning FALSE.
-		ubf_assert (!memcmp (ch, "99:59:59.999", FORMATTEDMILLISECONDS_SIZE));
+		ubf_expect_bool_AND (b, !memcmp (ch, "99:59:59.999", FORMATTEDMILLISECONDS_SIZE));
 
 		// Test bit constants.
 		UBF_TIMESTAMP	stamp;
@@ -10242,48 +10308,52 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		GetLocalTime_UBF_TIMESTAMP (&stamp);
 		uint64_t uio1 = UBF_TIMESTAMP_OFFSETMINUTES (stamp);
 		uint64_t uio2 = UBF_TIMESTAMP_OFFSETMINUTES (stamp & UBF_TIMESTAMP_KEEP_OFFSET_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		uio1 = UBF_TIMESTAMP_OFFSETHOURS (stamp);
 		uio2 = UBF_TIMESTAMP_OFFSETHOURS (stamp & UBF_TIMESTAMP_KEEP_OFFSET_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		uio1 = UBF_TIMESTAMP_SECOND (stamp);
 		uio2 = UBF_TIMESTAMP_SECOND (stamp & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		uio1 = UBF_TIMESTAMP_MINUTE (stamp);
 		uio2 = UBF_TIMESTAMP_MINUTE (stamp & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		maskd = stamp & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS;
+		ubf_expect_bool_AND (b, 0 == UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
 		ubf_assert_0 (UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
 		uio1 = UBF_TIMESTAMP_HOUR (stamp);
 		uio2 = UBF_TIMESTAMP_HOUR (stamp & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		maskd = stamp & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS;
+		ubf_expect_bool_AND (b, 0 == UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
+		ubf_expect_bool_AND (b, 0 == UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
 		ubf_assert_0 (UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
 		ubf_assert_0 (UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
 		uio1 = UBF_TIMESTAMP_DAY (stamp);
 		uio2 = UBF_TIMESTAMP_DAY (stamp & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		maskd = stamp & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS;
 		ubf_assert_0 (UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
 		uio1 = UBF_TIMESTAMP_MONTH (stamp);
 		uio2 = UBF_TIMESTAMP_MONTH (stamp & UBF_TIMESTAMP_KEEP_FROM_MONTH_BITS);
-		ubf_assert (uio1 == uio2);
+		ubf_expect_bool_AND (b, uio1 == uio2);
 		maskd = stamp & UBF_TIMESTAMP_KEEP_FROM_MONTH_BITS;
-		ubf_assert_0 (UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_DAY (maskd & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_DAY (maskd & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS));
 		uio1 = UBF_TIMESTAMP_YEAR (stamp);
 		uio2 = UBF_TIMESTAMP_YEAR (stamp & UBF_TIMESTAMP_KEEP_FROM_YEAR_BITS);
 		ubf_assert (uio1 == uio2);
 		maskd = stamp & UBF_TIMESTAMP_KEEP_FROM_YEAR_BITS;
-		ubf_assert_0 (UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_DAY (maskd & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS));
-		ubf_assert_0 (UBF_TIMESTAMP_MONTH (maskd & UBF_TIMESTAMP_KEEP_FROM_MONTH_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_SECOND (maskd & UBF_TIMESTAMP_KEEP_FROM_SECOND_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_MINUTE (maskd & UBF_TIMESTAMP_KEEP_FROM_MINUTE_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_HOUR (maskd & UBF_TIMESTAMP_KEEP_FROM_HOUR_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_DAY (maskd & UBF_TIMESTAMP_KEEP_FROM_DAY_BITS));
+		ubf_expect_bool_AND_0 (b, UBF_TIMESTAMP_MONTH (maskd & UBF_TIMESTAMP_KEEP_FROM_MONTH_BITS));
 
 		char sz1 [1024];
 		char sz2 [1024];
@@ -10294,9 +10364,11 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		{	// We assume the test ran just the moment the week number changed.
 			GetISO8601Week_s (sz1);
 			GetISO8601Week_c (sz2);
+			b &= !memcmp (sz1, sz2, SIZ_ISO8601WEEK);
 			ubf_assert (!memcmp (sz1, sz2, SIZ_ISO8601WEEK));
 		} else
 		{
+			b &= !memcmp (sz1, sz2, SIZ_ISO8601WEEK);
 			ubf_assert (!memcmp (sz1, sz2, SIZ_ISO8601WEEK));
 		}
 
@@ -10314,12 +10386,12 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		
 		ISO8601_from_UBF_TIMESTAMP	(szTS1, tt);
 		ISO8601_from_UBF_TIMESTAMPc	(szTS2, tt);
-		ubf_assert (!memcmp (szTS1, szTS2, SIZ_ISO8601DATETIMESTAMPMS));
+		ubf_expect_bool_AND (b, !memcmp (szTS1, szTS2, SIZ_ISO8601DATETIMESTAMPMS));
 
 		tt = LocalTime_UBF_TIMESTAMP ();
 		ISO8601T_from_UBF_TIMESTAMP  (szTS1, tt);
 		ISO8601T_from_UBF_TIMESTAMPc (szTS2, tt);
-		ubf_assert (!memcmp (szTS1, szTS2, SIZ_ISO8601DATETIMESTAMPMS));
+		ubf_expect_bool_AND (b, !memcmp (szTS1, szTS2, SIZ_ISO8601DATETIMESTAMPMS));
 
 		char szISO_1 [SIZ_ISO8601DATETIMESTAMP_NO_OFFS];
 		char szISO_2 [SIZ_ISO8601DATETIMESTAMP_NO_OFFS];
@@ -10331,17 +10403,17 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 			GetLocalDateTime_ISO8601T_noMSnoOffs	(szISO_1);
 			GetLocalDateTime_ISO8601T_noMSnoOffs_n	(szISO_2);
 		}
-		ubf_assert_0 (memcmp (szISO_1, szISO_2, LEN_ISO8601DATETIMESTAMP_NO_OFFS));
-		ubf_assert ('X'		== szISO_1 [LEN_ISO8601DATETIMESTAMP_NO_OFFS]);
-		ubf_assert ('\0'	== szISO_2 [LEN_ISO8601DATETIMESTAMP_NO_OFFS]);
+		ubf_expect_bool_AND_0 (b, memcmp (szISO_1, szISO_2, LEN_ISO8601DATETIMESTAMP_NO_OFFS));
+		ubf_expect_bool_AND (b, 'X'		== szISO_1 [LEN_ISO8601DATETIMESTAMP_NO_OFFS]);
+		ubf_expect_bool_AND (b, '\0'	== szISO_2 [LEN_ISO8601DATETIMESTAMP_NO_OFFS]);
 
 		// Test the NCSA datetime stamp. We're not really testing here. We only
 		//	check for a buffer overrun.
 		char ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME + 1];
 		ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME] = '#';
 		NCSADATETIME_from_UBF_TIMESTAMP (ctncsa, GetSystemTimeAsUBF_TIMESTAMP ());
-		ubf_assert (ASCII_NUL == ctncsa [LEN_NCSA_COMMON_LOG_DATETIME]);
-		ubf_assert ('#' == ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME]);
+		ubf_expect_bool_AND (b, ASCII_NUL == ctncsa [LEN_NCSA_COMMON_LOG_DATETIME]);
+		ubf_expect_bool_AND (b, '#' == ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME]);
 
 
 		// Timings.
@@ -10421,6 +10493,7 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		exit (0);
 		*/
 
+		return b;
 	}
 #endif
 
@@ -11348,6 +11421,9 @@ When		Who				What
 
 /*
 	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+	For the original unchanged version, see https://github.com/yasuoka/check_utf8 .
+
+	Note that this file must be saved in UTF-8 encoding without a BOM.
 */
 
 /*
@@ -11417,6 +11493,35 @@ bool c_check_utf8(const char *str, size_t len)
 
 	return true;
 }
+
+/*
+	https://github.com/yasuoka/check_utf8/blob/main/check_utf8_test.c
+*/
+#ifdef U_CHECK_UTF8_BUILD_TEST_FNCT
+	bool Check_utf8_test_function (void)
+	{
+		bool b = true;
+
+		b &= c_check_utf8("ほげほげ", 12);
+		//ほげほげ in Shift-JIS
+		b &= c_check_utf8("\x82\xd9\x82\xb0\x82\xd9\x82\xb0", 8) == false;
+		//copyright mark in UTF-8
+		b &= c_check_utf8 ("\xC2\xA9", 2);
+		b &= c_check_utf8("©", 2) == true;
+		// face in medical mask in UTF-8
+		b &= c_check_utf8("\xF0\x9F\x98\xB7", 4) == true;
+		// length invalid
+		b &= c_check_utf8("ふがふが", 11) == false;
+		// ascii
+		b &= c_check_utf8("Hello world.", 12) == true;
+		// empty
+		b &= c_check_utf8("", 1) == true;
+		// specials
+		b &= c_check_utf8("\t\b", 2) == true;
+
+		return b;
+	}
+#endif
 /****************************************************************************************
 
 	File:		strcustomfmt.c
@@ -11713,8 +11818,10 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 		return size - 1;
 	}
 
-	void TestStrCustomFmt (void)
+	bool TestStrCustomFmt (void)
 	{
+		bool br = true;
+
 		SSTRCUSTFMTBASE	b;
 		SSTRCUSTFMT		f [3];
 
@@ -11734,12 +11841,16 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 
 		cc = strcustomfmtFindNextCust (&idx, &b, "{v}", 3);
 		ubf_assert_NULL (cc);
+		br &= NULL == cc;
 		cc = strcustomfmtFindNextCust (&idx, &b, "{a}", 3);
-		ubf_assert (!memcmp ("{a}", cc, 4));
+		br &= !memcmp ("{a}", cc, 4);
+		ubf_assert (br);
 		cc = strcustomfmtFindNextCust (&idx, &b, "   ", 3);
 		ubf_assert_NULL (cc);
+		br &= NULL == cc;
 		cc = strcustomfmtFindNextCust (&idx, &b, "#1", 2);
-		ubf_assert (!memcmp ("#1", cc, 2));
+		br &= !memcmp ("#1", cc, 2);
+		ubf_assert (br);
 
 		// Let's check the callback functions.
 		f [0].getRqSize				= ourReqSize;
@@ -11748,7 +11859,9 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 		char ch [256];
 		size_t s2 = strcustomfmtStoreDataCust (ch, 256, &b, 3, "{a}", NULL);
 		ubf_assert (s1 == s2);
-		ubf_assert (!memcmp (ch, "0123456789", 10));
+		br &= s1 == s2;
+		br &= !memcmp (ch, "0123456789", 10);
+		ubf_assert (br);
 
 		// A bit more complicated.
 		f [1].getRqSize				= ourReqSize;
@@ -11783,6 +11896,7 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 		s2 = strcustomfmtStoreDataCust (ch, 256, &b, 0, "", NULL, &x, NULL);
 		ubf_assert (s1 == s2);
 
+		return br;
 	}
 
 #endif														// Of #ifdef STRCUSTOMFMT_BUILD_TEST_FNCTS.
@@ -17025,7 +17139,7 @@ void culCmdConfigDisableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szDa
 
 	memcpy (&task, szData, sizeof (task));
 	ubf_assert (0 <= task);
-	ubf_assert (task < cunilogProcessAmountEnumValues);
+	ubf_assert (task < cunilogProcessXAmountEnumValues);
 
 	ConfigCUNILOG_TARGETdisableTaskProcessors (put, task);
 }
@@ -17036,7 +17150,7 @@ void culCmdConfigEnableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szDat
 
 	memcpy (&task, szData, sizeof (task));
 	ubf_assert (0 <= task);
-	ubf_assert (task < cunilogProcessAmountEnumValues);
+	ubf_assert (task < cunilogProcessXAmountEnumValues);
 
 	ConfigCUNILOG_TARGETenableTaskProcessors (put, task);
 }
@@ -17143,9 +17257,9 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 			#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 				memcpy (&boolVal, szData, sizeof (bool));
 				if (boolVal)
-					cunilogSetUseColourForEcho (put);
+					cunilogTargetSetUseColourForEcho (put);
 				else
-					cunilogClrUseColourForEcho (put);
+					cunilogTargetClrUseColourForEcho (put);
 			#endif
 			break;
 		case cunilogCmdConfigEventSeverityFormatType:
@@ -18140,7 +18254,9 @@ char *createAppNameInCUNILOG_TARGET (CUNILOG_TARGET *put, const char *szAppName,
 	return put->mbAppName.buf.pch;
 }
 
-enum cunilogprocessfrequency frequencyTbl [cunilogPostfixAmountEnumValues] =
+// Would be	frequencyTbl [cunilogPostfixAmountEnumValues], but we want to check the array's
+//	number of elements with our self-test function.
+enum cunilogprocessfrequency frequencyTbl [] =
 {
 	/* cunilogPostfixNone				*/			cunilogProcessAppliesTo_nAlways
 	/* cunilogPostfixMinute				*/		,	cunilogProcessAppliesTo_MinuteChanged
@@ -18151,6 +18267,16 @@ enum cunilogprocessfrequency frequencyTbl [cunilogPostfixAmountEnumValues] =
 	/* cunilogPostfixWeek				*/		,	cunilogProcessAppliesTo_WeekChanged
 	/* cunilogPostfixMonth				*/		,	cunilogProcessAppliesTo_MonthChanged
 	/* cunilogPostfixYear				*/		,	cunilogProcessAppliesTo_YearChanged
+
+	/* cunilogPostfixLogMinute			*/		,	cunilogProcessAppliesTo_MinuteChanged
+	/* cunilogPostfixLogMinuteT			*/		,	cunilogProcessAppliesTo_MinuteChanged
+	/* cunilogPostfixLogHour			*/		,	cunilogProcessAppliesTo_HourChanged
+	/* cunilogPostfixLogHourT			*/		,	cunilogProcessAppliesTo_HourChanged
+	/* cunilogPostfixLogDay				*/		,	cunilogProcessAppliesTo_DayChanged
+	/* cunilogPostfixLogWeek			*/		,	cunilogProcessAppliesTo_WeekChanged
+	/* cunilogPostfixLogMonth			*/		,	cunilogProcessAppliesTo_MonthChanged
+	/* cunilogPostfixLogYear			*/		,	cunilogProcessAppliesTo_YearChanged
+
 	/* cunilogPostfixDotNumberMinutely	*/		,	cunilogProcessAppliesTo_MinuteChanged
 	/* cunilogPostfixDotNumberHourly	*/		,	cunilogProcessAppliesTo_HourChanged
 	/* cunilogPostfixDotNumberDaily		*/		,	cunilogProcessAppliesTo_DayChanged
@@ -18168,6 +18294,27 @@ static inline enum cunilogprocessfrequency defaultFrequencyFromPostfix (CUNILOG_
 	return frequencyTbl [put->culogPostfix];
 }
 
+static inline bool hasLogPostfix (CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	return	(
+					cunilogPostfixLogMinute	<= put->culogPostfix
+				&&	cunilogPostfixLogYear	>= put->culogPostfix
+			);
+}
+
+
+static inline bool hasDotNumberPostfix (CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+	return	(
+					cunilogPostfixDotNumberMinutely	<= put->culogPostfix
+				&&	cunilogPostfixDotNumberYearly	>= put->culogPostfix
+			);
+}
+
 static inline void correctDefaultFrequency (CUNILOG_PROCESSOR *cp, CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL	(put);
@@ -18181,30 +18328,27 @@ static inline void correctDefaultFrequency (CUNILOG_PROCESSOR *cp, CUNILOG_TARGE
 		{
 			case cunilogProcessNoOperation:
 			case cunilogProcessEchoToConsole:
-			case cunilogProcessUpdateLogFileName:
 			case cunilogProcessWriteToLogFile:
 			case cunilogProcessCustomProcessor:
 				cp->freq = cunilogProcessAppliesTo_nAlways;
 				break;
+			case cunilogProcessUpdateLogFileName:
+				if (hasLogPostfix (put) || hasDotNumberPostfix (put))
+				{
+					cp->freq = cunilogProcessAppliesTo_nAlways;
+					optCunProcSetOPT_CUNPROC_DISABLED (cp->uiOpts);
+					break;
+				}
+				// Falls through.
 			case cunilogProcessFlushLogFile:
 			case cunilogProcessRotateLogfiles:
 				cp->freq = defaultFrequencyFromPostfix (put);
 				break;
-			case cunilogProcessAmountEnumValues:
+			case cunilogProcessXAmountEnumValues:
 				ubf_assert_msg (false, "Illegal value");
 				break;
 		}
 	}
-}
-
-static inline bool hasDotNumberPostfix (CUNILOG_TARGET *put)
-{
-	ubf_assert_non_NULL (put);
-
-	return	(
-					cunilogPostfixDotNumberMinutely	<= put->culogPostfix
-				&&	cunilogPostfixDotNumberYearly	>= put->culogPostfix
-			);
 }
 
 static inline void defaultProcessorParameters (CUNILOG_TARGET *put)
@@ -18302,7 +18446,7 @@ static bool prepareProcessors (CUNILOG_TARGET *put, CUNILOG_PROCESSOR **cp, unsi
 
 		put->cprocessors = CreateNewDefaultProcessors (&put->nprocessors);
 		if (put->cprocessors)
-			cunilogSetProcessorsAllocated (put);
+			cunilogTargetSetProcessorsAllocatedFlag (put);
 		else
 		{
 			SetCunilogSystemError (put, CUNILOG_ERROR_HEAP_ALLOCATION);
@@ -18323,13 +18467,13 @@ static void prepareCUNILOG_TARGETinitFilenameBuffers (CUNILOG_TARGET *put, size_
 
 	initSMEMBUFtoSize (&put->mbLogfileName, lnTotal);		// The actual log file.
 	if (isUsableSMEMBUF (&put->mbLogfileName))
-		cunilogSetLogFileAllocated (put);
+		cunilogTargetSetLogFileAllocatedFlag (put);
 	initSMEMBUFtoSize (&put->mbLogFileMask, lnTotal);		// Mask for logfile rotation.
 	if (isUsableSMEMBUF (&put->mbLogFileMask))
-		cunilogSetLogFileMaskAllocated (put);
+		cunilogTargetSetLogFileMaskAllocatedFlag (put);
 	initSMEMBUFtoSize (&put->mbFilToRotate, lnTotal);
 	if (isUsableSMEMBUF (&put->mbFilToRotate))
-		cunilogSetFileToRotateAllocated (put);
+		cunilogTargetSetFileToRotateAllocatedFlag (put);
 }
 
 static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
@@ -18339,12 +18483,12 @@ static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
 	size_t lnRoomForStamp	= lenDateTimeStampFromPostfix (put->culogPostfix);
 	size_t lnUnderscore;
 
-	// The underscore that separates the appname from the timestamp.switch (put->culogPostfix)
-	switch (put->culogPostfix)
-	{
-		case cunilogPostfixDotNumberMinutely:	lnUnderscore = 0;						break;
-		default:								lnUnderscore = lnRoomForStamp ? 1 : 0;	break;
-	}
+	// The underscore that separates the appname from the timestamp.
+	if (hasLogPostfix (put) || hasDotNumberPostfix (put))
+		lnUnderscore = 0;
+	else
+		lnUnderscore = lnRoomForStamp ? 1 : 0;
+
 	// The longest one is cunilogPostfixDotNumberDescending.
 	ubf_assert (lnRoomForStamp <= UBF_UINT64_LEN + 1);
 
@@ -18649,10 +18793,10 @@ static inline void initCUNILOG_TARGEToptionFlags (CUNILOG_TARGET *put, runProces
 
 	put->uiOpts = CUNILOGTARGET_NO_FLAGS;
 	if (cunilogRunProcessorsOnStartup == rp)
-		cunilogSetRunAllProcessorsOnStartup (put);
+		cunilogTargetSetRunProcessorsOnStartup (put);
 
 	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-		cunilogSetUseColourForEcho (put);
+		cunilogTargetSetUseColourForEcho (put);
 	#endif
 }
 
@@ -18671,8 +18815,38 @@ static inline void initPrevTimestamp (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
-	size_t lenPostfixStamp = lenDateTimeStampFromPostfix (put->culogPostfix);
-	memset (put->cPrevDateTimeStamp, 0, lenPostfixStamp);
+	memset (put->cPrevDateTimeStamp, 0, LEN_ISO8601DATEHOURANDMINUTE);
+}
+
+static inline void savePrevTimestamp (CUNILOG_EVENT *pev)
+{
+	ubf_assert_non_NULL (pev);
+	
+	CUNILOG_TARGET	*put = pev->pCUNILOG_TARGET;
+	ubf_assert_non_NULL (put);
+
+	ubf_assert (cunilogPostfixYear >= put->culogPostfix);
+
+	size_t lenPostfixStamp;
+	lenPostfixStamp = lenDateTimeStampFromPostfix (put->culogPostfix);
+	ubf_assert (0 < lenPostfixStamp);
+	ubf_assert (LEN_ISO8601DATEHOURANDMINUTE >= lenPostfixStamp);
+
+	memcpy (put->cPrevDateTimeStamp, put->szDateTimeStamp, lenPostfixStamp);
+	obtainDateAndTimeStamp (put->szDateTimeStamp, pev->stamp, put->culogPostfix);
+	put->szDateTimeStamp [lenPostfixStamp] = '.';
+}
+
+static inline bool requiresNewLogFile (CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL (put);
+
+
+	int r = memcmp	(
+				put->szDateTimeStamp, put->cPrevDateTimeStamp,
+				lenDateTimeStampFromPostfix (put->culogPostfix)
+					);
+	return r > 0;
 }
 
 #ifdef PLATFORM_IS_POSIX
@@ -18785,7 +18959,7 @@ static inline bool initCommonMembersAndPrepareCUNILOG_TARGET (CUNILOG_TARGET *pu
 	InitCUNILOG_TARGETqueuesemaphore		(put);
 	InitCUNILOG_TARGETqueue					(put);
 	initFilesListInCUNILOG_TARGET			(put);
-	cunilogInitCUNILOG_LOGFILE						(put);
+	cunilogInitCUNILOG_LOGFILE				(put);
 	bool b;
 	b = StartSeparateLoggingThread_ifNeeded	(put);
 	if (b)
@@ -18992,7 +19166,7 @@ CUNILOG_TARGET *CreateNewCUNILOG_TARGET
 	if (pu)
 	{
 		initCUNILOG_TARGEToptionFlags (pu, rp);
-		pu->uiOpts |= CUNILOGTARGET_ALLOCATED;
+		cunilogTargetSetTargetAllocatedFlag (pu);
 		initSMEMBUF (&pu->mbLogPath);
 		pu->mbLogPath.buf.pcc = (char *) pu + ALIGNED_SIZE (lnUNILOGTARGET, CUNILOG_DEFAULT_ALIGNMENT);
 		memcpy (pu->mbLogPath.buf.pch, logpath.buf.pch, lnLogPath + 1);
@@ -19154,6 +19328,69 @@ const char *GetAbsoluteLogPathCUNILOG_TARGET_static (size_t *plen)
 	return GetAbsoluteLogPathCUNILOG_TARGET (pCUNILOG_TARGETstatic, plen);
 }
 
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
+						CUNILOG_TARGET				*put,
+						enum cunilogprocesstask		task,
+						unsigned int				n
+										)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert			(0 <= task);
+	ubf_assert			(cunilogProcessXAmountEnumValues > task);
+
+	if (n < put->nprocessors)
+	{
+		unsigned int fnd = 0;
+		unsigned int npr = 0;
+
+		while (npr < put->nprocessors)
+		{
+			if (task == put->cprocessors [npr]->task)
+			{
+				if (fnd == n)
+					return put->cprocessors [npr];
+				++ fnd;
+			}
+			++ npr;
+		}
+	}
+	return NULL;
+}
+
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
+						CUNILOG_TARGET				*put,
+						enum cunilogrotationtask	rot,
+						unsigned int				n
+													)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert			(0 <= rot);
+	ubf_assert			(cunilogrotationtask_XAmountEnumValues > rot);
+
+	unsigned int fnd	= 0;
+	unsigned int np		= 0;
+
+	CUNILOG_ROTATION_DATA	*prd;
+
+	while (np < put->nprocessors)
+	{
+		if (cunilogProcessRotateLogfiles == put->cprocessors [np]->task)
+		{
+			prd = put->cprocessors [np]->pData;
+			ubf_assert_non_NULL (prd);
+
+			if (rot == prd->tsk)
+			{
+				if (fnd == n)
+					return put->cprocessors [np];
+				++ fnd;
+			}
+		}
+		++ np;
+	}
+	return NULL;
+}
+
 #ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
 	void ConfigCUNILOG_TARGETerrorCallbackFunction (CUNILOG_TARGET *put, cunilogErrCallback errorCB)
 	{
@@ -19206,9 +19443,9 @@ const char *GetAbsoluteLogPathCUNILOG_TARGET_static (size_t *plen)
 			ubf_assert_non_NULL (put);
 
 			if (bUseColour)
-				cunilogSetUseColourForEcho (put);
+				cunilogTargetSetUseColourForEcho (put);
 			else
-				cunilogClrUseColourForEcho (put);
+				cunilogTargetClrUseColourForEcho (put);
 		}
 	#endif
 #endif
@@ -19225,13 +19462,13 @@ const char *GetAbsoluteLogPathCUNILOG_TARGET_static (size_t *plen)
 		switch (rp)
 		{
 			case cunilogRunProcessorsOnStartup:
-				cunilogSetRunAllProcessorsOnStartup (put);
+				cunilogTargetSetRunProcessorsOnStartup (put);
 				break;
 			case cunilogDontRunProcessorsOnStartup:
-				cunilogClrRunAllProcessorsOnStartup (put);
+				cunilogTargetClrRunProcessorsOnStartup (put);
 				break;
 			default:
-				cunilogSetRunAllProcessorsOnStartup (put);
+				cunilogTargetSetRunProcessorsOnStartup (put);
 				break;
 		}
 	}
@@ -19355,7 +19592,7 @@ static void DoneCUNILOG_TARGETprocessors (CUNILOG_TARGET *put)
 					upCust.up->procDone (cp);
 				break;
 			case cunilogProcessTargetRedirector:
-			case cunilogProcessAmountEnumValues:
+			case cunilogProcessXAmountEnumValues:
 				break;
 			case cunilogProcessWriteToLogFile:
 				cunilogCloseCUNILOG_LOGFILEifOpen (put);
@@ -19376,11 +19613,11 @@ static void DoneCUNILOG_TARGETprocessors (CUNILOG_TARGET *put)
 		}
 	}
 
-	if (cunilogHasProcessorsAllocated (put))
+	if (cunilogTargetHasProcessorsAllocatedFlag (put))
 	{
 		ubf_free (put->cprocessors);
 		zeroProcessors (put);
-		cunilogClrProcessorsAllocated (put);
+		cunilogTargetClrProcessorsAllocatedFlag (put);
 	}
 }
 
@@ -19409,15 +19646,15 @@ static void DoneCUNILOG_TARGETmembers (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsLogPathAllocated (put))
+	if (cunilogTargetHasLogPathAllocatedFlag (put))
 		freeSMEMBUF (&put->mbLogPath);
-	if (cunilogIsAppNameAllocated (put))
+	if (cunilogTargetHasAppNameAllocatedFlag (put))
 		freeSMEMBUF (&put->mbAppName);
-	if (cunilogIsLogFileAllocated (put))
+	if (cunilogTargetHasLogFileAllocatedFlag (put))
 		freeSMEMBUF (&put->mbLogfileName);
-	if (cunilogIsLogFileMaskAllocated (put))
+	if (cunilogTargetHasLogFileMaskAllocatedFlag (put))
 		freeSMEMBUF (&put->mbLogFileMask);
-	if (cunilogIsFileToRotateAllocated (put))
+	if (cunilogTargetHasFileToRotateAllocatedFlag (put))
 		freeSMEMBUF (&put->mbFilToRotate);
 
 	freeSMEMBUF (&put->mbLogEventLine);
@@ -19441,7 +19678,7 @@ CUNILOG_TARGET *DoneCUNILOG_TARGET (CUNILOG_TARGET *put)
 
 	DoneCUNILOG_TARGETprocessors (put);
 	DoneCUNILOG_TARGETmembers (put);
-	if (cunilogIsTargetAllocated (put))
+	if (cunilogTargetHasTargetAllocatedFlag (put))
 	{
 		ubf_free (put);
 	}
@@ -20489,13 +20726,13 @@ CUNILOG_EVENT *DoneCUNILOG_EVENT (CUNILOG_TARGET *put, CUNILOG_EVENT *pev)
 				case cunilogErrCB_next_processor:
 					break;
 				case cunilogErrCB_next_event:
-					cunilogSetEventStopProcessing (pev);
+					cunilogEventSetIgnoreRemainingProcessors (pev);
 					break;
 				case cunilogErrCB_shutdown:
-					cunilogSetShutdownTarget (pev->pCUNILOG_TARGET);
+					cunilogTargetSetShutdownInitiatedFlag (pev->pCUNILOG_TARGET);
 					break;
 				case cunilogErrCB_cancel:
-					cunilogSetShutdownTarget (pev->pCUNILOG_TARGET);
+					cunilogTargetSetShutdownInitiatedFlag (pev->pCUNILOG_TARGET);
 					#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 						pve = DequeueAllCUNILOG_EVENTs (pev->pCUNILOG_TARGET);
 						while (pve)
@@ -20632,7 +20869,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 		size_t	lnThisColour	= evtSeverityColoursLen (pev->evSeverity);
 
 		if	(
-					cunilogHasUseColourForEcho (pev->pCUNILOG_TARGET)
+					cunilogTargetHasUseColourForEcho (pev->pCUNILOG_TARGET)
 				&&	lnThisColour
 			)
 		{
@@ -20709,7 +20946,8 @@ static bool cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 }
 
 static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
-{	UNREFERENCED_PARAMETER (cup);
+{
+	UNREFERENCED_PARAMETER (cup);
 	ubf_assert_non_NULL (pev);
 	
 	CUNILOG_TARGET	*put = pev->pCUNILOG_TARGET;
@@ -20720,10 +20958,22 @@ static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, CUNILOG
 		UNREFERENCED_PARAMETER (sz);
 	#endif
 
-	size_t lenPostfixStamp;
-
 	switch (put->culogPostfix)
 	{
+		case cunilogPostfixNone:
+			return true;
+
+		case cunilogPostfixMinute:
+		case cunilogPostfixMinuteT:
+		case cunilogPostfixHour:
+		case cunilogPostfixHourT:
+		case cunilogPostfixDay:
+		case cunilogPostfixWeek:
+		case cunilogPostfixMonth:
+		case cunilogPostfixYear:
+			savePrevTimestamp (pev);
+			return true;
+
 		case cunilogPostfixLogMinute:
 		case cunilogPostfixLogMinuteT:
 		case cunilogPostfixLogHour:
@@ -20743,11 +20993,7 @@ static bool cunilogProcessUpdateLogFileNameFnct (CUNILOG_PROCESSOR *cup, CUNILOG
 			return true;
 
 		default:
-			lenPostfixStamp = lenDateTimeStampFromPostfix (put->culogPostfix);
-			ubf_assert (LEN_ISO8601DATEHOURANDMINUTE >= lenPostfixStamp);
-			memcpy (put->cPrevDateTimeStamp, put->szDateTimeStamp, lenPostfixStamp);
-			obtainDateAndTimeStamp (put->szDateTimeStamp, pev->stamp, put->culogPostfix);
-			put->szDateTimeStamp [lenPostfixStamp] = '.';
+			ubf_assert_msg (false, "Bug!");
 			return true;
 	}
 }
@@ -20778,18 +21024,6 @@ static inline bool requiresOpenLogFile (CUNILOG_TARGET *put)
 	#else
 		return NULL == put->logfile.fLogFile;
 	#endif
-}
-
-static inline bool requiresNewLogFile (CUNILOG_TARGET *put)
-{
-	ubf_assert_non_NULL (put);
-
-
-	int r = memcmp	(
-				put->szDateTimeStamp, put->cPrevDateTimeStamp,
-				lenDateTimeStampFromPostfix (put->culogPostfix)
-					);
-	return r > 0;
 }
 
 #ifdef CUNILOG_BUILD_WITH_TEST_ERRORCB
@@ -20944,7 +21178,7 @@ static bool logFromInsideRotatorTextU8fmt (CUNILOG_TARGET *put, const char *fmt,
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -20994,7 +21228,8 @@ static bool logFromInsideRotatorTextU8fmt (CUNILOG_TARGET *put, const char *fmt,
 		ubf_assert_non_NULL (pev);
 		if (pev)
 		{
-			cunilogSetEventNoRotation (pev);
+			cunilogSetEventInternal		(pev);
+			cunilogSetEventNoRotation	(pev);
 			#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 				if (HAS_CUNILOG_TARGET_A_QUEUE (put))
 				{
@@ -21089,7 +21324,11 @@ static inline char *findDotNumberPart (size_t *pln, CUNILOG_TARGET *put)
 	return sz;
 }
 
-static inline void copyDotNumberToFLS (CUNILOG_TARGET *put, size_t nLen, size_t oLen)
+/*
+	Renames the file in our files list (FLS) to keep the files list in sync
+	with the real directory on disk.
+*/
+static inline void renameDotNumberInFLS (CUNILOG_TARGET *put, size_t nLen, size_t oLen)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL	(put->prargs);
@@ -21178,7 +21417,6 @@ static void cunilogRenameLogfile (CUNILOG_TARGET *put)
 	if (!hasDotNumberPostfix (put))
 		return;
 
-	//CUNILOG_ROTATOR_ARGS	*prg = put->prargs;
 	CUNILOG_ROTATION_DATA	*prd = put->prargs->cup->pData;
 
 	if (!cunilogHasRotatorFlag_USE_MBDSTFILE (prd))
@@ -21199,13 +21437,14 @@ static void cunilogRenameLogfile (CUNILOG_TARGET *put)
 
 		size_t ln;
 		char *sz = findDotNumberPart (&ln, put);
+		//printf ("Dot number part: >%s<\n", sz);
 
 		// Either ".log.<number>" orr "g" from ".log".
 		ubf_assert ('.' == sz [0] || 'g' == sz [0]);
 		bool bIsActiveLogfile = 'g' == sz [0];
 
-		size_t ol = put->stFilToRotate - 1 - ln;
-		size_t nl = incrementDotNumberName (sz);
+		size_t oldLength = put->stFilToRotate - 1 - ln;
+		size_t newLength = incrementDotNumberName (sz);
 
 		bool bMoved;
 
@@ -21229,7 +21468,7 @@ static void cunilogRenameLogfile (CUNILOG_TARGET *put)
 			}
 			if (bMoved)
 			{
-				copyDotNumberToFLS (put, nl, ol);
+				renameDotNumberInFLS (put, newLength, oldLength);
 				cunilogPushIfActiveLogfile (bIsActiveLogfile, put);
 				logFromInsideRotatorTextU8fmt	(
 					put, "File \"%s\" moved/renamed to \"%s\".",
@@ -21423,6 +21662,29 @@ static inline void cunilogMoveFileToRecycleBin (CUNILOG_TARGET *put)
 	}
 #endif
 
+#ifdef DEBUG
+	static void DebugOutputFilesList (const char *szText, vec_cunilog_fls *pvec)
+	{
+		ubf_assert_non_NULL (pvec);
+
+		// Output from index 0 up to length. This is different from how the files
+		//	might be processed by a rotator.
+		size_t iFiles = 0;
+		if (szText)
+			printf ("\nDebugOutputFilesList (%s): %" PRId64 " file(s)\n", szText, pvec->length);
+		else
+			printf ("\nDebugOutputFilesList: %" PRId64 " file(s)\n", pvec->length);
+		while (iFiles < pvec->length)
+		{
+			puts (pvec->data [iFiles].chFilename);
+			++ iFiles;
+		}
+		puts ("");
+	}
+#else
+	#define DebugOutputFilesList(t, c, p)
+#endif
+
 static void performActualRotation (CUNILOG_ROTATOR_ARGS *prg)
 {
 	ubf_assert_non_NULL (prg);
@@ -21464,19 +21726,18 @@ static void performActualRotation (CUNILOG_ROTATOR_ARGS *prg)
 	put->prargs = NULL;
 }
 
-static void prepareU8fullFileNameToRotate (CUNILOG_ROTATOR_ARGS *prg)
+static inline void prepareU8fullFileNameToRotate (CUNILOG_TARGET *put, size_t idx)
 {
-	ubf_assert_non_NULL (prg);
-	CUNILOG_EVENT			*pev = prg->pev;
-	ubf_assert_non_NULL (pev);
-	CUNILOG_TARGET			*put = pev->pCUNILOG_TARGET;
 	ubf_assert_non_NULL (put);
 
-	growToSizeSMEMBUF (&put->mbFilToRotate, put->lnLogPath + prg->siz);
+	char	*strNam = put->fls.data [idx].chFilename;
+	size_t	sizName = put->fls.data [idx].stFilename;
+
+	growToSizeSMEMBUF (&put->mbFilToRotate, put->lnLogPath + sizName);
 	if (isUsableSMEMBUF (&put->mbFilToRotate))
 	{
-		memcpy (put->mbFilToRotate.buf.pch + put->lnLogPath, prg->nam, prg->siz);
-		put->stFilToRotate = put->lnLogPath + prg->siz;
+		memcpy (put->mbFilToRotate.buf.pch + put->lnLogPath, strNam, sizName);
+		put->stFilToRotate = put->lnLogPath + sizName;
 	}
 }
 
@@ -21611,7 +21872,6 @@ static inline void sortLogfilesList (CUNILOG_TARGET *put, CUNILOG_PROCESSOR *cup
 	}
 
 	// The processor may need the files in reverse order.
-
 	bool bFLSreversedRequired = needReverseFLS (put, cup);
 	if (bFLSreversedRequired)
 	{
@@ -21652,16 +21912,8 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 	CUNILOG_ROTATION_DATA	*prd = cup->pData;
 	ubf_assert_non_NULL (prd);
 
-	size_t iFiles = put->fls.length;
 
-	/*
-	printf ("\nList in: %d\n", prd->tsk);
-	while (iFiles --)
-	{
-		puts (put->fls.data [iFiles].chFilename);
-	}
-	iFiles = put->fls.length;
-	*/
+	//DebugOutputFilesList ("List in", cup, pev);
 
 	sortLogfilesList (put, cup);
 
@@ -21670,15 +21922,9 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 							?	prd->nMaxToRotate
 							:	nToIgnore + prd->nMaxToRotate;
 	
-	/*
-	printf ("\nList sorted: %d\n", prd->tsk);
-	while (iFiles --)
-	{
-		puts (put->fls.data [iFiles].chFilename);
-	}
-	iFiles = put->fls.length;
-	*/
+	DebugOutputFilesList ("List out", &put->fls);
 
+	size_t iFiles = put->fls.length;
 	while (iFiles --)
 	{
 		//puts (put->fls.data [iFiles].chFilename);
@@ -21687,10 +21933,17 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 		{
 			if (prd->nCnt <= nMaxToRot)
 			{
+				/*
+				DebugOutputFilesList ("List", &put->fls);
+				puts ("File:");
+				puts (put->fls.data [iFiles].chFilename);
+				*/
+				prepareU8fullFileNameToRotate (put, iFiles);
+				//puts (put->fls.data [iFiles].chFilename);
+
 				prg->nam = put->fls.data [iFiles].chFilename;
 				prg->siz = put->fls.data [iFiles].stFilename;
 				prg->idx = iFiles;
-				prepareU8fullFileNameToRotate (prg);
 				performActualRotation (prg);
 			} else
 				return;
@@ -21699,6 +21952,7 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 			++ put->scuNPI.nIgnoredTotal;
 		}
 	}
+	//DebugOutputFilesList ("List out", &put->fls);
 }
 
 /*
@@ -21721,13 +21975,10 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 			-- o;
 			++ d;
 		}
-		if (d)
+		if (d && o && '.' == pfls->chFilename [o])
 		{
-			if (o && '.' == pfls->chFilename [o])
-			{
-				-- o;
-				++ d;
-			}
+			-- o;
+			++ d;
 		}
 		char *szfn = pfls->chFilename + pfls->stFilename - sizCunilogLogFileNameExtension - d;
 		if (o > lenCunilogLogFileNameExtension)
@@ -21877,21 +22128,30 @@ static bool cunilogProcessRotateLogfilesFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EV
 	args.cup = cup;
 	args.pev = pev;
 
+	cunilogTestErrorCB (CUNILOG_ERROR_TEST_BEFORE_ROTATOR, cup, pev);
+
 	obtainLogfilesListToRotate		(put);
+	//DebugOutputFilesList ("cunilogProcessRotateLogfilesFnct", cup, pev);
+
 	switch (prd->tsk)
 	{
 		case cunilogrotationtask_None:
 			break;
 		case cunilogrotationtask_RenameLogfiles:
-			prapareLogfilesListAndRotate	(&args);
-			//cunilogResetFilesList			(put);
-			break;
+			if (!hasDotNumberPostfix (put))
+				break;
 		case cunilogrotationtask_FScompressLogfiles:
 		case cunilogrotationtask_MoveToRecycleBinLogfiles:
 		case cunilogrotationtask_DeleteLogfiles:
-			prapareLogfilesListAndRotate	(&args);
+			prapareLogfilesListAndRotate (&args);
+			break;
+		default:
+			ubf_assert_msg (false, "Internal error");
 			break;
 	}
+
+	cunilogTestErrorCB (CUNILOG_ERROR_TEST_AFTER_ROTATOR, cup, pev);
+
 	return true;
 }
 
@@ -21982,7 +22242,7 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *p
 		ubf_assert_non_NULL (put);
 		ubf_assert (cunilogHasDebugQueueLocked (put));
 
-		if (cunilogTargetIsPaused (put))
+		if (cunilogTargetHasIsPaused (put))
 		{
 			++ put->nPausedEvents;
 			return 0;
@@ -22189,11 +22449,11 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *p
 				DoneCUNILOG_EVENT (put, pev);
 				pev = pnx;
 			}
-			if (cunilogIsShutdownTarget (put) && 0 == put->nPendingNoRotEvts )
+			if (cunilogTargetHasShutdownInitiatedFlag (put) && 0 == put->nPendingNoRotEvts )
 				goto ExitSeparateLoggingThread;
 		}
 	ExitSeparateLoggingThread:
-		cunilogSetTargetHasShutdown (put);
+		cunilogTargetSetShutdownCompleteFlag (put);
 		return SEPARATE_LOGGING_THREAD_RETURN_SUCCESS;
 	}
 #endif
@@ -22319,13 +22579,13 @@ static inline bool updateCurrentValueAndIsThresholdReached	(
 	}
 
 	// The same applies to the target.
-	if (cunilogHasRunAllProcessorsOnStartup (pev->pCUNILOG_TARGET))
+	if (cunilogTargetHasRunProcessorsOnStartup (pev->pCUNILOG_TARGET))
 		return true;
 
 	return bRet;
 }
 
-static bool (*pickAndRunProcessor [cunilogProcessAmountEnumValues]) (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev) =
+static bool (*pickAndRunProcessor [cunilogProcessXAmountEnumValues]) (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev) =
 {
 	/* cunilogProcessNoOperation		*/		cunilogProcessNoneFnct
 	/* cunilogProcessEchoToConsole		*/	,	cunilogProcessEchoFnct
@@ -22337,42 +22597,6 @@ static bool (*pickAndRunProcessor [cunilogProcessAmountEnumValues]) (CUNILOG_PRO
 	/* cunilogProcessTargetRedirector	*/	,	cunilogProcessTargetRedirectorFnct
 	/* cunilogProcessTargetFork			*/	,	cunilogProcessTargetForkFnct
 };
-
-/*
-	This function ensures that the decision on running the next processor is made
-	according to the correct priorities.
-*/
-static inline bool cancelOrCarryOnWithNextProcessor	(
-				bool bRetProcessor, CUNILOG_EVENT *pev, CUNILOG_PROCESSOR *cup
-													)
-{
-	ubf_assert_non_NULL	(pev);
-	ubf_assert_non_NULL	(cup);
-	ubf_assert_non_NULL	(pev->pCUNILOG_TARGET);
-	ubf_assert			(cunilogIsTargetInitialised	(pev->pCUNILOG_TARGET));
-
-	// This is an echo-only event. There's no need to carry on with the other processors
-	//	if we just ran the echo/console/terminal output processor.
-	if (cunilogHasEventEchoOnly (pev) && cunilogProcessEchoToConsole == cup->task)
-		return false;
-
-	// An error callback function told us to stop here. The remaining processors are
-	//	not run.
-	if (cunilogHasEventStopProcessing (pev))
-		return false;
-
-	// The processor has the OPT_CUNPROC_FORCE_NEXT flag set.
-	if (OPT_CUNPROC_FORCE_NEXT & cup->uiOpts)
-		return true;
-
-	// This is the first time processors run, and the caller wants us to run them all
-	//	on startup.
-	if (cunilogHasRunAllProcessorsOnStartup (pev->pCUNILOG_TARGET))
-		return true;
-
-	// Now the current processor decides if the next processor is allowed to run.
-	 return bRetProcessor;
-}
 
 /*
 	Returns true for further processing by the caller.
@@ -22391,14 +22615,25 @@ static inline bool cunilogProcessProcessor (CUNILOG_EVENT *pev, CUNILOG_PROCESSO
 	if (cunilogHasEventEchoOnly (pev) && cunilogProcessEchoToConsole != cup->task)
 		return true;
 
-	bool bRetProc = true;
+	bool bRetProcessor = true;
 	if	(updateCurrentValueAndIsThresholdReached (cup, pev))
 	{
 		// True tells the caller to carry on with the next processor.
-		bRetProc = pickAndRunProcessor [cup->task] (cup, pev);
+		bRetProcessor = pickAndRunProcessor [cup->task] (cup, pev);
 	}
 	
-	return cancelOrCarryOnWithNextProcessor (bRetProc, pev, cup);
+	if (cunilogProcessEchoToConsole == cup->task && cunilogHasEventEchoOnly (pev))
+		return false;
+	// An error callback function told us to stop here and ignore the remaining processors.
+	if (cunilogEventHasIgnoreRemainingProcessors (pev))
+		return false;
+	// The processor has the OPT_CUNPROC_FORCE_NEXT flag set.
+	if (OPT_CUNPROC_FORCE_NEXT & cup->uiOpts)
+		return true;
+	if (cunilogTargetHasRunProcessorsOnStartup (pev->pCUNILOG_TARGET))
+		return true;
+	// Now the current processor decides if the next processor is allowed to run.
+	 return bRetProcessor;
 }
 
 static void cunilogProcessProcessors (CUNILOG_EVENT *pev)
@@ -22408,23 +22643,30 @@ static void cunilogProcessProcessors (CUNILOG_EVENT *pev)
 	ubf_assert (cunilogIsTargetInitialised	(pev->pCUNILOG_TARGET));
 	ubf_assert_non_NULL						(pev->pCUNILOG_TARGET->cprocessors);
 
-	pev->pCUNILOG_TARGET->scuNPI.nIgnoredTotal = 0;
-	cunilogClrEventStopProcessing (pev);
-
 	CUNILOG_TARGET *put = pev->pCUNILOG_TARGET;
-	cunilogResetFilesList (put);
+	if (!cunilogIsEventInternal (pev) && !cunilogHasEventNoRotation (pev))
+	{
+		pev->pCUNILOG_TARGET->scuNPI.nIgnoredTotal = 0;
+		cunilogResetFilesList (put);
+		cunilogEventClrIgnoreRemainingProcessors (pev);
+	}
 
+	CUNILOG_PROCESSOR *cup;
 	unsigned int ui = 0;
 	while (ui < pev->pCUNILOG_TARGET->nprocessors)
 	{
-		bool b = cunilogProcessProcessor (pev, pev->pCUNILOG_TARGET->cprocessors [ui]);
+		cup = pev->pCUNILOG_TARGET->cprocessors [ui];
+		bool b = cunilogProcessProcessor (pev, cup);
 		if (!b)
 			break;
 		++ ui;
 	}
 
-	if (cunilogHasRunAllProcessorsOnStartup (pev->pCUNILOG_TARGET))
-		cunilogClrRunAllProcessorsOnStartup (pev->pCUNILOG_TARGET);
+	if (!cunilogIsEventInternal (pev))
+	{
+		if (cunilogTargetHasRunProcessorsOnStartup (pev->pCUNILOG_TARGET))
+			cunilogTargetClrRunProcessorsOnStartup (pev->pCUNILOG_TARGET);
+	}
 }
 
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
@@ -22452,7 +22694,7 @@ static bool cunilogProcessEventSingleThreaded (CUNILOG_EVENT *pev)
 	// Event command flag for shutting down the separate logging thread.
 	if (cunilogIsEventShutdown (pev))
 	{
-		cunilogSetShutdownTarget (pev->pCUNILOG_TARGET);
+		cunilogTargetSetShutdownInitiatedFlag (pev->pCUNILOG_TARGET);
 		DoneCUNILOG_EVENT (NULL, pev);
 		// The shutdown event has been processed. We treat this as being success.
 		return true;
@@ -22618,10 +22860,12 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 			if (queueShutdownEvent (put))
 			{
 				WaitForEndOfSeparateLoggingThread (put);
+				cunilogTargetSetShutdownCompleteFlag (put);
 				return true;
 			}
 			return false;
 		}
+		cunilogTargetSetShutdownCompleteFlag (put);
 		return true;
 	}
 #else
@@ -22629,7 +22873,7 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 	{
 		ubf_assert_non_NULL (put);
 
-		cunilogSetShutdownTarget (put);
+		cunilogTargetSetShutdownCompleteFlag (put);
 		return true;
 	}
 #endif
@@ -22641,7 +22885,7 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 
 		if (HAS_CUNILOG_TARGET_A_QUEUE (put))
 		{
-			cunilogSetShutdownTarget (put);
+			cunilogTargetSetShutdownInitiatedFlag (put);
 
 			// Empty the queue. While this would actually not be required here, it can
 			//	speed up things significantly (well, maybe a few cycles) with busy queues as
@@ -22682,7 +22926,7 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 		ubf_assert_non_NULL (put);
 
 		EnterCUNILOG_LOCKER (put);
-		cunilogTargetSetPaused (put);
+		cunilogTargetSetIsPaused (put);
 		LeaveCUNILOG_LOCKER (put);
 	}
 #endif
@@ -22695,7 +22939,7 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 		size_t n;
 
 		EnterCUNILOG_LOCKER (put);
-		cunilogTargetClrPaused (put);
+		cunilogTargetClrIsPaused (put);
 		n = put->nPausedEvents;
 		put->nPausedEvents = 0;
 		LeaveCUNILOG_LOCKER (put);
@@ -22715,7 +22959,7 @@ bool logEv (CUNILOG_TARGET *put, CUNILOG_EVENT *pev)
 	ubf_assert_non_NULL (pev);
 	ubf_assert (cunilogIsTargetInitialised (put));
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	pev->pCUNILOG_TARGET = put;
@@ -22726,7 +22970,7 @@ bool logTextU8sevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccTe
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Text (put, sev, ccText, len);
@@ -22737,7 +22981,7 @@ bool logTextU8sevlq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccT
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Text (put, sev, ccText, len);
@@ -22763,7 +23007,7 @@ bool logTextU8l				(CUNILOG_TARGET *put, const char *ccText, size_t len)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Text (put, cunilogEvtSeverityNone, ccText, len);
@@ -22774,7 +23018,7 @@ bool logTextU8lq			(CUNILOG_TARGET *put, const char *ccText, size_t len)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Text (put, cunilogEvtSeverityNone, ccText, len);
@@ -22800,7 +23044,7 @@ bool logTextU8vfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	size_t		l;
@@ -22821,7 +23065,7 @@ bool logTextU8fmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -22838,7 +23082,7 @@ bool logTextU8qvfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	size_t		l;
@@ -22859,7 +23103,7 @@ bool logTextU8qfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -22876,7 +23120,7 @@ bool logTextU8svfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	size_t		l;
@@ -22902,7 +23146,7 @@ bool logTextU8sfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -22919,7 +23163,7 @@ bool logTextU8sqvfmt		(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	size_t		l;
@@ -22944,7 +23188,7 @@ bool logTextU8sqfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -22961,7 +23205,7 @@ bool logTextU8svfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	size_t		l;
@@ -22987,7 +23231,7 @@ bool logTextU8sfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fm
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -23005,7 +23249,7 @@ bool logTextU8smbvfmtsev	(CUNILOG_TARGET *put, SMEMBUF *smb, cueventseverity sev
 	ubf_assert_non_NULL (put);
 	ubf_assert (isInitialisedSMEMBUF (smb));
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	size_t		l;
@@ -23030,7 +23274,7 @@ bool logTextU8smbfmtsev		(CUNILOG_TARGET *put, SMEMBUF *smb, cueventseverity sev
 	ubf_assert_non_NULL (put);
 	ubf_assert (isInitialisedSMEMBUF (smb));
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -23048,7 +23292,7 @@ bool logTextU8smbvfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, va_l
 	ubf_assert_non_NULL (put);
 	ubf_assert (isInitialisedSMEMBUF (smb));
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	return logTextU8smbvfmtsev (put, smb, cunilogEvtSeverityNone, fmt, ap);
@@ -23059,7 +23303,7 @@ bool logTextU8smbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...)
 	ubf_assert_non_NULL (put);
 	ubf_assert (isInitialisedSMEMBUF (smb));
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -23076,7 +23320,7 @@ bool logHexDumpU8sevl		(CUNILOG_TARGET *put, cueventseverity sev, const void *pB
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Data (put, sev, pBlob, size, ccCaption, lenCaption);
@@ -23087,7 +23331,7 @@ bool logHexDumpU8l			(CUNILOG_TARGET *put, const void *pBlob, size_t size, const
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Data	(
@@ -23101,7 +23345,7 @@ bool logHexDump				(CUNILOG_TARGET *put, const void *pBlob, size_t size)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Data	(
@@ -23115,7 +23359,7 @@ bool logHexDumpq			(CUNILOG_TARGET *put, const void *pBlob, size_t size)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Data	(
@@ -23134,7 +23378,7 @@ bool logHexOrText			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHexO
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	if (str_has_only_printable_ASCII (szHexOrTxt, lenHexOrTxt))
@@ -23147,7 +23391,7 @@ bool logHexOrTextq			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHex
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	if (str_has_only_printable_ASCII (szHexOrTxt, lenHexOrTxt))
@@ -23160,7 +23404,7 @@ bool logHexOrTextU8			(CUNILOG_TARGET *put, const void *szHexOrTxtU8, size_t len
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	if (c_check_utf8 (szHexOrTxtU8, lenHexOrTxtU8))
@@ -23174,7 +23418,7 @@ bool logTextWU16sevl			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t 
 {
 	ubf_assert_non_NULL (put);
 	
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	char s8 [CUNILOG_STD_MSG_SIZE * 4];
@@ -23219,7 +23463,7 @@ bool logTextWU16sev			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *
 {
 	ubf_assert_non_NULL (put);
 	
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	char s8 [CUNILOG_STD_MSG_SIZE * 4];
@@ -23256,7 +23500,7 @@ bool logTextWU16l				(CUNILOG_TARGET *put, const wchar_t *cwText, size_t len)
 {
 	ubf_assert_non_NULL (put);
 	
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	return logTextWU16sevl (put, cunilogEvtSeverityNone, cwText, len);
@@ -23268,7 +23512,7 @@ bool logTextWU16				(CUNILOG_TARGET *put, const wchar_t *cwText)
 {
 	ubf_assert_non_NULL (put);
 	
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	return logTextWU16sev (put, cunilogEvtSeverityNone, cwText);
@@ -23279,7 +23523,7 @@ bool logTextU8csevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccT
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Text (put, sev, ccText, len);
@@ -23316,7 +23560,7 @@ bool logTextU8cvfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	size_t		l;
@@ -23337,7 +23581,7 @@ bool logTextU8cfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -23354,7 +23598,7 @@ bool logTextU8csfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -23386,7 +23630,7 @@ bool logTextU8csmbvfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, va_
 	ubf_assert_non_NULL (put);
 	ubf_assert (isInitialisedSMEMBUF (smb));
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	size_t		l;
@@ -23412,7 +23656,7 @@ bool logTextU8csmbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...)
 	ubf_assert_non_NULL (put);
 	ubf_assert (isInitialisedSMEMBUF (smb));
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -23442,7 +23686,7 @@ bool logTextU8csvfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	size_t		l;
@@ -23468,7 +23712,7 @@ bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 {
 	ubf_assert_non_NULL (put);
 
-	if (cunilogIsShutdownTarget (put))
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
 	va_list		ap;
@@ -23554,7 +23798,7 @@ bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(0 <= task);
-		ubf_assert			(cunilogProcessAmountEnumValues > task);
+		ubf_assert			(cunilogProcessXAmountEnumValues > task);
 
 		CUNILOG_EVENT *pev = CreateCUNILOG_EVENTforCommand (put, cunilogCmdConfigDisableTaskProcessors);
 		if (pev)
@@ -23571,7 +23815,7 @@ bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(0 <= task);
-		ubf_assert			(cunilogProcessAmountEnumValues > task);
+		ubf_assert			(cunilogProcessXAmountEnumValues > task);
 
 		CUNILOG_EVENT *pev = CreateCUNILOG_EVENTforCommand (put, cunilogCmdConfigEnableTaskProcessors);
 		if (pev)
@@ -23893,131 +24137,132 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		//ASSERT (false);
 
 		// Ensure we haven't forgotten to fill the arrays/jump tables.
-		ubf_assert (GET_ARRAY_LEN (arrLengthTimeStampFromPostfix)	==	cunilogPostfixAmountEnumValues);
-		ubf_assert (GET_ARRAY_LEN (arrPostfixWildcardMask)			==	cunilogPostfixAmountEnumValues);
-		ubf_assert (GET_ARRAY_LEN (obtainTimeStampAsString)			==	cunilogPostfixAmountEnumValues);
-		ubf_assert (GET_ARRAY_LEN (cunilogProcOrQueueEvt)			==	cunilogTypeAmountEnumValues);
+		ubf_expect_bool_AND (bRet, GET_ARRAY_LEN (arrLengthTimeStampFromPostfix)	==	cunilogPostfixAmountEnumValues);
+		ubf_expect_bool_AND (bRet, GET_ARRAY_LEN (arrPostfixWildcardMask)		==	cunilogPostfixAmountEnumValues);
+		ubf_expect_bool_AND (bRet, GET_ARRAY_LEN (obtainTimeStampAsString)		==	cunilogPostfixAmountEnumValues);
+		ubf_expect_bool_AND (bRet, GET_ARRAY_LEN (frequencyTbl)					==	cunilogPostfixAmountEnumValues);
+		ubf_expect_bool_AND (bRet, GET_ARRAY_LEN (cunilogProcOrQueueEvt)			==	cunilogTypeAmountEnumValues);
 
-		ubf_assert (GET_ARRAY_LEN (EventSeverityTexts3)				==	cunilogEvtSeverityXAmountEnumValues);
-		ubf_assert (GET_ARRAY_LEN (EventSeverityTexts5)				==	cunilogEvtSeverityXAmountEnumValues);
-		ubf_assert (GET_ARRAY_LEN (EventSeverityTexts9)				==	cunilogEvtSeverityXAmountEnumValues);
-		ubf_assert (GET_ARRAY_LEN (evtSeverityColours)				==	cunilogEvtSeverityXAmountEnumValues);
+		ubf_expect_bool_AND (bRet, GET_ARRAY_LEN (EventSeverityTexts3)			==	cunilogEvtSeverityXAmountEnumValues);
+		ubf_expect_bool_AND (bRet, GET_ARRAY_LEN (EventSeverityTexts5)			==	cunilogEvtSeverityXAmountEnumValues);
+		ubf_expect_bool_AND (bRet, GET_ARRAY_LEN (EventSeverityTexts9)			==	cunilogEvtSeverityXAmountEnumValues);
+		ubf_expect_bool_AND (bRet, GET_ARRAY_LEN (evtSeverityColours)			==	cunilogEvtSeverityXAmountEnumValues);
 
 		// Check that the length assignments are correct.
-		ubf_assert (LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixMinute));
-		ubf_assert (LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixMinuteT));
-		ubf_assert (LEN_ISO8601DATEANDHOUR			== lenDateTimeStampFromPostfix (cunilogPostfixHour));
-		ubf_assert (LEN_ISO8601DATEANDHOUR			== lenDateTimeStampFromPostfix (cunilogPostfixHourT));
-		ubf_assert (LEN_ISO8601DATE					== lenDateTimeStampFromPostfix (cunilogPostfixDay));
-		ubf_assert (LEN_ISO8601DATE					== lenDateTimeStampFromPostfix (cunilogPostfixDefault));
-		ubf_assert (LEN_ISO8601YEARANDWEEK			== lenDateTimeStampFromPostfix (cunilogPostfixWeek));
-		ubf_assert (LEN_ISO8601YEARANDMONTH			== lenDateTimeStampFromPostfix (cunilogPostfixMonth));
-		ubf_assert (LEN_ISO8601YEAR					== lenDateTimeStampFromPostfix (cunilogPostfixYear));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixMinute));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixMinuteT));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601DATEANDHOUR		== lenDateTimeStampFromPostfix (cunilogPostfixHour));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601DATEANDHOUR		== lenDateTimeStampFromPostfix (cunilogPostfixHourT));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601DATE				== lenDateTimeStampFromPostfix (cunilogPostfixDay));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601DATE				== lenDateTimeStampFromPostfix (cunilogPostfixDefault));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601YEARANDWEEK		== lenDateTimeStampFromPostfix (cunilogPostfixWeek));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601YEARANDMONTH		== lenDateTimeStampFromPostfix (cunilogPostfixMonth));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601YEAR				== lenDateTimeStampFromPostfix (cunilogPostfixYear));
 
-		ubf_assert (LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixLogMinute));
-		ubf_assert (LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixLogMinuteT));
-		ubf_assert (LEN_ISO8601DATEANDHOUR			== lenDateTimeStampFromPostfix (cunilogPostfixLogHour));
-		ubf_assert (LEN_ISO8601DATEANDHOUR			== lenDateTimeStampFromPostfix (cunilogPostfixLogHourT));
-		ubf_assert (LEN_ISO8601DATE					== lenDateTimeStampFromPostfix (cunilogPostfixLogDay));
-		ubf_assert (LEN_ISO8601YEARANDWEEK			== lenDateTimeStampFromPostfix (cunilogPostfixLogWeek));
-		ubf_assert (LEN_ISO8601YEARANDMONTH			== lenDateTimeStampFromPostfix (cunilogPostfixLogMonth));
-		ubf_assert (LEN_ISO8601YEAR					== lenDateTimeStampFromPostfix (cunilogPostfixLogYear));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixLogMinute));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601DATEHOURANDMINUTE	== lenDateTimeStampFromPostfix (cunilogPostfixLogMinuteT));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601DATEANDHOUR		== lenDateTimeStampFromPostfix (cunilogPostfixLogHour));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601DATEANDHOUR		== lenDateTimeStampFromPostfix (cunilogPostfixLogHourT));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601DATE				== lenDateTimeStampFromPostfix (cunilogPostfixLogDay));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601YEARANDWEEK		== lenDateTimeStampFromPostfix (cunilogPostfixLogWeek));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601YEARANDMONTH		== lenDateTimeStampFromPostfix (cunilogPostfixLogMonth));
+		ubf_expect_bool_AND (bRet, LEN_ISO8601YEAR				== lenDateTimeStampFromPostfix (cunilogPostfixLogYear));
 
-		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberMinutely));
-		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberHourly));
-		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberDaily));
-		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberWeekly));
-		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberMonthly));
-		ubf_assert (1 + UBF_UINT64_LEN				== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberYearly));
+		ubf_expect_bool_AND (bRet, 1 + UBF_UINT64_LEN			== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberMinutely));
+		ubf_expect_bool_AND (bRet, 1 + UBF_UINT64_LEN			== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberHourly));
+		ubf_expect_bool_AND (bRet, 1 + UBF_UINT64_LEN			== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberDaily));
+		ubf_expect_bool_AND (bRet, 1 + UBF_UINT64_LEN			== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberWeekly));
+		ubf_expect_bool_AND (bRet, 1 + UBF_UINT64_LEN			== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberMonthly));
+		ubf_expect_bool_AND (bRet, 1 + UBF_UINT64_LEN			== lenDateTimeStampFromPostfix (cunilogPostfixDotNumberYearly));
 
 		/*
 			Check consistency between unilogstruct.h and the declarations in this code file.
 		*/
 
-		ubf_assert ( 0 == cunilogEvtSeverityNone);
-		ubf_assert ( 1 == cunilogEvtSeverityNonePass);
-		ubf_assert ( 2 == cunilogEvtSeverityNoneFail);
-		ubf_assert ( 3 == cunilogEvtSeverityNoneWarn);
-		ubf_assert ( 4 == cunilogEvtSeverityBlanks);
-		ubf_assert ( 5 == cunilogEvtSeverityEmergency);
-		ubf_assert ( 6 == cunilogEvtSeverityNotice);
-		ubf_assert ( 7 == cunilogEvtSeverityInfo);
-		ubf_assert ( 8 == cunilogEvtSeverityMessage);
-		ubf_assert ( 9 == cunilogEvtSeverityWarning);
-		ubf_assert (10 == cunilogEvtSeverityError);
-		ubf_assert (11 == cunilogEvtSeverityPass);
-		ubf_assert (12 == cunilogEvtSeverityFail);
-		ubf_assert (13 == cunilogEvtSeverityCritical);
-		ubf_assert (14 == cunilogEvtSeverityFatal);
-		ubf_assert (15 == cunilogEvtSeverityDebug);
-		ubf_assert (16 == cunilogEvtSeverityTrace);
-		ubf_assert (17 == cunilogEvtSeverityDetail);
-		ubf_assert (18 == cunilogEvtSeverityVerbose);
-		ubf_assert (19 == cunilogEvtSeverityIllegal);
-		ubf_assert (20 == cunilogEvtSeverityXAmountEnumValues);
+		ubf_expect_bool_AND (bRet,  0 == cunilogEvtSeverityNone);
+		ubf_expect_bool_AND (bRet,  1 == cunilogEvtSeverityNonePass);
+		ubf_expect_bool_AND (bRet,  2 == cunilogEvtSeverityNoneFail);
+		ubf_expect_bool_AND (bRet,  3 == cunilogEvtSeverityNoneWarn);
+		ubf_expect_bool_AND (bRet,  4 == cunilogEvtSeverityBlanks);
+		ubf_expect_bool_AND (bRet,  5 == cunilogEvtSeverityEmergency);
+		ubf_expect_bool_AND (bRet,  6 == cunilogEvtSeverityNotice);
+		ubf_expect_bool_AND (bRet,  7 == cunilogEvtSeverityInfo);
+		ubf_expect_bool_AND (bRet,  8 == cunilogEvtSeverityMessage);
+		ubf_expect_bool_AND (bRet,  9 == cunilogEvtSeverityWarning);
+		ubf_expect_bool_AND (bRet, 10 == cunilogEvtSeverityError);
+		ubf_expect_bool_AND (bRet, 11 == cunilogEvtSeverityPass);
+		ubf_expect_bool_AND (bRet, 12 == cunilogEvtSeverityFail);
+		ubf_expect_bool_AND (bRet, 13 == cunilogEvtSeverityCritical);
+		ubf_expect_bool_AND (bRet, 14 == cunilogEvtSeverityFatal);
+		ubf_expect_bool_AND (bRet, 15 == cunilogEvtSeverityDebug);
+		ubf_expect_bool_AND (bRet, 16 == cunilogEvtSeverityTrace);
+		ubf_expect_bool_AND (bRet, 17 == cunilogEvtSeverityDetail);
+		ubf_expect_bool_AND (bRet, 18 == cunilogEvtSeverityVerbose);
+		ubf_expect_bool_AND (bRet, 19 == cunilogEvtSeverityIllegal);
+		ubf_expect_bool_AND (bRet, 20 == cunilogEvtSeverityXAmountEnumValues);
 
-		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNone]));
-		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNonePass]));
-		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNoneFail]));
-		ubf_assert (0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNoneWarn]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityBlanks]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityEmergency]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNotice]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityInfo]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityMessage]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityWarning]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityError]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityPass]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityFail]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityCritical]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityFatal]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityDebug]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityTrace]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityDetail]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityVerbose]));
-		ubf_assert (3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityIllegal]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNone]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNonePass]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNoneFail]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNoneWarn]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityBlanks]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityEmergency]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNotice]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityInfo]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityMessage]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityWarning]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityError]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityPass]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityFail]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityCritical]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityFatal]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityDebug]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityTrace]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityDetail]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityVerbose]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityIllegal]));
 
-		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNone]));
-		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNonePass]));
-		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNoneFail]));
-		ubf_assert (0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNoneWarn]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityBlanks]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityEmergency]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNotice]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityInfo]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityMessage]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityWarning]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityError]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityPass]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityFail]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityCritical]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityFatal]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityDebug]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityTrace]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityDetail]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityVerbose]));
-		ubf_assert (5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityIllegal]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNone]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNonePass]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNoneFail]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNoneWarn]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityBlanks]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityEmergency]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNotice]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityInfo]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityMessage]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityWarning]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityError]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityPass]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityFail]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityCritical]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityFatal]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityDebug]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityTrace]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityDetail]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityVerbose]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityIllegal]));
 
-		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNone]));
-		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNonePass]));
-		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNoneFail]));
-		ubf_assert (0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNoneWarn]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityBlanks]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityEmergency]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNotice]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityInfo]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityMessage]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityWarning]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityError]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityPass]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityFail]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityCritical]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityFatal]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityDebug]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityTrace]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityDetail]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityVerbose]));
-		ubf_assert (9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityIllegal]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNone]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNonePass]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNoneFail]));
+		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNoneWarn]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityBlanks]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityEmergency]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNotice]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityInfo]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityMessage]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityWarning]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityError]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityPass]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityFail]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityCritical]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityFatal]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityDebug]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityTrace]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityDetail]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityVerbose]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityIllegal]));
 
 		#ifdef OS_IS_LINUX
 			bool bTrash = MoveFileToTrashPOSIX ("/home/thomas/FS/OAN/Thomas/cunilog/logs/testcunilog_2024-11-05 20_14.log");
@@ -24037,13 +24282,13 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 					cunilogEvtTS_Default, cunilogNewLineSystem,
 					cunilogDontRunProcessorsOnStartup
 										);
-		ubf_assert (pCUNILOG_TARGETstatic	== pt);
-		ubf_assert (pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
-		ubf_assert (cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
-		ubf_assert (cunilogPostfixDay		== CUNILOG_TARGETstatic.culogPostfix);
-		ubf_assert (cunilogEvtTS_Default	== CUNILOG_TARGETstatic.unilogEvtTSformat);
-		ubf_assert (6 == CUNILOG_TARGETstatic.lnAppName);
-		ubf_assert (!memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName));
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== pt);
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
+		ubf_expect_bool_AND (bRet, cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
+		ubf_expect_bool_AND (bRet, cunilogPostfixDay		== CUNILOG_TARGETstatic.culogPostfix);
+		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default	== CUNILOG_TARGETstatic.unilogEvtTSformat);
+		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
+		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName));
 
 		size_t lnAbsLogPath;
 		const char *szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
@@ -24063,16 +24308,16 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 					cunilogEvtTS_Default, cunilogNewLineSystem,
 					cunilogDontRunProcessorsOnStartup
 										);
-		ubf_assert (pCUNILOG_TARGETstatic	== pt);
-		ubf_assert (pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
-		ubf_assert (cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
-		ubf_assert (cunilogPostfixDay		== CUNILOG_TARGETstatic.culogPostfix);
-		ubf_assert (cunilogEvtTS_Default	== CUNILOG_TARGETstatic.unilogEvtTSformat);
-		ubf_assert (10 == CUNILOG_TARGETstatic.lnAppName);
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== pt);
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
+		ubf_expect_bool_AND (bRet, cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
+		ubf_expect_bool_AND (bRet, cunilogPostfixDay		== CUNILOG_TARGETstatic.culogPostfix);
+		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default	== CUNILOG_TARGETstatic.unilogEvtTSformat);
+		ubf_expect_bool_AND (bRet, 10 == CUNILOG_TARGETstatic.lnAppName);
 		#ifdef PLATFORM_IS_WINDOWS
-			ubf_assert (!memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "sub\\Unilog", CUNILOG_TARGETstatic.lnAppName));
+			ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "sub\\Unilog", CUNILOG_TARGETstatic.lnAppName));
 		#else
-			ubf_assert (!memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "sub/Unilog", CUNILOG_TARGETstatic.lnAppName));
+			ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "sub/Unilog", CUNILOG_TARGETstatic.lnAppName));
 		#endif
 
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
@@ -24092,13 +24337,13 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 					cunilogEvtTS_Default, cunilogNewLineSystem,
 					cunilogDontRunProcessorsOnStartup
 										);
-		ubf_assert (pCUNILOG_TARGETstatic	== pt);
-		ubf_assert (pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
-		ubf_assert (cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
-		ubf_assert (cunilogPostfixDay		== CUNILOG_TARGETstatic.culogPostfix);
-		ubf_assert (cunilogEvtTS_Default	== CUNILOG_TARGETstatic.unilogEvtTSformat);
-		ubf_assert (6 == CUNILOG_TARGETstatic.lnAppName);
-		ubf_assert (!memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName));
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== pt);
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
+		ubf_expect_bool_AND (bRet, cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
+		ubf_expect_bool_AND (bRet, cunilogPostfixDay		== CUNILOG_TARGETstatic.culogPostfix);
+		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default	== CUNILOG_TARGETstatic.unilogEvtTSformat);
+		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
+		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName));
 
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
@@ -24117,13 +24362,13 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 					cunilogEvtTS_Default, cunilogNewLineSystem,
 					cunilogDontRunProcessorsOnStartup
 										);
-		ubf_assert (pCUNILOG_TARGETstatic	== pt);
-		ubf_assert (pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
-		ubf_assert (cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
-		ubf_assert (cunilogPostfixDay		== CUNILOG_TARGETstatic.culogPostfix);
-		ubf_assert (cunilogEvtTS_Default		== CUNILOG_TARGETstatic.unilogEvtTSformat);
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== pt);
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
+		ubf_expect_bool_AND (bRet, cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
+		ubf_expect_bool_AND (bRet, cunilogPostfixDay		== CUNILOG_TARGETstatic.culogPostfix);
+		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default		== CUNILOG_TARGETstatic.unilogEvtTSformat);
 		// Size is 8 + NUL.
-		ubf_assert (9 == CUNILOG_TARGETstatic.mbLogPath.size);
+		ubf_expect_bool_AND (bRet, 9 == CUNILOG_TARGETstatic.mbLogPath.size);
 		ubf_assert	(
 				!memcmp	(
 					CUNILOG_TARGETstatic.mbLogPath.buf.pch,
@@ -24139,9 +24384,9 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 					CUNILOG_TARGETstatic.mbLogPath.size + CUNILOG_TARGETstatic.lnAppName - 1
 						)
 					);
-		ubf_assert (6 == CUNILOG_TARGETstatic.lnAppName);
+		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
 		// Should be NUL-terminated.
-		ubf_assert (!memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName + 1));
+		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName + 1));
 
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
@@ -24160,12 +24405,12 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 					cunilogDontRunProcessorsOnStartup
 
 										);
-		ubf_assert (pCUNILOG_TARGETstatic == pt);
-		ubf_assert (pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
-		ubf_assert (cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
-		ubf_assert (cunilogPostfixDay				== CUNILOG_TARGETstatic.culogPostfix);
-		ubf_assert (6 == CUNILOG_TARGETstatic.lnAppName);
-		ubf_assert (!memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName + 1));
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic == pt);
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
+		ubf_expect_bool_AND (bRet, cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
+		ubf_expect_bool_AND (bRet, cunilogPostfixDay				== CUNILOG_TARGETstatic.culogPostfix);
+		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
+		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName + 1));
 
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
@@ -24184,12 +24429,16 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				cunilogSingleThreaded,
 				cunilogPostfixDay,
 				NULL, 0, cunilogEvtTS_Default, cunilogNewLineSystem,
-				cunilogDontRunProcessorsOnStartup
+				cunilogRunProcessorsOnStartup
 									);
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
+		ubf_expect_bool_AND (bRet, NULL != szAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_expect_bool_AND (bRet, 0 != lnAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_expect_bool_AND (bRet, 0 == szAbsLogPath [lnAbsLogPath]);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
+		bRet &= cunilogTargetHasRunProcessorsOnStartup (pt) ? true : false;
 		DoneCUNILOG_TARGET (pt);
 
 		pt = InitOrCreateCUNILOG_TARGET	(
@@ -24221,10 +24470,10 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				cunilogDontRunProcessorsOnStartup
 										);
 		ubf_assert_non_NULL (pt);
-		ubf_assert (pt != pCUNILOG_TARGETstatic);
-		ubf_assert (cunilogSingleThreaded	== pt->culogType);
-		ubf_assert (cunilogPostfixDay				== pt->culogPostfix);
-		ubf_assert (9 == pt->mbLogPath.size);				// "C:/Temp/" + NUL.
+		ubf_expect_bool_AND (bRet, pt != pCUNILOG_TARGETstatic);
+		ubf_expect_bool_AND (bRet, cunilogSingleThreaded	== pt->culogType);
+		ubf_expect_bool_AND (bRet, cunilogPostfixDay				== pt->culogPostfix);
+		ubf_expect_bool_AND (bRet, 9 == pt->mbLogPath.size);				// "C:/Temp/" + NUL.
 		ubf_assert	(
 				!memcmp	(
 					pt->mbLogPath.buf.pch,
@@ -24240,8 +24489,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 					pt->lnLogPath + pt->lnAppName + 1
 						)
 					);
-		ubf_assert (6 == pt->lnAppName);
-		ubf_assert (!memcmp (pt->mbAppName.buf.pch, "Unilog", pt->lnAppName));
+		ubf_expect_bool_AND (bRet, 6 == pt->lnAppName);
+		ubf_expect_bool_AND (bRet, !memcmp (pt->mbAppName.buf.pch, "Unilog", pt->lnAppName));
 
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
@@ -24261,7 +24510,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 				cunilogMultiThreaded
 									);
 		ubf_assert_NULL (put);
-		ubf_assert (CUNILOG_ERROR_ABS_OR_REL_PATH == CunilogCunilogError (cut.error));
+		ubf_expect_bool_AND (bRet, CUNILOG_ERROR_ABS_OR_REL_PATH == CunilogCunilogError (cut.error));
 
 		/*
 			Application name from executable name.
@@ -24279,13 +24528,13 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		SMEMBUF mb;
 		initSMEMBUF (&mb);
 		ObtainAppNameFromExecutableModule (&mb);
-		ubf_assert (!memcmp (pt->mbAppName.buf.pch, mb.buf.pch, strlen (mb.buf.pch)));
+		ubf_expect_bool_AND (bRet, !memcmp (pt->mbAppName.buf.pch, mb.buf.pch, strlen (mb.buf.pch)));
 		ubf_assert_non_NULL (pt);
-		ubf_assert (pt != pCUNILOG_TARGETstatic);
-		ubf_assert (cunilogSingleThreaded	== pt->culogType);
-		ubf_assert (cunilogPostfixDay		== pt->culogPostfix);
-		ubf_assert (9 == pt->mbLogPath.size);
-		ubf_assert (8 == pt->lnLogPath);
+		ubf_expect_bool_AND (bRet, pt != pCUNILOG_TARGETstatic);
+		ubf_expect_bool_AND (bRet, cunilogSingleThreaded	== pt->culogType);
+		ubf_expect_bool_AND (bRet, cunilogPostfixDay		== pt->culogPostfix);
+		ubf_expect_bool_AND (bRet, 9 == pt->mbLogPath.size);
+		ubf_expect_bool_AND (bRet, 8 == pt->lnLogPath);
 		ubf_assert	(
 				!memcmp	(
 					pt->mbLogPath.buf.pch,

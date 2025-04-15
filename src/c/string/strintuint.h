@@ -494,7 +494,7 @@ bool ubf_uint16_from_str (uint16_t *pus, const char *chStr);
 */
 #ifdef DEBUG
 	#ifndef UBF_BUILD_STRINTUINT_TEST
-	#define UBF_BUILD_STRINTUINT_TEST
+	//#define UBF_BUILD_STRINTUINT_TEST
 	#endif
 #endif
 #ifdef UBF_BUILD_STRINTUINT_TEST

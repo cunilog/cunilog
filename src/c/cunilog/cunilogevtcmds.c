@@ -176,7 +176,7 @@ void culCmdConfigDisableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szDa
 
 	memcpy (&task, szData, sizeof (task));
 	ubf_assert (0 <= task);
-	ubf_assert (task < cunilogProcessAmountEnumValues);
+	ubf_assert (task < cunilogProcessXAmountEnumValues);
 
 	ConfigCUNILOG_TARGETdisableTaskProcessors (put, task);
 }
@@ -187,7 +187,7 @@ void culCmdConfigEnableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szDat
 
 	memcpy (&task, szData, sizeof (task));
 	ubf_assert (0 <= task);
-	ubf_assert (task < cunilogProcessAmountEnumValues);
+	ubf_assert (task < cunilogProcessXAmountEnumValues);
 
 	ConfigCUNILOG_TARGETenableTaskProcessors (put, task);
 }
@@ -294,9 +294,9 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 			#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 				memcpy (&boolVal, szData, sizeof (bool));
 				if (boolVal)
-					cunilogSetUseColourForEcho (put);
+					cunilogTargetSetUseColourForEcho (put);
 				else
-					cunilogClrUseColourForEcho (put);
+					cunilogTargetClrUseColourForEcho (put);
 			#endif
 			break;
 		case cunilogCmdConfigEventSeverityFormatType:

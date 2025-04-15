@@ -71,7 +71,7 @@ When		Who				What
 */
 #ifdef DEBUG
 	#ifndef STRWILDCARDS_BUILD_TEST_FNCT
-	#define STRWILDCARDS_BUILD_TEST_FNCT
+	//#define STRWILDCARDS_BUILD_TEST_FNCT
 	#endif
 #endif
 
@@ -177,7 +177,7 @@ bool globMatch	(
 #ifdef STRWILDCARDS_BUILD_TEST_FNCT
 	bool strwildcards_test_function (void);
 #else
-	#define strwildcards_test_function() true
+	#define strwildcards_test_function() (true)
 #endif
 
 EXTERN_C_END

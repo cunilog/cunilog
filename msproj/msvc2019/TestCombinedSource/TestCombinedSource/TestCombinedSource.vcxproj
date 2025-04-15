@@ -86,7 +86,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);CUNILOG_BUILD_WITH_TEST_ERRORCB;CUNILOG_BUILD_TEST_FNCTS;STRNEWLINE_BUILD_TEST</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);CUNILOG_BUILD_WITH_TEST_ERRORCB;CUNILOG_BUILD_TEST_FNCTS;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -102,7 +102,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);CUNILOG_BUILD_WITH_TEST_ERRORCB;CUNILOG_BUILD_TEST_FNCTS;STRNEWLINE_BUILD_TEST</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);CUNILOG_BUILD_WITH_TEST_ERRORCB;CUNILOG_BUILD_TEST_FNCTS;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -118,7 +118,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);CUNILOG_BUILD_WITH_TEST_ERRORCB;CUNILOG_BUILD_TEST_FNCTS;STRNEWLINE_BUILD_TEST</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);CUNILOG_BUILD_WITH_TEST_ERRORCB;CUNILOG_BUILD_TEST_FNCTS;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -134,7 +134,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);CUNILOG_BUILD_WITH_TEST_ERRORCB;CUNILOG_BUILD_TEST_FNCTS;STRNEWLINE_BUILD_TEST</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);CUNILOG_BUILD_WITH_TEST_ERRORCB;CUNILOG_BUILD_TEST_FNCTS;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>

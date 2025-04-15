@@ -294,8 +294,10 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 		return size - 1;
 	}
 
-	void TestStrCustomFmt (void)
+	bool TestStrCustomFmt (void)
 	{
+		bool br = true;
+
 		SSTRCUSTFMTBASE	b;
 		SSTRCUSTFMT		f [3];
 
@@ -315,12 +317,16 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 
 		cc = strcustomfmtFindNextCust (&idx, &b, "{v}", 3);
 		ubf_assert_NULL (cc);
+		br &= NULL == cc;
 		cc = strcustomfmtFindNextCust (&idx, &b, "{a}", 3);
-		ubf_assert (!memcmp ("{a}", cc, 4));
+		br &= !memcmp ("{a}", cc, 4);
+		ubf_assert (br);
 		cc = strcustomfmtFindNextCust (&idx, &b, "   ", 3);
 		ubf_assert_NULL (cc);
+		br &= NULL == cc;
 		cc = strcustomfmtFindNextCust (&idx, &b, "#1", 2);
-		ubf_assert (!memcmp ("#1", cc, 2));
+		br &= !memcmp ("#1", cc, 2);
+		ubf_assert (br);
 
 		// Let's check the callback functions.
 		f [0].getRqSize				= ourReqSize;
@@ -329,7 +335,9 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 		char ch [256];
 		size_t s2 = strcustomfmtStoreDataCust (ch, 256, &b, 3, "{a}", NULL);
 		ubf_assert (s1 == s2);
-		ubf_assert (!memcmp (ch, "0123456789", 10));
+		br &= s1 == s2;
+		br &= !memcmp (ch, "0123456789", 10);
+		ubf_assert (br);
 
 		// A bit more complicated.
 		f [1].getRqSize				= ourReqSize;
@@ -364,6 +372,7 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 		s2 = strcustomfmtStoreDataCust (ch, 256, &b, 0, "", NULL, &x, NULL);
 		ubf_assert (s1 == s2);
 
+		return br;
 	}
 
 #endif														// Of #ifdef STRCUSTOMFMT_BUILD_TEST_FNCTS.

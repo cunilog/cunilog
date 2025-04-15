@@ -679,9 +679,9 @@ void ubf_get_system_time_ULONGLONG_rel (ULONGLONG *pulltime);
 /*
 	IsLeapYear
 
-	Returns TRUE if the year in Y is a leap year, FALSE otherwise.
+	Returns true if the year in Y is a leap year, false otherwise.
 */
-bool IsLeapYear (uint32_t Y);
+bool IsLeapYear (uint32_t uiYear);
 
 /*
 	GetISO8601DayOfYear
@@ -1427,9 +1427,9 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 	Test function.
 */
 #ifdef UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION
-		void Test_ubf_times_functions (void);
+		bool Test_ubf_times_functions (void);
 #else
-		#define Test_ubf_times_functions()
+		#define Test_ubf_times_functions()	(true)
 #endif
 
 

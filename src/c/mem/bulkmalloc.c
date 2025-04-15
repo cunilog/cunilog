@@ -563,7 +563,7 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 #ifdef BUILD_BULKMALLOC_TEST_FUNCTIONS
 	bool bulkmalloc_test_fnct (void)
 	{
-		bool			b		= false;
+		bool			b		= true;
 		SBULKMEM		sbm		= SBULKMEM_INITIALISER (128);
 		//SBULKMEM		*pbm;
 		void			*p;
@@ -572,31 +572,42 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 		// The SBULKMEM structure doesn't have any memory block attached.
 		p = GetUnalignedMemFromSBULKMEMnogrow (&sbm, 1);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 		p = GetAlignedMemFromSBULKMEMnogrow (&sbm, 1);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 		p = GetUnalignedMemFromSBULKMEMnogrow (&sbm, 1024);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 		p = GetAlignedMemFromSBULKMEMnogrow (&sbm, 1024);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 		p = GetAlignedMemFromSBULKMEMnogrow (&sbm, 1022);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 
 		pbmb = GrowSBULKMEM (&sbm, 0);
 		ubf_assert_non_NULL (pbmb);
+		b &= NULL != pbmb;
 		pbmb = GrowSBULKMEM (&sbm, 12);
 		ubf_assert_non_NULL (pbmb);
+		b &= NULL != pbmb;
 		p = GetAlignedMemFromSBULKMEMnogrow (&sbm, 1022);
 		ubf_assert_NULL (p);
+		b &= NULL == p;
 		// This should succeed.
 		p = GetAlignedMemFromSBULKMEMnogrow (&sbm, 16);
 		ubf_assert_non_NULL (p);
+		b &= NULL != p;
 		p = GetAlignedMemFromSBULKMEMgrow (&sbm, 12);
 		ubf_assert_non_NULL (p);
+		b &= NULL != p;
 
 		DoneSBULKMEM (&sbm);
 
 		p = GetAlignedMemFromSBULKMEMgrow (&sbm, 1024);
 		ubf_assert_non_NULL (p);
+		b &= NULL != p;
 		if (p)
 		{
 			memset (p, 0, 1024);
@@ -617,7 +628,6 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 		uint64_t	ut1, ut2, ut3;
 		uint64_t	u;
 
-		puts ("Starting...");
 		GetSystemTimeAsFileTime (&ft1);
 		char *pCh [100000];
 		for (u = 0; u < 100000; ++u)
@@ -639,7 +649,7 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 		ut2 += ft2.dwLowDateTime;
 		ut3 = ut2 - ut1;
 		ut3 /= 10000;			// milliseconds.
-		printf ("Diff - malloc (): %" PRIu64 " ms.\n", ut3);
+		printf ("\nTime taken by malloc ():\t\t %" PRIu64 " ms.\n", ut3);
 
 		GetSystemTimeAsFileTime (&ft1);
 		pTest = AllocInitSBULKMEM (NULL, 200 * 1024 * 1024);
@@ -661,7 +671,7 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 			ut2 += ft2.dwLowDateTime;
 			ut3 = ut2 - ut1;
 			ut3 /= 10000;			// milliseconds.
-			printf ("Diff - memblock:  %" PRIu64 " ms.\n", ut3);
+			printf ("Time taken by GetMemFromSBULKMEM ():\t %" PRIu64 " ms.\n", ut3);
 		}
 		/*
 			End of speed comparison.
@@ -706,8 +716,6 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 			DoneSBULKMEM (&sbulk);
 		}
 		//	<-
-
-
 
 		return b;
 	}

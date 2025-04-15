@@ -20,6 +20,9 @@ When		Who				What
 
 /*
 	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+	For the original unchanged version, see https://github.com/yasuoka/check_utf8 .
+
+	Note that this file must be saved in UTF-8 encoding without a BOM.
 */
 
 /*
@@ -89,3 +92,32 @@ bool c_check_utf8(const char *str, size_t len)
 
 	return true;
 }
+
+/*
+	https://github.com/yasuoka/check_utf8/blob/main/check_utf8_test.c
+*/
+#ifdef U_CHECK_UTF8_BUILD_TEST_FNCT
+	bool Check_utf8_test_function (void)
+	{
+		bool b = true;
+
+		b &= c_check_utf8("ほげほげ", 12);
+		//ほげほげ in Shift-JIS
+		b &= c_check_utf8("\x82\xd9\x82\xb0\x82\xd9\x82\xb0", 8) == false;
+		//copyright mark in UTF-8
+		b &= c_check_utf8 ("\xC2\xA9", 2);
+		b &= c_check_utf8("©", 2) == true;
+		// face in medical mask in UTF-8
+		b &= c_check_utf8("\xF0\x9F\x98\xB7", 4) == true;
+		// length invalid
+		b &= c_check_utf8("ふがふが", 11) == false;
+		// ascii
+		b &= c_check_utf8("Hello world.", 12) == true;
+		// empty
+		b &= c_check_utf8("", 1) == true;
+		// specials
+		b &= c_check_utf8("\t\b", 2) == true;
+
+		return b;
+	}
+#endif

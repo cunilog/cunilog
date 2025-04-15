@@ -20,6 +20,7 @@ When		Who				What
 
 /*
 	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+	For the original unchanged version, see https://github.com/yasuoka/check_utf8 .
 */
 
 /*
@@ -66,6 +67,12 @@ EXTERN_C_BEGIN
 
 bool c_check_utf8(const char *str, size_t len);
 TYPEDEF_FNCT_PTR (bool, c_check_utf8) (const char *str, size_t len);
+
+#ifdef U_CHECK_UTF8_BUILD_TEST_FNCT
+	bool Check_utf8_test_function (void);
+#else
+	#define Check_utf8_test_function() (true)
+#endif
 
 EXTERN_C_END
 

@@ -610,7 +610,7 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 // To build the test function.
 #ifdef DEBUG
 	#ifndef BUILD_BULKMALLOC_TEST_FUNCTIONS
-	#define BUILD_BULKMALLOC_TEST_FUNCTIONS
+	//#define BUILD_BULKMALLOC_TEST_FUNCTIONS
 	#endif
 #endif
 

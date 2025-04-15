@@ -250,7 +250,8 @@ size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 		,	cunilogNewLineIBMzOS							// EBCDIC NL (15h)
 		,	cunilogNewLineNEL								// Unicode newline NEL (U+0085)
 		,	cunilogNewLineLS								// Unicode line separator LS (U+2028)
-		,	cunilogNewLinePS								// Unicode paragraph separator PS (U+2029)
+		,	cunilogNewLinePS								// Unicode paragraph separator PS
+															//	(U+2029)
 		// Do not add anything below this line.
 		,	cunilogNewLineAmountEnumValues					// Used for table sizes.
 		// Do not add anything below unilogNewLineAmountEnumValues.
