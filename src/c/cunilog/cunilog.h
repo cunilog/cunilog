@@ -2108,7 +2108,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion);
 #ifdef CUNILOG_BUILD_TEST_FNCTS
 	bool test_cunilog (void);
 #else
-	#define cunilog()
+	#define test_cunilog()	(true)
 #endif
 
 EXTERN_C_END

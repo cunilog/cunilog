@@ -45,6 +45,19 @@ win32:DEFINES += HAVE_SHELLAPI
 win32:DEFINES += HAVE_USERENV
 #win32:LIBS += Shell32.lib
 
+# The tests
+DEFINES += CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES
+DEFINES += CUNILOG_BUILD_TEST_FNCTS
+DEFINES += STRNEWLINE_BUILD_TEST
+DEFINES += BUILD_STRHEXDUMP_TEST_FNCT
+DEFINES += UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION
+DEFINES += UBF_BUILD_STRINTUINT_TEST
+DEFINES += STRWILDCARDS_BUILD_TEST_FNCT
+DEFINES += BUILD_DEBUG_UBF_STRFILESYS_TESTS
+DEFINES += STRCUSTOMFMT_BUILD_TEST_FNCTS
+DEFINES += BUILD_BULKMALLOC_TEST_FUNCTIONS
+DEFINES += U_CHECK_UTF8_BUILD_TEST_FNCT
+
 # If this -ldl is missing, the linker on Linux complains with
 #	"sqlite3.o: undefined reference to symbol 'dlclose@@GLIBC_2.2.5'".
 #	See https://linux.die.net/man/3/dlclose .
@@ -114,6 +127,7 @@ HEADERS += \
     ../../src/c/string/struri.h \
     ../../src/c/string/strwildcards.h \
     ../../src/c/string/ubfcharscountsandchecks.h \
+    ../../src/c/testcunilog/CunilogTestFncts.h \
     ../../src/c/testcunilog/testcunilog.h
 
 SOURCES += \
@@ -165,4 +179,5 @@ SOURCES += \
     ../../src/c/string/struri.c \
     ../../src/c/string/strwildcards.c \
     ../../src/c/string/ubfcharscountsandchecks.c \
+    ../../src/c/testcunilog/CunilogTestFncts.c \
     ../../src/c/testcunilog/testcunilog.c

@@ -77,6 +77,12 @@ void CunilogTestFnctStartTestToConsole (const char *ccTestText);
 void CunilogTestFnctResultToConsole (bool bResult);
 
 /*
+	CunilogTestFnctDisabledToConsole
+
+*/
+void CunilogTestFnctDisabledToConsole (bool bResult);
+
+/*
 	CunilogTest
 
 */
