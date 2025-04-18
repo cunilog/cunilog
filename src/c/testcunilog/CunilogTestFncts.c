@@ -203,32 +203,125 @@ errCBretval CunilogTestFnctErrCallback0002	(
 						CUNILOG_EVENT		*pev
 											)
 {
+	UNUSED (pev);
+
 	if (2 == stTestState)
 	{
-		CunilogTestFnctResultToConsole (true);
-	}
-
-	bool b = true;
-	CunilogTestFnctStartTestToConsole ("Checking parameters...");
-	b &= NULL != cup;
-	b &= NULL != pev;
-	CunilogTestFnctResultToConsole (b);
-
-	ubf_assert_non_NULL (cup);
-	ubf_assert_non_NULL (pev);
-
-	if (2 == stTestState && cunilogProcessEchoToConsole == cup->task)
+		CunilogTestFnctResultToConsole (cunilogProcessEchoToConsole == cup->task);
+		CunilogTestFnctStartTestToConsole ("Before updating threshold...");
+		CunilogTestFnctResultToConsole (CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE == error);
 		stTestState = 3;
+		return cunilogErrCB_ignore;
 
-	return cunilogErrCB_cancel;
-
-	if (100 == stTestState)
-	{
-		// Should never be reached.
-		CunilogTestFnctStartTestToConsole ("CunilogTestFnctErrCallback0002 called...");
-		CunilogTestFnctResultToConsole (false);
-		return cunilogErrCB_cancel;
+		/*
+			Note that there's no CUNILOG_ERROR_TEST_AFTER... callback, because
+			cunilogProcessAppliesTo_nAlways returns from the threshold update function
+			immediately and does not invoke it.
+		*/
 	}
+
+	if (3 == stTestState)
+	{
+		CunilogTestFnctStartTestToConsole ("Next processor after echo...");
+		CunilogTestFnctResultToConsole (cunilogProcessWriteToLogFile == cup->task);
+		CunilogTestFnctStartTestToConsole ("Before updating threshold...");
+		CunilogTestFnctResultToConsole (CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE == error);
+		stTestState = 4;
+		CunilogTestFnctStartTestToConsole ("Next processor after writing to logfile...");
+		return cunilogErrCB_ignore;
+	}
+
+	if (4 == stTestState)
+	{
+		CunilogTestFnctResultToConsole (cunilogProcessFlushLogFile == cup->task);
+		CunilogTestFnctStartTestToConsole ("Before updating threshold...");
+		CunilogTestFnctResultToConsole (CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE == error);
+		stTestState = 5;
+		CunilogTestFnctStartTestToConsole ("Next processor after flushing logfile before threshold...");
+		return cunilogErrCB_ignore;
+	}
+
+	if (5 == stTestState)
+	{
+		CunilogTestFnctResultToConsole (cunilogProcessFlushLogFile == cup->task);
+		CunilogTestFnctStartTestToConsole ("After updating threshold...");
+		CunilogTestFnctResultToConsole (CUNILOG_ERROR_TEST_AFTER_THRESHOLD_UPDATE == error);
+		stTestState = 6;
+		CunilogTestFnctStartTestToConsole ("Next processor after flushing logfile after threshold...");
+		return cunilogErrCB_ignore;
+	}
+
+	if (6 == stTestState)
+	{
+		CunilogTestFnctResultToConsole (cunilogProcessRotateLogfiles == cup->task);
+		CunilogTestFnctStartTestToConsole ("Before updating threshold...");
+		CunilogTestFnctResultToConsole (CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE == error);
+		CunilogTestFnctStartTestToConsole ("Do we have rotation data?");
+		CUNILOG_ROTATION_DATA *prd = cup->pData;
+		CunilogTestFnctResultToConsole (NULL != prd);
+		CunilogTestFnctStartTestToConsole ("Correct rotator...");
+		CunilogTestFnctResultToConsole (cunilogrotationtask_RenameLogfiles == prd->tsk);
+		stTestState = 7;
+		CunilogTestFnctStartTestToConsole ("Next processor after renamer before threshold...");
+		return cunilogErrCB_ignore;
+	}
+
+	if (7 == stTestState)
+	{
+		CunilogTestFnctResultToConsole (cunilogProcessRotateLogfiles == cup->task);
+		CunilogTestFnctStartTestToConsole ("After updating threshold...");
+		CunilogTestFnctResultToConsole (CUNILOG_ERROR_TEST_AFTER_THRESHOLD_UPDATE == error);
+		CunilogTestFnctStartTestToConsole ("Do we have rotation data?");
+		CUNILOG_ROTATION_DATA *prd = cup->pData;
+		CunilogTestFnctResultToConsole (NULL != prd);
+		CunilogTestFnctStartTestToConsole ("Correct rotator...");
+		CunilogTestFnctResultToConsole (cunilogrotationtask_RenameLogfiles == prd->tsk);
+		stTestState = 8;
+		CunilogTestFnctStartTestToConsole ("Renaming...");
+		return cunilogErrCB_ignore;
+	}
+
+	if (8 == stTestState)
+	{
+		CunilogTestFnctResultToConsole (cunilogProcessRotateLogfiles == cup->task);
+		CunilogTestFnctStartTestToConsole ("Before rotator...");
+		CunilogTestFnctResultToConsole (CUNILOG_ERROR_TEST_BEFORE_ROTATOR == error);
+		CunilogTestFnctStartTestToConsole ("Do we have rotation data?");
+		CUNILOG_ROTATION_DATA *prd = cup->pData;
+		CunilogTestFnctResultToConsole (NULL != prd);
+		CunilogTestFnctStartTestToConsole ("Correct rotator...");
+		CunilogTestFnctResultToConsole (cunilogrotationtask_RenameLogfiles == prd->tsk);
+		stTestState = 9;
+		//CunilogTestFnctStartTestToConsole ("Next processor after renamer after threshold...");
+		return cunilogErrCB_ignore;
+	}
+
+	/*
+		This is all we can check here because the other invocations depend on the state
+		of the logging folder.
+	*/
+
+	// Test sequence point 1.
+	//	We won't be called until sequence point 2.
+
+	// Test sequence point 2.
+
+	if (10 == stTestState)
+	{
+		CunilogTestFnctResultToConsole (cunilogProcessEchoToConsole == cup->task);
+		CunilogTestFnctStartTestToConsole ("Echo processor before threshold...");
+		CunilogTestFnctResultToConsole (CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE == error);
+		stTestState = 11;
+		return cunilogErrCB_ignore;
+
+		/*
+			Note that there's no CUNILOG_ERROR_TEST_AFTER... callback, because
+			cunilogProcessAppliesTo_nAlways returns from the threshold update function
+			immediately and does not invoke it.
+		*/
+	}
+
+	return cunilogErrCB_ignore;
 }
 
 errCBretval CunilogTestFnctErrCallback	(
@@ -485,7 +578,7 @@ bool CunilogTestFunction	(
 	CunilogTestFnctResultToConsole (NULL != cup);
 
 	stTestState = 1;
-	logTextU8_static ("cunilogPostfixDotNumberDescending");
+	logTextU8_static ("cunilogPostfixDotNumberYearly");
 
 	CunilogTestFnctStartTestToConsole ("Shutting down static target...");
 	ShutdownCUNILOG_TARGETstatic ();
@@ -498,6 +591,39 @@ bool CunilogTestFunction	(
 
 	stTestState = 2;
 
+	/*
+		A standard sequence of:
+		<appname>.log
+		<appname>_YYYY-MM-DD hh:mi.log
+	*/
+	CunilogTestFnctStartTestToConsole ("New target to check LogPostfix...");
+	put = InitCUNILOG_TARGETstaticEx	(
+				ccLogsFolder, lnLogsFolder,
+				NULL, 0,
+				cunilogPath_relativeToExecutable,
+				cunilogSingleThreaded,
+				cunilogPostfixLogMinute,
+				NULL, 0,
+				cunilogEvtTS_Default,
+				cunilogNewLineDefault,
+				cunilogRunProcessorsOnStartup
+	);
+	CunilogTestFnctResultToConsole (NULL != put);
+	if (NULL == put)
+		return false;
+	cunilogTargetSetAlwaysCallErrorCB (put);
+	CunilogTestFnctStartTestToConsole ("Callback function set correctly...");
+	ConfigCUNILOG_TARGETerrorCallbackFunction (put, CunilogTestFnctErrCallback0002);
+	CunilogTestFnctResultToConsole (CunilogTestFnctErrCallback0002 == put->errorCB);
+	// stTestState == 2 here.
+	CunilogTestFnctStartTestToConsole ("Invokation of callback function...");
+	logTextU8 (put, "cunilogPostfixLogMinute");
+	ShutdownCUNILOG_TARGET (put);
+	DoneCUNILOG_TARGET (put);
+
+	// Test sequence point 1.
+
+	CunilogTestFnctStartTestToConsole ("Creation of another simple target...");
 	put = InitCUNILOG_TARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
@@ -512,9 +638,11 @@ bool CunilogTestFunction	(
 	CunilogTestFnctResultToConsole (NULL != put);
 	if (NULL == put)
 		return false;
-	logTextU8 (put, "What?");
+	logTextU8 (put, "Writing to another simple target. There's no callback function, by the way.");
 	ShutdownCUNILOG_TARGET (put);
 	DoneCUNILOG_TARGET (put);
+
+	// Test sequence point 2.
 
 	CunilogTestFnctStartTestToConsole ("Creating new target...");
 	put = CreateNewCUNILOG_TARGET		(
@@ -551,11 +679,11 @@ bool CunilogTestFunction	(
 	b &= !cunilogTargetHasShutdownInitiatedFlag (put) ? true : false;
 	CunilogTestFnctResultToConsole (b);
 
-	CunilogTestFnctStartTestToConsole ("Issuing test event...");
-	b &= logTextU8 (put, "First non-static event");
+	CunilogTestFnctStartTestToConsole ("Issuing test event... (nothing to test here)");
+	CunilogTestFnctResultToConsole (true);
+	b &= logTextU8 (put, "cunilogPostfixDotNumberYearly - Next level");
+	CunilogTestFnctStartTestToConsole ("Test event issued.");
 	CunilogTestFnctResultToConsole (b);
-
-	ASSERT (false);
 
 	CunilogTestFnctStartTestToConsole ("Shutting down target...");
 	ShutdownCUNILOG_TARGET (put);
@@ -564,13 +692,13 @@ bool CunilogTestFunction	(
 
 	DoneCUNILOG_TARGET (put);
 
-	ASSERT (false);
+	//ASSERT (false);
 
 	put = InitCUNILOG_TARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
 				cunilogPath_relativeToExecutable,
-				cunilogMultiThreadedSeparateLoggingThread,
+				cunilogSingleThreaded,
 				cunilogPostfixMinute,
 				NULL, 0,
 				cunilogEvtTS_Default,

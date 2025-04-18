@@ -17198,10 +17198,10 @@ BEGIN_C_DECLS
 	(szCunilogLogFileNameExtension) and Windows UTF-16 (wcCunilogLogFileNameExtension).
 	The constant lenCunilogLogFileNameExtension is the length in characters (not octets!).
 */
-CUNILOG_DLL_IMPORT extern const char		*szCunilogLogFileNameExtension;			// ".log"
-CUNILOG_DLL_IMPORT extern const wchar_t		*wcCunilogLogFileNameExtension;			// ".log"
-CUNILOG_DLL_IMPORT extern const size_t		lenCunilogLogFileNameExtension;			// ".log"
-CUNILOG_DLL_IMPORT extern const size_t		sizCunilogLogFileNameExtension;
+CUNILOG_DLL_IMPORT extern const char	*szCunilogLogFileNameExtension;	// ".log"
+CUNILOG_DLL_IMPORT extern const wchar_t	*wcCunilogLogFileNameExtension;	// ".log"
+CUNILOG_DLL_IMPORT extern const size_t	lenCunilogLogFileNameExtension;	// ".log"
+CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log" + NUL
 
 /*
 	enum unilogtype
@@ -17732,7 +17732,7 @@ typedef struct cunilog_rotation_data
 		#else
 			pthread_mutex_t		mt;
 		#endif
-		#ifdef DEBUG
+		#ifdef CUNILOG_BUILD_DEBUG_TEST_LOCKER
 			bool				bInitialised;
 		#endif
 	} CUNILOG_LOCKER;
@@ -18088,7 +18088,7 @@ typedef struct CUNILOG_TARGET
 #define CUNILOGTARGET_FLS_IS_SORTED				SINGLEBIT64 (11)
 
 // The "file.log.1" (dot number postfix) requires this.
-#define CUNILOGTARGET_NEEDS_NUMBER_SORTING		SINGLEBIT64 (12)
+//#define CUNILOGTARGET_NEEDS_NUMBER_SORTING		SINGLEBIT64 (12)
 
 // The elements of the member fls (a vecotr) are in reversed order.
 #define CUNILOGTARGET_FLS_REVERSED				SINGLEBIT64 (13)
@@ -18188,12 +18188,14 @@ typedef struct CUNILOG_TARGET
 #define cunilogTargetSetFLSisSorted(put)				\
 	((put)->uiOpts |= CUNILOGTARGET_FLS_IS_SORTED)
 
+/*
 #define cunilogTargetHasNumberSorting(put)				\
 	((put)->uiOpts & CUNILOGTARGET_NEEDS_NUMBER_SORTING)
 #define cunilogTargetClrNumberSorting(put)				\
 	((put)->uiOpts &= ~ CUNILOGTARGET_NEEDS_NUMBER_SORTING)
 #define cunilogTargetSetNumberSorting(put)				\
 	((put)->uiOpts |= CUNILOGTARGET_NEEDS_NUMBER_SORTING)
+*/
 
 #define cunilogTargetHasFLSreversed(put)				\
 	((put)->uiOpts & CUNILOGTARGET_FLS_REVERSED)
@@ -18952,6 +18954,17 @@ When		Who				What
 #define CUNILOG_BUILD_TEST_FNCTS
 #endif
 */
+
+// Inserts function calls to output the current files list. Sometimes used for debugging.
+#ifndef CUNILOG_BUILD_DEBUG_OUTPUT_FILES_LIST
+//#define CUNILOG_BUILD_DEBUG_OUTPUT_FILES_LIST
+#endif
+
+// Inserts checks for the queue locker. For obvious reasons, this can't work reliably
+//	and was only used for initial tests.
+#ifndef CUNILOG_BUILD_DEBUG_TEST_LOCKER
+//#define CUNILOG_BUILD_DEBUG_TEST_LOCKER
+#endif
 
 // Some functions accept string lengths of (size_t) -1 to obtain a length via a call
 //	to strlen ().

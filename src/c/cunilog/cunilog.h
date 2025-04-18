@@ -95,6 +95,17 @@ When		Who				What
 #endif
 */
 
+// Inserts function calls to output the current files list. Sometimes used for debugging.
+#ifndef CUNILOG_BUILD_DEBUG_OUTPUT_FILES_LIST
+//#define CUNILOG_BUILD_DEBUG_OUTPUT_FILES_LIST
+#endif
+
+// Inserts checks for the queue locker. For obvious reasons, this can't work reliably
+//	and was only used for initial tests.
+#ifndef CUNILOG_BUILD_DEBUG_TEST_LOCKER
+//#define CUNILOG_BUILD_DEBUG_TEST_LOCKER
+#endif
+
 // Some functions accept string lengths of (size_t) -1 to obtain a length via a call
 //	to strlen ().
 #ifndef USE_STRLEN

@@ -558,7 +558,7 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 		{
 			InitCriticalSection (put);
 		}
-		#ifdef DEBUG
+		#ifdef CUNILOG_BUILD_DEBUG_TEST_LOCKER
 			put->cl.bInitialised = true;
 		#endif
 	}
@@ -570,17 +570,20 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 	static inline void EnterCUNILOG_LOCKER (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
-		ubf_assert (needsOrHasLocker (put));
-		#ifdef DEBUG
-			ubf_assert_true (put->cl.bInitialised);
-		#endif
 
-		#ifdef OS_IS_WINDOWS
-			EnterCriticalSection (&put->cl.cs);
-		#else
-			pthread_mutex_lock (&put->cl.mt);
-		#endif
-		cunilogSetDebugQueueLocked (put);
+		if (needsOrHasLocker (put))
+		{
+			#ifdef CUNILOG_BUILD_DEBUG_TEST_LOCKER
+				ubf_assert_true (put->cl.bInitialised);
+			#endif
+
+			#ifdef OS_IS_WINDOWS
+				EnterCriticalSection (&put->cl.cs);
+			#else
+				pthread_mutex_lock (&put->cl.mt);
+			#endif
+			cunilogSetDebugQueueLocked (put);
+		}
 	}
 #else
 	#define EnterCUNILOG_LOCKER(x)
@@ -591,25 +594,31 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 		static inline void LeaveCUNILOG_LOCKER (CUNILOG_TARGET *put)
 		{
 			ubf_assert_non_NULL (put);
-			ubf_assert (needsOrHasLocker (put));
-			#ifdef DEBUG
-				ubf_assert_true (put->cl.bInitialised);
-			#endif
 
-			LeaveCriticalSection (&put->cl.cs);
-			cunilogClrDebugQueueLocked (put);
+			if (needsOrHasLocker (put))
+			{
+				#ifdef CUNILOG_BUILD_DEBUG_TEST_LOCKER
+					ubf_assert_true (put->cl.bInitialised);
+				#endif
+
+				LeaveCriticalSection (&put->cl.cs);
+				cunilogClrDebugQueueLocked (put);
+			}
 		}
 	#else
 		static inline void LeaveCUNILOG_LOCKER (CUNILOG_TARGET *put)
 		{
 			ubf_assert_non_NULL (put);
-			ubf_assert (needsOrHasLocker (put));
-			#ifdef DEBUG
-				ubf_assert_true (put->cl.bInitialised);
-			#endif
 
-			pthread_mutex_unlock (&put->cl.mt);
-			cunilogClrDebugQueueLocked (put);
+			if (needsOrHasLocker (put))
+			{
+				#ifdef CUNILOG_BUILD_DEBUG_TEST_LOCKER
+					ubf_assert_true (put->cl.bInitialised);
+				#endif
+
+				pthread_mutex_unlock (&put->cl.mt);
+				cunilogClrDebugQueueLocked (put);
+			}
 		}
 	#endif
 #else
@@ -634,13 +643,13 @@ void (*obtainTimeStampAsString []) (char *, UBF_TIMESTAMP) =
 	static inline void DoneCUNILOG_LOCKER (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
-		#ifdef DEBUG
+		#ifdef CUNILOG_BUILD_DEBUG_TEST_LOCKER
 			ubf_assert_true (put->cl.bInitialised);
 		#endif
 
 		if (needsOrHasLocker (put))
 			DestroyCriticalSection (put);
-		#ifdef DEBUG
+		#ifdef CUNILOG_BUILD_DEBUG_TEST_LOCKER
 			put->cl.bInitialised = false;
 		#endif
 	}
@@ -1077,15 +1086,19 @@ static inline void defaultProcessorParameters (CUNILOG_TARGET *put)
 		switch (cp->task)
 		{
 			case cunilogProcessRotateLogfiles:
+				prCurr = cp->pData;
 				if (hasDotNumberPostfix (put))
 				{	// For this rotator the trick with remembering how many files we've
 					//	had so far doesn't work. However, we need to sort the retrieved
 					//	files list with active dot number sorting.
 					cunilogTargetSetFSneedsSorting	(put);
-					cunilogTargetSetNumberSorting	(put);
 				} else
+				/*
+				if (hasLogPostfix (put))
+				{	// The current/active logfile for this rotator is also "<logfile>.log".
+				} else
+				*/
 				{
-					prCurr = cp->pData;
 					if (prPrev && CUNILOG_MAX_ROTATE_AUTO == prPrev->nMaxToRotate)
 						prPrev->nMaxToRotate = prCurr->nIgnore;
 					prPrev = prCurr;
@@ -1183,15 +1196,80 @@ static void prepareCUNILOG_TARGETinitFilenameBuffers (CUNILOG_TARGET *put, size_
 		cunilogTargetSetFileToRotateAllocatedFlag (put);
 }
 
+static inline void createSearchMaskForDotNumberPostfix (char *szWrite, CUNILOG_TARGET *put)
+{
+	memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
+	// Create the wildcard/search mask.
+	copySMEMBUF (&put->mbLogFileMask, &put->mbLogfileName);
+	// We go for "<logpath>/<appname>.log*". This needs to be tested on POSIX.
+	#ifdef PLATFORM_IS_POSIX
+		ubf_assert_msg (false, "File may not be correct for POSIX");
+	#endif
+	char *szAster =		put->mbLogFileMask.buf.pch
+					+	(szWrite - put->mbLogfileName.buf.pch)
+					+	lenCunilogLogFileNameExtension;
+	memcpy (szAster , "*", 2);
+}
+
+static inline void createSearchMaskForLogPostfix (char *szWrite, CUNILOG_TARGET *put)
+{
+	char *pMskWrite = put->mbLogFileMask.buf.pch;
+	memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
+	memcpy (pMskWrite, put->mbLogPath.buf.pch, put->lnLogPath);
+	pMskWrite += put->lnLogPath;
+	memcpy (pMskWrite, put->mbAppName.buf.pcc, put->lnAppName);
+	pMskWrite += put->lnAppName;
+	pMskWrite [0] = '_';
+	++ pMskWrite;
+	memcpy	(
+		pMskWrite,
+		postfixMaskFromLogPostfix (put->culogPostfix),
+		lenDateTimeStampFromPostfix (put->culogPostfix)
+	);
+	pMskWrite += lenDateTimeStampFromPostfix (put->culogPostfix);
+	memcpy (pMskWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
+}
+
+static inline void createSearchMaskForDatePostfix (char *szWrite, size_t lnRoomForStamp, CUNILOG_TARGET *put)
+{
+	#if defined (PLATFORM_IS_WINDOWS)
+
+		szWrite += lnRoomForStamp;
+		// Note that this memcpy () makes it NUL-terminated.
+		memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
+		// Create the wildcard/search mask.
+		copySMEMBUF (&put->mbLogFileMask, &put->mbLogfileName);
+		memcpy	(
+			put->mbLogFileMask.buf.pch + (put->szDateTimeStamp - put->mbLogfileName.buf.pcc),
+			postfixMaskFromLogPostfix (put->culogPostfix),
+			lenDateTimeStampFromPostfix (put->culogPostfix)
+				);
+
+	#elif defined (PLATFORM_IS_POSIX)
+		// The function ForEachPsxDirEntry () returns every file and doesn't support a search
+		//	mask. The callback function can use the szLogFileMask and its length to check if
+		//	the returned filename fits the mask.
+		put->szLogFileMask = put->mbLogFileMask.buf.pch + put->lnLogPath;
+		put->lnsLogFileMask = put->lnAppName
+			+ lenDateTimeStampFromPostfix (put->culogPostfix)
+			+ lenCunilogLogFileNameExtension
+			+ lnUnderscore;
+
+	#elif
+		#error Not supported
+	#endif
+}
+
 static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
-	size_t lnRoomForStamp	= lenDateTimeStampFromPostfix (put->culogPostfix);
-	size_t lnUnderscore;
-
+	size_t	lnRoomForStamp	= lenDateTimeStampFromPostfix (put->culogPostfix);
+	size_t	lnUnderscore;
+	bool	bHasLogOrNumberPostfix	= hasLogPostfix (put) || hasDotNumberPostfix (put);
+	
 	// The underscore that separates the appname from the timestamp.
-	if (hasLogPostfix (put) || hasDotNumberPostfix (put))
+	if (bHasLogOrNumberPostfix)
 		lnUnderscore = 0;
 	else
 		lnUnderscore = lnRoomForStamp ? 1 : 0;
@@ -1208,6 +1286,7 @@ static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
 	size_t idxStamp = lnTotal;
 	lnTotal += lnRoomForStamp
 				+ lenCunilogLogFileNameExtension
+				+ 1		// We need an underscore in case of cunilogPostfixLog... types.
 				+ 1;	// A terminating NUL character so that we can use the log file's
 						//	name directly in OS APIs.
 	prepareCUNILOG_TARGETinitFilenameBuffers (put, lnTotal);
@@ -1219,54 +1298,25 @@ static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
 		// Remember the position of the timestamp for quick and easy update.
 		put->szDateTimeStamp = put->mbLogfileName.buf.pch + idxStamp;
 
-		char *szWrite = put->mbLogfileName.buf.pch;
-		memcpy (szWrite, put->mbLogPath.buf.pch, put->lnLogPath);
-		szWrite += put->lnLogPath;
-		memcpy (szWrite, put->mbAppName.buf.pch, put->lnAppName);
-		szWrite += put->lnAppName;
+		char *pLogWrite = put->mbLogfileName.buf.pch;
+		memcpy (pLogWrite, put->mbLogPath.buf.pch, put->lnLogPath);
+		pLogWrite += put->lnLogPath;
+		memcpy (pLogWrite, put->mbAppName.buf.pch, put->lnAppName);
+		pLogWrite += put->lnAppName;
 
 		if (lnUnderscore)
 		{
-			szWrite [0] = '_';
-			szWrite += 1;
+			pLogWrite [0] = '_';
+			++ pLogWrite;
 		}
 
 		if (hasDotNumberPostfix (put))
-		{
-			memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
-			// Create the wildcard/search mask.
-			copySMEMBUF (&put->mbLogFileMask, &put->mbLogfileName);
-			// We go for "<logpath>/<appname>.log*". This needs to be tested on POSIX.
-			#ifdef PLATFORM_IS_POSIX
-				ubf_assert_msg (false, "File may not be correct for POSIX");
-			#endif
-			char *szAster =		put->mbLogFileMask.buf.pch
-							+	(szWrite - put->mbLogfileName.buf.pch)
-							+	lenCunilogLogFileNameExtension;
-			memcpy (szAster , "*", 2);
-		} else
-		{
-			szWrite += lnRoomForStamp;
-			// Note that this memcpy () makes it NUL-terminated.
-			memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
-			// Create the wildcard/search mask.
-			copySMEMBUF (&put->mbLogFileMask, &put->mbLogfileName);
-			memcpy	(
-				put->mbLogFileMask.buf.pch + (put->szDateTimeStamp - put->mbLogfileName.buf.pcc),
-				postfixMaskFromLogPostfix (put->culogPostfix),
-				lenDateTimeStampFromPostfix (put->culogPostfix)
-					);
-			#ifdef PLATFORM_IS_POSIX
-				// The function ForEachPsxDirEntry () returns every file and doesn't support a search
-				//	mask. The callback function can use the szLogFileMask and its length to check if
-				//	the returned filename fits the mask.
-				put->szLogFileMask	= put->mbLogFileMask.buf.pch + put->lnLogPath;
-				put->lnsLogFileMask	=		put->lnAppName
-										+	lenDateTimeStampFromPostfix (put->culogPostfix)
-										+	lenCunilogLogFileNameExtension
-										+	lnUnderscore;
-			#endif
-		}
+			createSearchMaskForDotNumberPostfix (pLogWrite, put);
+		else
+		if (hasLogPostfix (put))
+			createSearchMaskForLogPostfix (pLogWrite, put);
+		else
+			createSearchMaskForDatePostfix (pLogWrite, lnRoomForStamp, put);
 
 		// Create name of the found file.
 		copySMEMBUF (&put->mbFilToRotate, &put->mbLogPath);
@@ -3839,7 +3889,7 @@ static bool cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EV
 	return true;
 }
 
-static bool cunilogProcessFlushFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
+static bool cunilogProcessFlushLogFileFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
@@ -4032,10 +4082,10 @@ static inline char *findDotNumberPart (size_t *pln, CUNILOG_TARGET *put)
 }
 
 /*
-	Renames the file in our files list (FLS) to keep the files list in sync
+	Renames the DotNumberPostfix file in our files list (FLS) to keep the files list in sync
 	with the real directory on disk.
 */
-static inline void renameDotNumberInFLS (CUNILOG_TARGET *put, size_t nLen, size_t oLen)
+static inline void renameDotNumberPostfixInFLS (CUNILOG_TARGET *put, size_t nLen, size_t oLen)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL	(put->prargs);
@@ -4076,8 +4126,34 @@ static inline void renameDotNumberInFLS (CUNILOG_TARGET *put, size_t nLen, size_
 }
 
 /*
-	Checks if the current/active logfile has been renamed. If this is the case
-	the next rotator would have to read the directory listing from disk again,
+	Renames the LogPostfix file in our files list (FLS) to keep the files list in sync
+	with the real directory on disk.
+*/
+static inline void renameLogPostfixInFLS (CUNILOG_TARGET *put, const char *szNew, size_t lnNew)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL	(put->prargs);
+	ubf_assert_non_NULL	(szNew);
+	ubf_assert_non_0	(lnNew);
+	ubf_assert			(strlen (szNew) == lnNew);
+
+	CUNILOG_ROTATOR_ARGS	*prg	= put->prargs;
+	size_t					siz		= lnNew + 1;
+
+	put->fls.data [prg->idx].chFilename = GetAlignedMemFromSBULKMEMgrow (&put->sbm, siz);
+	if (put->fls.data [prg->idx].chFilename)
+	{
+		memcpy (put->fls.data [prg->idx].chFilename, szNew, siz);
+		put->fls.data [prg->idx].stFilename = siz;
+		return;
+	}
+	// Bulk memory allocation failed. There's not much we can do.
+	ubf_assert_msg (false, "Bulk memory allocation failed");
+	put->fls.data [prg->idx].stFilename = 0;
+}
+
+/*
+	The next rotator would have to read the directory listing from disk again,
 	but we may not have logfile.log again yet, if no event has been written to it,
 	which would mean the amount of files to ignore is one too high.
 
@@ -4089,8 +4165,11 @@ static inline void renameDotNumberInFLS (CUNILOG_TARGET *put, size_t nLen, size_
 	logfile.log		-> logfile.log.1
 	logfile.log.1	-> logfile.log.2
 
+	i == false	:	Insert at the beginning/top.
+	i == true	:	Push to the end.
+
 */
-static inline void cunilogPushIfActiveLogfile (bool bIsActiveLogfile, CUNILOG_TARGET *put)
+static inline void cunilogAddActiveLogfile (bool bIsActiveLogfile, bool i, CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
@@ -4104,11 +4183,85 @@ static inline void cunilogPushIfActiveLogfile (bool bIsActiveLogfile, CUNILOG_TA
 			memcpy (currFls.chFilename, put->mbAppName.buf.pcc, put->lnAppName);
 			memcpy (currFls.chFilename + put->lnAppName, szCunilogLogFileNameExtension,
 						sizCunilogLogFileNameExtension);
-			if (0 == vec_insert (&put->fls, 0, currFls))
-				return;
+			if (i)
+			{
+				if (0 == vec_push (&put->fls, currFls))
+					return;
+			} else
+			{
+				if (0 == vec_insert (&put->fls, 0, currFls))
+					return;
+			}
 		}
 		SetCunilogSystemError (put, CUNILOG_ERROR_HEAP_ALLOCATION);
 	}
+}
+
+static inline bool prepareDotNumberPostfixFileToRename	(
+						CUNILOG_TARGET				*put,
+						size_t						*poldLength,
+						size_t						*pnewLength
+												)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL	(put->prargs);
+	ubf_assert_non_NULL	(put->prargs->cup);
+	ubf_assert_non_NULL (poldLength);
+	ubf_assert_non_NULL (pnewLength);
+	
+	CUNILOG_ROTATION_DATA	*prd = put->prargs->cup->pData;
+	bool					bIsActiveLogfile;
+
+	memcpy (prd->mbDstFile.buf.pch, put->mbFilToRotate.buf.pch, put->stFilToRotate);
+	size_t ln;
+	char *sz = findDotNumberPart (&ln, put);
+	//printf ("Dot number part: >%s<\n", sz);
+	// Either ".log.<number>" orr "g" from ".log".
+	ubf_assert ('.' == sz [0] || 'g' == sz [0]);
+	bIsActiveLogfile = 'g' == sz [0];
+	*poldLength = put->stFilToRotate - 1 - ln;
+	*pnewLength = incrementDotNumberName (sz);
+	return bIsActiveLogfile;
+}
+
+static inline bool prepareLogPostfixFileToRename	(
+						CUNILOG_TARGET				*put,
+						char						**pszNewFileName,
+						size_t						*poldLength,
+						size_t						*pnewLength
+													)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert_non_NULL	(put->prargs);
+	ubf_assert_non_NULL	(put->prargs->cup);
+	ubf_assert_non_NULL	(pszNewFileName);
+	ubf_assert_non_NULL (poldLength);
+	ubf_assert_non_NULL (pnewLength);
+	
+	CUNILOG_ROTATION_DATA	*prd = put->prargs->cup->pData;
+
+	ubf_assert	(put->prargs->siz == put->lnAppName + sizCunilogLogFileNameExtension);
+	ubf_assert	(!memcmp (put->prargs->nam, put->mbAppName.buf.pcc, put->lnAppName));
+	ubf_assert	(
+		!memcmp (put->prargs->nam + put->lnAppName,
+		szCunilogLogFileNameExtension,
+		lenCunilogLogFileNameExtension)
+				);
+	char *szWrite = prd->mbDstFile.buf.pch;
+	memcpy (szWrite, put->mbFilToRotate.buf.pcc, put->lnLogPath);
+	szWrite += put->lnLogPath;
+	memcpy (szWrite, put->mbAppName.buf.pcc, put->lnAppName);
+	*pszNewFileName = szWrite;
+	szWrite += put->lnAppName;
+	*szWrite ++ = '_';
+	obtainDateAndTimeStamp (szWrite, put->prargs->cup->cur, put->culogPostfix);
+	szWrite += lenDateTimeStampFromPostfix (put->culogPostfix);
+	memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
+	*pnewLength =		put->lnAppName
+				+	1								// Underscore '_'.
+				+	lenDateTimeStampFromPostfix (put->culogPostfix)
+				+	lenCunilogLogFileNameExtension;
+	return true;
 }
 
 static void cunilogRenameLogfile (CUNILOG_TARGET *put)
@@ -4120,38 +4273,44 @@ static void cunilogRenameLogfile (CUNILOG_TARGET *put)
 	ubf_assert			(isInitialisedSMEMBUF (&put->mbFilToRotate));
 	ubf_assert_non_0	(put->stFilToRotate);
 	ubf_assert_non_0	(1 < put->stFilToRotate);
-	
-	if (!hasDotNumberPostfix (put))
-		return;
+	ubf_assert			(hasDotNumberPostfix (put) || hasLogPostfix (put));
 
 	CUNILOG_ROTATION_DATA	*prd = put->prargs->cup->pData;
+	bool					bIsActiveLogfile;
+	size_t					oldLen			= 0;
+	size_t					newLen;
+	char					*szNewFileName		= NULL;
 
 	if (!cunilogHasRotatorFlag_USE_MBDSTFILE (prd))
-	{
+	{														// The + 1 is for an underscore.
 		initSMEMBUFtoSize	(
 			&prd->mbDstFile,
-			put->stFilToRotate + lenDateTimeStampFromPostfix (put->culogPostfix)
+			put->stFilToRotate + lenDateTimeStampFromPostfix (put->culogPostfix) + 1
 							);
 		cunilogSetRotatorFlag_USE_MBDSTFILE (prd);
 	}
 	growToSizeSMEMBUF	(
 		&prd->mbDstFile,
-		put->stFilToRotate + lenDateTimeStampFromPostfix (put->culogPostfix)
+		put->stFilToRotate + lenDateTimeStampFromPostfix (put->culogPostfix) + 1
 						);
 	if (isUsableSMEMBUF (&prd->mbDstFile))
 	{
-		memcpy (prd->mbDstFile.buf.pch, put->mbFilToRotate.buf.pch, put->stFilToRotate);
-
-		size_t ln;
-		char *sz = findDotNumberPart (&ln, put);
-		//printf ("Dot number part: >%s<\n", sz);
-
-		// Either ".log.<number>" orr "g" from ".log".
-		ubf_assert ('.' == sz [0] || 'g' == sz [0]);
-		bool bIsActiveLogfile = 'g' == sz [0];
-
-		size_t oldLength = put->stFilToRotate - 1 - ln;
-		size_t newLength = incrementDotNumberName (sz);
+		if (hasDotNumberPostfix (put))
+		{
+			bIsActiveLogfile = prepareDotNumberPostfixFileToRename (put, &oldLen, &newLen);
+		} else
+		if (hasLogPostfix (put))
+		{
+			// We only have to deal with the current/active logfile here. All other file names
+			//	stay the same throughout their existence.
+			if (put->prargs->siz != put->lnAppName + sizCunilogLogFileNameExtension)
+				return;
+			bIsActiveLogfile = prepareLogPostfixFileToRename (put, &szNewFileName, &oldLen, &newLen);
+		} else
+		{
+			ubf_assert_msg (false, "Bug!");
+			return;
+		}
 
 		bool bMoved;
 
@@ -4159,24 +4318,29 @@ static void cunilogRenameLogfile (CUNILOG_TARGET *put)
 			if (bIsActiveLogfile)
 				cunilogCloseCUNILOG_LOGFILEifOpen (put);
 			bMoved = MoveFileU8long (put->mbFilToRotate.buf.pch, prd->mbDstFile.buf.pcc);
-			if (bIsActiveLogfile)
+			if (bIsActiveLogfile && requiresOpenLogFile (put))
 			{
-				if (requiresOpenLogFile (put))
+				if (!cunilogOpenLogFile (put))
 				{
-					if (!cunilogOpenLogFile (put))
-					{
-						SetCunilogSystemError (put, CUNILOG_ERROR_OPENING_LOGFILE);
-						cunilogSetTargetErrorAndInvokeErrorCallback	(
-							CUNILOG_ERROR_OPENING_LOGFILE,
-							put->prargs->cup, put->prargs->pev
-																	);
-					}
+					SetCunilogSystemError (put, CUNILOG_ERROR_OPENING_LOGFILE);
+					cunilogSetTargetErrorAndInvokeErrorCallback	(
+						CUNILOG_ERROR_OPENING_LOGFILE,
+						put->prargs->cup, put->prargs->pev
+																);
 				}
 			}
 			if (bMoved)
 			{
-				renameDotNumberInFLS (put, newLength, oldLength);
-				cunilogPushIfActiveLogfile (bIsActiveLogfile, put);
+				if (hasDotNumberPostfix (put))
+				{
+					renameDotNumberPostfixInFLS (put, newLen, oldLen);
+					cunilogAddActiveLogfile (bIsActiveLogfile, false, put);
+				} else
+				if (hasLogPostfix (put))
+				{
+					renameLogPostfixInFLS (put, szNewFileName, newLen);
+					cunilogAddActiveLogfile (bIsActiveLogfile, true, put);
+				}
 				logFromInsideRotatorTextU8fmt	(
 					put, "File \"%s\" moved/renamed to \"%s\".",
 					put->mbFilToRotate.buf.pcc,
@@ -4250,6 +4414,9 @@ static void cunilogFileSystemCompressLogfile (CUNILOG_TARGET *put)
 	static void MoveFileToRecycleBinWin (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
+		ubf_assert_non_NULL	(put->prargs);
+		ubf_assert_non_NULL	(put->prargs->cup);
+		ubf_assert_non_NULL	(put->prargs->cup->pData);
 
 		logFromInsideRotatorTextU8fmt	(
 			put, "Moving obsolete logfile \"%s\" to recycle bin...", put->mbFilToRotate.buf.pcc
@@ -4260,6 +4427,7 @@ static void cunilogFileSystemCompressLogfile (CUNILOG_TARGET *put)
 			logFromInsideRotatorTextU8fmt	(
 				put, "Obsolete logfile \"%s\" moved to recycle bin.", put->mbFilToRotate.buf.pcc
 											);
+			vec_splice (&put->fls, put->prargs->idx, 1);
 		} else
 		{
 			char szErr [CUNILOG_STD_MSG_SIZE];
@@ -4279,11 +4447,15 @@ static void cunilogFileSystemCompressLogfile (CUNILOG_TARGET *put)
 	static void MoveFileToRecycleBinMac (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
+		ubf_assert_non_NULL	(put->prargs);
+		ubf_assert_non_NULL	(put->prargs->cup);
+		ubf_assert_non_NULL	(put->prargs->cup->pData);
 
 		logFromInsideRotatorTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pcc);
 		if (LIBTRASHCAN_SUCCESS == trashcan_soft_delete_apple (put->mbFilToRotate.buf.pcc))
 		{
 			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pcc);
+			vec_splice (&put->fls, put->prargs->idx, 1);
 		} else
 		{
 			logFromInsideRotatorTextU8fmt (put, "Error while attempting to move obsolete logfile \"%s\" to recycle bin.\n", put->mbFilToRotate.buf.pcc);
@@ -4295,12 +4467,16 @@ static void cunilogFileSystemCompressLogfile (CUNILOG_TARGET *put)
 	static void MoveFileToRecycleBinLnx (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
+		ubf_assert_non_NULL	(put->prargs);
+		ubf_assert_non_NULL	(put->prargs->cup);
+		ubf_assert_non_NULL	(put->prargs->cup->pData);
 
 		logFromInsideRotatorTextU8fmt (put, "Moving obsolete logfile \"%s\" to recycle bin...\n", put->mbFilToRotate.buf.pcc);
 		bool b = MoveFileToTrashPOSIX (put->mbFilToRotate.buf.pcc);
 		if (b)
 		{
 			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" moved to recycle bin.\n", put->mbFilToRotate.buf.pcc);
+			vec_splice (&put->fls, put->prargs->idx, 1);
 		} else
 		{
 			char szErr [CUNILOG_STD_MSG_SIZE];
@@ -4337,12 +4513,16 @@ static inline void cunilogMoveFileToRecycleBin (CUNILOG_TARGET *put)
 	static void cunilogDeleteObsoleteLogfile (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
+		ubf_assert_non_NULL	(put->prargs);
+		ubf_assert_non_NULL	(put->prargs->cup);
+		ubf_assert_non_NULL	(put->prargs->cup->pData);
 	
 		logFromInsideRotatorTextU8fmt (put, "Deleting obsolete logfile \"%s\"...\n", put->mbFilToRotate.buf.pch);
 		bool b = DeleteFileU8 (put->mbFilToRotate.buf.pch);
 		if (b)
 		{
 			logFromInsideRotatorTextU8fmt (put, "Obsolete logfile \"%s\" deleted.\n", put->mbFilToRotate.buf.pch);
+			vec_splice (&put->fls, put->prargs->idx, 1);
 		} else
 		{
 			char szErr [CUNILOG_STD_MSG_SIZE];
@@ -4356,6 +4536,9 @@ static inline void cunilogMoveFileToRecycleBin (CUNILOG_TARGET *put)
 	static void DeleteObsoleteLogfile (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
+		ubf_assert_non_NULL	(put->prargs);
+		ubf_assert_non_NULL	(put->prargs->cup);
+		ubf_assert_non_NULL	(put->prargs->cup->pData);
 	
 		logFromInsideRotatorTextU8fmt (put, "Deleting obsolete logfile \"%s\"...\n", put->mbFilToRotate.buf.pch);
 		int i = unlink (put->mbFilToRotate.buf.pch);
@@ -4369,7 +4552,7 @@ static inline void cunilogMoveFileToRecycleBin (CUNILOG_TARGET *put)
 	}
 #endif
 
-#ifdef DEBUG
+#ifdef CUNILOG_BUILD_DEBUG_OUTPUT_FILES_LIST
 	static void DebugOutputFilesList (const char *szText, vec_cunilog_fls *pvec)
 	{
 		ubf_assert_non_NULL (pvec);
@@ -4389,10 +4572,10 @@ static inline void cunilogMoveFileToRecycleBin (CUNILOG_TARGET *put)
 		puts ("");
 	}
 #else
-	#define DebugOutputFilesList(t, c, p)
+	#define DebugOutputFilesList(text, pvec)
 #endif
 
-static void performActualRotation (CUNILOG_ROTATOR_ARGS *prg)
+static inline void performActualRotation (CUNILOG_ROTATOR_ARGS *prg)
 {
 	ubf_assert_non_NULL (prg);
 
@@ -4535,7 +4718,7 @@ static inline bool needReverseFLS (CUNILOG_TARGET *put, CUNILOG_PROCESSOR *cup)
 	CUNILOG_ROTATION_DATA	*prd = cup->pData;
 	
 	bool bRet;
-	bRet = cunilogTargetHasNumberSorting (put) && cunilogrotationtask_RenameLogfiles != prd->tsk;
+	bRet = hasDotNumberPostfix (put) && cunilogrotationtask_RenameLogfiles != prd->tsk;
 	return bRet;
 }
 
@@ -4570,7 +4753,7 @@ static inline void sortLogfilesList (CUNILOG_TARGET *put, CUNILOG_PROCESSOR *cup
 	{
 		if (!cunilogTargetHasFLSisSorted (put))
 		{
-			if (cunilogTargetHasNumberSorting (put))
+			if (hasDotNumberPostfix (put))
 				vec_sort (&put->fls, flscmp_dotnum);
 			else
 				vec_sort (&put->fls, flscmp_default);
@@ -4621,19 +4804,29 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 
 
 	//DebugOutputFilesList ("List in", cup, pev);
-
 	sortLogfilesList (put, cup);
 
 	uint64_t nToIgnore = prd->nIgnore + put->scuNPI.nIgnoredTotal;
-	uint64_t nMaxToRot =		CUNILOG_MAX_ROTATE_AUTO - nToIgnore <= prd->nMaxToRotate
-							?	prd->nMaxToRotate
-							:	nToIgnore + prd->nMaxToRotate;
-	
+	uint64_t nMaxToRot;
+
+	if (cunilogrotationtask_RenameLogfiles == prd->tsk && hasLogPostfix (put))
+	{	// This should all have been taken care of before we're called.
+		ubf_assert (cunilogProcessRotateLogfiles == cup->task);
+		ubf_assert (hasLogPostfix (put));
+
+		nMaxToRot = 1;										// Only "<appname>.log" needs rotation.
+	} else
+	{
+		nMaxToRot =	CUNILOG_MAX_ROTATE_AUTO - nToIgnore <= prd->nMaxToRotate
+					?	prd->nMaxToRotate
+					:	nToIgnore + prd->nMaxToRotate;
+	}
 	DebugOutputFilesList ("List out", &put->fls);
 
 	size_t iFiles = put->fls.length;
 	while (iFiles --)
 	{
+		ubf_assert (iFiles < put->fls.length);
 		//puts (put->fls.data [iFiles].chFilename);
 		++ prd->nCnt;
 		if (prd->nCnt > nToIgnore)
@@ -4653,13 +4846,13 @@ static void prapareLogfilesListAndRotate (CUNILOG_ROTATOR_ARGS *prg)
 				prg->idx = iFiles;
 				performActualRotation (prg);
 			} else
-				return;
+				break;
 		} else
 		{	// This tells the next rotation processor how many we've ignored already.
 			++ put->scuNPI.nIgnoredTotal;
 		}
 	}
-	//DebugOutputFilesList ("List out", &put->fls);
+	DebugOutputFilesList ("List out", &put->fls);
 }
 
 /*
@@ -4803,6 +4996,13 @@ static inline void obtainLogfilesListToRotate (CUNILOG_TARGET *put)
 		#elif defined (PLATFORM_IS_POSIX)
 			obtainLogfilesListToRotatePsx (put);
 		#endif
+		if (hasLogPostfix (put))
+		{	// Our current logfile is missing because the search mask wouldn't
+			//	pick it up. For hasDotNumberPostfix () the current logfile is
+			//	included, as well as for all other postfixes.
+			cunilogAddActiveLogfile (true, true, put);
+			//DebugOutputFilesList ("obtain", &put->fls);
+		}
 		cunilogTargetClrFLSreversed (put);
 	}
 }
@@ -4838,14 +5038,14 @@ static bool cunilogProcessRotateLogfilesFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EV
 	cunilogTestErrorCB (CUNILOG_ERROR_TEST_BEFORE_ROTATOR, cup, pev);
 
 	obtainLogfilesListToRotate		(put);
-	//DebugOutputFilesList ("cunilogProcessRotateLogfilesFnct", cup, pev);
+	//DebugOutputFilesList ("cunilogProcessRotateLogfilesFnct", &put->fls);
 
 	switch (prd->tsk)
 	{
 		case cunilogrotationtask_None:
 			break;
 		case cunilogrotationtask_RenameLogfiles:
-			if (!hasDotNumberPostfix (put))
+			if (!hasDotNumberPostfix (put) && !hasLogPostfix (put))
 				break;
 		case cunilogrotationtask_FScompressLogfiles:
 		case cunilogrotationtask_MoveToRecycleBinLogfiles:
@@ -5298,7 +5498,7 @@ static bool (*pickAndRunProcessor [cunilogProcessXAmountEnumValues]) (CUNILOG_PR
 	/* cunilogProcessEchoToConsole		*/	,	cunilogProcessEchoFnct
 	/* cunilogProcessUpdateLogFileName	*/	,	cunilogProcessUpdateLogFileNameFnct
 	/* cunilogProcessWriteToLogFile		*/	,	cunilogProcessWriteToLogFileFnct
-	/* cunilogProcessFlush				*/	,	cunilogProcessFlushFnct
+	/* cunilogProcessFlush				*/	,	cunilogProcessFlushLogFileFnct
 	/* cunilogProcessRotateLogfiles		*/	,	cunilogProcessRotateLogfilesFnct
 	/* cunilogProcessCustomProcessor	*/	,	cunilogProcessCustomProcessorFnct
 	/* cunilogProcessTargetRedirector	*/	,	cunilogProcessTargetRedirectorFnct
@@ -5651,7 +5851,8 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 		put->nPausedEvents = 0;
 		LeaveCUNILOG_LOCKER (put);
 
-		triggerCUNILOG_EVENTloggingThread (put, n);
+		if (needsOrHasLocker (put))
+			triggerCUNILOG_EVENTloggingThread (put, n);
 		return n;
 	}
 #endif
