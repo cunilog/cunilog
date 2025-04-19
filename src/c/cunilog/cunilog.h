@@ -1125,7 +1125,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETeventStampFormat)
 		(CUNILOG_TARGET *put, enum cunilogeventTSformat tsf);
 #else
-	#define ConfigCUNILOG_TARGETcunilogpostfix(put, f)	\
+	#define ConfigCUNILOG_TARGETeventStampFormat(put, f)	\
 				(put)->unilogEvtTSformat = (f)
 #endif
 

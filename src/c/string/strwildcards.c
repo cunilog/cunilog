@@ -317,13 +317,16 @@ static inline bool globMatchInt	(
 		++ s;
 		++ g;
 	}
+	// "a" against "a*" or "a********".
+	while (g < *lnGlob && '*' == ccGlob [g])
+		++ g;
 	return s - *lnStri == g - *lnGlob;
 }
 
 DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
 DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
-bool globMatch	(
+bool matchWildcardPattern	(
 		const char		*ccStri,	size_t lnStri,
 		const char		*ccGlob,	size_t lnGlob
 				)
@@ -350,74 +353,76 @@ bool globMatch	(
 			stand alone (as in "?"). See C99 standard, 6.4.4.4 and 6.4.5.
 			Some of the tests below escape it, others don't.
 		*/
-		ubf_expect_bool_AND (b, true	== globMatch ("a", 0, "b", 0));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 0, "b", 0));
-		ubf_expect_bool_AND (b, true	== globMatch ("a", 1, "b", 0));
-		ubf_expect_bool_AND (b, false	== globMatch ("a", 1, "b", 1));
-		ubf_expect_bool_AND (b, true	== globMatch ("a", 1, "a", 1));
-		ubf_expect_bool_AND (b, true	== globMatch ("a/b/c", USE_STRLEN, "\?/\?/\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 3, "a*", 2));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 3, "*bc", 3));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 3, "a*c", 3));
-		ubf_expect_bool_AND (b, false	== globMatch ("abc", 3, "a*d", 3));
-		ubf_expect_bool_AND (b, false	== globMatch ("abc", 3, "d*d", 3));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 3, "*", 1));
-		ubf_expect_bool_AND (b, false	== globMatch ("abc", 3, "d", 1));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 3, "*x", 1));
-		ubf_expect_bool_AND (b, false	== globMatch ("abc", 3, "*x", 2));
-		ubf_expect_bool_AND (b, true	== globMatch ("a/b/c", USE_STRLEN, "*\\*\\*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("a/b/c", USE_STRLEN, "*\\b\\c", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("a/b/c", USE_STRLEN, "*\\d\\e", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("a/b/c", USE_STRLEN, "a\\b\\e", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("a/b/c", USE_STRLEN, "a\\b\\c", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("a/b/c", USE_STRLEN, "a\\*\\*", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("a/b/c", USE_STRLEN, "a\\*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("abcdef", USE_STRLEN, "a\?c*f", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("abcdef", USE_STRLEN, "a\?c*fx", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("0123456789", USE_STRLEN, "0123456789", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("0123456789", USE_STRLEN, "0123\?56789", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("0123\0""456789", 11, "0123\0""\?56789", 11));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home/user", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home/use\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home/us\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home/u\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home/\?\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home\?\?\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/hom\?\?\?\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/h*/user", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/user", USE_STRLEN, "/h*/usxr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/*/us*r", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/user", USE_STRLEN, "/*/us*x", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/user", USE_STRLEN, "/*/us*\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/*/us**", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/**", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/***", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/****", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/*****", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/*/\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"/*\?usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/usr", USE_STRLEN,	"/*\?/usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"/*\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"/*?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"\?*\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"\?*\?\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"\\*\\\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"/?\?\?\?/?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"?home?usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"?h*m*?u*r", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/usr", USE_STRLEN, "/**x", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/**sr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/**r", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/**usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/***r", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/****r", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/*****r", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/usr", USE_STRLEN, "/*****b", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/usr", USE_STRLEN, "/*********************b", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/*********************r", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/usr", USE_STRLEN, "/**?", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/", USE_STRLEN, "/*?", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/", USE_STRLEN, "/**?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "a*", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "*a", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 0, "b", 0));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 0, "b", 0));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "b", 0));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("a", 1, "b", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "a", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a/b/c", USE_STRLEN, "\?/\?/\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 3, "a*", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 3, "*bc", 3));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 3, "a*c", 3));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("abc", 3, "a*d", 3));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("abc", 3, "d*d", 3));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 3, "*", 1));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("abc", 3, "d", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 3, "*x", 1));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("abc", 3, "*x", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a/b/c", USE_STRLEN, "*\\*\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a/b/c", USE_STRLEN, "*\\b\\c", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("a/b/c", USE_STRLEN, "*\\d\\e", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("a/b/c", USE_STRLEN, "a\\b\\e", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a/b/c", USE_STRLEN, "a\\b\\c", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a/b/c", USE_STRLEN, "a\\*\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("a/b/c", USE_STRLEN, "a\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abcdef", USE_STRLEN, "a\?c*f", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("abcdef", USE_STRLEN, "a\?c*fx", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("0123456789", USE_STRLEN, "0123456789", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("0123456789", USE_STRLEN, "0123\?56789", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("0123\0""456789", 11, "0123\0""\?56789", 11));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home/user", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home/use\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home/us\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home/u\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home/\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home\?\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/hom\?\?\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/h*/user", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/user", USE_STRLEN, "/h*/usxr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/us*r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/us*x", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/us*\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/us**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/***", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/****", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*****", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?/usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\?*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\?*\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\\*\\\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/?\?\?\?/?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"?home?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"?h*m*?u*r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**x", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**sr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/***r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/****r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*****r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*****b", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*********************b", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*********************r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**?", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/", USE_STRLEN, "/*?", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/", USE_STRLEN, "/**?", USE_STRLEN));
 
 		return b;
 	}

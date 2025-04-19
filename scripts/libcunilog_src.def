@@ -30,7 +30,7 @@ EXPORTS
 	InitCUNILOG_TARGETstatic						@nnn
 	GetAbsoluteLogPathCUNILOG_TARGET				@nnn
 	GetAbsoluteLogPathCUNILOG_TARGET_static			@nnn
-	ConfigCUNILOG_TARGETcunilogpostfix				@nnn
+	ConfigCUNILOG_TARGETeventStampFormat			@nnn
 	ConfigCUNILOG_TARGETrunProcessorsOnStartup		@nnn
 	ConfigCUNILOG_TARGETcunilognewline				@nnn
 	ConfigCUNILOG_TARGETeventSeverityFormatType		@nnn

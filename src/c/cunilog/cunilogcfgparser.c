@@ -51,11 +51,13 @@ When		Who				What
 	#include "cunilogcfgparser.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./unref.h"
 		#include "./ubfdebug.h"
 		#include "./memstrstr.h"
 		#include "./ubfmem.h"
 		#include "./strnewline.h"
 	#else
+		#include "./../pre/unref.h"
 		#include "./../dbg/ubfdebug.h"
 		#include "./../mem/memstrstr.h"
 		#include "./../mem/ubfmem.h"
@@ -194,6 +196,9 @@ char *usableString (SCUNILOGCFGNODE *pn, CUNILOGCFGPARSERSTATUS *ps, CUNILOGCFGE
 	ubf_assert_non_NULL (pn);
 	ubf_assert_non_NULL (ps);
 
+	UNUSED (pErr);
+	UNUSED (pn);
+
 	char *sret	= NULL;
 
 	if (ps->szCfg)
@@ -257,6 +262,9 @@ static void rememberEnclosing (CUNILOGCFGPARSERSTATUS *ps)
 size_t lenUsableString (SCUNILOGCFGNODE *pn, CUNILOGCFGPARSERSTATUS *ps, CUNILOGCFGERR *pErr)
 {
 	ubf_assert_non_NULL (ps);
+
+	UNUSED (pn);
+	UNUSED (pErr);
 
 	size_t		r		= 0;
 	bool		bQuote	= '\''	== ps->litChr || '"' == ps->litChr;

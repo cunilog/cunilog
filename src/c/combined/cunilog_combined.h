@@ -2294,7 +2294,7 @@ TYPEDEF_FNCT_PTR_ARGS (char *, AllocU8_from_WinU16, const WCHAR *wc16);
 	https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfilew
 	for more information on this API.
 	
-	The parameter wcFileName is expected to contain a filename as valid by the member
+	The parameter wcFileName is expected to contain a valid filename for the member
 	cFileName of a WIN32_FIND_DATAW structure. See
 	https://docs.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-win32_find_dataw
 	for more information on this structure.
@@ -5278,6 +5278,10 @@ EXTERN_C_BEGIN
 	#error This module requires HAVE_STRWILDCARDS to be defined and strwildcards.c/h
 #endif
 
+#ifndef WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD
+#define WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD		(256)
+#endif
+
 /*
 	Parameter u of the function ReadDirectoryEntriesSDIRW_WU8 ().
 */
@@ -5333,6 +5337,11 @@ typedef struct srdirOneEntryStruct
 	WIN32_FIND_DATAW		*pwfd;
 	void					*pCustom;
 	enum enrdirentssdirw	u;
+
+	// The filename alone converted to UTF-8. Not all functions set these members.
+	//	The function ForEachDirectoryEntryMaskU8 () sets both members.
+	char					*szFileNameU8;
+	size_t					stFileNameU8;
 } SRDIRONEENTRYSTRUCT;
 
 /*
@@ -5511,7 +5520,9 @@ typedef bool (*pForEachDirEntryU8) (SRDIRONEENTRYSTRUCT *psdE);
 	internal heap allocations while ForEachDirectoryEntryU8 () does not, which makes
 	ForEachDirectoryEntryU8_Ex () slightly faster when a directory contains many subfolders.
 
-	strPathU8			The path as a UTF-8 string.
+	strPathU8			The path as a UTF-8 string. This parameter is passed on to
+						the Windows API FindFirstFileW () as parameter lpFileName and can
+						contain wildcard characters.
 	fedEnt				Pointer to the callback function. The function is called
 						for each found entry.
 	pCustom				Pointer to custom data that is passed on to the callback
@@ -5583,6 +5594,41 @@ uint64_t ForEachDirectoryEntryU8	(
 				void					*pCustom,
 				unsigned int			*pnSubLevels
 									)
+;
+
+/*
+	ForEachDirectoryEntryMaskU8
+
+	This function exists to provide better compatibilibty between Windows and POSIX.
+	It does not return subfolders.
+
+	strFolderU8			The folder for which the function is to retrieve the directory
+						listing. The folder name may end with a forward or backslash.
+	lenFolderU8			The length of strFolderU8, excluding a terminating NUL character.
+						This parameter can be USE_STRLEN, which causes the function to invoke
+						strlen () on strFolderU8 to obtain its length.
+	strFileMaskU8		The filename or mask for the files to call the callback function.
+						It can contain wildcard characters to match the files for whom
+						the callback function will be called.
+						This parameter can be NULL, in which case the function calls the
+						callback function on every single file found.
+	lenFileMaskU8		The length of strFileMask, excluding a terminating NUL character.
+						This parameter can be USE_STRLEN, which causes the function to invoke
+						strlen () on strFileMask to obtain its length.
+						The parameter is ignored if strFileMaskU8 is NULL.
+	fedEnt				Pointer to the callback function. The function is called
+						for each found entry.
+	pCustom				Pointer to custom data that is passed on to the callback
+						function.
+*/
+uint64_t ForEachDirectoryEntryMaskU8	(
+				const char				*strFolderU8,
+				size_t					lenFolderU8,
+				const char				*strFileMaskU8,
+				size_t					lenFileMaskU8,
+				pForEachDirEntryU8		fedEnt,
+				void					*pCustom
+										)
 ;
 
 EXTERN_C_END
@@ -16501,7 +16547,9 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 ;
 
 /*
-	globMatch
+	matchWildcardPattern
+
+	Note that the function has been renamed from globMatch () to matchWildcardPattern ().
 
 	The function compares ccStri with length lnStri against the glob pattern (a string
 	that can contain wildcard characters) ccGlob with length lnGlob. It is not a replacement
@@ -16535,7 +16583,8 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	- An asterisk ("*") matches zero or more octets but not path separators ("/" or "\").
 	- Two or more asterisks ("**", "***", "****", etc.) match zero or more octets including
 		path separators ("/" or "\").
-	- The path separators (forward and backward, "/" and "\") are treated as equal.
+	- The path separators (forward and backward, "/" and "\") are treated as equal and
+		therefore match each other.
 	- A question mark ("?") after two or more asterisks ("**", "***", "****", etc.) never
 		matches because the asterisks will have consumed the string entirely.
 	
@@ -16552,10 +16601,10 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 
 	See function strwildcards_test_function () for a more complete list of expectations.
 */
-bool globMatch	(
+bool matchWildcardPattern	(
 		const char		*ccStri,	size_t lnStri,
 		const char		*ccGlob,	size_t lnGlob
-				)
+							)
 ;
 
 /*
@@ -17981,15 +18030,9 @@ typedef struct CUNILOG_TARGET
 	SMEMBUF							mbLogfileName;			// Path and name of current log file.
 	char							*szDateTimeStamp;		// Points inside mbLogfileName.buf.pch.
 	char							cPrevDateTimeStamp [LEN_ISO8601DATEHOURANDMINUTE];
-	SMEMBUF							mbLogFileMask;			// The search mask for log files.
-	#ifdef PLATFORM_IS_POSIX
-		// Required for platforms that cannot return a directory listing with a search mask
-		//	but return every file instead. The callback function then compares each returned
-		//	filename with this mask/glob pattern.
-		char						*szLogFileMask;			// Points inside mbLogFileMask to the
-															//	application name plus stamp plus ".log".
-		size_t						lnsLogFileMask;			// Its length.
-	#endif
+	SMEMBUF							mbLogFileMask;			// The search mask for log files. It
+															//	does not include the path.
+	size_t							lnLogFileMask;			// Its length.
 	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
 	size_t							stFilToRotate;			// Its length including the NUL terminator.
 	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.
@@ -19985,7 +20028,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETeventStampFormat)
 		(CUNILOG_TARGET *put, enum cunilogeventTSformat tsf);
 #else
-	#define ConfigCUNILOG_TARGETcunilogpostfix(put, f)	\
+	#define ConfigCUNILOG_TARGETeventStampFormat(put, f)	\
 				(put)->unilogEvtTSformat = (f)
 #endif
 
@@ -20968,7 +21011,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion);
 #ifdef CUNILOG_BUILD_TEST_FNCTS
 	bool test_cunilog (void);
 #else
-	#define cunilog()
+	#define test_cunilog()	(true)
 #endif
 
 EXTERN_C_END

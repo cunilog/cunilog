@@ -9,7 +9,7 @@
 ;
 ;	Purpose:	Provides ordinals for functions and variables for Windows DLL.
 ;	OS:			Windows
-;	Created:	2025-04-07 13:48:28 (by script script CreateWindowsDLLDef)
+;	Created:	2025-04-19 17:41:10 (by script script CreateWindowsDLLDef)
 ;
 ;	License:	Public domain.
 ;
@@ -46,7 +46,7 @@ EXPORTS
 	InitCUNILOG_TARGETstatic						@116
 	GetAbsoluteLogPathCUNILOG_TARGET				@117
 	GetAbsoluteLogPathCUNILOG_TARGET_static			@118
-	ConfigCUNILOG_TARGETcunilogpostfix				@119
+	ConfigCUNILOG_TARGETeventStampFormat			@119
 	ConfigCUNILOG_TARGETrunProcessorsOnStartup		@120
 	ConfigCUNILOG_TARGETcunilognewline				@121
 	ConfigCUNILOG_TARGETeventSeverityFormatType		@122

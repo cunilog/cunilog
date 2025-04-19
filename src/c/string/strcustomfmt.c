@@ -284,6 +284,8 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 		ubf_assert_non_NULL (pCustFmtArg);
 		ubf_assert_non_NULL (pSSTRCUSTFMT);
 
+		UNUSED (len);
+
 		const char *ccCustomFormatArgumentExpanded = pCustFmtArg;
 		SSTRCUSTFMT *p = pSSTRCUSTFMT;
 		size_t size = *(size_t *)p->pCustom;

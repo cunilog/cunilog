@@ -112,7 +112,9 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 ;
 
 /*
-	globMatch
+	matchWildcardPattern
+
+	Note that the function has been renamed from globMatch () to matchWildcardPattern ().
 
 	The function compares ccStri with length lnStri against the glob pattern (a string
 	that can contain wildcard characters) ccGlob with length lnGlob. It is not a replacement
@@ -146,7 +148,8 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	- An asterisk ("*") matches zero or more octets but not path separators ("/" or "\").
 	- Two or more asterisks ("**", "***", "****", etc.) match zero or more octets including
 		path separators ("/" or "\").
-	- The path separators (forward and backward, "/" and "\") are treated as equal.
+	- The path separators (forward and backward, "/" and "\") are treated as equal and
+		therefore match each other.
 	- A question mark ("?") after two or more asterisks ("**", "***", "****", etc.) never
 		matches because the asterisks will have consumed the string entirely.
 	
@@ -163,10 +166,10 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 
 	See function strwildcards_test_function () for a more complete list of expectations.
 */
-bool globMatch	(
+bool matchWildcardPattern	(
 		const char		*ccStri,	size_t lnStri,
 		const char		*ccGlob,	size_t lnGlob
-				)
+							)
 ;
 
 /*

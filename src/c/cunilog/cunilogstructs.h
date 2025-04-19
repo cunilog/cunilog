@@ -944,15 +944,9 @@ typedef struct CUNILOG_TARGET
 	SMEMBUF							mbLogfileName;			// Path and name of current log file.
 	char							*szDateTimeStamp;		// Points inside mbLogfileName.buf.pch.
 	char							cPrevDateTimeStamp [LEN_ISO8601DATEHOURANDMINUTE];
-	SMEMBUF							mbLogFileMask;			// The search mask for log files.
-	#ifdef PLATFORM_IS_POSIX
-		// Required for platforms that cannot return a directory listing with a search mask
-		//	but return every file instead. The callback function then compares each returned
-		//	filename with this mask/glob pattern.
-		char						*szLogFileMask;			// Points inside mbLogFileMask to the
-															//	application name plus stamp plus ".log".
-		size_t						lnsLogFileMask;			// Its length.
-	#endif
+	SMEMBUF							mbLogFileMask;			// The search mask for log files. It
+															//	does not include the path.
+	size_t							lnLogFileMask;			// Its length.
 	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
 	size_t							stFilToRotate;			// Its length including the NUL terminator.
 	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.

@@ -3856,13 +3856,15 @@ When		Who				What
 	#include "./WinAPI_U8.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ubfdebug.h"
 		#include "./ubfmem.h"
 		#include "./strisdotordotdot.h"
-		#include "./ubfdebug.h"
+		#include "./strwildcards.h"
 	#else
+		#include "./../../dbg/ubfdebug.h"
 		#include "./../../mem/ubfmem.h"
 		#include "./../../string/strisdotordotdot.h"
-		#include "./../../dbg/ubfdebug.h"
+		#include "./../../string/strwildcards.h"
 	#endif
 
 #endif
@@ -4146,6 +4148,135 @@ uint64_t ForEachDirectoryEntryU8	(
 			}
 		}
 	} while (FindNextFileW (hFind, &wfdW) != 0);
+
+	// We want the caller to be able to obtain the last error produced by FindNextFileW ()
+	//	instead of FindClose ().
+	dwErrToReturn = GetLastError ();
+	FindClose (hFind);
+
+	SetLastError (dwErrToReturn);
+	return uiEnts;
+}
+
+static const char	ccCoverAllMask []	= "\\*";
+static size_t		stCoverAllMask		= sizeof (ccCoverAllMask);
+static size_t		lnCoverAllMask		= sizeof (ccCoverAllMask) - 1;
+
+static inline bool ForEachDirectoryEntryMaskU8cb	(
+						pForEachDirEntryU8				fedEnt,
+						const char						*strFileMask,
+						size_t							lenFileMask,
+						SRDIRONEENTRYSTRUCT				*psdE
+													)
+{
+	size_t stSiz = UTF8_from_WinU16 (psdE->szFileNameU8, UTF8_MAX_PATH, psdE->pwfd->cFileName);
+	if (stSiz)
+	{
+		bool bMatch = matchWildcardPattern	(
+						psdE->szFileNameU8,	stSiz - 1,
+						strFileMask,		lenFileMask
+											);
+		if (bMatch && fedEnt)
+		{
+			psdE->stFileNameU8 = stSiz;
+			if (!fedEnt (psdE))
+				return false;
+		}
+	} else
+		ubf_assert_msg (false, "Bug!");
+	return true;
+}
+
+uint64_t ForEachDirectoryEntryMaskU8	(
+				const char				*strFolderU8,
+				size_t					lenFolderU8,
+				const char				*strFileMaskU8,
+				size_t					lenFileMaskU8,
+				pForEachDirEntryU8		fedEnt,
+				void					*pCustom
+										)
+{
+	ubf_assert_non_NULL	(strFolderU8);
+	ubf_assert_non_0	(lenFolderU8);
+
+	char	chFolder [WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD];
+	char	*pchFolder;
+	size_t	lenFolder = USE_STRLEN == lenFolderU8 ? strlen (strFolderU8) : lenFolderU8;
+
+	if (!lenFolder)
+	{
+		SetLastError (ERROR_INVALID_PARAMETER);
+		return 0;
+	}
+
+	ubf_assert (strlen (strFolderU8) == lenFolder);
+	if (lenFolder + stCoverAllMask < WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD)
+		pchFolder = chFolder;
+	else
+		pchFolder = ubf_malloc (lenFolder + stCoverAllMask);
+
+	size_t				lenFileMask;
+
+	if (strFileMaskU8)
+	{
+		lenFileMask							= USE_STRLEN == lenFileMaskU8
+											? strlen (strFileMaskU8)
+											: lenFileMaskU8;
+	} else
+		lenFileMask							= 0;
+	ubf_assert (strlen (strFileMaskU8) == lenFileMask);
+
+	if (!pchFolder)
+	{
+		SetLastError (ERROR_NOT_ENOUGH_MEMORY);
+		return 0;
+	}
+
+	// Assemble the folder name.
+	memcpy (pchFolder, strFolderU8, lenFolder);
+	char *szMaskGoeshere = pchFolder + lenFolder - 1;
+	ubf_assert_non_0 (szMaskGoeshere [0]);
+	if ('/' == szMaskGoeshere [0] || '\\' == szMaskGoeshere [0])
+	{
+		memcpy (szMaskGoeshere, ccCoverAllMask, stCoverAllMask);
+	} else
+	{
+		++ szMaskGoeshere;
+		memcpy (szMaskGoeshere, ccCoverAllMask, stCoverAllMask);
+	}
+
+	HANDLE				hFind;
+	WIN32_FIND_DATAW	wfdW;
+	uint64_t			uiEnts				= 0;			// The return value.
+	SRDIRONEENTRYSTRUCT	sdOneEntry;
+	DWORD				dwErrToReturn;
+
+	sdOneEntry.UTF8orUTF16.pstrPathWorU8	= strFolderU8;
+	sdOneEntry.pwfd							= &wfdW;
+	sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
+	sdOneEntry.pCustom						= pCustom;
+	char szU8FileNameOnly [UTF8_MAX_PATH];
+	sdOneEntry.szFileNameU8					= szU8FileNameOnly;
+	sdOneEntry.stFileNameU8					= USE_STRLEN;
+
+	hFind = FindFirstFileU8 (pchFolder, &wfdW);
+	if (INVALID_HANDLE_VALUE == hFind)
+	{	// Maybe no files or whatever.
+		return uiEnts;
+	}
+	do
+	{
+		// Go through the folder and pick up each entry.
+		if (!isDotOrDotDotW (wfdW.cFileName))
+		{
+			++ uiEnts;
+			if (!ForEachDirectoryEntryMaskU8cb (fedEnt, strFileMaskU8, lenFileMask, &sdOneEntry))
+				break;
+		}
+	} while (FindNextFileW (hFind, &wfdW) != 0);
+
+	if (chFolder != pchFolder)
+		ubf_free (pchFolder);
 
 	// We want the caller to be able to obtain the last error produced by FindNextFileW ()
 	//	instead of FindClose ().
@@ -11808,6 +11939,8 @@ size_t strcustomfmtStoreDataCust (char *strBuf, size_t sizBuf, SSTRCUSTFMTBASE *
 		ubf_assert_non_NULL (pCustFmtArg);
 		ubf_assert_non_NULL (pSSTRCUSTFMT);
 
+		UNUSED (len);
+
 		const char *ccCustomFormatArgumentExpanded = pCustFmtArg;
 		SSTRCUSTFMT *p = pSSTRCUSTFMT;
 		size_t size = *(size_t *)p->pCustom;
@@ -16483,13 +16616,16 @@ static inline bool globMatchInt	(
 		++ s;
 		++ g;
 	}
+	// "a" against "a*" or "a********".
+	while (g < *lnGlob && '*' == ccGlob [g])
+		++ g;
 	return s - *lnStri == g - *lnGlob;
 }
 
 DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
 DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
-bool globMatch	(
+bool matchWildcardPattern	(
 		const char		*ccStri,	size_t lnStri,
 		const char		*ccGlob,	size_t lnGlob
 				)
@@ -16516,74 +16652,76 @@ bool globMatch	(
 			stand alone (as in "?"). See C99 standard, 6.4.4.4 and 6.4.5.
 			Some of the tests below escape it, others don't.
 		*/
-		ubf_expect_bool_AND (b, true	== globMatch ("a", 0, "b", 0));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 0, "b", 0));
-		ubf_expect_bool_AND (b, true	== globMatch ("a", 1, "b", 0));
-		ubf_expect_bool_AND (b, false	== globMatch ("a", 1, "b", 1));
-		ubf_expect_bool_AND (b, true	== globMatch ("a", 1, "a", 1));
-		ubf_expect_bool_AND (b, true	== globMatch ("a/b/c", USE_STRLEN, "\?/\?/\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 3, "a*", 2));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 3, "*bc", 3));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 3, "a*c", 3));
-		ubf_expect_bool_AND (b, false	== globMatch ("abc", 3, "a*d", 3));
-		ubf_expect_bool_AND (b, false	== globMatch ("abc", 3, "d*d", 3));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 3, "*", 1));
-		ubf_expect_bool_AND (b, false	== globMatch ("abc", 3, "d", 1));
-		ubf_expect_bool_AND (b, true	== globMatch ("abc", 3, "*x", 1));
-		ubf_expect_bool_AND (b, false	== globMatch ("abc", 3, "*x", 2));
-		ubf_expect_bool_AND (b, true	== globMatch ("a/b/c", USE_STRLEN, "*\\*\\*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("a/b/c", USE_STRLEN, "*\\b\\c", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("a/b/c", USE_STRLEN, "*\\d\\e", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("a/b/c", USE_STRLEN, "a\\b\\e", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("a/b/c", USE_STRLEN, "a\\b\\c", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("a/b/c", USE_STRLEN, "a\\*\\*", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("a/b/c", USE_STRLEN, "a\\*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("abcdef", USE_STRLEN, "a\?c*f", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("abcdef", USE_STRLEN, "a\?c*fx", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("0123456789", USE_STRLEN, "0123456789", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("0123456789", USE_STRLEN, "0123\?56789", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("0123\0""456789", 11, "0123\0""\?56789", 11));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home/user", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home/use\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home/us\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home/u\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home/\?\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/home\?\?\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/hom\?\?\?\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/h*/user", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/user", USE_STRLEN, "/h*/usxr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/*/us*r", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/user", USE_STRLEN, "/*/us*x", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/user", USE_STRLEN, "/*/us*\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/*/us**", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/**", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/***", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/****", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/*****", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/user", USE_STRLEN, "/*/\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"/*\?usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/usr", USE_STRLEN,	"/*\?/usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"/*\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"/*?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"\?*\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"\?*\?\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"\\*\\\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"/?\?\?\?/?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"?home?usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN,	"?h*m*?u*r", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/usr", USE_STRLEN, "/**x", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/**sr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/**r", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/**usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/***r", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/****r", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/*****r", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/usr", USE_STRLEN, "/*****b", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/usr", USE_STRLEN, "/*********************b", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== globMatch ("/home/usr", USE_STRLEN, "/*********************r", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/home/usr", USE_STRLEN, "/**?", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/", USE_STRLEN, "/*?", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== globMatch ("/", USE_STRLEN, "/**?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "a*", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "*a", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 0, "b", 0));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 0, "b", 0));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "b", 0));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("a", 1, "b", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "a", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a/b/c", USE_STRLEN, "\?/\?/\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 3, "a*", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 3, "*bc", 3));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 3, "a*c", 3));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("abc", 3, "a*d", 3));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("abc", 3, "d*d", 3));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 3, "*", 1));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("abc", 3, "d", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abc", 3, "*x", 1));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("abc", 3, "*x", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a/b/c", USE_STRLEN, "*\\*\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a/b/c", USE_STRLEN, "*\\b\\c", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("a/b/c", USE_STRLEN, "*\\d\\e", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("a/b/c", USE_STRLEN, "a\\b\\e", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a/b/c", USE_STRLEN, "a\\b\\c", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a/b/c", USE_STRLEN, "a\\*\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("a/b/c", USE_STRLEN, "a\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("abcdef", USE_STRLEN, "a\?c*f", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("abcdef", USE_STRLEN, "a\?c*fx", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("0123456789", USE_STRLEN, "0123456789", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("0123456789", USE_STRLEN, "0123\?56789", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("0123\0""456789", 11, "0123\0""\?56789", 11));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home/user", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home/use\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home/us\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home/u\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home/\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/home\?\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/hom\?\?\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/h*/user", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/user", USE_STRLEN, "/h*/usxr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/us*r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/us*x", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/us*\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/us**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/***", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/****", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*****", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?/usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\?*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\?*\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\\*\\\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/?\?\?\?/?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"?home?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"?h*m*?u*r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**x", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**sr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/***r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/****r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*****r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*****b", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*********************b", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*********************r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**?", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/", USE_STRLEN, "/*?", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/", USE_STRLEN, "/**?", USE_STRLEN));
 
 		return b;
 	}
@@ -18474,83 +18612,43 @@ static bool prepareProcessors (CUNILOG_TARGET *put, CUNILOG_PROCESSOR **cp, unsi
 	return true;
 }
 
-static void prepareCUNILOG_TARGETinitFilenameBuffers (CUNILOG_TARGET *put, size_t lnTotal)
+static inline void createLogfilesSearchMaskDotNumberPostfix (CUNILOG_TARGET *put)
 {
-	ubf_assert_non_NULL (put);
-
-	initSMEMBUFtoSize (&put->mbLogfileName, lnTotal);		// The actual log file.
-	if (isUsableSMEMBUF (&put->mbLogfileName))
-		cunilogTargetSetLogFileAllocatedFlag (put);
-	initSMEMBUFtoSize (&put->mbLogFileMask, lnTotal);		// Mask for logfile rotation.
-	if (isUsableSMEMBUF (&put->mbLogFileMask))
-		cunilogTargetSetLogFileMaskAllocatedFlag (put);
-	initSMEMBUFtoSize (&put->mbFilToRotate, lnTotal);
-	if (isUsableSMEMBUF (&put->mbFilToRotate))
-		cunilogTargetSetFileToRotateAllocatedFlag (put);
-}
-
-static inline void createSearchMaskForDotNumberPostfix (char *szWrite, CUNILOG_TARGET *put)
-{
-	memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
-	// Create the wildcard/search mask.
-	copySMEMBUF (&put->mbLogFileMask, &put->mbLogfileName);
-	// We go for "<logpath>/<appname>.log*". This needs to be tested on POSIX.
-	#ifdef PLATFORM_IS_POSIX
-		ubf_assert_msg (false, "File may not be correct for POSIX");
-	#endif
+	// We go for "<appname>.log*". This needs to be tested on POSIX.
+	memcpy (put->mbLogFileMask.buf.pch, put->mbAppName.buf.pcc, put->lnAppName);
+	memcpy	(
+		put->mbLogFileMask.buf.pch + put->lnAppName,
+		szCunilogLogFileNameExtension,
+		lenCunilogLogFileNameExtension
+			);
 	char *szAster =		put->mbLogFileMask.buf.pch
-					+	(szWrite - put->mbLogfileName.buf.pch)
+					+	put->lnAppName
 					+	lenCunilogLogFileNameExtension;
 	memcpy (szAster , "*", 2);
+	put->lnLogFileMask = put->lnAppName + lenCunilogLogFileNameExtension + 1;
+	ubf_assert (strlen (put->mbLogFileMask.buf.pcc) == put->lnLogFileMask);
 }
 
-static inline void createSearchMaskForLogPostfix (char *szWrite, CUNILOG_TARGET *put)
+static inline void createLogfilesSearchMask (CUNILOG_TARGET *put)
 {
-	char *pMskWrite = put->mbLogFileMask.buf.pch;
-	memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
-	memcpy (pMskWrite, put->mbLogPath.buf.pch, put->lnLogPath);
-	pMskWrite += put->lnLogPath;
-	memcpy (pMskWrite, put->mbAppName.buf.pcc, put->lnAppName);
-	pMskWrite += put->lnAppName;
-	pMskWrite [0] = '_';
-	++ pMskWrite;
+	// Create the wildcard/search mask.
+	memcpy (put->mbLogFileMask.buf.pch, put->mbAppName.buf.pcc, put->lnAppName);
+	put->mbLogFileMask.buf.pch [put->lnAppName] = '_';
 	memcpy	(
-		pMskWrite,
+		put->mbLogFileMask.buf.pch + put->lnAppName + 1,
 		postfixMaskFromLogPostfix (put->culogPostfix),
 		lenDateTimeStampFromPostfix (put->culogPostfix)
-	);
-	pMskWrite += lenDateTimeStampFromPostfix (put->culogPostfix);
-	memcpy (pMskWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
-}
-
-static inline void createSearchMaskForDatePostfix (char *szWrite, size_t lnRoomForStamp, CUNILOG_TARGET *put)
-{
-	#if defined (PLATFORM_IS_WINDOWS)
-
-		szWrite += lnRoomForStamp;
-		// Note that this memcpy () makes it NUL-terminated.
-		memcpy (szWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
-		// Create the wildcard/search mask.
-		copySMEMBUF (&put->mbLogFileMask, &put->mbLogfileName);
-		memcpy	(
-			put->mbLogFileMask.buf.pch + (put->szDateTimeStamp - put->mbLogfileName.buf.pcc),
-			postfixMaskFromLogPostfix (put->culogPostfix),
-			lenDateTimeStampFromPostfix (put->culogPostfix)
-				);
-
-	#elif defined (PLATFORM_IS_POSIX)
-		// The function ForEachPsxDirEntry () returns every file and doesn't support a search
-		//	mask. The callback function can use the szLogFileMask and its length to check if
-		//	the returned filename fits the mask.
-		put->szLogFileMask = put->mbLogFileMask.buf.pch + put->lnLogPath;
-		put->lnsLogFileMask = put->lnAppName
-			+ lenDateTimeStampFromPostfix (put->culogPostfix)
-			+ lenCunilogLogFileNameExtension
-			+ lnUnderscore;
-
-	#elif
-		#error Not supported
-	#endif
+			);
+	memcpy	(
+			put->mbLogFileMask.buf.pch
+		+	put->lnAppName + 1
+		+	lenDateTimeStampFromPostfix (put->culogPostfix),
+		szCunilogLogFileNameExtension,
+		sizCunilogLogFileNameExtension
+			);
+	put->lnLogFileMask	=	put->lnAppName + 1
+						+	lenDateTimeStampFromPostfix (put->culogPostfix)
+						+	lenCunilogLogFileNameExtension;
 }
 
 static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
@@ -18582,7 +18680,26 @@ static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
 				+ 1		// We need an underscore in case of cunilogPostfixLog... types.
 				+ 1;	// A terminating NUL character so that we can use the log file's
 						//	name directly in OS APIs.
-	prepareCUNILOG_TARGETinitFilenameBuffers (put, lnTotal);
+
+	initSMEMBUFtoSize (&put->mbLogfileName, lnTotal);
+	if (isUsableSMEMBUF (&put->mbLogfileName))
+		cunilogTargetSetLogFileAllocatedFlag (put);
+	initSMEMBUFtoSize (&put->mbFilToRotate, lnTotal);
+	if (isUsableSMEMBUF (&put->mbFilToRotate))
+		cunilogTargetSetFileToRotateAllocatedFlag (put);
+
+	size_t stRequiredForLogFileMask =	put->lnAppName
+									+	lnUnderscore
+									+	lnRoomForStamp
+									+	sizCunilogLogFileNameExtension;
+	// We also need an underscore in the search mask for LogPostfixes.
+	if (hasLogPostfix (put))
+		++ stRequiredForLogFileMask;
+
+	initSMEMBUFtoSize (&put->mbLogFileMask, stRequiredForLogFileMask);
+	if (isUsableSMEMBUF (&put->mbLogFileMask))
+		cunilogTargetSetLogFileMaskAllocatedFlag (put);
+
 	bool bUsablembs =		isUsableSMEMBUF (&put->mbLogfileName)
 						&&	isUsableSMEMBUF (&put->mbLogFileMask)
 						&&	isUsableSMEMBUF (&put->mbLogFileMask);
@@ -18604,12 +18721,16 @@ static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
 		}
 
 		if (hasDotNumberPostfix (put))
-			createSearchMaskForDotNumberPostfix (pLogWrite, put);
+			createLogfilesSearchMaskDotNumberPostfix (put);
 		else
 		if (hasLogPostfix (put))
-			createSearchMaskForLogPostfix (pLogWrite, put);
+			createLogfilesSearchMask (put);
 		else
-			createSearchMaskForDatePostfix (pLogWrite, lnRoomForStamp, put);
+		{
+			createLogfilesSearchMask (put);
+			pLogWrite += lenDateTimeStampFromPostfix (put->culogPostfix);
+		}
+		memcpy (pLogWrite, szCunilogLogFileNameExtension, sizCunilogLogFileNameExtension);
 
 		// Create name of the found file.
 		copySMEMBUF (&put->mbFilToRotate, &put->mbLogPath);
@@ -21531,6 +21652,8 @@ static inline bool prepareLogPostfixFileToRename	(
 	ubf_assert_non_NULL (poldLength);
 	ubf_assert_non_NULL (pnewLength);
 	
+	UNUSED (poldLength);
+
 	CUNILOG_ROTATION_DATA	*prd = put->prargs->cup->pData;
 
 	ubf_assert	(put->prargs->siz == put->lnAppName + sizCunilogLogFileNameExtension);
@@ -21854,9 +21977,9 @@ static inline void cunilogMoveFileToRecycleBin (CUNILOG_TARGET *put)
 		//	might be processed by a rotator.
 		size_t iFiles = 0;
 		if (szText)
-			printf ("\nDebugOutputFilesList (%s): %" PRId64 " file(s)\n", szText, pvec->length);
+			printf ("\nDebugOutputFilesList (%s): %zu file(s)\n", szText, pvec->length);
 		else
-			printf ("\nDebugOutputFilesList: %" PRId64 " file(s)\n", pvec->length);
+			printf ("\nDebugOutputFilesList: %zu file(s)\n", pvec->length);
 		while (iFiles < pvec->length)
 		{
 			puts (pvec->data [iFiles].chFilename);
@@ -22193,19 +22316,17 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 		CUNILOG_TARGET			*put = psdE->pCustom;
 		ubf_assert_non_NULL (put);
 
-		char	szU8FileNameOnly [UTF8_MAX_PATH];
-
 		CUNILOG_FLS	fls;
-		// Note that the return value of UTF8_from_WinU16 () already includes a NUL terminator.
-		fls.stFilename = UTF8_from_WinU16 (szU8FileNameOnly, UTF8_MAX_PATH, psdE->pwfd->cFileName);
-		fls.chFilename = szU8FileNameOnly;
+		fls.stFilename = psdE->stFileNameU8;
+		fls.chFilename = psdE->szFileNameU8;
 		if (hasDotNumberPostfix (put) && !endsLogFileNameWithDotNumber (&fls))
 			return true;
+
 		fls.chFilename = GetAlignedMemFromSBULKMEMgrow (&put->sbm, fls.stFilename);
 		ubf_assert_non_NULL (fls.chFilename);
 		if (fls.chFilename)
 		{
-			memcpy (fls.chFilename, szU8FileNameOnly, fls.stFilename);
+			memcpy (fls.chFilename, psdE->szFileNameU8, fls.stFilename);
 			if (0 == put->fls.capacity)
 			{
 				if (-1 == vec_reserve (&put->fls, CUNILOG_STD_VECT_EXP_SIZE))
@@ -22251,30 +22372,38 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 #if defined (PLATFORM_IS_WINDOWS)
 	static void obtainLogfilesListToRotateWin (CUNILOG_TARGET *put)
 	{
-		ubf_assert_non_NULL (put);
-
-		//logNoRotationTextU8fmt (put, "Test for the internal log output (Windows)");
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(strlen (put->mbLogPath.buf.pcc)		== put->lnLogPath);
+		ubf_assert			(strlen (put->mbLogFileMask.buf.pcc)	== put->lnLogFileMask);
 
 		uint64_t n;
+		/*
 		n = ForEachDirectoryEntryU8	(
 				put->mbLogFileMask.buf.pcc,					// Search mask.
 				obtainLogfilesListToRotateCallbackWin, put, NULL
 									);
-		UNREFERENCED_PARAMETER (n);
+		*/
+		n = ForEachDirectoryEntryMaskU8	(
+				put->mbLogPath.buf.pcc,			put->lnLogPath,
+				put->mbLogFileMask.buf.pcc,		put->lnLogFileMask,
+				obtainLogfilesListToRotateCallbackWin,
+				put
+										);
+		UNUSED (n);
 	}
 #elif defined (PLATFORM_IS_POSIX)
 	static void obtainLogfilesListToRotatePsx (CUNILOG_TARGET *put)
 	{
-		ubf_assert_non_NULL (put);
-
-		//logNoRotationTextU8fmt (put, "Test for the internal log output (POSIX)");
+		ubf_assert_non_NULL	(put);
+		ubf_assert			(strlen (put->mbLogPath.buf.pcc)		== put->lnLogPath);
+		ubf_assert			(strlen (put->mbLogFileMask.buf.pcc)	== put->lnLogFileMask);
 
 		uint64_t n;
 		n = ForEachPsxDirEntry	(
 				put->mbLogFold.buf.pcc,						// Directory name.
 				obtainLogfilesListToRotateCallbackPsx, put, NULL
 								);
-		UNREFERENCED_PARAMETER (n);
+		UNUSED (n);
 	}
 #endif
 
@@ -22331,7 +22460,7 @@ static bool cunilogProcessRotateLogfilesFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EV
 	cunilogTestErrorCB (CUNILOG_ERROR_TEST_BEFORE_ROTATOR, cup, pev);
 
 	obtainLogfilesListToRotate		(put);
-	//DebugOutputFilesList ("cunilogProcessRotateLogfilesFnct", &put->fls);
+	DebugOutputFilesList ("cunilogProcessRotateLogfilesFnct", &put->fls);
 
 	switch (prd->tsk)
 	{

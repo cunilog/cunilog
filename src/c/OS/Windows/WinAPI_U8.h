@@ -547,7 +547,7 @@ TYPEDEF_FNCT_PTR_ARGS (char *, AllocU8_from_WinU16, const WCHAR *wc16);
 	https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfilew
 	for more information on this API.
 	
-	The parameter wcFileName is expected to contain a filename as valid by the member
+	The parameter wcFileName is expected to contain a valid filename for the member
 	cFileName of a WIN32_FIND_DATAW structure. See
 	https://docs.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-win32_find_dataw
 	for more information on this structure.

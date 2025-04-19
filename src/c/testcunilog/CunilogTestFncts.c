@@ -342,6 +342,7 @@ errCBretval CunilogTestFnctErrCallback	(
 
 	CUNILOG_TARGET *put = pev->pCUNILOG_TARGET;
 	ubf_assert_non_NULL (put);
+	UNUSED (put);
 
 	if (1 == stTestState)
 	{

@@ -53,13 +53,15 @@ When		Who				What
 	#include "./WinAPI_U8.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ubfdebug.h"
 		#include "./ubfmem.h"
 		#include "./strisdotordotdot.h"
-		#include "./ubfdebug.h"
+		#include "./strwildcards.h"
 	#else
+		#include "./../../dbg/ubfdebug.h"
 		#include "./../../mem/ubfmem.h"
 		#include "./../../string/strisdotordotdot.h"
-		#include "./../../dbg/ubfdebug.h"
+		#include "./../../string/strwildcards.h"
 	#endif
 
 #endif
@@ -343,6 +345,135 @@ uint64_t ForEachDirectoryEntryU8	(
 			}
 		}
 	} while (FindNextFileW (hFind, &wfdW) != 0);
+
+	// We want the caller to be able to obtain the last error produced by FindNextFileW ()
+	//	instead of FindClose ().
+	dwErrToReturn = GetLastError ();
+	FindClose (hFind);
+
+	SetLastError (dwErrToReturn);
+	return uiEnts;
+}
+
+static const char	ccCoverAllMask []	= "\\*";
+static size_t		stCoverAllMask		= sizeof (ccCoverAllMask);
+static size_t		lnCoverAllMask		= sizeof (ccCoverAllMask) - 1;
+
+static inline bool ForEachDirectoryEntryMaskU8cb	(
+						pForEachDirEntryU8				fedEnt,
+						const char						*strFileMask,
+						size_t							lenFileMask,
+						SRDIRONEENTRYSTRUCT				*psdE
+													)
+{
+	size_t stSiz = UTF8_from_WinU16 (psdE->szFileNameU8, UTF8_MAX_PATH, psdE->pwfd->cFileName);
+	if (stSiz)
+	{
+		bool bMatch = matchWildcardPattern	(
+						psdE->szFileNameU8,	stSiz - 1,
+						strFileMask,		lenFileMask
+											);
+		if (bMatch && fedEnt)
+		{
+			psdE->stFileNameU8 = stSiz;
+			if (!fedEnt (psdE))
+				return false;
+		}
+	} else
+		ubf_assert_msg (false, "Bug!");
+	return true;
+}
+
+uint64_t ForEachDirectoryEntryMaskU8	(
+				const char				*strFolderU8,
+				size_t					lenFolderU8,
+				const char				*strFileMaskU8,
+				size_t					lenFileMaskU8,
+				pForEachDirEntryU8		fedEnt,
+				void					*pCustom
+										)
+{
+	ubf_assert_non_NULL	(strFolderU8);
+	ubf_assert_non_0	(lenFolderU8);
+
+	char	chFolder [WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD];
+	char	*pchFolder;
+	size_t	lenFolder = USE_STRLEN == lenFolderU8 ? strlen (strFolderU8) : lenFolderU8;
+
+	if (!lenFolder)
+	{
+		SetLastError (ERROR_INVALID_PARAMETER);
+		return 0;
+	}
+
+	ubf_assert (strlen (strFolderU8) == lenFolder);
+	if (lenFolder + stCoverAllMask < WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD)
+		pchFolder = chFolder;
+	else
+		pchFolder = ubf_malloc (lenFolder + stCoverAllMask);
+
+	size_t				lenFileMask;
+
+	if (strFileMaskU8)
+	{
+		lenFileMask							= USE_STRLEN == lenFileMaskU8
+											? strlen (strFileMaskU8)
+											: lenFileMaskU8;
+	} else
+		lenFileMask							= 0;
+	ubf_assert (strlen (strFileMaskU8) == lenFileMask);
+
+	if (!pchFolder)
+	{
+		SetLastError (ERROR_NOT_ENOUGH_MEMORY);
+		return 0;
+	}
+
+	// Assemble the folder name.
+	memcpy (pchFolder, strFolderU8, lenFolder);
+	char *szMaskGoeshere = pchFolder + lenFolder - 1;
+	ubf_assert_non_0 (szMaskGoeshere [0]);
+	if ('/' == szMaskGoeshere [0] || '\\' == szMaskGoeshere [0])
+	{
+		memcpy (szMaskGoeshere, ccCoverAllMask, stCoverAllMask);
+	} else
+	{
+		++ szMaskGoeshere;
+		memcpy (szMaskGoeshere, ccCoverAllMask, stCoverAllMask);
+	}
+
+	HANDLE				hFind;
+	WIN32_FIND_DATAW	wfdW;
+	uint64_t			uiEnts				= 0;			// The return value.
+	SRDIRONEENTRYSTRUCT	sdOneEntry;
+	DWORD				dwErrToReturn;
+
+	sdOneEntry.UTF8orUTF16.pstrPathWorU8	= strFolderU8;
+	sdOneEntry.pwfd							= &wfdW;
+	sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
+	sdOneEntry.pCustom						= pCustom;
+	char szU8FileNameOnly [UTF8_MAX_PATH];
+	sdOneEntry.szFileNameU8					= szU8FileNameOnly;
+	sdOneEntry.stFileNameU8					= USE_STRLEN;
+
+	hFind = FindFirstFileU8 (pchFolder, &wfdW);
+	if (INVALID_HANDLE_VALUE == hFind)
+	{	// Maybe no files or whatever.
+		return uiEnts;
+	}
+	do
+	{
+		// Go through the folder and pick up each entry.
+		if (!isDotOrDotDotW (wfdW.cFileName))
+		{
+			++ uiEnts;
+			if (!ForEachDirectoryEntryMaskU8cb (fedEnt, strFileMaskU8, lenFileMask, &sdOneEntry))
+				break;
+		}
+	} while (FindNextFileW (hFind, &wfdW) != 0);
+
+	if (chFolder != pchFolder)
+		ubf_free (pchFolder);
 
 	// We want the caller to be able to obtain the last error produced by FindNextFileW ()
 	//	instead of FindClose ().
