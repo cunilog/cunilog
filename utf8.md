@@ -94,11 +94,12 @@ logging or print function that outputs something to the console changes it.
 __CunilogSetConsoleToUTF8 ()__ sets the console to UTF-8. It is not required to call
 this function as Cunilog calls it automatically just before it outputs something
 to the console the very first time. From that moment on Cunilog uses the ASCII
-function puts () to output to the console. Note that puts () or one of its
+function [puts ()](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/puts-putws?view=msvc-170)
+to output to the console. Note that puts () or one of its
 derivatives is literally the only console output function Cunilog ever invokes.
 
 __CunilogSetConsoleToUTF16 ()__ sets the console to UTF-16. Cunilog then uses the
-UTF-16 version of puts (), which is _putws (), for console output, of course only
+UTF-16 version of puts (), which is [_putws ()](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/puts-putws?view=msvc-170), for console output, of course only
 after the text to ouput has been converted from UTF-8 to UTF-16 first.
 Maybe I'm doing it wrong, but the console output itself, and not the conversion
 from UTF-8 to UTF-16, is terribly slow.
@@ -109,7 +110,9 @@ set up for UTF-8 and puts () is called instead.
 __CunilogSetConsoleToNone ()__ configures, as the name suggests, the console
 output... not at all. If you call this function before Cunilog had to output something
 to the console it won't change the console at all. This is the fastest option
-but doesn't print unicode characters correctly.
+but doesn't print unicode characters correctly if the console isn't configured
+correctly by the application beforehand. To send text to the console, Cunilog calls
+[puts ()](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/puts-putws?view=msvc-170).
 
 If you don't need console output, another option is to just suppress it altogether.
 Either set up your own Cunilog processor array/chain that doesn't contain an
