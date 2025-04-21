@@ -1868,8 +1868,15 @@ CUNILOG_TARGET *CreateNewCUNILOG_TARGET
 		size_t ln;
 		char *szLP = CreateLogPath_smb (&logpath, &ln, szLogPath, lnLogPath, relLogPath);
 
-		ubf_assert_non_NULL (szLP);
-		UNUSED (szLP);
+		#ifndef CUNILOG_BUILD_TEST_FNCTS
+			ubf_assert_msg	(
+				szLP,
+				"szLogPath cannot be relative or NULL if cunilogLogPath_isAbsolute is given"
+							);
+		#endif
+
+		if (NULL == szLP)
+			return NULL;
 
 		lnLogPath = ln;
 		if (!isDirSep (logpath.buf.pch [ln -1]))

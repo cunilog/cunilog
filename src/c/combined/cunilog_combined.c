@@ -18761,18 +18761,22 @@ static bool prepareCUNILOG_TARGETforLogging (CUNILOG_TARGET *put)
 		if (HAS_CUNILOG_TARGET_A_QUEUE (put))
 		{
 			#ifdef OS_IS_WINDOWS
+			
 				// See
 				//	https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createsemaphorew .
 				put->sm.hSemaphore = CreateSemaphoreW (NULL, 0, MAXLONG, NULL);
 				if (NULL == put->sm.hSemaphore)
 					SetCunilogSystemError (put, CUNILOG_ERROR_SEMAPHORE);
 				return NULL != put->sm.hSemaphore;
+				
 			#else
+			
 				int i = sem_init (&put->sm.tSemaphore, 0, 0);
 				ubf_assert (0 == i);
 				if (0 != i)
-					SetCunilogSystemError (put->error, CUNILOG_ERROR_SEMAPHORE);
+					SetCunilogSystemError (put, CUNILOG_ERROR_SEMAPHORE);
 				return 0 == i;
+				
 			#endif
 		}
 		// If no semaphore is required, not creating it is seen as success.
@@ -19295,8 +19299,15 @@ CUNILOG_TARGET *CreateNewCUNILOG_TARGET
 		size_t ln;
 		char *szLP = CreateLogPath_smb (&logpath, &ln, szLogPath, lnLogPath, relLogPath);
 
-		ubf_assert_non_NULL (szLP);
-		UNUSED (szLP);
+		#ifndef CUNILOG_BUILD_TEST_FNCTS
+			ubf_assert_msg	(
+				szLP,
+				"szLogPath cannot be relative or NULL if cunilogLogPath_isAbsolute is given"
+							);
+		#endif
+
+		if (NULL == szLP)
+			return NULL;
 
 		lnLogPath = ln;
 		if (!isDirSep (logpath.buf.pch [ln -1]))
@@ -22348,7 +22359,7 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 		if	(
 				globMatch	(
 					pod->dirEnt->d_name, fls.stFilename - 1,
-					put->szLogFileMask, put->lnsLogFileMask
+					put->mbLogFileMask.buf.pcc, put->lnLogFileMask
 							)
 			)
 		{
@@ -24261,10 +24272,10 @@ int cunilog_printf_sev_fmtpy_vl	(
 	lenRequired += iReq;
 
 	int		iRet = -1;
-	char	szToPrint [WINAPI_U8_HEAP_THRESHOLD];
+	char	szToPrint [CUNILOG_DEFAULT_SFMT_SIZE];
 	char	*pzToPrint;
 
-	if (lenRequired < WINAPI_U8_HEAP_THRESHOLD)
+	if (lenRequired < CUNILOG_DEFAULT_SFMT_SIZE)
 		pzToPrint = szToPrint;
 	else
 		pzToPrint = ubf_malloc (lenRequired + 1);

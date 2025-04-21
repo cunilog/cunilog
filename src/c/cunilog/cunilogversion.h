@@ -50,6 +50,7 @@ When		Who				What
 #define CUNILOG_PROJECT_NAME	"cunilog"					// Name of the project.
 #define CUNILOG_PROGRAM_NAME	"cunilog"					// The application's name.
 #define CUNILOG_PROGRAM_EXE		CUNILOG_PROGRAM_NAME ".exe"
+#define CUNILOG_PROGRAM_LIB		CUNILOG_PROGRAM_NAME ".lib"
 #define CUNILOG_PROGRAM_DESCR	"Logging utility"			// Its description.
 #define CUNILOG_PROGRAM_COMPANY "-"							// Company.
 #define CUNILOG_PROGRAM_AUTHOR	"Thomas"					// Author.

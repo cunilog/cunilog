@@ -645,6 +645,20 @@ bool CunilogTestFunction	(
 
 	// Test sequence point 2.
 
+	CunilogTestFnctStartTestToConsole ("Checking absolute path validation...");
+	put = CreateNewCUNILOG_TARGET		(
+				ccLogsFolder, lnLogsFolder,
+				"MyApp", USE_STRLEN,
+				cunilogPath_isAbsolute,
+				cunilogSingleThreaded,
+				cunilogPostfixDotNumberYearly,
+				NULL, 0,
+				cunilogEvtTS_Default,
+				cunilogNewLineDefault,
+				cunilogRunProcessorsOnStartup
+										);
+	CunilogTestFnctResultToConsole (NULL == put);
+
 	CunilogTestFnctStartTestToConsole ("Creating new target...");
 	put = CreateNewCUNILOG_TARGET		(
 				ccLogsFolder, lnLogsFolder,
