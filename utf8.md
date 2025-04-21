@@ -95,8 +95,9 @@ __CunilogSetConsoleToUTF8 ()__ sets the console to UTF-8. It is not required to 
 this function as Cunilog calls it automatically just before it outputs something
 to the console the very first time. From that moment on Cunilog uses the ASCII
 function [puts ()](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/puts-putws?view=msvc-170)
-to output to the console. Note that puts () or one of its
-derivatives is literally the only console output function Cunilog ever invokes.
+to output to the console. Note that [puts ()](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/puts-putws?view=msvc-170) or its Windows UTF-16
+derivative [_putws ()](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/puts-putws?view=msvc-170)
+are literally the only console output functions Cunilog ever invokes.
 
 __CunilogSetConsoleToUTF16 ()__ sets the console to UTF-16. Cunilog then uses the
 UTF-16 version of puts (), which is [_putws ()](https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/puts-putws?view=msvc-170), for console output, of course only
