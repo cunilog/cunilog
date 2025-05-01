@@ -4956,7 +4956,7 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 		ubf_assert			(strlen (put->mbLogPath.buf.pcc)		== put->lnLogPath);
 		ubf_assert			(strlen (put->mbLogFileMask.buf.pcc)	== put->lnLogFileMask);
 
-		uint64_t n;
+		uint64_t		n;
 		/*
 		n = ForEachDirectoryEntryU8	(
 				put->mbLogFileMask.buf.pcc,					// Search mask.
@@ -4967,7 +4967,8 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 				put->mbLogPath.buf.pcc,			put->lnLogPath,
 				put->mbLogFileMask.buf.pcc,		put->lnLogFileMask,
 				obtainLogfilesListToRotateCallbackWin,
-				put
+				put,
+				NULL
 										);
 		UNUSED (n);
 	}
@@ -7043,8 +7044,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 	{
 		CUNILOG_TARGET	*pt;
 		bool			bRet	= true;
-
-		//ASSERT (false);
 
 		// Ensure we haven't forgotten to fill the arrays/jump tables.
 		ubf_expect_bool_AND (bRet, GET_ARRAY_LEN (arrLengthTimeStampFromPostfix)	==	cunilogPostfixAmountEnumValues);

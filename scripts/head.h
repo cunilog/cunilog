@@ -35,6 +35,9 @@ When		Who				What
 #ifndef HAVE_USERENV
 #define HAVE_USERENV
 #endif
+#ifndef HAVE_MEMBUF
+#define HAVE_MEMBUF
+#endif
 
 /*
 	Our include guard.

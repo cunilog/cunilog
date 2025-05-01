@@ -63,6 +63,8 @@ When		Who				What
 #define CUNILOG_VERSION_BUILD	9							// Build number.
 #define CUNILOG_VERSION_YEAR	"2025"						// Copyright year.
 
+#define VERSION_URL		"https://github.com/cunilog"
+
 // Convert constants to strings using ANSI stringify operator.
 #define STRINGIFY(x) #x
 

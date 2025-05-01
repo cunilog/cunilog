@@ -35,6 +35,9 @@ When		Who				What
 #ifndef HAVE_USERENV
 #define HAVE_USERENV
 #endif
+#ifndef HAVE_MEMBUF
+#define HAVE_MEMBUF
+#endif
 
 /*
 	Our include guard.
@@ -106,6 +109,8 @@ When		Who				What
 #define CUNILOG_VERSION_SUB		2							// Subversion for maintenance.
 #define CUNILOG_VERSION_BUILD	9							// Build number.
 #define CUNILOG_VERSION_YEAR	"2025"						// Copyright year.
+
+#define VERSION_URL		"https://github.com/cunilog"
 
 // Convert constants to strings using ANSI stringify operator.
 #define STRINGIFY(x) #x
@@ -958,7 +963,7 @@ When		Who				What
 	/*
 		Not available.
 	*/
-	#definecunilog_restrict
+	#define cunilog_restrict
 
 #endif
 
@@ -5265,8 +5270,10 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./membuf.h"
 	#else
 		#include "./../../pre/externC.h"
+		#include "./../../mem/membuf.h"
 	#endif
 
 #endif
@@ -5279,8 +5286,14 @@ EXTERN_C_BEGIN
 	#error This module requires HAVE_STRWILDCARDS to be defined and strwildcards.c/h
 #endif
 
+#ifndef WIN_READDIR_FNCTS_DEFAULT_MEM_ALIGNMENT
+#define WIN_READDIR_FNCTS_DEFAULT_MEM_ALIGNMENT			(8)
+#endif
 #ifndef WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD
-#define WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD		(256)
+#define WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD		(64)
+#endif
+#ifndef WIN_READDIR_FNCTS_DEFAULT_MASK_THRSHLD
+#define WIN_READDIR_FNCTS_DEFAULT_MASK_THRSHLD			(64)
 #endif
 
 /*
@@ -5330,14 +5343,33 @@ typedef struct srdirOneEntryStruct
 {
 	union
 	{
+		// Unchanged path provided by the caller.
 		const void			*pstrPathWorU8;					// UTF-8 or UTF-16;
 		const char			*chPathU8;						// UTF-8.
 		const unsigned char	*ucPathU8;						// Unsigned UTF-8.
 		const WCHAR			*wcPathU8;						// UTF-16.
 	} UTF8orUTF16;
+	enum enrdirentssdirw	u;								// Which union member?
+	//size_t					
+
 	WIN32_FIND_DATAW		*pwfd;
 	void					*pCustom;
-	enum enrdirentssdirw	u;
+
+	// The file mask as provided by the caller.
+	const char				*szFileMask;
+	size_t					lnFileMask;
+
+	// The folder plus search mask for FindFirstFileU8long ().
+	SMEMBUF					mbSearchPath;					// "C:\\dir\*"
+	size_t					lnSearchPath;
+
+	// The full path, starting with chPathU8.
+	SMEMBUF					mbFullPathU8;
+	size_t					lnFullPathU8;
+
+	// Everything between szFullPathU8 and szFileNameU8.
+	char					*szPathU8;
+	size_t					lnPathU8;
 
 	// The filename alone converted to UTF-8. Not all functions set these members.
 	//	The function ForEachDirectoryEntryMaskU8 () sets both members.
@@ -5524,10 +5556,13 @@ typedef bool (*pForEachDirEntryU8) (SRDIRONEENTRYSTRUCT *psdE);
 	strPathU8			The path as a UTF-8 string. This parameter is passed on to
 						the Windows API FindFirstFileW () as parameter lpFileName and can
 						contain wildcard characters.
+
 	fedEnt				Pointer to the callback function. The function is called
 						for each found entry.
+
 	pCustom				Pointer to custom data that is passed on to the callback
 						function.
+
 	*pnSubLevels		A pointer to an unsigned int variable that contains the
 						amount of subfolder levels to enumerate. If this parameter
 						is NULL or points to a value of 0, only the folder in strPathU8
@@ -5580,20 +5615,20 @@ typedef bool (*pForEachDirEntryU8) (SRDIRONEENTRYSTRUCT *psdE);
 	ERROR_NO_MORE_FILES, indicating success.
 */
 #ifdef HAVE_MEMBUF
-uint64_t ForEachDirectoryEntryU8_Ex	(
+size_t ForEachDirectoryEntryU8_Ex	(
 				const char				*strPathU8,
 				pForEachDirEntryU8		fedEnt,
 				void					*pCustom,
-				unsigned int			*pnSubLevels,
+				size_t					*pnSubLevels,
 				SMEMBUF                 *pmb
 									)
 ;
 #endif
-uint64_t ForEachDirectoryEntryU8	(
+size_t	ForEachDirectoryEntryU8		(
 				const char				*strPathU8,
 				pForEachDirEntryU8		fedEnt,
 				void					*pCustom,
-				unsigned int			*pnSubLevels
+				size_t					*pnSubLevels
 									)
 ;
 
@@ -5601,38 +5636,98 @@ uint64_t ForEachDirectoryEntryU8	(
 	ForEachDirectoryEntryMaskU8
 
 	This function exists to provide better compatibilibty between Windows and POSIX.
-	It does not return subfolders.
+	Folder and file mask are split into two parameters.
 
 	strFolderU8			The folder for which the function is to retrieve the directory
-						listing. The folder name may end with a forward or backslash.
+						listing. The folder name may end with a forward or backslash. This
+						must be an absolute path.
+						The folder cannot be relative, i.e. cannot contain path navigators
+						("../").
+
 	lenFolderU8			The length of strFolderU8, excluding a terminating NUL character.
 						This parameter can be USE_STRLEN, which causes the function to invoke
 						strlen () on strFolderU8 to obtain its length.
+
 	strFileMaskU8		The filename or mask for the files to call the callback function.
 						It can contain wildcard characters to match the files for whom
 						the callback function will be called.
 						This parameter can be NULL, in which case the function calls the
 						callback function on every single file found.
+						This is not a simple "*" or "*.*" file mask as known from
+						Windows or POSIX. See remarks below the parameter descriptions.
+
 	lenFileMaskU8		The length of strFileMask, excluding a terminating NUL character.
 						This parameter can be USE_STRLEN, which causes the function to invoke
 						strlen () on strFileMask to obtain its length.
 						The parameter is ignored if strFileMaskU8 is NULL.
+
 	fedEnt				Pointer to the callback function. The function is called
 						for each found entry.
+
 	pCustom				Pointer to custom data that is passed on to the callback
 						function.
+
+	*pnSubLevels		A pointer to an unsigned int variable that contains the
+						amount of subfolder levels to enumerate. If this parameter
+						is NULL or points to a value of 0, only the folder in strPathU8
+						is processed. Any other number specifies the amount of
+						subfolders to be enumerated by recursively calling this
+						function. The function uses the variable to count its
+						recursion levels. This means if it is not NULL and points
+						to a value greater than 0, the function alters it for
+						each subfolder level. Make sure the value is correct each
+						time before the function is called.
+
+	The function reads a base directory, which is strFolderU8. It ignores the "." and ".."
+	folders returned by the operating system but matches every other file or directory
+	against strFileMaskU8. Matching starts with file or directory objects inside the folder
+	strFolderU8, which is different from how operating systems and system utilities usually
+	match wildcards and files or directories.
+
+	If pnSubLevels is NULL or points to a value of 0, only files and folders (file objects)
+	in strFolderU8 are matched, meaning known patterns like "???.txt" or "*" or "*.bmp"
+	work as usual. However, since matching starts with file objects in strFolderU8,
+	matching is different when pnSubLevels allows the function to climb further down a
+	directory tree.
+
+	<strFolderU8>/<objects in strFolderU8>/<more objects>
+	.             ^
+	.             !
+	.             +-------- Matching against strFileMaskU8 starts here.
+
+	If strFolderU8 is "/home/user", and the function should return text files in
+	"/home/user/Downloads", strFileMaskU8 needs to be "Downloads/*.txt".
+	If the function should return text files in any folder inside or below "/home/usr",
+	strFileMaskU8 needs to be "**.txt".
+
+	See description of the functions matchWildcardPattern () and/or matchWildcardPatternW ()
+	in strwildcards.h on how patterns are created and matched.
 */
-uint64_t ForEachDirectoryEntryMaskU8	(
+size_t ForEachDirectoryEntryMaskU8	(
 				const char				*strFolderU8,
 				size_t					lenFolderU8,
 				const char				*strFileMaskU8,
 				size_t					lenFileMaskU8,
 				pForEachDirEntryU8		fedEnt,
-				void					*pCustom
-										)
+				void					*pCustom,
+				size_t					*pnSubLevels
+									)
 ;
 
 EXTERN_C_END
+
+#ifndef CUNILOG_BUILD_READDIR_TESTFNCT
+//#define CUNILOG_BUILD_READDIR_TESTFNCT
+#endif
+
+/*
+	Tests.
+*/
+#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
+	bool ForEachDirectoryEntryMaskU8TestFnct (void);
+#else
+	#define ForEachDirectoryEntryMaskU8TestFnct()	(true)
+#endif
 
 #endif														// Of #ifdef _WIN32.
 
@@ -12358,6 +12453,7 @@ When		Who				What
 #define ISO__DATE__H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
@@ -12452,6 +12548,17 @@ TYPEDEF_FNCT_PTR (const char *, szBuild_ISO__DATE__TIME__) (void);
 */
 size_t replace_ISO_DATE_ (char *sz, size_t len);
 TYPEDEF_FNCT_PTR (size_t, replace_ISO_DATE_) (char *sz, size_t len);
+
+/*
+	ISO_DATE_Test_function
+
+	Tests the module.
+*/
+#ifdef ISO_DATE_BUILD_TEST_FNCT
+	bool ISO_DATE_Test_function (void);
+#else
+	#define ISO_DATE_Test_function() (true)
+#endif
 
 EXTERN_C_END
 
@@ -13657,6 +13764,9 @@ EXTERN_C_BEGIN
 #define is_directory_separator(c)						\
 			(UBF_WIN_DIR_SEP == c || UBF_PSX_DIR_SEP == c)
 #endif
+#ifndef is_path_separator
+#define is_path_separator(c)	is_directory_separator (c)
+#endif
 
 /*
 	str_find_path_navigator
@@ -13752,8 +13862,8 @@ size_t str_remove_path_navigators (char *chPath, size_t *pLen);
 */
 bool ubf_correct_directory_separators_str	(
 			char			*chPath,
-			size_t			*plenPath,
-			size_t			*pReps
+			size_t			*cunilog_restrict plenPath,
+			size_t			*cunilog_restrict pReps
 											)
 ;
 
@@ -13763,7 +13873,7 @@ bool ubf_correct_directory_separators_str	(
 	Changes all directory separators ('/' and '\\') to newSeparator. Note that newSeparator
 	can be any character that fits in a char.
 */
-void ubf_change_directory_separators (char *szPath, size_t len, char newSeparator);
+void ubf_change_directory_separators (char *szPath, size_t len, const char newSeparator);
 
 /*
 	ubf_len_with_last_directory_separator
@@ -13797,6 +13907,16 @@ size_t str_correct_dir_separators (char *str, size_t len)
 ;
 
 /*
+	str_remove_last_dir_separator
+
+	Returns the length of str, if str does not end with a path (directory) separator. It
+	returns len - 1, if str ends with a path separator. The function accepts USE_STRLEN
+	for parameter len, in which case it calls strlen (str) to obtain its length.
+*/
+size_t str_remove_last_dir_separator (const char *str, size_t len)
+;
+
+/*
 	ubf_test_ubf_strfilesys
 	
 	Tests this module.
@@ -13809,7 +13929,7 @@ size_t str_correct_dir_separators (char *str, size_t len)
 
 EXTERN_C_END
 
-#endif // STRFILESYS_H
+#endif														// Of #ifndef STRFILESYS_H.
 /****************************************************************************************
 
 	File:		strhex.h
@@ -16549,8 +16669,15 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 
 /*
 	matchWildcardPattern
+	matchWildcardPatternW
 
 	Note that the function has been renamed from globMatch () to matchWildcardPattern ().
+
+	The function matchWildcardPattern () expects UTF-8 strings while the function
+	matchWildcardPatternW () is its wide string version. The lengths parameters for
+	matchWildcardPatternW () are in UTF-16 characters, not octets/bytes. Whenever
+	this comment block mentions "octet" or "octets", for matchWildcardPatternW () this
+	means "UTF-16 16 bit word" or "UTF-16 16 bit words".
 
 	The function compares ccStri with length lnStri against the glob pattern (a string
 	that can contain wildcard characters) ccGlob with length lnGlob. It is not a replacement
@@ -16562,7 +16689,8 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	parameter ccGlob can contain wildard characters.
 
 	The length arguments lnStri and lnGlob can have the value USE_STRLEN, which is (size_t)
-	-1, in which case the length in question is obtained via a call to strlen ().
+	-1, in which case the length in question is obtained via a call to strlen (). For
+	matchWildcardPatternW (), the length is obtained via a call to wcslen ().
 
 	Both, ccStri and ccGlob, can contain NUL characters if lnStri and lnGlob are provided,
 	i.e. are not USE_STRLEN.
@@ -16572,12 +16700,15 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	the string buffer. In the examples below the buffer in these cases is shown as "" but
 	could as well be NULL or any other arbitrary value.
 
+	The buffers ccStri and ccGlob must not point to the same memory location and must not
+	overlap.
+
 	The function returns true if ccStri matches the pattern ccGlob points to, false if not.
 
 	If both lengths are 0, the function treats this as a match and returns true. If lnStri
 	is 0 but lnGlob is not, the function in this case assumes that a match is impossible and
 	returns false. If lnGlob is 0, this is treated as a match against anything, and the
-	function returns true.
+	function returns true independent of the value of lnStri or the contents of ccStri.
 
 	Match rules for the glob pattern ccGlob:
 	- A single question mark ("?") matches a single octet in ccStri.
@@ -16587,10 +16718,10 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	- The path separators (forward and backward, "/" and "\") are treated as equal and
 		therefore match each other.
 	- A question mark ("?") after two or more asterisks ("**", "***", "****", etc.) never
-		matches because the asterisks will have consumed the string entirely.
+		matches, because the asterisks will have consumed the string entirely. To match
+		a minimum amount of characters, place the question mark(s) first. For instance,
+		use "?**123" to match "0123" but not "123".
 	
-	The function treats forward slashes and backslashes as being identical characters.
-
 	ccStri		lnStri		ccGlob		lnGlob			return
 	""			0			""			0				true
 	"a"			1			""			0				true
@@ -16600,11 +16731,21 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	"/"			1			"\"			1				true
 	"/home/usr" USE_STRLEN	"\*?usr"	6				true
 
+	Some explanations/help:
+	The function treats forward slashes and backslashes as being identical characters.
+	Since two or more asterisks followed by a question mark never match, place the
+	question mark first to match a minimum of a single character: "?**"
+
 	See function strwildcards_test_function () for a more complete list of expectations.
 */
 bool matchWildcardPattern	(
-		const char		*ccStri,	size_t lnStri,
-		const char		*ccGlob,	size_t lnGlob
+		const char		*cunilog_restrict ccStri,	size_t lnStri,
+		const char		*cunilog_restrict ccGlob,	size_t lnGlob
+							)
+;
+bool matchWildcardPatternW	(
+		const wchar_t	*cunilog_restrict ccStri,	size_t lnStri,
+		const wchar_t	*cunilog_restrict ccGlob,	size_t lnGlob
 							)
 ;
 
@@ -18948,15 +19089,32 @@ When		Who				What
 
 		Example for internal static structure:
 
-		// Application start
-		InitSUNILOGTARGETstatic (...);
+--- Begin example in Using.md ---
+// Application start
 
-		// Use the log...static () family of functions and macros for logging.
-		logTextU8_static (...);
+CUNILOG_TARGET *put = InitCUNILOG_TARGETstatic	(
+			"logs", 4,
+			"MyApp", USE_STRLEN,
+			cunilogPath_relativeToHomeDir,
+			cunilogMultiThreadedSeparateLoggingThread
+						);
+if (NULL == put)
+{
+	// InitCUNILOG_TARGETstatic () failed.
+	exit (EXIT_FAILURE);
+}
 
-		// Just before the application exists shut down logging and deallocate its resources.
-		ShutdownCUNILOG_TARGETstatic ();
-		DoneSUNILOGTARGETstatic ();
+// Use the log...static () family of functions and macros for logging.
+logTextU8_static ("A simple line to go in the logfile.");
+logTextU8l_static ("Another line.", 13);
+logTextU8l_static ("And another one.", USE_STRLEN);
+
+// Just before the application exists shut down the logging target and deallocate
+//	its resources.
+ShutdownCUNILOG_TARGETstatic ();		// Blocks until the queue is empty.
+DoneCUNILOG_TARGETstatic ();
+--- End of example in Using.md ---
+
 */
 
 /*

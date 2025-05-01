@@ -170,8 +170,10 @@ enum hasGlobCharAfterStar
 typedef enum hasGlobCharAfterStar enGl;
 
 static inline enGl globCharAfterStar	(
-		char			*c,			size_t *g,
-		const char		*ccGlob,	size_t *lnGlob
+		char			*cunilog_restrict c,
+		size_t			*cunilog_restrict g,
+		const char		*cunilog_restrict ccGlob,
+		size_t			*cunilog_restrict lnGlob
 										)
 {
 	ubf_assert_non_NULL	(c);
@@ -223,8 +225,8 @@ static inline enGl globCharAfterStar	(
 	#define charsEqual(c1, c2)							\
 		(												\
 				(c1 == c2)								\
-			||	('/' == c1 && '\\' == c2)				\
-			||	('\\' == c1 && '/' == c2)				\
+			||	('/'	== c1 && '\\'	== c2)			\
+			||	('\\'	== c1 && '/'	== c2)			\
 		)
 #endif
 
@@ -234,12 +236,12 @@ DISABLE_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
 static inline const char *handleGlobStars	(
 							bool		*r,
-							size_t		*s,
-							size_t		*g,
-							const char	*ccStri,
-							size_t		*lnStri,
-							const char	*ccGlob,
-							size_t		*lnGlob
+							size_t		*cunilog_restrict s,
+							size_t		*cunilog_restrict g,
+							const char	*cunilog_restrict ccStri,
+							size_t		*cunilog_restrict lnStri,
+							const char	*cunilog_restrict ccGlob,
+							size_t		*cunilog_restrict lnGlob
 											)
 {
 	ubf_assert_non_NULL	(r);
@@ -284,8 +286,10 @@ static inline const char *handleGlobStars	(
 }
 
 static inline bool globMatchInt	(
-		const char		*ccStri,	size_t *lnStri,
-		const char		*ccGlob,	size_t *lnGlob
+		const char		*cunilog_restrict ccStri,
+		size_t			*cunilog_restrict lnStri,
+		const char		*cunilog_restrict ccGlob,
+		size_t			*cunilog_restrict lnGlob
 								)
 {
 	ubf_assert_non_NULL	(ccStri);
@@ -327,9 +331,9 @@ DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
 DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
 bool matchWildcardPattern	(
-		const char		*ccStri,	size_t lnStri,
-		const char		*ccGlob,	size_t lnGlob
-				)
+		const char		*cunilog_restrict ccStri,	size_t lnStri,
+		const char		*cunilog_restrict ccGlob,	size_t lnGlob
+							)
 {
 	lnStri = USE_STRLEN == lnStri ? strlen (ccStri) : lnStri;
 	lnGlob = USE_STRLEN == lnGlob ? strlen (ccGlob) : lnGlob;
@@ -338,6 +342,220 @@ bool matchWildcardPattern	(
 	{
 		if (lnStri)
 			return globMatchInt (ccStri, &lnStri, ccGlob, &lnGlob);
+		return false;
+	}
+	return true;
+}
+
+static inline const wchar_t *nextPathSeparatorW (const wchar_t *str, size_t *idx, size_t len)
+{
+	ubf_assert_non_NULL (str);
+	ubf_assert_non_NULL (idx);
+
+	while (len && L'/' != str [*idx] && L'\\' != str [*idx])
+	{
+		-- len;
+		++ *idx;
+	}
+	return (len && (L'/' == str [*idx] || L'\\' == str [*idx]) ? str + *idx : NULL);
+}
+
+static inline const wchar_t *nextCharOrPathSeparatorW (const wchar_t *str, size_t *idx, wchar_t c, size_t len)
+{
+	ubf_assert_non_NULL (str);
+	ubf_assert_non_NULL (idx);
+
+	while (len && L'/' != str [*idx] && L'\\' != str [*idx] && c != str [*idx])
+	{
+		-- len;
+		++ *idx;
+	}
+	return (len && (L'/' == str [*idx] || L'\\' == str [*idx] || c == str [*idx]) ? str + *idx : NULL);
+}
+
+static inline const wchar_t *nextCharW (const wchar_t *str, size_t *idx, wchar_t c, size_t len)
+{
+	ubf_assert_non_NULL (str);
+	ubf_assert_non_NULL (idx);
+
+	while (len && c != str [*idx])
+	{
+		-- len;
+		++ *idx;
+	}
+	return (len && c == str [*idx] ? str + *idx : NULL);
+}
+
+static inline enGl globCharAfterStarW	(
+		wchar_t			*cunilog_restrict c,
+		size_t			*cunilog_restrict g,
+		const wchar_t	*cunilog_restrict ccGlob,
+		size_t			*cunilog_restrict lnGlob
+										)
+{
+	ubf_assert_non_NULL	(c);
+	ubf_assert_non_NULL	(g);
+	ubf_assert_non_NULL	(lnGlob);
+
+	++ *g;
+
+	if (*g < *lnGlob && L'*' == ccGlob [*g])
+	{
+		++ *g;
+
+		while (*g < *lnGlob)
+		{
+			*c = ccGlob [*g];
+			if (L'*' != *c)
+				return en_globCharAfterDoubleStar;
+			++ *g;
+		}
+		return en_globDoubleCharDepleted;
+	}
+
+	while (*g < *lnGlob)
+	{
+		*c = ccGlob [*g];
+		if (L'*' != *c)
+			return en_globCharAfterStar;
+		++ *g;
+	}
+	return en_globDepleted;
+}
+
+#ifdef STRWILDCARDS_CHARSEQUAL_FNCT
+	// For easier debugging.
+	static inline bool charsEqualW (wchar_t c1, wchar_t c2)
+	{
+		if (L'/' == c1 && L'\\' == c2)
+			return true;
+		if (L'\\' == c1 && L'/' == c2)
+			return true;
+		if (c1 == c2)
+			return true;
+		return false;
+	}
+#else
+	#define charsEqualW(c1, c2)							\
+		(												\
+				(c1 == c2)								\
+			||	(L'/'	== c1 && L'\\'	== c2)			\
+			||	(L'\\'	== c1 && L'/'	== c2)			\
+		)
+#endif
+
+// Neither r nor p are uninitialised.
+DISABLE_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
+DISABLE_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
+
+static inline const wchar_t *handleGlobStarsW	(
+							bool			*r,
+							size_t			*cunilog_restrict s,
+							size_t			*cunilog_restrict g,
+							const wchar_t	*cunilog_restrict ccStri,
+							size_t			*cunilog_restrict lnStri,
+							const wchar_t	*cunilog_restrict ccGlob,
+							size_t			*cunilog_restrict lnGlob
+												)
+{
+	ubf_assert_non_NULL	(r);
+	ubf_assert_non_NULL	(s);
+	ubf_assert_non_NULL	(g);
+	ubf_assert_non_NULL	(ccStri);
+	ubf_assert_non_NULL	(lnStri);
+	ubf_assert_non_NULL	(ccGlob);
+	ubf_assert_non_NULL	(lnGlob);
+
+	wchar_t			c;
+	const wchar_t	*p;
+	enGl			gl;
+
+	gl = globCharAfterStarW (&c, g, ccGlob, lnGlob);
+	ubf_assert	(
+						en_globCharAfterStar		== gl
+					||	en_globDepleted				== gl
+					||	en_globCharAfterDoubleStar	== gl
+					||	en_globDoubleCharDepleted	== gl
+				);
+	switch (gl)
+	{
+		case en_globCharAfterDoubleStar:
+			p = nextCharW (ccStri, s, c, *lnStri - *s);
+			*r = false;
+			break;
+		case en_globDoubleCharDepleted:
+			p = NULL;
+			*r = true;
+			break;
+		case en_globCharAfterStar:
+			p = nextCharOrPathSeparatorW (ccStri, s, c, *lnStri - *s);
+			*r = false;
+			break;
+		case en_globDepleted:
+			p = nextPathSeparatorW (ccStri, s, *lnStri - *s);
+			*r = true;
+			break;
+	}
+	return p;
+}
+
+static inline bool globMatchIntW	(
+		const wchar_t	*cunilog_restrict ccStri,
+		size_t			*cunilog_restrict lnStri,
+		const wchar_t	*cunilog_restrict ccGlob,
+		size_t			*cunilog_restrict lnGlob
+									)
+{
+	ubf_assert_non_NULL	(ccStri);
+	ubf_assert_non_NULL	(lnStri);
+	ubf_assert_non_NULL	(ccGlob);
+	ubf_assert_non_NULL	(lnGlob);
+
+	size_t			s		= 0;
+	size_t			g		= 0;
+	bool			r;
+	const wchar_t *p;
+
+	while (s < *lnStri && g < *lnGlob)
+	{
+		switch (ccGlob [g])
+		{
+			case L'\?':
+				break;
+			case L'*':
+				p = handleGlobStarsW (&r, &s, &g, ccStri, lnStri, ccGlob, lnGlob);
+				if (NULL == p)
+					return r;
+				break;
+			default:
+				if (!charsEqualW (ccStri [s], ccGlob [g]))
+					return false;
+				break;
+		}
+		++ s;
+		++ g;
+	}
+	// "a" against "a*" or "a********".
+	while (g < *lnGlob && L'*' == ccGlob [g])
+		++ g;
+	return s - *lnStri == g - *lnGlob;
+}
+
+DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
+DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
+
+bool matchWildcardPatternW	(
+		const wchar_t	*cunilog_restrict ccStri,	size_t lnStri,
+		const wchar_t	*cunilog_restrict ccGlob,	size_t lnGlob
+							)
+{
+	lnStri = USE_STRLEN == lnStri ? wcslen (ccStri) : lnStri;
+	lnGlob = USE_STRLEN == lnGlob ? wcslen (ccGlob) : lnGlob;
+
+	if (lnGlob)
+	{
+		if (lnStri)
+			return globMatchIntW (ccStri, &lnStri, ccGlob, &lnGlob);
 		return false;
 	}
 	return true;
@@ -353,6 +571,7 @@ bool matchWildcardPattern	(
 			stand alone (as in "?"). See C99 standard, 6.4.4.4 and 6.4.5.
 			Some of the tests below escape it, others don't.
 		*/
+		// ASCII/UTF-8.
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "a*", 2));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "*a", 2));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 0, "b", 0));
@@ -400,16 +619,16 @@ bool matchWildcardPattern	(
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/****", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*****", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?/usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\?*\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\?*\?\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\\*\\\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/?\?\?\?/?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"?home?usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"?h*m*?u*r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*\?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*\?/usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "\?*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "\?*\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "\\*\\\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/?\?\?\?/?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "?home?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "?h*m*?u*r", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**x", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**sr", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**r", USE_STRLEN));
@@ -423,6 +642,98 @@ bool matchWildcardPattern	(
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**?", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/", USE_STRLEN, "/*?", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/", USE_STRLEN, "/**?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1234567", USE_STRLEN, "/?**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1", USE_STRLEN, "/?**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1", USE_STRLEN, "/?***", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/1", USE_STRLEN, "/??**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**7", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**/67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**4/67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("0123", USE_STRLEN, "?**123", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("123", USE_STRLEN, "?**123", USE_STRLEN));
+
+		// Wide characters, which means UTF-16.
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 1, L"a*", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 1, L"*a", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 0, L"b", 0));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 0, L"b", 0));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 1, L"b", 0));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"a", 1, L"b", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 1, L"a", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"\?/\?/\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 3, L"a*", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 3, L"*bc", 3));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 3, L"a*c", 3));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"abc", 3, L"a*d", 3));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"abc", 3, L"d*d", 3));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 3, L"*", 1));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"abc", 3, L"d", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 3, L"*x", 1));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"abc", 3, L"*x", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"*\\*\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"*\\b\\c", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"*\\d\\e", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"a\\b\\e", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"a\\b\\c", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"a\\*\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"a\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abcdef", USE_STRLEN, L"a\?c*f", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"abcdef", USE_STRLEN, L"a\?c*fx", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"0123456789", USE_STRLEN, L"0123456789", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"0123456789", USE_STRLEN, L"0123\?56789", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"0123\0"L"456789", 11, L"0123\0"L"\?56789", 11));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home/user", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home/use\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home/us\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home/u\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home/\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home\?\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/hom\?\?\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/h*/user", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/h*/usxr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*/us*r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*/us*x", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*/us*\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*/us**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/***", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/****", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*****", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*/\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*\?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*\?/usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"\?*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"\?*\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"\\*\\\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/?\?\?\?/?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"?home?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"?h*m*?u*r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/**x", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/**sr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/**r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/**usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/***r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/****r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*****r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*****b", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*********************b", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*********************r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/**?", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/", USE_STRLEN, L"/*?", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/", USE_STRLEN, L"/**?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1234567", USE_STRLEN, L"/?**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/?**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/?***", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/??**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**7", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**/67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**4/67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"0123", USE_STRLEN, L"?**123", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"123", USE_STRLEN, L"?**123", USE_STRLEN));
 
 		return b;
 	}

@@ -164,7 +164,6 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 	void doneSMEMBUF (SMEMBUF *pb)
 	{
 		ubf_assert_non_NULL (pb);
-		ubf_assert_non_NULL (pb->buf.pvoid);
 
 		if (pb->buf.pvoid)
 		{
@@ -576,7 +575,6 @@ char *AllocU8path_from_U8path_and_WinU16FileName (const char *ccPath, WCHAR *wcF
 		size_t		stWCflen;										// Length of the wildcard
 																	//	filename, if there is
 																	//	one.
-		char		*ccRet		= NULL;
 		int			iReq;
 
 		// Must not be an empty string or end with a directory separator.
@@ -3858,11 +3856,13 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./ubfdebug.h"
 		#include "./ubfmem.h"
+		#include "./strfilesys.h"
 		#include "./strisdotordotdot.h"
 		#include "./strwildcards.h"
 	#else
 		#include "./../../dbg/ubfdebug.h"
 		#include "./../../mem/ubfmem.h"
+		#include "./../../string/strfilesys.h"
 		#include "./../../string/strisdotordotdot.h"
 		#include "./../../string/strwildcards.h"
 	#endif
@@ -4020,17 +4020,17 @@ uint64_t ReleaseDirectoryEntriesSDIRW_cnt (SDIRW *swd)
 }
 
 #ifdef HAVE_MEMBUF
-	uint64_t ForEachDirectoryEntryU8_Ex	(
+	size_t ForEachDirectoryEntryU8_Ex	(
 					const char				*strPathU8,
 					pForEachDirEntryU8		fedEnt,
 					void					*pCustom,
-					unsigned int			*pnSubLevels,
+					size_t					*pnSubLevels,
 					SMEMBUF                 *pmb
 										)
 	{
 		HANDLE				hFind;
 		WIN32_FIND_DATAW	wfdW;
-		uint64_t			uiEnts				= 0;			// The return value.
+		size_t				uiEnts				= 0;			// The return value.
 		SRDIRONEENTRYSTRUCT	sdOneEntry;
 		DWORD				dwErrToReturn;
 
@@ -4067,12 +4067,11 @@ uint64_t ReleaseDirectoryEntriesSDIRW_cnt (SDIRW *swd)
 																					);
 					if (bSubpath)
 					{	// Recursively invoke us again.
-						unsigned int nSubLevels = *pnSubLevels;
 						uiEnts += ForEachDirectoryEntryU8_Ex	(
 												pmb->buf.pch,
 												fedEnt,
 												pCustom,
-												&nSubLevels,
+												pnSubLevels,
 												pmb
 																);
 					}
@@ -4092,16 +4091,16 @@ uint64_t ReleaseDirectoryEntriesSDIRW_cnt (SDIRW *swd)
 	}
 #endif
 
-uint64_t ForEachDirectoryEntryU8	(
+size_t ForEachDirectoryEntryU8		(
 				const char				*strPathU8,
 				pForEachDirEntryU8		fedEnt,
 				void					*pCustom,
-				unsigned int			*pnSubLevels
+				size_t					*pnSubLevels
 									)
 {
 	HANDLE				hFind;
 	WIN32_FIND_DATAW	wfdW;
-	uint64_t			uiEnts				= 0;			// The return value.
+	size_t				uiEnts				= 0;			// The return value.
 	SRDIRONEENTRYSTRUCT	sdOneEntry;
 	DWORD				dwErrToReturn;
 
@@ -4135,12 +4134,11 @@ uint64_t ForEachDirectoryEntryU8	(
 				char *subPath = AllocU8path_from_U8path_and_WinU16FileName (strPathU8, wfdW.cFileName);
 				if (subPath)
 				{	// Recursively invoke us again.
-					unsigned int nSubLevels = *pnSubLevels;
 					uiEnts += ForEachDirectoryEntryU8	(
 									subPath,
 									fedEnt,
 									pCustom,
-									&nSubLevels
+									pnSubLevels
 														);
 					DoneU8 (subPath);
 				}
@@ -4159,133 +4157,206 @@ uint64_t ForEachDirectoryEntryU8	(
 }
 
 static const char	ccCoverAllMask []	= "\\*";
-static size_t		stCoverAllMask		= sizeof (ccCoverAllMask);
-static size_t		lnCoverAllMask		= sizeof (ccCoverAllMask) - 1;
+#define SIZCOVERALLMSK	(sizeof (ccCoverAllMask))
+#define LENCOVERALLMSK	(sizeof (ccCoverAllMask) - 1)
 
-static inline bool ForEachDirectoryEntryMaskU8cb	(
-						pForEachDirEntryU8				fedEnt,
-						const char						*strFileMask,
-						size_t							lenFileMask,
-						SRDIRONEENTRYSTRUCT				*psdE
-													)
+size_t ForEachDirEntryMaskU8intern	(
+				const char				*szFolder,
+				size_t					lnFolder,
+				pForEachDirEntryU8		fedEnt,
+				void					*pCustom,
+				size_t					*pnSubLevels,
+				SRDIRONEENTRYSTRUCT		*psdE
+									)
 {
-	size_t stSiz = UTF8_from_WinU16 (psdE->szFileNameU8, UTF8_MAX_PATH, psdE->pwfd->cFileName);
-	if (stSiz)
+	ubf_assert_non_NULL (psdE);
+
+	HANDLE				hFind;
+	size_t				uiEnts			= 0;				// The return value.
+	DWORD				dwErrToReturn	= ERROR_SUCCESS;
+
+	growToSizeSMEMBUF	(
+		&psdE->mbSearchPath,
+		ALIGNED_SIZE (lnFolder + SIZCOVERALLMSK, WIN_READDIR_FNCTS_DEFAULT_MEM_ALIGNMENT)
+						);
+	if (isUsableSMEMBUF (&psdE->mbSearchPath))
 	{
-		bool bMatch = matchWildcardPattern	(
-						psdE->szFileNameU8,	stSiz - 1,
-						strFileMask,		lenFileMask
-											);
-		if (bMatch && fedEnt)
-		{
-			psdE->stFileNameU8 = stSiz;
-			if (!fedEnt (psdE))
-				return false;
+		memcpy (psdE->mbSearchPath.buf.pch, szFolder, lnFolder);
+		memcpy (psdE->mbSearchPath.buf.pch + lnFolder, ccCoverAllMask, SIZCOVERALLMSK);
+		psdE->lnSearchPath = lnFolder + LENCOVERALLMSK;
+		hFind = FindFirstFileU8long (psdE->mbSearchPath.buf.pch, psdE->pwfd);
+		if (INVALID_HANDLE_VALUE == hFind)
+		{	// Maybe no files or whatever.
+			return uiEnts;
 		}
+
+		ubf_assert_non_0 (sizeof (UBF_WIN_DIR_SEP_STR) - 1);
+		growToSizeSMEMBUF	(
+			&psdE->mbFullPathU8,
+			lnFolder + UTF8_MAX_PATH + sizeof (UBF_WIN_DIR_SEP_STR) - 1
+							);
+		if (isUsableSMEMBUF (&psdE->mbFullPathU8))
+		{
+			memcpy (psdE->mbFullPathU8.buf.pch, szFolder, lnFolder);
+			memcpy	(
+				psdE->mbFullPathU8.buf.pch + lnFolder,
+				UBF_WIN_DIR_SEP_STR,
+				sizeof (UBF_WIN_DIR_SEP_STR)
+					);
+			psdE->lnSearchPath	= lnFolder + sizeof (UBF_WIN_DIR_SEP_STR) - 1;
+			psdE->szPathU8		= psdE->mbFullPathU8.buf.pch + psdE->lnSearchPath;
+			psdE->lnPathU8		= 0;
+			psdE->szFileNameU8	= psdE->szPathU8;
+			bool bContinue		= true;
+			do
+			{	// Go through the folder and pick up each entry.
+				if (!isDotOrDotDotW (psdE->pwfd->cFileName))
+				{
+					++ uiEnts;
+					psdE->stFileNameU8 = UTF8_from_WinU16	(
+												psdE->szFileNameU8, UTF8_MAX_PATH,
+												psdE->pwfd->cFileName
+															);
+					ubf_assert (0 < psdE->stFileNameU8);
+					psdE->lnPathU8 = psdE->stFileNameU8 - 1;
+					bool bMatch = matchWildcardPattern	(
+									psdE->szPathU8,		psdE->lnPathU8,
+									psdE->szFileMask,	psdE->lnFileMask
+														);
+					bContinue = fedEnt && bMatch ? fedEnt (psdE) : true;
+					if (
+								bContinue
+							&&	pnSubLevels
+							&&	*pnSubLevels
+							&&	psdE->pwfd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY
+						)
+					{
+						*pnSubLevels -= 1;
+						// Recursively invoke us again.
+						uiEnts = ForEachDirEntryMaskU8intern	(
+										psdE->mbSearchPath.buf.pcc,
+										psdE->lnSearchPath,
+										fedEnt, pCustom, pnSubLevels, psdE
+																);
+						*pnSubLevels += 1;
+					}
+				}
+			} while (bContinue && FindNextFileW (hFind, psdE->pwfd));
+
+			// We want the caller to be able to obtain the last error produced by FindNextFileW ()
+			//	instead of FindClose ().
+			dwErrToReturn = GetLastError ();
+			FindClose (hFind);
+		} else
+			dwErrToReturn = ERROR_NOT_ENOUGH_MEMORY;
 	} else
-		ubf_assert_msg (false, "Bug!");
-	return true;
+		dwErrToReturn = ERROR_NOT_ENOUGH_MEMORY;
+	SetLastError (dwErrToReturn);
+	return uiEnts;
 }
 
-uint64_t ForEachDirectoryEntryMaskU8	(
+size_t ForEachDirectoryEntryMaskU8	(
 				const char				*strFolderU8,
 				size_t					lenFolderU8,
 				const char				*strFileMaskU8,
 				size_t					lenFileMaskU8,
 				pForEachDirEntryU8		fedEnt,
-				void					*pCustom
-										)
+				void					*pCustom,
+				size_t					*pnSubLevels
+									)
 {
 	ubf_assert_non_NULL	(strFolderU8);
 	ubf_assert_non_0	(lenFolderU8);
 
-	char	chFolder [WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD];
-	char	*pchFolder;
-	size_t	lenFolder = USE_STRLEN == lenFolderU8 ? strlen (strFolderU8) : lenFolderU8;
+	size_t				uiEnts					= 0;
 
-	if (!lenFolder)
+	size_t folderU8len = str_remove_last_dir_separator (strFolderU8, lenFolderU8);
+	if (folderU8len)
 	{
+		size_t fileMaskU8len = strFileMaskU8 ? (USE_STRLEN == lenFileMaskU8 ? strlen (strFileMaskU8) : lenFileMaskU8) : 0;
+		WIN32_FIND_DATAW	wfdW;
+		SRDIRONEENTRYSTRUCT	sdOneEntry;
+
+		sdOneEntry.UTF8orUTF16.pstrPathWorU8	= strFolderU8;
+		sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
+		sdOneEntry.pwfd							= &wfdW;
+		sdOneEntry.pCustom						= pCustom;
+		sdOneEntry.szFileMask					= strFileMaskU8;
+		sdOneEntry.lnFileMask					= fileMaskU8len;
+
+		INITSMEMBUF (sdOneEntry.mbSearchPath);
+		INITSMEMBUF (sdOneEntry.mbFullPathU8);
+
+		uiEnts = ForEachDirEntryMaskU8intern	(
+					strFolderU8, folderU8len,
+					fedEnt, pCustom, pnSubLevels, &sdOneEntry
+												);
+
+		DONESMEMBUF (sdOneEntry.mbSearchPath);
+		DONESMEMBUF (sdOneEntry.mbFullPathU8);
+	} else
 		SetLastError (ERROR_INVALID_PARAMETER);
-		return 0;
-	}
-
-	ubf_assert (strlen (strFolderU8) == lenFolder);
-	if (lenFolder + stCoverAllMask < WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD)
-		pchFolder = chFolder;
-	else
-		pchFolder = ubf_malloc (lenFolder + stCoverAllMask);
-
-	size_t				lenFileMask;
-
-	if (strFileMaskU8)
-	{
-		lenFileMask							= USE_STRLEN == lenFileMaskU8
-											? strlen (strFileMaskU8)
-											: lenFileMaskU8;
-	} else
-		lenFileMask							= 0;
-	ubf_assert (strlen (strFileMaskU8) == lenFileMask);
-
-	if (!pchFolder)
-	{
-		SetLastError (ERROR_NOT_ENOUGH_MEMORY);
-		return 0;
-	}
-
-	// Assemble the folder name.
-	memcpy (pchFolder, strFolderU8, lenFolder);
-	char *szMaskGoeshere = pchFolder + lenFolder - 1;
-	ubf_assert_non_0 (szMaskGoeshere [0]);
-	if ('/' == szMaskGoeshere [0] || '\\' == szMaskGoeshere [0])
-	{
-		memcpy (szMaskGoeshere, ccCoverAllMask, stCoverAllMask);
-	} else
-	{
-		++ szMaskGoeshere;
-		memcpy (szMaskGoeshere, ccCoverAllMask, stCoverAllMask);
-	}
-
-	HANDLE				hFind;
-	WIN32_FIND_DATAW	wfdW;
-	uint64_t			uiEnts				= 0;			// The return value.
-	SRDIRONEENTRYSTRUCT	sdOneEntry;
-	DWORD				dwErrToReturn;
-
-	sdOneEntry.UTF8orUTF16.pstrPathWorU8	= strFolderU8;
-	sdOneEntry.pwfd							= &wfdW;
-	sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
-	sdOneEntry.pCustom						= pCustom;
-	char szU8FileNameOnly [UTF8_MAX_PATH];
-	sdOneEntry.szFileNameU8					= szU8FileNameOnly;
-	sdOneEntry.stFileNameU8					= USE_STRLEN;
-
-	hFind = FindFirstFileU8 (pchFolder, &wfdW);
-	if (INVALID_HANDLE_VALUE == hFind)
-	{	// Maybe no files or whatever.
-		return uiEnts;
-	}
-	do
-	{
-		// Go through the folder and pick up each entry.
-		if (!isDotOrDotDotW (wfdW.cFileName))
-		{
-			++ uiEnts;
-			if (!ForEachDirectoryEntryMaskU8cb (fedEnt, strFileMaskU8, lenFileMask, &sdOneEntry))
-				break;
-		}
-	} while (FindNextFileW (hFind, &wfdW) != 0);
-
-	if (chFolder != pchFolder)
-		ubf_free (pchFolder);
-
-	// We want the caller to be able to obtain the last error produced by FindNextFileW ()
-	//	instead of FindClose ().
-	dwErrToReturn = GetLastError ();
-	FindClose (hFind);
-
-	SetLastError (dwErrToReturn);
 	return uiEnts;
 }
+
+#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
+	static uint64_t uiTstGlob;
+
+	bool perFile (SRDIRONEENTRYSTRUCT *psdE)
+	{
+		ubf_assert_non_NULL (psdE);
+		ubf_assert (EN_READ_DIR_ENTS_SDIRW_UTF8 == psdE->u);
+
+		char cFilename [UTF8_MAX_PATH];
+		UTF8_from_WinU16 (cFilename, UTF8_MAX_PATH, psdE->pwfd->cFileName);
+		printf ("P: %s, %s\n", psdE->UTF8orUTF16.chPathU8, cFilename);
+		++ uiTstGlob;
+		if (uiTstGlob >= 100)
+			ubf_assert (false);
+		return true;
+	}
+
+	bool ForEachDirectoryEntryMaskU8TestFnct (void)
+	{
+		bool b = true;
+
+		size_t	ui	= SIZE_MAX;
+		size_t	n;
+
+		/*
+		n = ForEachDirectoryEntryMaskU8	(
+				"C:/temp",		USE_STRLEN,
+				"*.txt",		USE_STRLEN,
+				perFile, NULL, &ui
+										);
+		UNREFERENCED_PARAMETER (n);
+		n = ForEachDirectoryEntryMaskU8	(
+				"C:/temp/",		USE_STRLEN,
+				"*.txt",		USE_STRLEN,
+				perFile, NULL, &ui
+										);
+		UNREFERENCED_PARAMETER (n);
+		n = ForEachDirectoryEntryMaskU8	(
+				"C:\\temp",		USE_STRLEN,
+				"*.txt",		USE_STRLEN,
+				perFile, NULL, &ui
+										);
+		UNREFERENCED_PARAMETER (n);
+
+		n = ForEachDirectoryEntryMaskU8	(
+				"C:\\temp\\",	USE_STRLEN,
+				"*.txt",		USE_STRLEN,
+				perFile, NULL, &ui
+										);
+		*/
+
+		UNREFERENCED_PARAMETER (ui);
+		UNREFERENCED_PARAMETER (n);
+		UNREFERENCED_PARAMETER (b);
+
+		return b;
+	}
+#endif
 
 #endif														// Of #ifdef _WIN32.
 /****************************************************************************************
@@ -7923,7 +7994,7 @@ When		Who				What
 #endif
 
 const char ccdtMnths [12][4] =
-		{"Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+		{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 /****************************************************************************************
 
 	File:		ubf_time.c
@@ -10897,11 +10968,15 @@ const char *szBuild_ISO__DATE__ (void)
 		if (!memcmp (ccdtMnths [m], cc__DATE__, 3))
 			break;
 	}
+	ubf_assert_msg (m < 12, "Bug! Month misspelled!");
 	// Year, like "2024".
 	memcpy (szISO__DATE__, cc__DATE__ + 7, 4);
 	szISO__DATE__ [4] = '-';
 	// Month, like "10".
-	memcpy (szISO__DATE__ + 5, ccDigMns [m], 2);
+	if (m < 12)
+		memcpy (szISO__DATE__ + 5, ccDigMns [m], 2);
+	else
+		memcpy (szISO__DATE__ + 5, "\?\?", 2);
 	szISO__DATE__ [7] = '-';
 	// Day, like "30".
 	memcpy (szISO__DATE__ + 8, cc__DATE__ + 4, 2);
@@ -10975,6 +11050,18 @@ size_t replace_ISO_DATE_ (char *sz, size_t len)
 }
 
 DEFAULT_WARNING_ASSIGNMENT_WITHIN_CONDITIONAL_EXPRESSION ()
+
+#ifdef ISO_DATE_BUILD_TEST_FNCT
+	bool ISO_DATE_Test_function (void)
+	{
+		bool b = true;
+
+		const char *szi = szBuild_ISO__DATE__ ();
+		ubf_expect_bool_AND (b, LEN_ISO8601DATE == strlen (szi));
+
+		return b;
+	}
+#endif
 /****************************************************************************************
 
 	File:		ubfdebug.c
@@ -12222,8 +12309,8 @@ size_t str_remove_path_navigators (char *chPath, size_t *pLen)
 
 bool ubf_correct_directory_separators_str	(
 			char			*chPath,
-			size_t			*plenPath,
-			size_t			*pReps
+			size_t			*cunilog_restrict plenPath,
+			size_t			*cunilog_restrict pReps
 											)
 {
 	size_t			stRet	= 0;
@@ -12277,7 +12364,7 @@ bool ubf_correct_directory_separators_str	(
 
 DEFAULT_WARNING_ASSIGNMENT_WITHIN_CONDITIONAL_EXPRESSION ()
 
-void ubf_change_directory_separators (char *szPath, size_t len, char newSeparator)
+void ubf_change_directory_separators (char *szPath, size_t len, const char newSeparator)
 {
 	size_t	l = (size_t) -1 == len ? strlen (szPath) : len;
 	size_t	i;
@@ -12309,6 +12396,17 @@ size_t ubf_len_with_last_directory_separator (const char *szPath, size_t len)
 			return 2;
 	}
 	return 0;
+}
+
+size_t str_remove_last_dir_separator (const char *str, size_t len)
+{
+	len = str ? (USE_STRLEN == len ? strlen (str) : len) : 0;
+	if (len)
+	{
+		if (is_path_separator (str [len - 1]))
+			-- len;
+	}
+	return len;
 }
 
 #ifdef BUILD_DEBUG_UBF_STRFILESYS_TESTS
@@ -16469,8 +16567,10 @@ enum hasGlobCharAfterStar
 typedef enum hasGlobCharAfterStar enGl;
 
 static inline enGl globCharAfterStar	(
-		char			*c,			size_t *g,
-		const char		*ccGlob,	size_t *lnGlob
+		char			*cunilog_restrict c,
+		size_t			*cunilog_restrict g,
+		const char		*cunilog_restrict ccGlob,
+		size_t			*cunilog_restrict lnGlob
 										)
 {
 	ubf_assert_non_NULL	(c);
@@ -16522,8 +16622,8 @@ static inline enGl globCharAfterStar	(
 	#define charsEqual(c1, c2)							\
 		(												\
 				(c1 == c2)								\
-			||	('/' == c1 && '\\' == c2)				\
-			||	('\\' == c1 && '/' == c2)				\
+			||	('/'	== c1 && '\\'	== c2)			\
+			||	('\\'	== c1 && '/'	== c2)			\
 		)
 #endif
 
@@ -16533,12 +16633,12 @@ DISABLE_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
 static inline const char *handleGlobStars	(
 							bool		*r,
-							size_t		*s,
-							size_t		*g,
-							const char	*ccStri,
-							size_t		*lnStri,
-							const char	*ccGlob,
-							size_t		*lnGlob
+							size_t		*cunilog_restrict s,
+							size_t		*cunilog_restrict g,
+							const char	*cunilog_restrict ccStri,
+							size_t		*cunilog_restrict lnStri,
+							const char	*cunilog_restrict ccGlob,
+							size_t		*cunilog_restrict lnGlob
 											)
 {
 	ubf_assert_non_NULL	(r);
@@ -16583,8 +16683,10 @@ static inline const char *handleGlobStars	(
 }
 
 static inline bool globMatchInt	(
-		const char		*ccStri,	size_t *lnStri,
-		const char		*ccGlob,	size_t *lnGlob
+		const char		*cunilog_restrict ccStri,
+		size_t			*cunilog_restrict lnStri,
+		const char		*cunilog_restrict ccGlob,
+		size_t			*cunilog_restrict lnGlob
 								)
 {
 	ubf_assert_non_NULL	(ccStri);
@@ -16626,9 +16728,9 @@ DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
 DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
 
 bool matchWildcardPattern	(
-		const char		*ccStri,	size_t lnStri,
-		const char		*ccGlob,	size_t lnGlob
-				)
+		const char		*cunilog_restrict ccStri,	size_t lnStri,
+		const char		*cunilog_restrict ccGlob,	size_t lnGlob
+							)
 {
 	lnStri = USE_STRLEN == lnStri ? strlen (ccStri) : lnStri;
 	lnGlob = USE_STRLEN == lnGlob ? strlen (ccGlob) : lnGlob;
@@ -16637,6 +16739,220 @@ bool matchWildcardPattern	(
 	{
 		if (lnStri)
 			return globMatchInt (ccStri, &lnStri, ccGlob, &lnGlob);
+		return false;
+	}
+	return true;
+}
+
+static inline const wchar_t *nextPathSeparatorW (const wchar_t *str, size_t *idx, size_t len)
+{
+	ubf_assert_non_NULL (str);
+	ubf_assert_non_NULL (idx);
+
+	while (len && L'/' != str [*idx] && L'\\' != str [*idx])
+	{
+		-- len;
+		++ *idx;
+	}
+	return (len && (L'/' == str [*idx] || L'\\' == str [*idx]) ? str + *idx : NULL);
+}
+
+static inline const wchar_t *nextCharOrPathSeparatorW (const wchar_t *str, size_t *idx, wchar_t c, size_t len)
+{
+	ubf_assert_non_NULL (str);
+	ubf_assert_non_NULL (idx);
+
+	while (len && L'/' != str [*idx] && L'\\' != str [*idx] && c != str [*idx])
+	{
+		-- len;
+		++ *idx;
+	}
+	return (len && (L'/' == str [*idx] || L'\\' == str [*idx] || c == str [*idx]) ? str + *idx : NULL);
+}
+
+static inline const wchar_t *nextCharW (const wchar_t *str, size_t *idx, wchar_t c, size_t len)
+{
+	ubf_assert_non_NULL (str);
+	ubf_assert_non_NULL (idx);
+
+	while (len && c != str [*idx])
+	{
+		-- len;
+		++ *idx;
+	}
+	return (len && c == str [*idx] ? str + *idx : NULL);
+}
+
+static inline enGl globCharAfterStarW	(
+		wchar_t			*cunilog_restrict c,
+		size_t			*cunilog_restrict g,
+		const wchar_t	*cunilog_restrict ccGlob,
+		size_t			*cunilog_restrict lnGlob
+										)
+{
+	ubf_assert_non_NULL	(c);
+	ubf_assert_non_NULL	(g);
+	ubf_assert_non_NULL	(lnGlob);
+
+	++ *g;
+
+	if (*g < *lnGlob && L'*' == ccGlob [*g])
+	{
+		++ *g;
+
+		while (*g < *lnGlob)
+		{
+			*c = ccGlob [*g];
+			if (L'*' != *c)
+				return en_globCharAfterDoubleStar;
+			++ *g;
+		}
+		return en_globDoubleCharDepleted;
+	}
+
+	while (*g < *lnGlob)
+	{
+		*c = ccGlob [*g];
+		if (L'*' != *c)
+			return en_globCharAfterStar;
+		++ *g;
+	}
+	return en_globDepleted;
+}
+
+#ifdef STRWILDCARDS_CHARSEQUAL_FNCT
+	// For easier debugging.
+	static inline bool charsEqualW (wchar_t c1, wchar_t c2)
+	{
+		if (L'/' == c1 && L'\\' == c2)
+			return true;
+		if (L'\\' == c1 && L'/' == c2)
+			return true;
+		if (c1 == c2)
+			return true;
+		return false;
+	}
+#else
+	#define charsEqualW(c1, c2)							\
+		(												\
+				(c1 == c2)								\
+			||	(L'/'	== c1 && L'\\'	== c2)			\
+			||	(L'\\'	== c1 && L'/'	== c2)			\
+		)
+#endif
+
+// Neither r nor p are uninitialised.
+DISABLE_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
+DISABLE_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
+
+static inline const wchar_t *handleGlobStarsW	(
+							bool			*r,
+							size_t			*cunilog_restrict s,
+							size_t			*cunilog_restrict g,
+							const wchar_t	*cunilog_restrict ccStri,
+							size_t			*cunilog_restrict lnStri,
+							const wchar_t	*cunilog_restrict ccGlob,
+							size_t			*cunilog_restrict lnGlob
+												)
+{
+	ubf_assert_non_NULL	(r);
+	ubf_assert_non_NULL	(s);
+	ubf_assert_non_NULL	(g);
+	ubf_assert_non_NULL	(ccStri);
+	ubf_assert_non_NULL	(lnStri);
+	ubf_assert_non_NULL	(ccGlob);
+	ubf_assert_non_NULL	(lnGlob);
+
+	wchar_t			c;
+	const wchar_t	*p;
+	enGl			gl;
+
+	gl = globCharAfterStarW (&c, g, ccGlob, lnGlob);
+	ubf_assert	(
+						en_globCharAfterStar		== gl
+					||	en_globDepleted				== gl
+					||	en_globCharAfterDoubleStar	== gl
+					||	en_globDoubleCharDepleted	== gl
+				);
+	switch (gl)
+	{
+		case en_globCharAfterDoubleStar:
+			p = nextCharW (ccStri, s, c, *lnStri - *s);
+			*r = false;
+			break;
+		case en_globDoubleCharDepleted:
+			p = NULL;
+			*r = true;
+			break;
+		case en_globCharAfterStar:
+			p = nextCharOrPathSeparatorW (ccStri, s, c, *lnStri - *s);
+			*r = false;
+			break;
+		case en_globDepleted:
+			p = nextPathSeparatorW (ccStri, s, *lnStri - *s);
+			*r = true;
+			break;
+	}
+	return p;
+}
+
+static inline bool globMatchIntW	(
+		const wchar_t	*cunilog_restrict ccStri,
+		size_t			*cunilog_restrict lnStri,
+		const wchar_t	*cunilog_restrict ccGlob,
+		size_t			*cunilog_restrict lnGlob
+									)
+{
+	ubf_assert_non_NULL	(ccStri);
+	ubf_assert_non_NULL	(lnStri);
+	ubf_assert_non_NULL	(ccGlob);
+	ubf_assert_non_NULL	(lnGlob);
+
+	size_t			s		= 0;
+	size_t			g		= 0;
+	bool			r;
+	const wchar_t *p;
+
+	while (s < *lnStri && g < *lnGlob)
+	{
+		switch (ccGlob [g])
+		{
+			case L'\?':
+				break;
+			case L'*':
+				p = handleGlobStarsW (&r, &s, &g, ccStri, lnStri, ccGlob, lnGlob);
+				if (NULL == p)
+					return r;
+				break;
+			default:
+				if (!charsEqualW (ccStri [s], ccGlob [g]))
+					return false;
+				break;
+		}
+		++ s;
+		++ g;
+	}
+	// "a" against "a*" or "a********".
+	while (g < *lnGlob && L'*' == ccGlob [g])
+		++ g;
+	return s - *lnStri == g - *lnGlob;
+}
+
+DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_VARIABLE_USED ()
+DEFAULT_WARNING_POTENTIALLY_UNINITIALISED_LOCAL_POINTER_USED ()
+
+bool matchWildcardPatternW	(
+		const wchar_t	*cunilog_restrict ccStri,	size_t lnStri,
+		const wchar_t	*cunilog_restrict ccGlob,	size_t lnGlob
+							)
+{
+	lnStri = USE_STRLEN == lnStri ? wcslen (ccStri) : lnStri;
+	lnGlob = USE_STRLEN == lnGlob ? wcslen (ccGlob) : lnGlob;
+
+	if (lnGlob)
+	{
+		if (lnStri)
+			return globMatchIntW (ccStri, &lnStri, ccGlob, &lnGlob);
 		return false;
 	}
 	return true;
@@ -16652,6 +16968,7 @@ bool matchWildcardPattern	(
 			stand alone (as in "?"). See C99 standard, 6.4.4.4 and 6.4.5.
 			Some of the tests below escape it, others don't.
 		*/
+		// ASCII/UTF-8.
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "a*", 2));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 1, "*a", 2));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("a", 0, "b", 0));
@@ -16699,16 +17016,16 @@ bool matchWildcardPattern	(
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/****", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*****", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/user", USE_STRLEN, "/*/\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?/usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/*?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\?*\?*", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\?*\?\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"\\*\\\?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"/?\?\?\?/?\?\?", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"?home?usr", USE_STRLEN));
-		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN,	"?h*m*?u*r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*\?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*\?/usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/*?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "\?*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "\?*\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "\\*\\\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/?\?\?\?/?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "?home?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "?h*m*?u*r", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**x", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**sr", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**r", USE_STRLEN));
@@ -16722,6 +17039,98 @@ bool matchWildcardPattern	(
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/home/usr", USE_STRLEN, "/**?", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/", USE_STRLEN, "/*?", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/", USE_STRLEN, "/**?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1234567", USE_STRLEN, "/?**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1", USE_STRLEN, "/?**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1", USE_STRLEN, "/?***", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/1", USE_STRLEN, "/??**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**7", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**/67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**4/67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("0123", USE_STRLEN, "?**123", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("123", USE_STRLEN, "?**123", USE_STRLEN));
+
+		// Wide characters, which means UTF-16.
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 1, L"a*", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 1, L"*a", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 0, L"b", 0));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 0, L"b", 0));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 1, L"b", 0));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"a", 1, L"b", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 1, L"a", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"\?/\?/\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 3, L"a*", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 3, L"*bc", 3));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 3, L"a*c", 3));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"abc", 3, L"a*d", 3));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"abc", 3, L"d*d", 3));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 3, L"*", 1));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"abc", 3, L"d", 1));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abc", 3, L"*x", 1));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"abc", 3, L"*x", 2));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"*\\*\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"*\\b\\c", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"*\\d\\e", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"a\\b\\e", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"a\\b\\c", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"a\\*\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"a/b/c", USE_STRLEN, L"a\\*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"abcdef", USE_STRLEN, L"a\?c*f", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"abcdef", USE_STRLEN, L"a\?c*fx", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"0123456789", USE_STRLEN, L"0123456789", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"0123456789", USE_STRLEN, L"0123\?56789", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"0123\0"L"456789", 11, L"0123\0"L"\?56789", 11));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home/user", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home/use\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home/us\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home/u\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home/\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/home\?\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/hom\?\?\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/h*/user", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/h*/usxr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*/us*r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*/us*x", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*/us*\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*/us**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/***", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/****", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*****", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/user", USE_STRLEN, L"/*/\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*\?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*\?/usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"\?*\?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"\?*\?\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"\\*\\\?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/?\?\?\?/?\?\?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"?home?usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"?h*m*?u*r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/**x", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/**sr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/**r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/**usr", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/***r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/****r", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*****r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*****b", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*********************b", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/*********************r", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/home/usr", USE_STRLEN, L"/**?", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/", USE_STRLEN, L"/*?", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/", USE_STRLEN, L"/**?", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1234567", USE_STRLEN, L"/?**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/?**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/?***", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/??**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**7", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**/67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**4/67", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"0123", USE_STRLEN, L"?**123", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"123", USE_STRLEN, L"?**123", USE_STRLEN));
 
 		return b;
 	}
@@ -22387,7 +22796,7 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 		ubf_assert			(strlen (put->mbLogPath.buf.pcc)		== put->lnLogPath);
 		ubf_assert			(strlen (put->mbLogFileMask.buf.pcc)	== put->lnLogFileMask);
 
-		uint64_t n;
+		uint64_t		n;
 		/*
 		n = ForEachDirectoryEntryU8	(
 				put->mbLogFileMask.buf.pcc,					// Search mask.
@@ -22398,7 +22807,8 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 				put->mbLogPath.buf.pcc,			put->lnLogPath,
 				put->mbLogFileMask.buf.pcc,		put->lnLogFileMask,
 				obtainLogfilesListToRotateCallbackWin,
-				put
+				put,
+				NULL
 										);
 		UNUSED (n);
 	}
@@ -24474,8 +24884,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 	{
 		CUNILOG_TARGET	*pt;
 		bool			bRet	= true;
-
-		//ASSERT (false);
 
 		// Ensure we haven't forgotten to fill the arrays/jump tables.
 		ubf_expect_bool_AND (bRet, GET_ARRAY_LEN (arrLengthTimeStampFromPostfix)	==	cunilogPostfixAmountEnumValues);

@@ -347,6 +347,8 @@ SCUNILOGCFGNODE *ParseCunilogRootConfigData (char *szConfigData, size_t lenData,
 
 void DoneCunilogRootConfigData (SCUNILOGCFGNODE *cfg)
 {
+	UNUSED (cfg);
+
 	ubf_assert_non_NULL (cfg);
 }
 

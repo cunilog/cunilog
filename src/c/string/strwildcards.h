@@ -113,8 +113,15 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 
 /*
 	matchWildcardPattern
+	matchWildcardPatternW
 
 	Note that the function has been renamed from globMatch () to matchWildcardPattern ().
+
+	The function matchWildcardPattern () expects UTF-8 strings while the function
+	matchWildcardPatternW () is its wide string version. The lengths parameters for
+	matchWildcardPatternW () are in UTF-16 characters, not octets/bytes. Whenever
+	this comment block mentions "octet" or "octets", for matchWildcardPatternW () this
+	means "UTF-16 16 bit word" or "UTF-16 16 bit words".
 
 	The function compares ccStri with length lnStri against the glob pattern (a string
 	that can contain wildcard characters) ccGlob with length lnGlob. It is not a replacement
@@ -126,7 +133,8 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	parameter ccGlob can contain wildard characters.
 
 	The length arguments lnStri and lnGlob can have the value USE_STRLEN, which is (size_t)
-	-1, in which case the length in question is obtained via a call to strlen ().
+	-1, in which case the length in question is obtained via a call to strlen (). For
+	matchWildcardPatternW (), the length is obtained via a call to wcslen ().
 
 	Both, ccStri and ccGlob, can contain NUL characters if lnStri and lnGlob are provided,
 	i.e. are not USE_STRLEN.
@@ -136,12 +144,15 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	the string buffer. In the examples below the buffer in these cases is shown as "" but
 	could as well be NULL or any other arbitrary value.
 
+	The buffers ccStri and ccGlob must not point to the same memory location and must not
+	overlap.
+
 	The function returns true if ccStri matches the pattern ccGlob points to, false if not.
 
 	If both lengths are 0, the function treats this as a match and returns true. If lnStri
 	is 0 but lnGlob is not, the function in this case assumes that a match is impossible and
 	returns false. If lnGlob is 0, this is treated as a match against anything, and the
-	function returns true.
+	function returns true independent of the value of lnStri or the contents of ccStri.
 
 	Match rules for the glob pattern ccGlob:
 	- A single question mark ("?") matches a single octet in ccStri.
@@ -151,10 +162,10 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	- The path separators (forward and backward, "/" and "\") are treated as equal and
 		therefore match each other.
 	- A question mark ("?") after two or more asterisks ("**", "***", "****", etc.) never
-		matches because the asterisks will have consumed the string entirely.
+		matches, because the asterisks will have consumed the string entirely. To match
+		a minimum amount of characters, place the question mark(s) first. For instance,
+		use "?**123" to match "0123" but not "123".
 	
-	The function treats forward slashes and backslashes as being identical characters.
-
 	ccStri		lnStri		ccGlob		lnGlob			return
 	""			0			""			0				true
 	"a"			1			""			0				true
@@ -164,11 +175,21 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	"/"			1			"\"			1				true
 	"/home/usr" USE_STRLEN	"\*?usr"	6				true
 
+	Some explanations/help:
+	The function treats forward slashes and backslashes as being identical characters.
+	Since two or more asterisks followed by a question mark never match, place the
+	question mark first to match a minimum of a single character: "?**"
+
 	See function strwildcards_test_function () for a more complete list of expectations.
 */
 bool matchWildcardPattern	(
-		const char		*ccStri,	size_t lnStri,
-		const char		*ccGlob,	size_t lnGlob
+		const char		*cunilog_restrict ccStri,	size_t lnStri,
+		const char		*cunilog_restrict ccGlob,	size_t lnGlob
+							)
+;
+bool matchWildcardPatternW	(
+		const wchar_t	*cunilog_restrict ccStri,	size_t lnStri,
+		const wchar_t	*cunilog_restrict ccGlob,	size_t lnGlob
 							)
 ;
 

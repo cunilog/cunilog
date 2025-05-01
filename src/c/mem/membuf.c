@@ -144,7 +144,6 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 	void doneSMEMBUF (SMEMBUF *pb)
 	{
 		ubf_assert_non_NULL (pb);
-		ubf_assert_non_NULL (pb->buf.pvoid);
 
 		if (pb->buf.pvoid)
 		{

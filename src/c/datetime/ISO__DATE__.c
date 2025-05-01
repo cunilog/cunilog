@@ -96,11 +96,15 @@ const char *szBuild_ISO__DATE__ (void)
 		if (!memcmp (ccdtMnths [m], cc__DATE__, 3))
 			break;
 	}
+	ubf_assert_msg (m < 12, "Bug! Month misspelled!");
 	// Year, like "2024".
 	memcpy (szISO__DATE__, cc__DATE__ + 7, 4);
 	szISO__DATE__ [4] = '-';
 	// Month, like "10".
-	memcpy (szISO__DATE__ + 5, ccDigMns [m], 2);
+	if (m < 12)
+		memcpy (szISO__DATE__ + 5, ccDigMns [m], 2);
+	else
+		memcpy (szISO__DATE__ + 5, "\?\?", 2);
 	szISO__DATE__ [7] = '-';
 	// Day, like "30".
 	memcpy (szISO__DATE__ + 8, cc__DATE__ + 4, 2);
@@ -174,3 +178,15 @@ size_t replace_ISO_DATE_ (char *sz, size_t len)
 }
 
 DEFAULT_WARNING_ASSIGNMENT_WITHIN_CONDITIONAL_EXPRESSION ()
+
+#ifdef ISO_DATE_BUILD_TEST_FNCT
+	bool ISO_DATE_Test_function (void)
+	{
+		bool b = true;
+
+		const char *szi = szBuild_ISO__DATE__ ();
+		ubf_expect_bool_AND (b, LEN_ISO8601DATE == strlen (szi));
+
+		return b;
+	}
+#endif

@@ -36,15 +36,32 @@ When		Who				What
 
 		Example for internal static structure:
 
-		// Application start
-		InitSUNILOGTARGETstatic (...);
+--- Begin example in Using.md ---
+// Application start
 
-		// Use the log...static () family of functions and macros for logging.
-		logTextU8_static (...);
+CUNILOG_TARGET *put = InitCUNILOG_TARGETstatic	(
+			"logs", 4,
+			"MyApp", USE_STRLEN,
+			cunilogPath_relativeToHomeDir,
+			cunilogMultiThreadedSeparateLoggingThread
+						);
+if (NULL == put)
+{
+	// InitCUNILOG_TARGETstatic () failed.
+	exit (EXIT_FAILURE);
+}
 
-		// Just before the application exists shut down logging and deallocate its resources.
-		ShutdownCUNILOG_TARGETstatic ();
-		DoneSUNILOGTARGETstatic ();
+// Use the log...static () family of functions and macros for logging.
+logTextU8_static ("A simple line to go in the logfile.");
+logTextU8l_static ("Another line.", 13);
+logTextU8l_static ("And another one.", USE_STRLEN);
+
+// Just before the application exists shut down the logging target and deallocate
+//	its resources.
+ShutdownCUNILOG_TARGETstatic ();		// Blocks until the queue is empty.
+DoneCUNILOG_TARGETstatic ();
+--- End of example in Using.md ---
+
 */
 
 /*

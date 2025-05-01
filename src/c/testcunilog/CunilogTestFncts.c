@@ -49,6 +49,7 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
+		#include "./ISO__DATE__.h"
 		#include "./ubf_date_and_time.h"
 		#include "./cunilog.h"
 		#include "./unref.h"
@@ -59,10 +60,17 @@ When		Who				What
 
 		// Required for the tests.
 		#include "./ubfdebug.h"
+
+		#ifdef PLATFORM_IS_WINDOWS
+			#include "./WinAPI_ReadDirFncts.h"
+		#else
+
+		#endif
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
 		#include "./../cunilog/cunilog.h"
+		#include "./../datetime/ISO__DATE__.h"
 		#include "./../datetime/ubf_date_and_time.h"
 		#include "./../pre/unref.h"
 		#include "./../mem/memstrstr.h"
@@ -72,6 +80,12 @@ When		Who				What
 
 		// Required for the tests.
 		#include "./../dbg/ubfdebug.h"
+
+		#ifdef PLATFORM_IS_WINDOWS
+			#include "./../OS/Windows/WinAPI_ReadDirFncts.h"
+		#else
+
+		#endif
 	#endif
 
 #endif
@@ -484,6 +498,18 @@ bool CunilogTestFunction	(
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 
+	#ifdef ISO_DATE_BUILD_TEST_FNCT
+		CunilogTestFnctStartTestToConsole ("Self-test module ISO__DATE__...");
+		b &= ISO_DATE_Test_function ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		CunilogTestFnctStartTestToConsole ("Self-test module ISO__DATE__...");
+		b &= ISO_DATE_Test_function ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module ISO__DATE__...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
 	CunilogTestFnctStartTestToConsole ("Init static target with cunilogPostfixDotNumberYearly...");
 	put = InitCUNILOG_TARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
@@ -706,6 +732,23 @@ bool CunilogTestFunction	(
 	CunilogTestFnctResultToConsole (b);
 
 	DoneCUNILOG_TARGET (put);
+
+	CunilogTestFnctStartTestToConsole ("Testing directory reader...");
+	#ifdef PLATFORM_IS_WINDOWS
+		b &= ForEachDirectoryEntryMaskU8TestFnct ();
+		#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
+			CunilogTestFnctResultToConsole (b);
+		#else
+			CunilogTestFnctDisabledToConsole (b);
+		#endif
+	#else
+		b = true;
+		#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
+			CunilogTestFnctDisabledToConsole (b);
+		#else
+			CunilogTestFnctDisabledToConsole (b);
+		#endif
+	#endif
 
 	//ASSERT (false);
 

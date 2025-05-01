@@ -45,6 +45,7 @@ When		Who				What
 #define ISO__DATE__H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
@@ -139,6 +140,17 @@ TYPEDEF_FNCT_PTR (const char *, szBuild_ISO__DATE__TIME__) (void);
 */
 size_t replace_ISO_DATE_ (char *sz, size_t len);
 TYPEDEF_FNCT_PTR (size_t, replace_ISO_DATE_) (char *sz, size_t len);
+
+/*
+	ISO_DATE_Test_function
+
+	Tests the module.
+*/
+#ifdef ISO_DATE_BUILD_TEST_FNCT
+	bool ISO_DATE_Test_function (void);
+#else
+	#define ISO_DATE_Test_function() (true)
+#endif
 
 EXTERN_C_END
 

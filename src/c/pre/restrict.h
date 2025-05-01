@@ -92,7 +92,7 @@ When		Who				What
 	/*
 		Not available.
 	*/
-	#definecunilog_restrict
+	#define cunilog_restrict
 
 #endif
 

@@ -349,7 +349,6 @@ char *AllocU8path_from_U8path_and_WinU16FileName (const char *ccPath, WCHAR *wcF
 		size_t		stWCflen;										// Length of the wildcard
 																	//	filename, if there is
 																	//	one.
-		char		*ccRet		= NULL;
 		int			iReq;
 
 		// Must not be an empty string or end with a directory separator.

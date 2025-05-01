@@ -73,6 +73,9 @@ EXTERN_C_BEGIN
 #define is_directory_separator(c)						\
 			(UBF_WIN_DIR_SEP == c || UBF_PSX_DIR_SEP == c)
 #endif
+#ifndef is_path_separator
+#define is_path_separator(c)	is_directory_separator (c)
+#endif
 
 /*
 	str_find_path_navigator
@@ -168,8 +171,8 @@ size_t str_remove_path_navigators (char *chPath, size_t *pLen);
 */
 bool ubf_correct_directory_separators_str	(
 			char			*chPath,
-			size_t			*plenPath,
-			size_t			*pReps
+			size_t			*cunilog_restrict plenPath,
+			size_t			*cunilog_restrict pReps
 											)
 ;
 
@@ -179,7 +182,7 @@ bool ubf_correct_directory_separators_str	(
 	Changes all directory separators ('/' and '\\') to newSeparator. Note that newSeparator
 	can be any character that fits in a char.
 */
-void ubf_change_directory_separators (char *szPath, size_t len, char newSeparator);
+void ubf_change_directory_separators (char *szPath, size_t len, const char newSeparator);
 
 /*
 	ubf_len_with_last_directory_separator
@@ -213,6 +216,16 @@ size_t str_correct_dir_separators (char *str, size_t len)
 ;
 
 /*
+	str_remove_last_dir_separator
+
+	Returns the length of str, if str does not end with a path (directory) separator. It
+	returns len - 1, if str ends with a path separator. The function accepts USE_STRLEN
+	for parameter len, in which case it calls strlen (str) to obtain its length.
+*/
+size_t str_remove_last_dir_separator (const char *str, size_t len)
+;
+
+/*
 	ubf_test_ubf_strfilesys
 	
 	Tests this module.
@@ -225,4 +238,4 @@ size_t str_correct_dir_separators (char *str, size_t len)
 
 EXTERN_C_END
 
-#endif // STRFILESYS_H
+#endif														// Of #ifndef STRFILESYS_H.

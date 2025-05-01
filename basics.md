@@ -124,5 +124,11 @@ is assigned.
 
 Each processor is assigned a certain task. Cunilog provides a default set of tasks for processors
 to carry out. A custom task is also available for which a callback function can be invoked.
-Each processor is assigned precisely one task, which is the member __enum cunilogprocesstask__.
+Each processor is assigned precisely one task, which is the member __task__ of data type __enum cunilogprocesstask__.
 
+
+## Rotators
+
+Rotators are s special type of processor. While other processors do something with an event, the job of a rotator is to do something with the logfile or an entire set of logfiles.
+
+See [Processors and Rotators](processors.md) for more information.

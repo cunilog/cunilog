@@ -187,8 +187,8 @@ size_t str_remove_path_navigators (char *chPath, size_t *pLen)
 
 bool ubf_correct_directory_separators_str	(
 			char			*chPath,
-			size_t			*plenPath,
-			size_t			*pReps
+			size_t			*cunilog_restrict plenPath,
+			size_t			*cunilog_restrict pReps
 											)
 {
 	size_t			stRet	= 0;
@@ -242,7 +242,7 @@ bool ubf_correct_directory_separators_str	(
 
 DEFAULT_WARNING_ASSIGNMENT_WITHIN_CONDITIONAL_EXPRESSION ()
 
-void ubf_change_directory_separators (char *szPath, size_t len, char newSeparator)
+void ubf_change_directory_separators (char *szPath, size_t len, const char newSeparator)
 {
 	size_t	l = (size_t) -1 == len ? strlen (szPath) : len;
 	size_t	i;
@@ -274,6 +274,17 @@ size_t ubf_len_with_last_directory_separator (const char *szPath, size_t len)
 			return 2;
 	}
 	return 0;
+}
+
+size_t str_remove_last_dir_separator (const char *str, size_t len)
+{
+	len = str ? (USE_STRLEN == len ? strlen (str) : len) : 0;
+	if (len)
+	{
+		if (is_path_separator (str [len - 1]))
+			-- len;
+	}
+	return len;
 }
 
 #ifdef BUILD_DEBUG_UBF_STRFILESYS_TESTS

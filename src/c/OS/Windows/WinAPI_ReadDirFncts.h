@@ -53,8 +53,10 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./membuf.h"
 	#else
 		#include "./../../pre/externC.h"
+		#include "./../../mem/membuf.h"
 	#endif
 
 #endif
@@ -67,8 +69,14 @@ EXTERN_C_BEGIN
 	#error This module requires HAVE_STRWILDCARDS to be defined and strwildcards.c/h
 #endif
 
+#ifndef WIN_READDIR_FNCTS_DEFAULT_MEM_ALIGNMENT
+#define WIN_READDIR_FNCTS_DEFAULT_MEM_ALIGNMENT			(8)
+#endif
 #ifndef WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD
-#define WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD		(256)
+#define WIN_READDIR_FNCTS_DEFAULT_STACKVAR_THRSHLD		(64)
+#endif
+#ifndef WIN_READDIR_FNCTS_DEFAULT_MASK_THRSHLD
+#define WIN_READDIR_FNCTS_DEFAULT_MASK_THRSHLD			(64)
 #endif
 
 /*
@@ -118,14 +126,33 @@ typedef struct srdirOneEntryStruct
 {
 	union
 	{
+		// Unchanged path provided by the caller.
 		const void			*pstrPathWorU8;					// UTF-8 or UTF-16;
 		const char			*chPathU8;						// UTF-8.
 		const unsigned char	*ucPathU8;						// Unsigned UTF-8.
 		const WCHAR			*wcPathU8;						// UTF-16.
 	} UTF8orUTF16;
+	enum enrdirentssdirw	u;								// Which union member?
+	//size_t					
+
 	WIN32_FIND_DATAW		*pwfd;
 	void					*pCustom;
-	enum enrdirentssdirw	u;
+
+	// The file mask as provided by the caller.
+	const char				*szFileMask;
+	size_t					lnFileMask;
+
+	// The folder plus search mask for FindFirstFileU8long ().
+	SMEMBUF					mbSearchPath;					// "C:\\dir\*"
+	size_t					lnSearchPath;
+
+	// The full path, starting with chPathU8.
+	SMEMBUF					mbFullPathU8;
+	size_t					lnFullPathU8;
+
+	// Everything between szFullPathU8 and szFileNameU8.
+	char					*szPathU8;
+	size_t					lnPathU8;
 
 	// The filename alone converted to UTF-8. Not all functions set these members.
 	//	The function ForEachDirectoryEntryMaskU8 () sets both members.
@@ -312,10 +339,13 @@ typedef bool (*pForEachDirEntryU8) (SRDIRONEENTRYSTRUCT *psdE);
 	strPathU8			The path as a UTF-8 string. This parameter is passed on to
 						the Windows API FindFirstFileW () as parameter lpFileName and can
 						contain wildcard characters.
+
 	fedEnt				Pointer to the callback function. The function is called
 						for each found entry.
+
 	pCustom				Pointer to custom data that is passed on to the callback
 						function.
+
 	*pnSubLevels		A pointer to an unsigned int variable that contains the
 						amount of subfolder levels to enumerate. If this parameter
 						is NULL or points to a value of 0, only the folder in strPathU8
@@ -368,20 +398,20 @@ typedef bool (*pForEachDirEntryU8) (SRDIRONEENTRYSTRUCT *psdE);
 	ERROR_NO_MORE_FILES, indicating success.
 */
 #ifdef HAVE_MEMBUF
-uint64_t ForEachDirectoryEntryU8_Ex	(
+size_t ForEachDirectoryEntryU8_Ex	(
 				const char				*strPathU8,
 				pForEachDirEntryU8		fedEnt,
 				void					*pCustom,
-				unsigned int			*pnSubLevels,
+				size_t					*pnSubLevels,
 				SMEMBUF                 *pmb
 									)
 ;
 #endif
-uint64_t ForEachDirectoryEntryU8	(
+size_t	ForEachDirectoryEntryU8		(
 				const char				*strPathU8,
 				pForEachDirEntryU8		fedEnt,
 				void					*pCustom,
-				unsigned int			*pnSubLevels
+				size_t					*pnSubLevels
 									)
 ;
 
@@ -389,38 +419,98 @@ uint64_t ForEachDirectoryEntryU8	(
 	ForEachDirectoryEntryMaskU8
 
 	This function exists to provide better compatibilibty between Windows and POSIX.
-	It does not return subfolders.
+	Folder and file mask are split into two parameters.
 
 	strFolderU8			The folder for which the function is to retrieve the directory
-						listing. The folder name may end with a forward or backslash.
+						listing. The folder name may end with a forward or backslash. This
+						must be an absolute path.
+						The folder cannot be relative, i.e. cannot contain path navigators
+						("../").
+
 	lenFolderU8			The length of strFolderU8, excluding a terminating NUL character.
 						This parameter can be USE_STRLEN, which causes the function to invoke
 						strlen () on strFolderU8 to obtain its length.
+
 	strFileMaskU8		The filename or mask for the files to call the callback function.
 						It can contain wildcard characters to match the files for whom
 						the callback function will be called.
 						This parameter can be NULL, in which case the function calls the
 						callback function on every single file found.
+						This is not a simple "*" or "*.*" file mask as known from
+						Windows or POSIX. See remarks below the parameter descriptions.
+
 	lenFileMaskU8		The length of strFileMask, excluding a terminating NUL character.
 						This parameter can be USE_STRLEN, which causes the function to invoke
 						strlen () on strFileMask to obtain its length.
 						The parameter is ignored if strFileMaskU8 is NULL.
+
 	fedEnt				Pointer to the callback function. The function is called
 						for each found entry.
+
 	pCustom				Pointer to custom data that is passed on to the callback
 						function.
+
+	*pnSubLevels		A pointer to an unsigned int variable that contains the
+						amount of subfolder levels to enumerate. If this parameter
+						is NULL or points to a value of 0, only the folder in strPathU8
+						is processed. Any other number specifies the amount of
+						subfolders to be enumerated by recursively calling this
+						function. The function uses the variable to count its
+						recursion levels. This means if it is not NULL and points
+						to a value greater than 0, the function alters it for
+						each subfolder level. Make sure the value is correct each
+						time before the function is called.
+
+	The function reads a base directory, which is strFolderU8. It ignores the "." and ".."
+	folders returned by the operating system but matches every other file or directory
+	against strFileMaskU8. Matching starts with file or directory objects inside the folder
+	strFolderU8, which is different from how operating systems and system utilities usually
+	match wildcards and files or directories.
+
+	If pnSubLevels is NULL or points to a value of 0, only files and folders (file objects)
+	in strFolderU8 are matched, meaning known patterns like "???.txt" or "*" or "*.bmp"
+	work as usual. However, since matching starts with file objects in strFolderU8,
+	matching is different when pnSubLevels allows the function to climb further down a
+	directory tree.
+
+	<strFolderU8>/<objects in strFolderU8>/<more objects>
+	.             ^
+	.             !
+	.             +-------- Matching against strFileMaskU8 starts here.
+
+	If strFolderU8 is "/home/user", and the function should return text files in
+	"/home/user/Downloads", strFileMaskU8 needs to be "Downloads/*.txt".
+	If the function should return text files in any folder inside or below "/home/usr",
+	strFileMaskU8 needs to be "**.txt".
+
+	See description of the functions matchWildcardPattern () and/or matchWildcardPatternW ()
+	in strwildcards.h on how patterns are created and matched.
 */
-uint64_t ForEachDirectoryEntryMaskU8	(
+size_t ForEachDirectoryEntryMaskU8	(
 				const char				*strFolderU8,
 				size_t					lenFolderU8,
 				const char				*strFileMaskU8,
 				size_t					lenFileMaskU8,
 				pForEachDirEntryU8		fedEnt,
-				void					*pCustom
-										)
+				void					*pCustom,
+				size_t					*pnSubLevels
+									)
 ;
 
 EXTERN_C_END
+
+#ifndef CUNILOG_BUILD_READDIR_TESTFNCT
+//#define CUNILOG_BUILD_READDIR_TESTFNCT
+#endif
+
+/*
+	Tests.
+*/
+#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
+	bool ForEachDirectoryEntryMaskU8TestFnct (void);
+#else
+	#define ForEachDirectoryEntryMaskU8TestFnct()	(true)
+#endif
 
 #endif														// Of #ifdef _WIN32.
 

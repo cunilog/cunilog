@@ -46,7 +46,8 @@ logTextU8_static ("A simple line to go in the logfile.");
 logTextU8l_static ("Another line.", 13);
 logTextU8l_static ("And another one.", USE_STRLEN);
 
-// Just before the application exists shut down logging and deallocate its resources.
+// Just before the application exists shut down the logging target and deallocate
+//	its resources.
 ShutdownCUNILOG_TARGETstatic ();		// Blocks until the queue is empty.
 DoneCUNILOG_TARGETstatic ();
 ```
