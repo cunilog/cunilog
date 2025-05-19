@@ -56,6 +56,7 @@ When		Who				What
 		#include "./memstrstr.h"
 		#include "./strcustomfmt.h"
 		#include "./strwildcards.h"
+		#include "./strhex.h"
 		#include "./check_utf8.h"
 
 		// Required for the tests.
@@ -75,6 +76,7 @@ When		Who				What
 		#include "./../pre/unref.h"
 		#include "./../mem/memstrstr.h"
 		#include "./../string/strcustomfmt.h"
+		#include "./../string/strhex.h"
 		#include "./../string/strwildcards.h"
 		#include "./../string/check_utf8.h"
 
@@ -421,6 +423,23 @@ bool CunilogTestFunction	(
 
 	cunilog_puts ("Starting Cunilog tests...");
 
+	CunilogTestFnctStartTestToConsole ("Testing directory reader...");
+	#ifdef PLATFORM_IS_WINDOWS
+		b &= ForEachDirectoryEntryMaskU8TestFnct ();
+		#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
+			CunilogTestFnctResultToConsole (b);
+		#else
+			CunilogTestFnctDisabledToConsole (b);
+		#endif
+	#else
+		b = true;
+		#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
+			CunilogTestFnctDisabledToConsole (b);
+		#else
+			CunilogTestFnctDisabledToConsole (b);
+		#endif
+	#endif
+
 	CunilogTestFnctStartTestToConsole ("Internal test of module strnewline...");
 	#ifdef STRNEWLINE_BUILD_TEST
 		CunilogTestFnctResultToConsole (test_strnewline ());
@@ -445,6 +464,17 @@ bool CunilogTestFunction	(
 		b &= ubf_test_str0 ();
 		b &= Test_strintuint ();
 		// Each macro should expand to (true).
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macros tested. Internal test of module strintuint...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Internal test of module strhex...");
+	#ifdef UBF_HEX_BUILD_TEST_FUNCTION
+		b &= ubf_hex_test_function ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		b &= ubf_hex_test_function ();
 		CunilogTestFnctResultToConsole (b);
 		CunilogTestFnctStartTestToConsole ("Only macros tested. Internal test of module strintuint...");
 		CunilogTestFnctDisabledToConsole (b);

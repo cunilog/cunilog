@@ -118,7 +118,7 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	Note that the function has been renamed from globMatch () to matchWildcardPattern ().
 
 	The function matchWildcardPattern () expects UTF-8 strings while the function
-	matchWildcardPatternW () is its wide string version. The lengths parameters for
+	matchWildcardPatternW () is its wide string version. The length parameters for
 	matchWildcardPatternW () are in UTF-16 characters, not octets/bytes. Whenever
 	this comment block mentions "octet" or "octets", for matchWildcardPatternW () this
 	means "UTF-16 16 bit word" or "UTF-16 16 bit words".
@@ -155,7 +155,9 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	function returns true independent of the value of lnStri or the contents of ccStri.
 
 	Match rules for the glob pattern ccGlob:
-	- A single question mark ("?") matches a single octet in ccStri.
+	- The comparison is case-sensitive. "A" does not match "a" and vice versa.
+	- A single question mark ("?") matches a single octet in ccStri including path
+		separators ("/" or "\").
 	- An asterisk ("*") matches zero or more octets but not path separators ("/" or "\").
 	- Two or more asterisks ("**", "***", "****", etc.) match zero or more octets including
 		path separators ("/" or "\").
@@ -170,15 +172,19 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	""			0			""			0				true
 	"a"			1			""			0				true
 	"a"			1			"a"			1				true
-	"a/b/c"		5			"a\*"		3				false
-	"a\b\c"		5			"a\*\*"		5				true
-	"/"			1			"\"			1				true
-	"/home/usr" USE_STRLEN	"\*?usr"	6				true
+	"a/b/c"		5			"a\*"		3				false				See (1) below.
+	"a\b\c"		5			"a\*\*"		5				true				See (1) below.
+	"/"			1			"\"			1				true				See (1) below.
+	"/home/usr" USE_STRLEN	"\*?usr"	6				true				See (1) below.
+	"1/2/3"		5			"1?2?3"		5				true				See (2) below.
+	"/1"		2			"?**"		3				true				See (3) below.
 
 	Some explanations/help:
-	The function treats forward slashes and backslashes as being identical characters.
-	Since two or more asterisks followed by a question mark never match, place the
-	question mark first to match a minimum of a single character: "?**"
+	In the above examples, strings are not C literals as backslashes are not escaped.
+	(1) The function treats forward slashes and backslashes as being identical characters.
+	(2) A question mark also matches a path separator.
+	(3) Since two or more asterisks followed by a question mark never match, place the
+		question mark first to match a minimum of a single character: "?**"
 
 	See function strwildcards_test_function () for a more complete list of expectations.
 */

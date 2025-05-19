@@ -221,6 +221,9 @@ size_t str_correct_dir_separators (char *str, size_t len)
 	Returns the length of str, if str does not end with a path (directory) separator. It
 	returns len - 1, if str ends with a path separator. The function accepts USE_STRLEN
 	for parameter len, in which case it calls strlen (str) to obtain its length.
+	If str is NULL, the function returns 0.
+
+	The function does not expect (or remove) more than one path separator at the end of str.
 */
 size_t str_remove_last_dir_separator (const char *str, size_t len)
 ;

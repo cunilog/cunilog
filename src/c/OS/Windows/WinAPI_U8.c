@@ -3243,6 +3243,23 @@ void SetConsoleCodePageToUTF8 (void)
 	SetConsoleOutputCP (CP_UTF8);
 }
 
+bool SetConsoleEnableANSI (void)
+{
+	HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
+	if (INVALID_HANDLE_VALUE != hConsole)
+	{
+		DWORD	dwMode;
+		BOOL b = GetConsoleMode (hConsole, &dwMode);
+		if (b)
+		{
+			dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+			b = SetConsoleMode (hConsole, dwMode);
+			return b;
+		}
+	}
+	return false;
+}
+
 int WinSetStdoutToUTF16 (void)
 {
 	// Change stdout to Unicode UTF-16

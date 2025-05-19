@@ -1596,6 +1596,9 @@ TYPEDEF_FNCT_PTR (void *, setToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 	least siz the function does not change the buffer. In other words the buffer can only
 	grow but never shrinks, which is what you most likely want.
 
+	The current content of the buffer is not transferred to the new buffer and is therefore
+	lost.
+
 	The function returns a pointer to ps->buf.pvoid.
 	
 	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
@@ -1615,6 +1618,21 @@ TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 */
 void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz);
 TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF64aligned) (SMEMBUF *pb, size_t siz);
+
+/*
+	growToSizeRetainSMEMBUF
+
+	Grows the buffer of the SMEMBUF structure pb points to to size siz.
+	Unlike growToSizeSMEMBUF (), the contents of the existing buffer are
+	retained, even if the memory block is new. The function is therefore
+	similar to realloc ().
+
+	The buffer never shrinks.
+
+	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	Check with isUsableSMEMBUF() if the structure can be used afterwards.
+*/
+void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 
 /*
 	freeSMEMBUF
@@ -3374,6 +3392,8 @@ TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileU8long)
 	
 	Note that UTF-8 encoded data stores between 1 and 4 octets per
 	character. See https://en.wikipedia.org/wiki/UTF-8 for reference.
+	MAX_PATH includes a NUL terminator, i.e. the precise value for
+	UTF8_MAX_PATH would actually be 4 * MAX_PATH - 3.
 */
 #ifndef UTF8_MAX_PATH
 #define UTF8_MAX_PATH	(4 * MAX_PATH)
@@ -3389,7 +3409,7 @@ typedef struct win32_find_dataU8
 	DWORD		dwReserved0;
 	DWORD		dwReserved1;
 	char		cFileName [UTF8_MAX_PATH];
-	//WCHAR		cAlternateFileName[14];							// Not used.
+	//WCHAR		cAlternateFileName[14];						// Not used.
 	DWORD		dwFileType;
 	DWORD		dwCreatorType;
 	WORD		wFinderFlags;
@@ -4922,6 +4942,16 @@ void SetConsoleCodePageToUTF8 (void);
 TYPEDEF_FNCT_PTR (void, SetConsoleCodePageToUTF8) (void);
 
 /*
+	SetConsoleEnableANSI
+
+	Calls GetConsoleMode () and SetConsoleMode to set the console mode flag
+	ENABLE_VIRTUAL_TERMINAL_PROCESSING, which enables processing of ANSI escape
+	sequences.
+*/
+bool SetConsoleEnableANSI (void);
+TYPEDEF_FNCT_PTR (bool, SetConsoleEnableANSI) (void);
+
+/*
 	WinSetStdoutToUTF16
 
 	Changes stdout to UTF-16. This is required to correctly display UTF-16 characters
@@ -5357,7 +5387,8 @@ typedef struct srdirOneEntryStruct
 
 	// The file mask as provided by the caller.
 	const char				*szFileMask;
-	size_t					lnFileMask;
+	size_t					lnFileMask;						// Its length. Cannot be
+															//	USE_STRLEN.
 
 	// The folder plus search mask for FindFirstFileU8long ().
 	SMEMBUF					mbSearchPath;					// "C:\\dir\*"
@@ -5366,6 +5397,7 @@ typedef struct srdirOneEntryStruct
 	// The full path, starting with chPathU8.
 	SMEMBUF					mbFullPathU8;
 	size_t					lnFullPathU8;
+	size_t					lnInitPathU8;
 
 	// Everything between szFullPathU8 and szFileNameU8.
 	char					*szPathU8;
@@ -5639,10 +5671,10 @@ size_t	ForEachDirectoryEntryU8		(
 	Folder and file mask are split into two parameters.
 
 	strFolderU8			The folder for which the function is to retrieve the directory
-						listing. The folder name may end with a forward or backslash. This
-						must be an absolute path.
-						The folder cannot be relative, i.e. cannot contain path navigators
-						("../").
+						listing. The folder name may end with a forward or backslash.
+						This must be an absolute path. The folder cannot be relative, i.e.
+						cannot contain path navigators ("..\") unless they can be resolved
+						entirely.
 
 	lenFolderU8			The length of strFolderU8, excluding a terminating NUL character.
 						This parameter can be USE_STRLEN, which causes the function to invoke
@@ -13912,6 +13944,9 @@ size_t str_correct_dir_separators (char *str, size_t len)
 	Returns the length of str, if str does not end with a path (directory) separator. It
 	returns len - 1, if str ends with a path separator. The function accepts USE_STRLEN
 	for parameter len, in which case it calls strlen (str) to obtain its length.
+	If str is NULL, the function returns 0.
+
+	The function does not expect (or remove) more than one path separator at the end of str.
 */
 size_t str_remove_last_dir_separator (const char *str, size_t len)
 ;
@@ -14046,11 +14081,12 @@ EXTERN_C_BEGIN
 	Returns or evaluates to TRUE if c contains an ASCII digit between 0 and 7, FALSE
 	otherwise.
 */
+#define ubf_is_octal_digit_macro(c)						\
+		((unsigned char) (c) >= '0' && (unsigned char) (c) <= '7')
 #ifdef DEBUG
 	bool ubf_is_octal_digit (char c);
 #else
-    #define ubf_is_octal_digit(c)						\
-		((unsigned char) (c) >= '0' && (unsigned char) (c) <= '7')
+    #define ubf_is_octal_digit(c)	ubf_is_octal_digit_macro (c)
 #endif
 
 /*
@@ -14060,15 +14096,16 @@ EXTERN_C_BEGIN
 	otherwise. Hexadecimal digits are the decimal digits 0 to 9, plus the the letters
 	A to F.
 */
+#define ubf_is_hex_digit_macro(c)						\
+(														\
+		((unsigned char) (c) >= '0' && (unsigned char) (c) <= '9')\
+	||	((unsigned char) (c) >= 'A' && (unsigned char) (c) <= 'F')\
+	||	((unsigned char) (c) >= 'a' && (unsigned char) (c) <= 'f')\
+)
 #ifdef DEBUG
 	bool ubf_is_hex_digit (char c);
 #else
-	#define ubf_is_hex_digit(c)							\
-	(													\
-			((unsigned char) (c) >= '0' && (unsigned char) (c) <= '9')\
-		||	((unsigned char) (c) >= 'A' && (unsigned char) (c) <= 'F')\
-		||	((unsigned char) (c) >= 'a' && (unsigned char) (c) <= 'f')\
-	)
+	#define ubf_is_hex_digit(c)		ubf_is_hex_digit_macro (c)
 #endif
 
 /*
@@ -14092,16 +14129,17 @@ EXTERN_C_BEGIN
 	"f" returns 15.
 	Anything else returns UBF_INVALID_HEX_CHAR, which is defined as (unsigned char) -1.
 */
+#define ubf_value_of_ASCII_hex_macro(c)					\
+	(													\
+		(unsigned char) (c) >= '0' && (unsigned char) (c) <= '9' ? (unsigned char) (c) - '0' :\
+		(unsigned char) (c) >= 'a' && (unsigned char) (c) <= 'f' ? (unsigned char) (c) - 'a' + 10 :\
+		(unsigned char) (c) >= 'A' && (unsigned char) (c) <= 'F' ? (unsigned char) (c) - 'A' + 10 :\
+		UBF_INVALID_HEX_CHAR							\
+	)
 #ifdef DEBUG
 	unsigned char ubf_value_of_ASCII_hex (const char c);
 #else
-	#define ubf_value_of_ASCII_hex(c)					\
-		(												\
-			(unsigned char) (c) >= '0' && (unsigned char) (c) <= '9' ? (unsigned char) (c) - '0' :\
-			(unsigned char) (c) >= 'a' && (unsigned char) (c) <= 'f' ? (unsigned char) (c) - 'a' + 10 :\
-			(unsigned char) (c) >= 'A' && (unsigned char) (c) <= 'F' ? (unsigned char) (c) - 'A' + 10 :\
-			UBF_INVALID_HEX_CHAR						\
-		)
+	#define ubf_value_of_ASCII_hex(c)	ubf_value_of_ASCII_hex_macro (c)
 #endif
 
 /*
@@ -14112,16 +14150,17 @@ EXTERN_C_BEGIN
 	not contain a valid octal character ('0', '1', '2', '3', '4', '5', '6',
 	or '7').
 */
+#define ubf_value_of_ASCII_oct_macro(c)					\
+	(													\
+			(unsigned char) (c) >= '0'					\
+		&&	(unsigned char) (c) <= '7'					\
+		?	(unsigned char) (c) - '0'					\
+		:	UBF_INVALID_OCT_CHAR						\
+	)
 #ifdef DEBUG
 	unsigned char ubf_value_of_ASCII_oct (const char c);
 #else
-	#define ubf_value_of_ASCII_oct(c)					\
-		(												\
-				(unsigned char) (c) >= '0'				\
-			&&	(unsigned char) (c) <= '7'				\
-			?	(unsigned char) (c) - '0'				\
-			:	UBF_INVALID_OCT_CHAR					\
-		)
+	#define ubf_value_of_ASCII_oct(c)	ubf_value_of_ASCII_oct_macro (c)
 #endif
 
 /*
@@ -14642,9 +14681,9 @@ void ubf_hex_simple_hash	(
 #else
 #endif
 #ifdef UBF_HEX_BUILD_TEST_FUNCTION
-	void ubf_hex_test_function (void);
+	bool ubf_hex_test_function (void);
 #else
-	#define ubf_hex_test_function()
+	#define ubf_hex_test_function()	(true)
 #endif
 
 EXTERN_C_END
@@ -16503,6 +16542,10 @@ When		Who				What
 #define USE_STRLEN						((size_t) -1)
 #endif
 
+#ifndef STRMEMBUF_DEFAULT_ALIGNMENT
+#define STRMEMBUF_DEFAULT_ALIGNMENT		(16)
+#endif
+
 EXTERN_C_BEGIN
 
 /*
@@ -16549,6 +16592,31 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStr) (SMEMBUF *pmb, const char *str, size_t
 size_t SMEMBUFstrFromUINT64 (SMEMBUF *pmb, uint64_t ui)
 ;
 TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrFromUINT64) (SMEMBUF *pmb, uint64_t ui)
+;
+
+/*
+	SMEMBUFstrconcat
+
+	Concatenates the string with a length of len in the buffer of the SMEMBUF structrue pmb
+	points to and the string str with a length of lenstr, storing the result in the SMEMBUF
+	structure's buffer. Both length parameters, len and lenstr, can be USE_STRLEN. If precise
+	lengths are given, the strings de not need to be NUL-terminated.
+	
+	If str is NULL, the parameter lenstr is ignored and the buffer of the SMEMBUF structure
+	is not changed.
+
+	The resulting string in the buffer of pmb is NUL-terminated.
+
+	If the buffer of pmb has to be reallocated, the buffer is made big enough to additionally
+	hold reserve octets. Set reserve to 0 if no additional buffer space is needed.
+
+	The function returns the new length of the string in the buffer of pmb. If str is NULL
+	or lenstr is 0, the function returns len without touching the buffer.
+
+	Do not use the return value to determine if the function failed. Use the macro
+	isUsableSMEMBUF() instead.
+*/
+size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve)
 ;
 
 EXTERN_C_END
@@ -16674,7 +16742,7 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	Note that the function has been renamed from globMatch () to matchWildcardPattern ().
 
 	The function matchWildcardPattern () expects UTF-8 strings while the function
-	matchWildcardPatternW () is its wide string version. The lengths parameters for
+	matchWildcardPatternW () is its wide string version. The length parameters for
 	matchWildcardPatternW () are in UTF-16 characters, not octets/bytes. Whenever
 	this comment block mentions "octet" or "octets", for matchWildcardPatternW () this
 	means "UTF-16 16 bit word" or "UTF-16 16 bit words".
@@ -16711,7 +16779,9 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	function returns true independent of the value of lnStri or the contents of ccStri.
 
 	Match rules for the glob pattern ccGlob:
-	- A single question mark ("?") matches a single octet in ccStri.
+	- The comparison is case-sensitive. "A" does not match "a" and vice versa.
+	- A single question mark ("?") matches a single octet in ccStri including path
+		separators ("/" or "\").
 	- An asterisk ("*") matches zero or more octets but not path separators ("/" or "\").
 	- Two or more asterisks ("**", "***", "****", etc.) match zero or more octets including
 		path separators ("/" or "\").
@@ -16726,15 +16796,19 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	""			0			""			0				true
 	"a"			1			""			0				true
 	"a"			1			"a"			1				true
-	"a/b/c"		5			"a\*"		3				false
-	"a\b\c"		5			"a\*\*"		5				true
-	"/"			1			"\"			1				true
-	"/home/usr" USE_STRLEN	"\*?usr"	6				true
+	"a/b/c"		5			"a\*"		3				false				See (1) below.
+	"a\b\c"		5			"a\*\*"		5				true				See (1) below.
+	"/"			1			"\"			1				true				See (1) below.
+	"/home/usr" USE_STRLEN	"\*?usr"	6				true				See (1) below.
+	"1/2/3"		5			"1?2?3"		5				true				See (2) below.
+	"/1"		2			"?**"		3				true				See (3) below.
 
 	Some explanations/help:
-	The function treats forward slashes and backslashes as being identical characters.
-	Since two or more asterisks followed by a question mark never match, place the
-	question mark first to match a minimum of a single character: "?**"
+	In the above examples, strings are not C literals as backslashes are not escaped.
+	(1) The function treats forward slashes and backslashes as being identical characters.
+	(2) A question mark also matches a path separator.
+	(3) Since two or more asterisks followed by a question mark never match, place the
+		question mark first to match a minimum of a single character: "?**"
 
 	See function strwildcards_test_function () for a more complete list of expectations.
 */

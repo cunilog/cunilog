@@ -107,3 +107,40 @@ size_t SMEMBUFstrFromUINT64 (SMEMBUF *pmb, uint64_t ui)
 	size_t l = ubf_str_from_uint64 (asc, ui);
 	return SMEMBUFfromStr (pmb, asc, l);
 }
+
+size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve)
+{
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
+
+	len = USE_STRLEN == len ? strlen (pmb->buf.pcc) : len;
+	if (str)
+	{
+		lenstr = USE_STRLEN == lenstr ? strlen (str) : lenstr;
+		if (pmb->size > len + lenstr)
+		{	// Both strings fit in the current buffer.
+			memcpy (pmb->buf.pch + len, str, lenstr);
+			len += lenstr;
+			pmb->buf.pch [len] = ASCII_NUL;
+		} else
+		{	// The current buffer is too small.
+			size_t st = ALIGNED_SIZE (len + lenstr + 1 + reserve, STRMEMBUF_DEFAULT_ALIGNMENT);
+			char *sz = ubf_malloc (st);
+			if (sz)
+			{
+				memcpy (sz, pmb->buf.pch, len);
+				memcpy (sz + len, str, lenstr);
+				len += lenstr;
+				sz [len] = ASCII_NUL;
+				ubf_free (pmb->buf.pch);
+				pmb->buf.pch	= sz;
+				pmb->size		= st;
+			} else
+			{	// Heap allocation failed.
+				doneSMEMBUF (pmb);
+				len = 0;
+			}
+		}
+	}
+	return len;
+}

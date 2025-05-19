@@ -121,6 +121,34 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 	return pb->buf.pvoid;
 }
 
+void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz)
+{
+	ubf_assert_non_NULL (pb);
+
+	if (siz > pb->size)
+	{
+		void *n = ubf_realloc (pb->buf.pvoid, siz);
+		if (n)
+		{
+			pb->buf.pvoid	= n;
+			pb->size		= siz;
+		} else
+		{
+			n = ubf_malloc (siz);
+			if (n)
+			{
+				memcpy (n, pb->buf.pvoid, pb->size);
+				ubf_free (pb->buf.pvoid);
+				pb->size = siz;
+			} else
+			{
+				doneSMEMBUF (pb);
+			}
+		}
+	}
+	return pb->buf.pvoid;
+}
+
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUF (SMEMBUF *pb)
 	{

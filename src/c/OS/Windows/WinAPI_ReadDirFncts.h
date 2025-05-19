@@ -140,7 +140,8 @@ typedef struct srdirOneEntryStruct
 
 	// The file mask as provided by the caller.
 	const char				*szFileMask;
-	size_t					lnFileMask;
+	size_t					lnFileMask;						// Its length. Cannot be
+															//	USE_STRLEN.
 
 	// The folder plus search mask for FindFirstFileU8long ().
 	SMEMBUF					mbSearchPath;					// "C:\\dir\*"
@@ -149,6 +150,7 @@ typedef struct srdirOneEntryStruct
 	// The full path, starting with chPathU8.
 	SMEMBUF					mbFullPathU8;
 	size_t					lnFullPathU8;
+	size_t					lnInitPathU8;
 
 	// Everything between szFullPathU8 and szFileNameU8.
 	char					*szPathU8;
@@ -422,10 +424,10 @@ size_t	ForEachDirectoryEntryU8		(
 	Folder and file mask are split into two parameters.
 
 	strFolderU8			The folder for which the function is to retrieve the directory
-						listing. The folder name may end with a forward or backslash. This
-						must be an absolute path.
-						The folder cannot be relative, i.e. cannot contain path navigators
-						("../").
+						listing. The folder name may end with a forward or backslash.
+						This must be an absolute path. The folder cannot be relative, i.e.
+						cannot contain path navigators ("..\") unless they can be resolved
+						entirely.
 
 	lenFolderU8			The length of strFolderU8, excluding a terminating NUL character.
 						This parameter can be USE_STRLEN, which causes the function to invoke

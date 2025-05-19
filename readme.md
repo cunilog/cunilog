@@ -84,7 +84,7 @@ very quick. The software's origins are in automation with realtime constraints.
 
 It builds and works on Windows with MSVC. It's not fully tested yet.
 
-Preparation work has been made for Linux and MacOS but it will currently not build.
+Preparation work has been dome for Linux and MacOS but it will currently not build.
 
 Once it builds and works on Linux it will most likely also build for and work on
 Android.

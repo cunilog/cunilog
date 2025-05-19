@@ -646,12 +646,17 @@ bool matchWildcardPatternW	(
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1", USE_STRLEN, "/?**", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1", USE_STRLEN, "/?***", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/1", USE_STRLEN, "/??**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1", USE_STRLEN, "?**", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**7", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**/67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**4/67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("0123", USE_STRLEN, "?**123", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("123", USE_STRLEN, "?**123", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1/2/3", USE_STRLEN, "1?2?3", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1/2/3", USE_STRLEN, "1/2?3", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1/2/3", USE_STRLEN, "1/2?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("A", 1, "a", 1));
 
 		// Wide characters, which means UTF-16.
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 1, L"a*", 2));
@@ -728,12 +733,17 @@ bool matchWildcardPatternW	(
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/?**", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/?***", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/??**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1", USE_STRLEN, L"?**", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**7", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**/67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**4/67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"0123", USE_STRLEN, L"?**123", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"123", USE_STRLEN, L"?**123", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1/2/3", USE_STRLEN, L"1?2?3", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1/2/3", USE_STRLEN, L"1/2?3", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1/2/3", USE_STRLEN, L"1/2?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"A", 1, L"a", 1));
 
 		return b;
 	}

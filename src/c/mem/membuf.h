@@ -232,6 +232,9 @@ TYPEDEF_FNCT_PTR (void *, setToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 	least siz the function does not change the buffer. In other words the buffer can only
 	grow but never shrinks, which is what you most likely want.
 
+	The current content of the buffer is not transferred to the new buffer and is therefore
+	lost.
+
 	The function returns a pointer to ps->buf.pvoid.
 	
 	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
@@ -251,6 +254,21 @@ TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 */
 void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz);
 TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF64aligned) (SMEMBUF *pb, size_t siz);
+
+/*
+	growToSizeRetainSMEMBUF
+
+	Grows the buffer of the SMEMBUF structure pb points to to size siz.
+	Unlike growToSizeSMEMBUF (), the contents of the existing buffer are
+	retained, even if the memory block is new. The function is therefore
+	similar to realloc ().
+
+	The buffer never shrinks.
+
+	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	Check with isUsableSMEMBUF() if the structure can be used afterwards.
+*/
+void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 
 /*
 	freeSMEMBUF

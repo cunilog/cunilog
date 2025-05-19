@@ -1621,6 +1621,8 @@ TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileU8long)
 	
 	Note that UTF-8 encoded data stores between 1 and 4 octets per
 	character. See https://en.wikipedia.org/wiki/UTF-8 for reference.
+	MAX_PATH includes a NUL terminator, i.e. the precise value for
+	UTF8_MAX_PATH would actually be 4 * MAX_PATH - 3.
 */
 #ifndef UTF8_MAX_PATH
 #define UTF8_MAX_PATH	(4 * MAX_PATH)
@@ -1636,7 +1638,7 @@ typedef struct win32_find_dataU8
 	DWORD		dwReserved0;
 	DWORD		dwReserved1;
 	char		cFileName [UTF8_MAX_PATH];
-	//WCHAR		cAlternateFileName[14];							// Not used.
+	//WCHAR		cAlternateFileName[14];						// Not used.
 	DWORD		dwFileType;
 	DWORD		dwCreatorType;
 	WORD		wFinderFlags;
@@ -3167,6 +3169,16 @@ TYPEDEF_FNCT_PTR (void, SetConsoleCodePageToANSI) (void);
 */
 void SetConsoleCodePageToUTF8 (void);
 TYPEDEF_FNCT_PTR (void, SetConsoleCodePageToUTF8) (void);
+
+/*
+	SetConsoleEnableANSI
+
+	Calls GetConsoleMode () and SetConsoleMode to set the console mode flag
+	ENABLE_VIRTUAL_TERMINAL_PROCESSING, which enables processing of ANSI escape
+	sequences.
+*/
+bool SetConsoleEnableANSI (void);
+TYPEDEF_FNCT_PTR (bool, SetConsoleEnableANSI) (void);
 
 /*
 	WinSetStdoutToUTF16

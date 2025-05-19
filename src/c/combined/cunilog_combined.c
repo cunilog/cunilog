@@ -141,6 +141,34 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 	return pb->buf.pvoid;
 }
 
+void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz)
+{
+	ubf_assert_non_NULL (pb);
+
+	if (siz > pb->size)
+	{
+		void *n = ubf_realloc (pb->buf.pvoid, siz);
+		if (n)
+		{
+			pb->buf.pvoid	= n;
+			pb->size		= siz;
+		} else
+		{
+			n = ubf_malloc (siz);
+			if (n)
+			{
+				memcpy (n, pb->buf.pvoid, pb->size);
+				ubf_free (pb->buf.pvoid);
+				pb->size = siz;
+			} else
+			{
+				doneSMEMBUF (pb);
+			}
+		}
+	}
+	return pb->buf.pvoid;
+}
+
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUF (SMEMBUF *pb)
 	{
@@ -3469,6 +3497,23 @@ void SetConsoleCodePageToUTF8 (void)
 	SetConsoleOutputCP (CP_UTF8);
 }
 
+bool SetConsoleEnableANSI (void)
+{
+	HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
+	if (INVALID_HANDLE_VALUE != hConsole)
+	{
+		DWORD	dwMode;
+		BOOL b = GetConsoleMode (hConsole, &dwMode);
+		if (b)
+		{
+			dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+			b = SetConsoleMode (hConsole, dwMode);
+			return b;
+		}
+	}
+	return false;
+}
+
 int WinSetStdoutToUTF16 (void)
 {
 	// Change stdout to Unicode UTF-16
@@ -3858,12 +3903,14 @@ When		Who				What
 		#include "./ubfmem.h"
 		#include "./strfilesys.h"
 		#include "./strisdotordotdot.h"
+		#include "./strmembuf.h"
 		#include "./strwildcards.h"
 	#else
 		#include "./../../dbg/ubfdebug.h"
 		#include "./../../mem/ubfmem.h"
 		#include "./../../string/strfilesys.h"
 		#include "./../../string/strisdotordotdot.h"
+		#include "./../../string/strmembuf.h"
 		#include "./../../string/strwildcards.h"
 	#endif
 
@@ -4160,6 +4207,11 @@ static const char	ccCoverAllMask []	= "\\*";
 #define SIZCOVERALLMSK	(sizeof (ccCoverAllMask))
 #define LENCOVERALLMSK	(sizeof (ccCoverAllMask) - 1)
 
+/*
+	Requires correct path navigators.
+	Requires correct lengths.
+	No NULL checks.
+*/
 size_t ForEachDirEntryMaskU8intern	(
 				const char				*szFolder,
 				size_t					lnFolder,
@@ -4169,43 +4221,37 @@ size_t ForEachDirEntryMaskU8intern	(
 				SRDIRONEENTRYSTRUCT		*psdE
 									)
 {
-	ubf_assert_non_NULL (psdE);
+	ubf_assert_non_NULL	(psdE);
+	ubf_assert			(USE_STRLEN != lnFolder);
+	ubf_assert			(USE_STRLEN != psdE->lnFileMask);
 
-	HANDLE				hFind;
 	size_t				uiEnts			= 0;				// The return value.
 	DWORD				dwErrToReturn	= ERROR_SUCCESS;
 
-	growToSizeSMEMBUF	(
-		&psdE->mbSearchPath,
-		ALIGNED_SIZE (lnFolder + SIZCOVERALLMSK, WIN_READDIR_FNCTS_DEFAULT_MEM_ALIGNMENT)
-						);
+	growToSizeSMEMBUF (&psdE->mbSearchPath, lnFolder + SIZCOVERALLMSK);
 	if (isUsableSMEMBUF (&psdE->mbSearchPath))
 	{
 		memcpy (psdE->mbSearchPath.buf.pch, szFolder, lnFolder);
 		memcpy (psdE->mbSearchPath.buf.pch + lnFolder, ccCoverAllMask, SIZCOVERALLMSK);
 		psdE->lnSearchPath = lnFolder + LENCOVERALLMSK;
-		hFind = FindFirstFileU8long (psdE->mbSearchPath.buf.pch, psdE->pwfd);
+
+		HANDLE hFind = FindFirstFileU8long (psdE->mbSearchPath.buf.pch, psdE->pwfd);
 		if (INVALID_HANDLE_VALUE == hFind)
 		{	// Maybe no files or whatever.
 			return uiEnts;
 		}
 
 		ubf_assert_non_0 (sizeof (UBF_WIN_DIR_SEP_STR) - 1);
-		growToSizeSMEMBUF	(
-			&psdE->mbFullPathU8,
-			lnFolder + UTF8_MAX_PATH + sizeof (UBF_WIN_DIR_SEP_STR) - 1
-							);
+		ubf_assert_non_0 (1 == sizeof (UBF_WIN_DIR_SEP_STR) - 1);
+		growToSizeRetainSMEMBUF (&psdE->mbFullPathU8, lnFolder + sizeof (UBF_WIN_DIR_SEP_STR) - 1 + UTF8_MAX_PATH);
 		if (isUsableSMEMBUF (&psdE->mbFullPathU8))
 		{
-			memcpy (psdE->mbFullPathU8.buf.pch, szFolder, lnFolder);
 			memcpy	(
 				psdE->mbFullPathU8.buf.pch + lnFolder,
 				UBF_WIN_DIR_SEP_STR,
 				sizeof (UBF_WIN_DIR_SEP_STR)
 					);
-			psdE->lnSearchPath	= lnFolder + sizeof (UBF_WIN_DIR_SEP_STR) - 1;
-			psdE->szPathU8		= psdE->mbFullPathU8.buf.pch + psdE->lnSearchPath;
-			psdE->lnPathU8		= 0;
+			psdE->szPathU8		= psdE->mbFullPathU8.buf.pch + psdE->lnInitPathU8 + 1;
 			psdE->szFileNameU8	= psdE->szPathU8;
 			bool bContinue		= true;
 			do
@@ -4232,10 +4278,20 @@ size_t ForEachDirEntryMaskU8intern	(
 						)
 					{
 						*pnSubLevels -= 1;
+						/*
+						psdE->lnSearchPath = SMEMBUFstrconcat	(
+												&psdE->mbSearchPath,	psdE->lnSearchPath,
+												psdE->szFileNameU8,		psdE->stFileNameU8 - 1,
+												64
+																);
+						*/
 						// Recursively invoke us again.
+						//size_t lnFullPath = lnFolder + 1;	// Includes terminating path separator.
+						psdE->lnFullPathU8 = lnFolder + 1 + psdE->stFileNameU8 - 1;
+						ubf_assert (strlen (psdE->mbFullPathU8.buf.pch) == psdE->lnFullPathU8);
 						uiEnts = ForEachDirEntryMaskU8intern	(
-										psdE->mbSearchPath.buf.pcc,
-										psdE->lnSearchPath,
+										psdE->mbFullPathU8.buf.pcc,
+										psdE->lnFullPathU8,
 										fedEnt, pCustom, pnSubLevels, psdE
 																);
 						*pnSubLevels += 1;
@@ -4268,32 +4324,52 @@ size_t ForEachDirectoryEntryMaskU8	(
 	ubf_assert_non_NULL	(strFolderU8);
 	ubf_assert_non_0	(lenFolderU8);
 
-	size_t				uiEnts					= 0;
-
-	size_t folderU8len = str_remove_last_dir_separator (strFolderU8, lenFolderU8);
+	size_t	uiEnts		= 0;
+	size_t	folderU8len = str_remove_last_dir_separator (strFolderU8, lenFolderU8);
+	char	*szFolder;
 	if (folderU8len)
 	{
-		size_t fileMaskU8len = strFileMaskU8 ? (USE_STRLEN == lenFileMaskU8 ? strlen (strFileMaskU8) : lenFileMaskU8) : 0;
-		WIN32_FIND_DATAW	wfdW;
-		SRDIRONEENTRYSTRUCT	sdOneEntry;
+		szFolder = ubf_malloc (folderU8len + 1);
+		if (szFolder)
+		{
+			memcpy (szFolder, strFolderU8, folderU8len); szFolder [folderU8len] = ASCII_NUL;
+			str_correct_dir_separators (szFolder, folderU8len);
+			str_remove_path_navigators (szFolder, &folderU8len);
+			size_t fileMaskU8len = strFileMaskU8 ? (USE_STRLEN == lenFileMaskU8 ? strlen (strFileMaskU8) : lenFileMaskU8) : 0;
 
-		sdOneEntry.UTF8orUTF16.pstrPathWorU8	= strFolderU8;
-		sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
-		sdOneEntry.pwfd							= &wfdW;
-		sdOneEntry.pCustom						= pCustom;
-		sdOneEntry.szFileMask					= strFileMaskU8;
-		sdOneEntry.lnFileMask					= fileMaskU8len;
+			WIN32_FIND_DATAW	wfdW;
+			SRDIRONEENTRYSTRUCT	sdOneEntry;
+			sdOneEntry.UTF8orUTF16.pstrPathWorU8	= strFolderU8;
+			sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
+			sdOneEntry.pwfd							= &wfdW;
+			sdOneEntry.pCustom						= pCustom;
+			sdOneEntry.szFileMask					= strFileMaskU8;
+			sdOneEntry.lnFileMask					= fileMaskU8len;
+			sdOneEntry.szPathU8						= NULL;
 
-		INITSMEMBUF (sdOneEntry.mbSearchPath);
-		INITSMEMBUF (sdOneEntry.mbFullPathU8);
+			INITSMEMBUF (sdOneEntry.mbSearchPath);
+			INITSMEMBUF (sdOneEntry.mbFullPathU8);
 
-		uiEnts = ForEachDirEntryMaskU8intern	(
-					strFolderU8, folderU8len,
-					fedEnt, pCustom, pnSubLevels, &sdOneEntry
-												);
+			sdOneEntry.lnInitPathU8 = folderU8len;
+			size_t stToReserve = folderU8len + sizeof (UBF_WIN_DIR_SEP_STR) - 1 + UTF8_MAX_PATH;
+			growToSizeSMEMBUF (&sdOneEntry.mbFullPathU8, stToReserve);
+			if (isUsableSMEMBUF (&sdOneEntry.mbFullPathU8))
+			{
+				memcpy (sdOneEntry.mbFullPathU8.buf.pch, szFolder, folderU8len);
+				memcpy	(
+					sdOneEntry.mbFullPathU8.buf.pch + folderU8len,
+					UBF_WIN_DIR_SEP_STR, sizeof (UBF_WIN_DIR_SEP_STR)
+						);
+				uiEnts = ForEachDirEntryMaskU8intern	(
+							szFolder, folderU8len,
+							fedEnt, pCustom, pnSubLevels, &sdOneEntry
+														);
+			}
 
-		DONESMEMBUF (sdOneEntry.mbSearchPath);
-		DONESMEMBUF (sdOneEntry.mbFullPathU8);
+			DONESMEMBUF (sdOneEntry.mbFullPathU8);
+			DONESMEMBUF (sdOneEntry.mbSearchPath);
+			ubf_free (szFolder);
+		}
 	} else
 		SetLastError (ERROR_INVALID_PARAMETER);
 	return uiEnts;
@@ -4323,13 +4399,13 @@ size_t ForEachDirectoryEntryMaskU8	(
 		size_t	ui	= SIZE_MAX;
 		size_t	n;
 
-		/*
 		n = ForEachDirectoryEntryMaskU8	(
-				"C:/temp",		USE_STRLEN,
+				"C:\\temp",		USE_STRLEN,
 				"*.txt",		USE_STRLEN,
 				perFile, NULL, &ui
 										);
 		UNREFERENCED_PARAMETER (n);
+		/*
 		n = ForEachDirectoryEntryMaskU8	(
 				"C:/temp/",		USE_STRLEN,
 				"*.txt",		USE_STRLEN,
@@ -12819,7 +12895,8 @@ size_t ubf_octet_from_hex (unsigned char *o, const char *chHx)
 	unsigned char	c1;
 	unsigned char	c0;
 	
-	c1 = ubf_value_of_ASCII_hex (*chHx ++);
+	c1 = ubf_value_of_ASCII_hex (*chHx);
+	++ chHx;
 	if (UBF_INVALID_HEX_CHAR == c1)
 	{
 		return 0;
@@ -12844,13 +12921,15 @@ size_t ubf_octet_from_oct (unsigned char *o, const char *chOc)
 	unsigned char	c1;
 	unsigned char	c0;
 	
-	c2 = ubf_value_of_ASCII_oct (*chOc ++);
+	c2 = ubf_value_of_ASCII_oct (*chOc);
+	++ chOc;
 	if (UBF_INVALID_OCT_CHAR == c2)
 	{
 		return 0;
 	}
 	ubf_assert (0 == ('\xF8' & c2));
-	c1 = ubf_value_of_ASCII_oct (*chOc ++);
+	c1 = ubf_value_of_ASCII_oct (*chOc);
+	++ chOc;
 	if (UBF_INVALID_OCT_CHAR == c1)
 	{
 		*o = c2;
@@ -12886,7 +12965,8 @@ size_t ubf_octet_from_bin (unsigned char *o, const char *chOb)
 	ubf_assert (1 == sizeof (unsigned char));
 	while (ui)
 	{
-		uct = ubf_value_of_ASCII_bin (*chOb ++);
+		uct = ubf_value_of_ASCII_bin (*chOb);
+		++ chOb;
 		if (UBF_INVALID_BIN_CHAR == uct)
 			break;
 		ucb <<= 1;
@@ -13494,332 +13574,428 @@ void ubf_hex_simple_hash	(
 }
 
 #ifdef UBF_HEX_BUILD_TEST_FUNCTION
-	void ubf_hex_test_function (void)
+	bool ubf_hex_test_function (void)
 	{
+		bool			b			= true;					// Our return value.
 		char			chT [32];
 		unsigned char	o;
 		size_t			st;
 
-		ubf_assert (ubf_is_octal_digit ('0'));
-		ubf_assert (ubf_is_octal_digit ('1'));
-		ubf_assert (ubf_is_octal_digit ('2'));
-		ubf_assert (ubf_is_octal_digit ('3'));
-		ubf_assert (ubf_is_octal_digit ('4'));
-		ubf_assert (ubf_is_octal_digit ('5'));
-		ubf_assert (ubf_is_octal_digit ('6'));
-		ubf_assert (ubf_is_octal_digit ('7'));
-		ubf_assert (!ubf_is_octal_digit ('8'));
-		ubf_assert (!ubf_is_octal_digit ('9'));
-		ubf_assert (!ubf_is_octal_digit ('A'));
-		ubf_assert (!ubf_is_octal_digit ('Z'));
-		ubf_assert (!ubf_is_octal_digit ('.'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit ('0'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit ('0'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit ('1'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit ('2'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit ('3'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit ('4'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit ('5'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit ('6'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit ('7'));
+		ubf_expect_bool_AND (b, !ubf_is_octal_digit ('8'));
+		ubf_expect_bool_AND (b, !ubf_is_octal_digit ('9'));
+		ubf_expect_bool_AND (b, !ubf_is_octal_digit ('A'));
+		ubf_expect_bool_AND (b, !ubf_is_octal_digit ('Z'));
+		ubf_expect_bool_AND (b, !ubf_is_octal_digit ('.'));
 		
-		ubf_assert (ubf_is_hex_digit ('0'));
-		ubf_assert (ubf_is_hex_digit ('1'));
-		ubf_assert (ubf_is_hex_digit ('2'));
-		ubf_assert (ubf_is_hex_digit ('3'));
-		ubf_assert (ubf_is_hex_digit ('4'));
-		ubf_assert (ubf_is_hex_digit ('5'));
-		ubf_assert (ubf_is_hex_digit ('6'));
-		ubf_assert (ubf_is_hex_digit ('7'));
-		ubf_assert (ubf_is_hex_digit ('8'));
-		ubf_assert (ubf_is_hex_digit ('9'));
-		ubf_assert (ubf_is_hex_digit ('A'));
-		ubf_assert (ubf_is_hex_digit ('B'));
-		ubf_assert (ubf_is_hex_digit ('C'));
-		ubf_assert (ubf_is_hex_digit ('D'));
-		ubf_assert (ubf_is_hex_digit ('E'));
-		ubf_assert (ubf_is_hex_digit ('F'));
-		ubf_assert (ubf_is_hex_digit ('a'));
-		ubf_assert (ubf_is_hex_digit ('b'));
-		ubf_assert (ubf_is_hex_digit ('c'));
-		ubf_assert (ubf_is_hex_digit ('d'));
-		ubf_assert (ubf_is_hex_digit ('e'));
-		ubf_assert (ubf_is_hex_digit ('f'));
-		ubf_assert (!ubf_is_hex_digit ('g'));
-		ubf_assert (!ubf_is_hex_digit ('z'));
-		ubf_assert (!ubf_is_hex_digit ('G'));
-		ubf_assert (!ubf_is_hex_digit ('Z'));
-		ubf_assert (!ubf_is_hex_digit ('.'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit_macro ('0'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit_macro ('0'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit_macro ('1'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit_macro ('2'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit_macro ('3'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit_macro ('4'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit_macro ('5'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit_macro ('6'));
+		ubf_expect_bool_AND (b, ubf_is_octal_digit_macro ('7'));
+		ubf_expect_bool_AND (b, !ubf_is_octal_digit_macro ('8'));
+		ubf_expect_bool_AND (b, !ubf_is_octal_digit_macro ('9'));
+		ubf_expect_bool_AND (b, !ubf_is_octal_digit_macro ('A'));
+		ubf_expect_bool_AND (b, !ubf_is_octal_digit_macro ('Z'));
+		ubf_expect_bool_AND (b, !ubf_is_octal_digit_macro ('.'));
+		
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('0'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('1'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('2'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('3'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('4'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('5'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('6'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('7'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('8'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('9'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('A'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('B'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('C'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('D'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('E'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('F'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('a'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('b'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('c'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('d'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('e'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit ('f'));
+		ubf_expect_bool_AND (b, !ubf_is_hex_digit ('g'));
+		ubf_expect_bool_AND (b, !ubf_is_hex_digit ('z'));
+		ubf_expect_bool_AND (b, !ubf_is_hex_digit ('G'));
+		ubf_expect_bool_AND (b, !ubf_is_hex_digit ('Z'));
+		ubf_expect_bool_AND (b, !ubf_is_hex_digit ('.'));
+		
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('0'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('1'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('2'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('3'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('4'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('5'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('6'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('7'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('8'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('9'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('A'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('B'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('C'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('D'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('E'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('F'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('a'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('b'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('c'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('d'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('e'));
+		ubf_expect_bool_AND (b, ubf_is_hex_digit_macro ('f'));
+		ubf_expect_bool_AND (b, !ubf_is_hex_digit_macro ('g'));
+		ubf_expect_bool_AND (b, !ubf_is_hex_digit_macro ('z'));
+		ubf_expect_bool_AND (b, !ubf_is_hex_digit_macro ('G'));
+		ubf_expect_bool_AND (b, !ubf_is_hex_digit_macro ('Z'));
+		ubf_expect_bool_AND (b, !ubf_is_hex_digit_macro ('.'));
 		
 		// Pretty much 100 % test coverage for the hexadecimal characters.
-		ubf_assert ( 0 == ubf_value_of_ASCII_hex ('0'));
-		ubf_assert ( 1 == ubf_value_of_ASCII_hex ('1'));
-		ubf_assert ( 2 == ubf_value_of_ASCII_hex ('2'));
-		ubf_assert ( 3 == ubf_value_of_ASCII_hex ('3'));
-		ubf_assert ( 4 == ubf_value_of_ASCII_hex ('4'));
-		ubf_assert ( 5 == ubf_value_of_ASCII_hex ('5'));
-		ubf_assert ( 6 == ubf_value_of_ASCII_hex ('6'));
-		ubf_assert ( 7 == ubf_value_of_ASCII_hex ('7'));
-		ubf_assert ( 8 == ubf_value_of_ASCII_hex ('8'));
-		ubf_assert ( 9 == ubf_value_of_ASCII_hex ('9'));
-		ubf_assert (10 == ubf_value_of_ASCII_hex ('a'));
-		ubf_assert (10 == ubf_value_of_ASCII_hex ('A'));
-		ubf_assert (11 == ubf_value_of_ASCII_hex ('b'));
-		ubf_assert (11 == ubf_value_of_ASCII_hex ('B'));
-		ubf_assert (12 == ubf_value_of_ASCII_hex ('c'));
-		ubf_assert (12 == ubf_value_of_ASCII_hex ('C'));
-		ubf_assert (13 == ubf_value_of_ASCII_hex ('d'));
-		ubf_assert (13 == ubf_value_of_ASCII_hex ('D'));
-		ubf_assert (14 == ubf_value_of_ASCII_hex ('e'));
-		ubf_assert (14 == ubf_value_of_ASCII_hex ('E'));
-		ubf_assert (15 == ubf_value_of_ASCII_hex ('f'));
-		ubf_assert (15 == ubf_value_of_ASCII_hex ('F'));
-		ubf_assert (UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex (' '));
-		ubf_assert (UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('g'));
-		ubf_assert (UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('G'));
-		ubf_assert (UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('.'));
-		ubf_assert (UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('H'));
-		ubf_assert (UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('Z'));
-		ubf_assert (UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('\0'));
+		ubf_expect_bool_AND (b,  0 == ubf_value_of_ASCII_hex ('0'));
+		ubf_expect_bool_AND (b,  1 == ubf_value_of_ASCII_hex ('1'));
+		ubf_expect_bool_AND (b,  2 == ubf_value_of_ASCII_hex ('2'));
+		ubf_expect_bool_AND (b,  3 == ubf_value_of_ASCII_hex ('3'));
+		ubf_expect_bool_AND (b,  4 == ubf_value_of_ASCII_hex ('4'));
+		ubf_expect_bool_AND (b,  5 == ubf_value_of_ASCII_hex ('5'));
+		ubf_expect_bool_AND (b,  6 == ubf_value_of_ASCII_hex ('6'));
+		ubf_expect_bool_AND (b,  7 == ubf_value_of_ASCII_hex ('7'));
+		ubf_expect_bool_AND (b,  8 == ubf_value_of_ASCII_hex ('8'));
+		ubf_expect_bool_AND (b,  9 == ubf_value_of_ASCII_hex ('9'));
+		ubf_expect_bool_AND (b, 10 == ubf_value_of_ASCII_hex ('a'));
+		ubf_expect_bool_AND (b, 10 == ubf_value_of_ASCII_hex ('A'));
+		ubf_expect_bool_AND (b, 11 == ubf_value_of_ASCII_hex ('b'));
+		ubf_expect_bool_AND (b, 11 == ubf_value_of_ASCII_hex ('B'));
+		ubf_expect_bool_AND (b, 12 == ubf_value_of_ASCII_hex ('c'));
+		ubf_expect_bool_AND (b, 12 == ubf_value_of_ASCII_hex ('C'));
+		ubf_expect_bool_AND (b, 13 == ubf_value_of_ASCII_hex ('d'));
+		ubf_expect_bool_AND (b, 13 == ubf_value_of_ASCII_hex ('D'));
+		ubf_expect_bool_AND (b, 14 == ubf_value_of_ASCII_hex ('e'));
+		ubf_expect_bool_AND (b, 14 == ubf_value_of_ASCII_hex ('E'));
+		ubf_expect_bool_AND (b, 15 == ubf_value_of_ASCII_hex ('f'));
+		ubf_expect_bool_AND (b, 15 == ubf_value_of_ASCII_hex ('F'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex (' '));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('g'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('G'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('.'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('H'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('Z'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex ('\0'));
+
+		ubf_expect_bool_AND (b,  0 == ubf_value_of_ASCII_hex_macro ('0'));
+		ubf_expect_bool_AND (b,  1 == ubf_value_of_ASCII_hex_macro ('1'));
+		ubf_expect_bool_AND (b,  2 == ubf_value_of_ASCII_hex_macro ('2'));
+		ubf_expect_bool_AND (b,  3 == ubf_value_of_ASCII_hex_macro ('3'));
+		ubf_expect_bool_AND (b,  4 == ubf_value_of_ASCII_hex_macro ('4'));
+		ubf_expect_bool_AND (b,  5 == ubf_value_of_ASCII_hex_macro ('5'));
+		ubf_expect_bool_AND (b,  6 == ubf_value_of_ASCII_hex_macro ('6'));
+		ubf_expect_bool_AND (b,  7 == ubf_value_of_ASCII_hex_macro ('7'));
+		ubf_expect_bool_AND (b,  8 == ubf_value_of_ASCII_hex_macro ('8'));
+		ubf_expect_bool_AND (b,  9 == ubf_value_of_ASCII_hex_macro ('9'));
+		ubf_expect_bool_AND (b, 10 == ubf_value_of_ASCII_hex_macro ('a'));
+		ubf_expect_bool_AND (b, 10 == ubf_value_of_ASCII_hex_macro ('A'));
+		ubf_expect_bool_AND (b, 11 == ubf_value_of_ASCII_hex_macro ('b'));
+		ubf_expect_bool_AND (b, 11 == ubf_value_of_ASCII_hex_macro ('B'));
+		ubf_expect_bool_AND (b, 12 == ubf_value_of_ASCII_hex_macro ('c'));
+		ubf_expect_bool_AND (b, 12 == ubf_value_of_ASCII_hex_macro ('C'));
+		ubf_expect_bool_AND (b, 13 == ubf_value_of_ASCII_hex_macro ('d'));
+		ubf_expect_bool_AND (b, 13 == ubf_value_of_ASCII_hex_macro ('D'));
+		ubf_expect_bool_AND (b, 14 == ubf_value_of_ASCII_hex_macro ('e'));
+		ubf_expect_bool_AND (b, 14 == ubf_value_of_ASCII_hex_macro ('E'));
+		ubf_expect_bool_AND (b, 15 == ubf_value_of_ASCII_hex_macro ('f'));
+		ubf_expect_bool_AND (b, 15 == ubf_value_of_ASCII_hex_macro ('F'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex_macro (' '));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex_macro ('g'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex_macro ('G'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex_macro ('.'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex_macro ('H'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex_macro ('Z'));
+		ubf_expect_bool_AND (b, UBF_INVALID_HEX_CHAR == ubf_value_of_ASCII_hex_macro ('\0'));
 
 		// Let's do the same with the octal digits.
-		ubf_assert ( 0 == ubf_value_of_ASCII_oct ('0'));
-		ubf_assert ( 1 == ubf_value_of_ASCII_oct ('1'));
-		ubf_assert ( 2 == ubf_value_of_ASCII_oct ('2'));
-		ubf_assert ( 3 == ubf_value_of_ASCII_oct ('3'));
-		ubf_assert ( 4 == ubf_value_of_ASCII_oct ('4'));
-		ubf_assert ( 5 == ubf_value_of_ASCII_oct ('5'));
-		ubf_assert ( 6 == ubf_value_of_ASCII_oct ('6'));
-		ubf_assert ( 7 == ubf_value_of_ASCII_oct ('7'));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct (' '));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('8'));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('9'));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('A'));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('B'));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('C'));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('D'));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('E'));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('.'));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('H'));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('Z'));
-		ubf_assert (UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('\0'));
+		ubf_expect_bool_AND (b,  0 == ubf_value_of_ASCII_oct ('0'));
+		ubf_expect_bool_AND (b,  1 == ubf_value_of_ASCII_oct ('1'));
+		ubf_expect_bool_AND (b,  2 == ubf_value_of_ASCII_oct ('2'));
+		ubf_expect_bool_AND (b,  3 == ubf_value_of_ASCII_oct ('3'));
+		ubf_expect_bool_AND (b,  4 == ubf_value_of_ASCII_oct ('4'));
+		ubf_expect_bool_AND (b,  5 == ubf_value_of_ASCII_oct ('5'));
+		ubf_expect_bool_AND (b,  6 == ubf_value_of_ASCII_oct ('6'));
+		ubf_expect_bool_AND (b,  7 == ubf_value_of_ASCII_oct ('7'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct (' '));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('8'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('9'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('A'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('B'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('C'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('D'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('E'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('.'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('H'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('Z'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct ('\0'));
+		
+		ubf_expect_bool_AND (b,  0 == ubf_value_of_ASCII_oct_macro ('0'));
+		ubf_expect_bool_AND (b,  1 == ubf_value_of_ASCII_oct_macro ('1'));
+		ubf_expect_bool_AND (b,  2 == ubf_value_of_ASCII_oct_macro ('2'));
+		ubf_expect_bool_AND (b,  3 == ubf_value_of_ASCII_oct_macro ('3'));
+		ubf_expect_bool_AND (b,  4 == ubf_value_of_ASCII_oct_macro ('4'));
+		ubf_expect_bool_AND (b,  5 == ubf_value_of_ASCII_oct_macro ('5'));
+		ubf_expect_bool_AND (b,  6 == ubf_value_of_ASCII_oct_macro ('6'));
+		ubf_expect_bool_AND (b,  7 == ubf_value_of_ASCII_oct_macro ('7'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro (' '));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro ('8'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro ('9'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro ('A'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro ('B'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro ('C'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro ('D'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro ('E'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro ('.'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro ('H'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro ('Z'));
+		ubf_expect_bool_AND (b, UBF_INVALID_OCT_CHAR == ubf_value_of_ASCII_oct_macro ('\0'));
 		
 		// Binary.
-		ubf_assert (0 == ubf_value_of_ASCII_bin ('0'));
-		ubf_assert (1 == ubf_value_of_ASCII_bin ('1'));
-		ubf_assert (UBF_INVALID_BIN_CHAR == ubf_value_of_ASCII_bin (' '));
-		ubf_assert (UBF_INVALID_BIN_CHAR == ubf_value_of_ASCII_bin ('2'));
-		ubf_assert (UBF_INVALID_BIN_CHAR == ubf_value_of_ASCII_bin ('\0'));
+		ubf_expect_bool_AND (b, 0 == ubf_value_of_ASCII_bin ('0'));
+		ubf_expect_bool_AND (b, 1 == ubf_value_of_ASCII_bin ('1'));
+		ubf_expect_bool_AND (b, UBF_INVALID_BIN_CHAR == ubf_value_of_ASCII_bin (' '));
+		ubf_expect_bool_AND (b, UBF_INVALID_BIN_CHAR == ubf_value_of_ASCII_bin ('2'));
+		ubf_expect_bool_AND (b, UBF_INVALID_BIN_CHAR == ubf_value_of_ASCII_bin ('\0'));
 		
 		strcpy (chT, "377");
 		o = ubf_value_of_ASCII_oct (chT [0]);
-		ubf_assert (3 == o);
+		ubf_expect_bool_AND (b, 3 == o);
 		st = ubf_octet_from_oct (&o, chT);
-		ubf_assert (3 == st);
-		ubf_assert (255 == o);
+		ubf_expect_bool_AND (b, 3 == st);
+		ubf_expect_bool_AND (b, 255 == o);
 
 		strcpy (chT, "400");
 		o = ubf_value_of_ASCII_oct (chT [0]);
-		ubf_assert (4 == o);
+		ubf_expect_bool_AND (b, 4 == o);
 		o = ubf_value_of_ASCII_oct (chT [1]);
-		ubf_assert (0 == o);
+		ubf_expect_bool_AND (b, 0 == o);
 		st = ubf_octet_from_oct (&o, chT);
-		ubf_assert (2 == st);
+		ubf_expect_bool_AND (b, 2 == st);
 		// 40o == 32d.
-		ubf_assert (32 == o);
+		ubf_expect_bool_AND (b, 32 == o);
 
 		strcpy (chT, "401");
 		o = ubf_value_of_ASCII_oct (chT [0]);
-		ubf_assert (4 == o);
+		ubf_expect_bool_AND (b, 4 == o);
 		o = ubf_value_of_ASCII_oct (chT [1]);
-		ubf_assert (0 == o);
+		ubf_expect_bool_AND (b, 0 == o);
 		o = ubf_value_of_ASCII_oct (chT [2]);
-		ubf_assert (1 == o);
+		ubf_expect_bool_AND (b, 1 == o);
 		st = ubf_octet_from_oct (&o, chT);
-		ubf_assert (2 == st);
+		ubf_expect_bool_AND (b, 2 == st);
 		// 40o == 32d. The "1" in "401" is already ignored due to octet boundary.
-		ubf_assert (32 == o);
+		ubf_expect_bool_AND (b, 32 == o);
 
 		strcpy (chT, "477");
 		o = ubf_value_of_ASCII_oct (chT [0]);
-		ubf_assert (4 == o);
+		ubf_expect_bool_AND (b, 4 == o);
 		o = ubf_value_of_ASCII_oct (chT [1]);
-		ubf_assert (7 == o);
+		ubf_expect_bool_AND (b, 7 == o);
 		o = ubf_value_of_ASCII_oct (chT [2]);
-		ubf_assert (7 == o);
+		ubf_expect_bool_AND (b, 7 == o);
 		st = ubf_octet_from_oct (&o, chT);
-		ubf_assert (2 == st);
+		ubf_expect_bool_AND (b, 2 == st);
 		// 47o == 39d.
-		ubf_assert (39 == o);
+		ubf_expect_bool_AND (b, 39 == o);
 
 		strcpy (chT, "1110");
 		o = ubf_value_of_ASCII_oct (chT [0]);
-		ubf_assert (1 == o);
+		ubf_expect_bool_AND (b, 1 == o);
 		o = ubf_value_of_ASCII_oct (chT [1]);
-		ubf_assert (1 == o);
+		ubf_expect_bool_AND (b, 1 == o);
 		o = ubf_value_of_ASCII_oct (chT [2]);
-		ubf_assert (1 == o);
+		ubf_expect_bool_AND (b, 1 == o);
 		o = ubf_value_of_ASCII_oct (chT [3]);
-		ubf_assert (0 == o);
+		ubf_expect_bool_AND (b, 0 == o);
 		st = ubf_octet_from_oct (&o, chT);
-		ubf_assert (3 == st);
+		ubf_expect_bool_AND (b, 3 == st);
 		// 111o == 73d == 49h == "I".
-		ubf_assert (73 == o);
+		ubf_expect_bool_AND (b, 73 == o);
 		
 		st = ubf_octet_from_bin (&o, "0");
-		ubf_assert (1 == st);
-		ubf_assert (0 == o);
+		ubf_expect_bool_AND (b, 1 == st);
+		ubf_expect_bool_AND (b, 0 == o);
 		st = ubf_octet_from_bin (&o, "1");
-		ubf_assert (1 == st);
-		ubf_assert (1 == o);
+		ubf_expect_bool_AND (b, 1 == st);
+		ubf_expect_bool_AND (b, 1 == o);
 		st = ubf_octet_from_bin (&o, "01");
-		ubf_assert (2 == st);
-		ubf_assert (1 == o);
+		ubf_expect_bool_AND (b, 2 == st);
+		ubf_expect_bool_AND (b, 1 == o);
 		st = ubf_octet_from_bin (&o, "10");
-		ubf_assert (2 == st);
-		ubf_assert (2 == o);
+		ubf_expect_bool_AND (b, 2 == st);
+		ubf_expect_bool_AND (b, 2 == o);
 		st = ubf_octet_from_bin (&o, "11");
-		ubf_assert (2 == st);
-		ubf_assert (3 == o);
+		ubf_expect_bool_AND (b, 2 == st);
+		ubf_expect_bool_AND (b, 3 == o);
 		st = ubf_octet_from_bin (&o, "100");
-		ubf_assert (3 == st);
-		ubf_assert (4 == o);
+		ubf_expect_bool_AND (b, 3 == st);
+		ubf_expect_bool_AND (b, 4 == o);
 		st = ubf_octet_from_bin (&o, "101");
-		ubf_assert (3 == st);
-		ubf_assert (5 == o);
+		ubf_expect_bool_AND (b, 3 == st);
+		ubf_expect_bool_AND (b, 5 == o);
 		st = ubf_octet_from_bin (&o, "110");
-		ubf_assert (3 == st);
-		ubf_assert (6 == o);
+		ubf_expect_bool_AND (b, 3 == st);
+		ubf_expect_bool_AND (b, 6 == o);
 		st = ubf_octet_from_bin (&o, "111");
-		ubf_assert (3 == st);
-		ubf_assert (7 == o);
+		ubf_expect_bool_AND (b, 3 == st);
+		ubf_expect_bool_AND (b, 7 == o);
 		st = ubf_octet_from_bin (&o, "1000");
-		ubf_assert (4 == st);
-		ubf_assert (8 == o);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 8 == o);
 		st = ubf_octet_from_bin (&o, "1001");
-		ubf_assert (4 == st);
-		ubf_assert (9 == o);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 9 == o);
 		st = ubf_octet_from_bin (&o, "1010");
-		ubf_assert (4 == st);
-		ubf_assert (10 == o);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 10 == o);
 		st = ubf_octet_from_bin (&o, "1011");
-		ubf_assert (4 == st);
-		ubf_assert (11 == o);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 11 == o);
 		st = ubf_octet_from_bin (&o, "1100");
-		ubf_assert (4 == st);
-		ubf_assert (12 == o);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 12 == o);
 		st = ubf_octet_from_bin (&o, "1101");
-		ubf_assert (4 == st);
-		ubf_assert (13 == o);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 13 == o);
 		st = ubf_octet_from_bin (&o, "1110");
-		ubf_assert (4 == st);
-		ubf_assert (14 == o);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 14 == o);
 		st = ubf_octet_from_bin (&o, "1111");
-		ubf_assert (4 == st);
-		ubf_assert (15 == o);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 15 == o);
 		st = ubf_octet_from_bin (&o, "00000001");
-		ubf_assert (8 == st);
-		ubf_assert (1 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 1 == o);
 		st = ubf_octet_from_bin (&o, "000000001");				// Only 8 bits will be consumed.
-		ubf_assert (8 == st);
-		ubf_assert (0 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 0 == o);
 		st = ubf_octet_from_bin (&o, "101010101");				// Only 8 bits will be consumed.
-		ubf_assert (8 == st);
-		ubf_assert (170 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 170 == o);
 		st = ubf_octet_from_bin (&o, "00000010");
-		ubf_assert (8 == st);
-		ubf_assert (2 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 2 == o);
 		st = ubf_octet_from_bin (&o, "00000011");
-		ubf_assert (8 == st);
-		ubf_assert (3 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 3 == o);
 		st = ubf_octet_from_bin (&o, "00000100");
-		ubf_assert (8 == st);
-		ubf_assert (4 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 4 == o);
 		st = ubf_octet_from_bin (&o, "00010000");
-		ubf_assert (8 == st);
-		ubf_assert (16 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 16 == o);
 		st = ubf_octet_from_bin (&o, "00010001");
-		ubf_assert (8 == st);
-		ubf_assert (17 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 17 == o);
 		st = ubf_octet_from_bin (&o, "00100000");
-		ubf_assert (8 == st);
-		ubf_assert (32 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 32 == o);
 		st = ubf_octet_from_bin (&o, "00100001");
-		ubf_assert (8 == st);
-		ubf_assert (33 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 33 == o);
 		st = ubf_octet_from_bin (&o, "00100010");
-		ubf_assert (8 == st);
-		ubf_assert (34 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 34 == o);
 		st = ubf_octet_from_bin (&o, "00100011");
-		ubf_assert (8 == st);
-		ubf_assert (35 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 35 == o);
 		st = ubf_octet_from_bin (&o, "01000000");
-		ubf_assert (8 == st);
-		ubf_assert (64 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 64 == o);
 		st = ubf_octet_from_bin (&o, "10000000");
-		ubf_assert (8 == st);
-		ubf_assert (128 == o);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, 128 == o);
 		
 		// UCS2UTF16bin_from_hex.
 		uint16_t		bin [128];
 		char			*hex;
-		bool			b;
 		
+		bool			b2;
+
 		hex = "003100320033";
-		b = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 0, &st);
+		ubf_expect_bool_AND (b, false == UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 0, &st));
 		// Should come back false.
-		ubf_assert (false == b);
-		ubf_assert (0 == st);
-		b = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 1, &st);
-		ubf_assert (false == b);
-		ubf_assert (0 == st);
-		b = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 2, &st);
-		ubf_assert (false == b);
-		ubf_assert (0 == st);
-		b = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 3, &st);
-		ubf_assert (false == b);
-		ubf_assert (0 == st);
-		b = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 4, &st);
-		ubf_assert (true == b);
-		ubf_assert (1 == st);
-		b = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 5, &st);
-		ubf_assert (false == b);
-		ubf_assert (0 == st);
-		b = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 6, &st);
-		ubf_assert (false == b);
-		ubf_assert (0 == st);
-		b = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 7, &st);
-		ubf_assert (false == b);
-		ubf_assert (0 == st);
-		b = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 8, &st);
-		ubf_assert (true == b);
-		ubf_assert (2 == st);
-		b = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 12, &st);
-		ubf_assert (true == b);
-		ubf_assert (3 == st);
-		b = UCS2UTF16bin_from_hex (bin, 0, hex, 12, &st);
-		ubf_assert (true == b);
-		ubf_assert (0 == st);
-		b = UCS2UTF16bin_from_hex (bin, 1, hex, 12, &st);
-		ubf_assert (true == b);
-		ubf_assert (1 == st);
-		ubf_assert (0x31 == bin [0]);
-		b = UCS2UTF16bin_from_hex (bin, 2, hex, 12, &st);
-		ubf_assert (true == b);
-		ubf_assert (2 == st);
-		ubf_assert (0x31 == bin [0]);
-		ubf_assert (0x32 == bin [1]);
-		b = UCS2UTF16bin_from_hex (bin, 3, hex, 12, &st);
-		ubf_assert (true == b);
-		ubf_assert (3 == st);
-		ubf_assert (0x31 == bin [0]);
-		ubf_assert (0x32 == bin [1]);
-		ubf_assert (0x33 == bin [2]);
-		b = UCS2UTF16bin_from_hex (bin, 4, hex, 12, &st);
-		ubf_assert (true == b);
-		ubf_assert (3 == st);
-		ubf_assert (0x31 == bin [0]);
-		ubf_assert (0x32 == bin [1]);
-		ubf_assert (0x33 == bin [2]);
+		ubf_expect_bool_AND (b, 0 == st);
+		b2 = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 1, &st);
+		ubf_expect_bool_AND (b, false == b2);
+		ubf_expect_bool_AND (b, 0 == st);
+		b2 = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 2, &st);
+		ubf_expect_bool_AND (b, false == b2);
+		ubf_expect_bool_AND (b, 0 == st);
+		b2 = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 3, &st);
+		ubf_expect_bool_AND (b, false == b2);
+		ubf_expect_bool_AND (b, 0 == st);
+		b2 = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 4, &st);
+		ubf_expect_bool_AND (b, true == b2);
+		ubf_expect_bool_AND (b, 1 == st);
+		b2 = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 5, &st);
+		ubf_expect_bool_AND (b, false == b2);
+		ubf_expect_bool_AND (b, 0 == st);
+		b2 = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 6, &st);
+		ubf_expect_bool_AND (b, false == b2);
+		ubf_expect_bool_AND (b, 0 == st);
+		b2 = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 7, &st);
+		ubf_expect_bool_AND (b, false == b2);
+		ubf_expect_bool_AND (b, 0 == st);
+		b2 = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 8, &st);
+		ubf_expect_bool_AND (b, true == b2);
+		ubf_expect_bool_AND (b, 2 == st);
+		b2 = UCS2UTF16bin_from_hex (NULL, SIZE_T_MAX, hex, 12, &st);
+		ubf_expect_bool_AND (b, true == b2);
+		ubf_expect_bool_AND (b, 3 == st);
+		b2 = UCS2UTF16bin_from_hex (bin, 0, hex, 12, &st);
+		ubf_expect_bool_AND (b, true == b2);
+		ubf_expect_bool_AND (b, 0 == st);
+		b2 = UCS2UTF16bin_from_hex (bin, 1, hex, 12, &st);
+		ubf_expect_bool_AND (b, true == b2);
+		ubf_expect_bool_AND (b, 1 == st);
+		ubf_expect_bool_AND (b, 0x31 == bin [0]);
+		b2 = UCS2UTF16bin_from_hex (bin, 2, hex, 12, &st);
+		ubf_expect_bool_AND (b, true == b2);
+		ubf_expect_bool_AND (b, 2 == st);
+		ubf_expect_bool_AND (b, 0x31 == bin [0]);
+		ubf_expect_bool_AND (b, 0x32 == bin [1]);
+		b2 = UCS2UTF16bin_from_hex (bin, 3, hex, 12, &st);
+		ubf_expect_bool_AND (b, true == b2);
+		ubf_expect_bool_AND (b, 3 == st);
+		ubf_expect_bool_AND (b, 0x31 == bin [0]);
+		ubf_expect_bool_AND (b, 0x32 == bin [1]);
+		ubf_expect_bool_AND (b, 0x33 == bin [2]);
+		b2 = UCS2UTF16bin_from_hex (bin, 4, hex, 12, &st);
+		ubf_expect_bool_AND (b, true == b2);
+		ubf_expect_bool_AND (b, 3 == st);
+		ubf_expect_bool_AND (b, 0x31 == bin [0]);
+		ubf_expect_bool_AND (b, 0x32 == bin [1]);
+		ubf_expect_bool_AND (b, 0x33 == bin [2]);
 		// "@AB";
 		hex = "004000410042";
-		b = UCS2UTF16bin_from_hex (bin, 4, hex, 12, &st);
-		ubf_assert (true == b);
-		ubf_assert (3 == st);
-		ubf_assert (0x40 == bin [0]);
-		ubf_assert (0x41 == bin [1]);
-		ubf_assert (0x42 == bin [2]);
+		b2 = UCS2UTF16bin_from_hex (bin, 4, hex, 12, &st);
+		ubf_expect_bool_AND (b, true == b2);
+		ubf_expect_bool_AND (b, 3 == st);
+		ubf_expect_bool_AND (b, 0x40 == bin [0]);
+		ubf_expect_bool_AND (b, 0x41 == bin [1]);
+		ubf_expect_bool_AND (b, 0x42 == bin [2]);
 		
 		// Tests for ubf_uint16_from_hex ().
 		hex = "FFFF";
@@ -13827,32 +14003,32 @@ void ubf_hex_simple_hash	(
 		uint32_t		ui32;
 		uint64_t		ui64;
 		
-		ubf_assert (sizeof (uint16_t) == sizeof (wchar_t));
+		ubf_expect_bool_AND (b, sizeof (uint16_t) == sizeof (wchar_t));
 		st = ubf_uint16_from_hex (&ui16, hex);
-		ubf_assert (4 == st);
-		ubf_assert (65535 == ui16);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 65535 == ui16);
 		hex = "FF";
 		st = ubf_uint16_from_hex (&ui16, hex);
-		ubf_assert (2 == st);
-		ubf_assert (255 == ui16);
+		ubf_expect_bool_AND (b, 2 == st);
+		ubf_expect_bool_AND (b, 255 == ui16);
 		hex = "10";
 		st = ubf_uint16_from_hex (&ui16, hex);
-		ubf_assert (2 == st);
-		ubf_assert (16 == ui16);
+		ubf_expect_bool_AND (b, 2 == st);
+		ubf_expect_bool_AND (b, 16 == ui16);
 		hex = "100";
 		st = ubf_uint16_from_hex (&ui16, hex);
-		ubf_assert (3 == st);
-		ubf_assert (256 == ui16);
+		ubf_expect_bool_AND (b, 3 == st);
+		ubf_expect_bool_AND (b, 256 == ui16);
 		hex = "FFF0";
 		st = ubf_uint16_from_hex (&ui16, hex);
-		ubf_assert (4 == st);
-		ubf_assert (65520 == ui16);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 65520 == ui16);
 		hex = "";
 		ui16 = 17;	// Should stay because no hex digit means the function should not
 					//	change it.
 		st = ubf_uint16_from_hex (&ui16, hex);
-		ubf_assert (0 == st);
-		ubf_assert (17 == ui16);
+		ubf_expect_bool_AND (b, 0 == st);
+		ubf_expect_bool_AND (b, 17 == ui16);
 		
 		unsigned char c;
 		char ch [10];
@@ -13861,104 +14037,105 @@ void ubf_hex_simple_hash	(
 			ch [0] = c;
 			ch [1] = '\0';
 			st = ubf_uint16_from_hex (&ui16, ch);
-			ubf_assert (1 == st);
-			ubf_assert ((uint16_t) (c - (unsigned char) '0') == ui16);
+			ubf_expect_bool_AND (b, 1 == st);
+			ubf_expect_bool_AND (b, (uint16_t) (c - (unsigned char) '0') == ui16);
 		}
 		for (c = (unsigned char) 'a'; c < (unsigned char) 'g'; c ++)
 		{
 			ch [0] = c;
 			ch [1] = '\0';
 			st = ubf_uint16_from_hex (&ui16, ch);
-			ubf_assert (1 == st);
-			ubf_assert ((uint16_t) (10 + c - (unsigned char) 'a') == ui16);
+			ubf_expect_bool_AND (b, 1 == st);
+			ubf_expect_bool_AND (b, (uint16_t) (10 + c - (unsigned char) 'a') == ui16);
 		}
 		for (c = (unsigned char) '0'; c <= (unsigned char) '9'; c ++)
 		{
 			ch [0] = c;
 			ch [1] = '\0';
 			st = ubf_uint32_from_hex (&ui32, ch);
-			ubf_assert (1 == st);
-			ubf_assert ((uint32_t) (c - (unsigned char) '0') == ui32);
+			ubf_expect_bool_AND (b, 1 == st);
+			ubf_expect_bool_AND (b, (uint32_t) (c - (unsigned char) '0') == ui32);
 		}
 		for (c = (unsigned char) 'a'; c < (unsigned char) 'g'; c ++)
 		{
 			ch [0] = c;
 			ch [1] = '\0';
 			st = ubf_uint64_from_hex (&ui64, ch);
-			ubf_assert (1 == st);
-			ubf_assert ((uint64_t) (10 + (uint64_t) c - (unsigned char) 'a') == ui64);
+			ubf_expect_bool_AND (b, 1 == st);
+			ubf_expect_bool_AND (b, (uint64_t) (10 + (uint64_t) c - (unsigned char) 'a') == ui64);
 		}
 		
 		hex = "FFFF";
 		st = ubf_uint32_from_hex (&ui32, hex);
-		ubf_assert (4 == st);
-		ubf_assert (65535 == ui32);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 65535 == ui32);
 		hex = "FF";
 		st = ubf_uint32_from_hex (&ui32, hex);
-		ubf_assert (2 == st);
-		ubf_assert (255 == ui32);
+		ubf_expect_bool_AND (b, 2 == st);
+		ubf_expect_bool_AND (b, 255 == ui32);
 		hex = "10";
 		st = ubf_uint32_from_hex (&ui32, hex);
-		ubf_assert (2 == st);
-		ubf_assert (16 == ui32);
+		ubf_expect_bool_AND (b, 2 == st);
+		ubf_expect_bool_AND (b, 16 == ui32);
 		hex = "100";
 		st = ubf_uint32_from_hex (&ui32, hex);
-		ubf_assert (3 == st);
-		ubf_assert (256 == ui32);
+		ubf_expect_bool_AND (b, 3 == st);
+		ubf_expect_bool_AND (b, 256 == ui32);
 		hex = "FFF0";
 		st = ubf_uint32_from_hex (&ui32, hex);
-		ubf_assert (4 == st);
-		ubf_assert (65520 == ui32);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 65520 == ui32);
 		hex = "";
 		ui32 = 17;	// Should stay because no hex digit means the function should not
 					//	change it.
 		st = ubf_uint32_from_hex (&ui32, hex);
-		ubf_assert (0 == st);
-		ubf_assert (17 == ui32);
+		ubf_expect_bool_AND (b, 0 == st);
+		ubf_expect_bool_AND (b, 17 == ui32);
 		hex = "FFFFFFFF";
 		st = ubf_uint32_from_hex (&ui32, hex);
-		ubf_assert (8 == st);
-		ubf_assert (UINT32_MAX == ui32);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, UINT32_MAX == ui32);
 
 		hex = "FFFF";
 		st = ubf_uint64_from_hex (&ui64, hex);
-		ubf_assert (4 == st);
-		ubf_assert (65535 == ui64);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 65535 == ui64);
 		hex = "FF";
 		st = ubf_uint64_from_hex (&ui64, hex);
-		ubf_assert (2 == st);
-		ubf_assert (255 == ui64);
+		ubf_expect_bool_AND (b, 2 == st);
+		ubf_expect_bool_AND (b, 255 == ui64);
 		hex = "10";
 		st = ubf_uint64_from_hex (&ui64, hex);
-		ubf_assert (2 == st);
-		ubf_assert (16 == ui64);
+		ubf_expect_bool_AND (b, 2 == st);
+		ubf_expect_bool_AND (b, 16 == ui64);
 		hex = "100";
 		st = ubf_uint64_from_hex (&ui64, hex);
-		ubf_assert (3 == st);
-		ubf_assert (256 == ui64);
+		ubf_expect_bool_AND (b, 3 == st);
+		ubf_expect_bool_AND (b, 256 == ui64);
 		hex = "FFF0";
 		st = ubf_uint64_from_hex (&ui64, hex);
-		ubf_assert (4 == st);
-		ubf_assert (65520 == ui64);
+		ubf_expect_bool_AND (b, 4 == st);
+		ubf_expect_bool_AND (b, 65520 == ui64);
 		hex = "";
 		ui64 = 17;	// Should stay because no hex digit means the function should not
 					//	change it.
 		st = ubf_uint64_from_hex (&ui64, hex);
-		ubf_assert (0 == st);
-		ubf_assert (17 == ui64);
+		ubf_expect_bool_AND (b, 0 == st);
+		ubf_expect_bool_AND (b, 17 == ui64);
 		hex = "FFFFFFFF";
 		st = ubf_uint64_from_hex (&ui64, hex);
-		ubf_assert (8 == st);
-		ubf_assert (UINT32_MAX == ui64);
+		ubf_expect_bool_AND (b, 8 == st);
+		ubf_expect_bool_AND (b, UINT32_MAX == ui64);
 		hex = "FFFFFFFFFFFFFFFF";
 		st = ubf_uint64_from_hex (&ui64, hex);
-		ubf_assert (16 == st);
-		ubf_assert (UINT64_MAX == ui64);
+		ubf_expect_bool_AND (b, 16 == st);
+		ubf_expect_bool_AND (b, UINT64_MAX == ui64);
 		hex = "FFFFFFFFFFFFFFF0";
 		st = ubf_uint64_from_hex (&ui64, hex);
-		ubf_assert (16 == st);
-		ubf_assert (UINT64_MAX - 15 == ui64);
+		ubf_expect_bool_AND (b, 16 == st);
+		ubf_expect_bool_AND (b, UINT64_MAX - 15 == ui64);
 
+		return b;
 	}
 #endif
 /****************************************************************************************
@@ -16395,6 +16572,43 @@ size_t SMEMBUFstrFromUINT64 (SMEMBUF *pmb, uint64_t ui)
 	size_t l = ubf_str_from_uint64 (asc, ui);
 	return SMEMBUFfromStr (pmb, asc, l);
 }
+
+size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve)
+{
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
+
+	len = USE_STRLEN == len ? strlen (pmb->buf.pcc) : len;
+	if (str)
+	{
+		lenstr = USE_STRLEN == lenstr ? strlen (str) : lenstr;
+		if (pmb->size > len + lenstr)
+		{	// Both strings fit in the current buffer.
+			memcpy (pmb->buf.pch + len, str, lenstr);
+			len += lenstr;
+			pmb->buf.pch [len] = ASCII_NUL;
+		} else
+		{	// The current buffer is too small.
+			size_t st = ALIGNED_SIZE (len + lenstr + 1 + reserve, STRMEMBUF_DEFAULT_ALIGNMENT);
+			char *sz = ubf_malloc (st);
+			if (sz)
+			{
+				memcpy (sz, pmb->buf.pch, len);
+				memcpy (sz + len, str, lenstr);
+				len += lenstr;
+				sz [len] = ASCII_NUL;
+				ubf_free (pmb->buf.pch);
+				pmb->buf.pch	= sz;
+				pmb->size		= st;
+			} else
+			{	// Heap allocation failed.
+				doneSMEMBUF (pmb);
+				len = 0;
+			}
+		}
+	}
+	return len;
+}
 /****************************************************************************************
 
 	File:		strwildcards.h
@@ -17043,12 +17257,17 @@ bool matchWildcardPatternW	(
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1", USE_STRLEN, "/?**", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1", USE_STRLEN, "/?***", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("/1", USE_STRLEN, "/??**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("/1", USE_STRLEN, "?**", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**7", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**/67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1234/67", USE_STRLEN, "?**4/67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("0123", USE_STRLEN, "?**123", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("123", USE_STRLEN, "?**123", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1/2/3", USE_STRLEN, "1?2?3", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1/2/3", USE_STRLEN, "1/2?3", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPattern ("1/2/3", USE_STRLEN, "1/2?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPattern ("A", 1, "a", 1));
 
 		// Wide characters, which means UTF-16.
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"a", 1, L"a*", 2));
@@ -17125,12 +17344,17 @@ bool matchWildcardPatternW	(
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/?**", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/?***", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"/1", USE_STRLEN, L"/??**", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"/1", USE_STRLEN, L"?**", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**7", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**/67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1234/67", USE_STRLEN, L"?**4/67", USE_STRLEN));
 		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"0123", USE_STRLEN, L"?**123", USE_STRLEN));
 		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"123", USE_STRLEN, L"?**123", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1/2/3", USE_STRLEN, L"1?2?3", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1/2/3", USE_STRLEN, L"1/2?3", USE_STRLEN));
+		ubf_expect_bool_AND (b, true	== matchWildcardPatternW (L"1/2/3", USE_STRLEN, L"1/2?*", USE_STRLEN));
+		ubf_expect_bool_AND (b, false	== matchWildcardPatternW (L"A", 1, L"a", 1));
 
 		return b;
 	}

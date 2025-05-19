@@ -114,11 +114,12 @@ EXTERN_C_BEGIN
 	Returns or evaluates to TRUE if c contains an ASCII digit between 0 and 7, FALSE
 	otherwise.
 */
+#define ubf_is_octal_digit_macro(c)						\
+		((unsigned char) (c) >= '0' && (unsigned char) (c) <= '7')
 #ifdef DEBUG
 	bool ubf_is_octal_digit (char c);
 #else
-    #define ubf_is_octal_digit(c)						\
-		((unsigned char) (c) >= '0' && (unsigned char) (c) <= '7')
+    #define ubf_is_octal_digit(c)	ubf_is_octal_digit_macro (c)
 #endif
 
 /*
@@ -128,15 +129,16 @@ EXTERN_C_BEGIN
 	otherwise. Hexadecimal digits are the decimal digits 0 to 9, plus the the letters
 	A to F.
 */
+#define ubf_is_hex_digit_macro(c)						\
+(														\
+		((unsigned char) (c) >= '0' && (unsigned char) (c) <= '9')\
+	||	((unsigned char) (c) >= 'A' && (unsigned char) (c) <= 'F')\
+	||	((unsigned char) (c) >= 'a' && (unsigned char) (c) <= 'f')\
+)
 #ifdef DEBUG
 	bool ubf_is_hex_digit (char c);
 #else
-	#define ubf_is_hex_digit(c)							\
-	(													\
-			((unsigned char) (c) >= '0' && (unsigned char) (c) <= '9')\
-		||	((unsigned char) (c) >= 'A' && (unsigned char) (c) <= 'F')\
-		||	((unsigned char) (c) >= 'a' && (unsigned char) (c) <= 'f')\
-	)
+	#define ubf_is_hex_digit(c)		ubf_is_hex_digit_macro (c)
 #endif
 
 /*
@@ -160,16 +162,17 @@ EXTERN_C_BEGIN
 	"f" returns 15.
 	Anything else returns UBF_INVALID_HEX_CHAR, which is defined as (unsigned char) -1.
 */
+#define ubf_value_of_ASCII_hex_macro(c)					\
+	(													\
+		(unsigned char) (c) >= '0' && (unsigned char) (c) <= '9' ? (unsigned char) (c) - '0' :\
+		(unsigned char) (c) >= 'a' && (unsigned char) (c) <= 'f' ? (unsigned char) (c) - 'a' + 10 :\
+		(unsigned char) (c) >= 'A' && (unsigned char) (c) <= 'F' ? (unsigned char) (c) - 'A' + 10 :\
+		UBF_INVALID_HEX_CHAR							\
+	)
 #ifdef DEBUG
 	unsigned char ubf_value_of_ASCII_hex (const char c);
 #else
-	#define ubf_value_of_ASCII_hex(c)					\
-		(												\
-			(unsigned char) (c) >= '0' && (unsigned char) (c) <= '9' ? (unsigned char) (c) - '0' :\
-			(unsigned char) (c) >= 'a' && (unsigned char) (c) <= 'f' ? (unsigned char) (c) - 'a' + 10 :\
-			(unsigned char) (c) >= 'A' && (unsigned char) (c) <= 'F' ? (unsigned char) (c) - 'A' + 10 :\
-			UBF_INVALID_HEX_CHAR						\
-		)
+	#define ubf_value_of_ASCII_hex(c)	ubf_value_of_ASCII_hex_macro (c)
 #endif
 
 /*
@@ -180,16 +183,17 @@ EXTERN_C_BEGIN
 	not contain a valid octal character ('0', '1', '2', '3', '4', '5', '6',
 	or '7').
 */
+#define ubf_value_of_ASCII_oct_macro(c)					\
+	(													\
+			(unsigned char) (c) >= '0'					\
+		&&	(unsigned char) (c) <= '7'					\
+		?	(unsigned char) (c) - '0'					\
+		:	UBF_INVALID_OCT_CHAR						\
+	)
 #ifdef DEBUG
 	unsigned char ubf_value_of_ASCII_oct (const char c);
 #else
-	#define ubf_value_of_ASCII_oct(c)					\
-		(												\
-				(unsigned char) (c) >= '0'				\
-			&&	(unsigned char) (c) <= '7'				\
-			?	(unsigned char) (c) - '0'				\
-			:	UBF_INVALID_OCT_CHAR					\
-		)
+	#define ubf_value_of_ASCII_oct(c)	ubf_value_of_ASCII_oct_macro (c)
 #endif
 
 /*
@@ -710,9 +714,9 @@ void ubf_hex_simple_hash	(
 #else
 #endif
 #ifdef UBF_HEX_BUILD_TEST_FUNCTION
-	void ubf_hex_test_function (void);
+	bool ubf_hex_test_function (void);
 #else
-	#define ubf_hex_test_function()
+	#define ubf_hex_test_function()	(true)
 #endif
 
 EXTERN_C_END

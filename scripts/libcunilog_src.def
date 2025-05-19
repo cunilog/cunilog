@@ -20,6 +20,9 @@ EXPORTS
 	CreateCopyCUNILOG_PROCESSORs					@nnn
 	DoneCopyCUNILOG_PROCESSORs						@nnn
 	CunilogSetConsoleTo								@nnn
+	CunilogEnableANSI								@nnn
+	CunilogDisableANSI								@nnn
+	CunilogIsANSIenabled							@nnn
 	CunilogGetEnv									@nnn
 	Cunilog_Have_NO_COLOR							@nnn
 	InitCUNILOG_TARGETex							@nnn
@@ -254,6 +257,7 @@ EXPORTS
 ;	ReportEventU8									@nnn	Not exported
 	SetConsoleCodePageToANSI						@nnn
 	SetConsoleCodePageToUTF8						@nnn
+	SetConsoleEnableANSI							@nnn
 	WinSetStdoutToUTF16								@nnn
 	WinSetStdinToUTF16								@nnn
 	SetCurrentDirectoryU8							@nnn
