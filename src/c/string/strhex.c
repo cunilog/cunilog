@@ -505,32 +505,32 @@ void asc_bin_from_octet (char *pc, uint8_t ui)
 {
 	ubf_assert_non_NULL (pc);
 
-	memcpy (pc, &binASCII [((ui & 0xF0) >> 4) & 0x0F],		4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x0F))], 4);
+	memcpy (pc, &binASCII [4 * (((ui & 0xF0) >> 4) & 0x0F)],		4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x0F)))], 4);
 }
 
 void asc_bin_from_word (char *pc, uint16_t ui)
 {
 	ubf_assert_non_NULL (pc);
 
-	memcpy (pc, &binASCII [((ui & 0xF000) >> 12) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x0F00) >>  8) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x00F0) >>  4) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x000F))],				4);
+	memcpy (pc, &binASCII [4 * (((ui & 0xF000) >> 12) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x0F00) >>  8) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x00F0) >>  4) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x000F)))],				4);
 }
 
 void asc_bin_from_dword (char *pc, uint32_t ui)
 {
 	ubf_assert_non_NULL (pc);
 
-	memcpy (pc, &binASCII [((ui & 0xF0000000) >> 28) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x0F000000) >> 24) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x00F00000) >> 20) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x000F0000) >> 16) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x0000F000) >> 12) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x00000F00) >>  8) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x000000F0) >>  4) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x0000000F))],				4);
+	memcpy (pc, &binASCII [4 * (((ui & 0xF0000000) >> 28) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x0F000000) >> 24) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x00F00000) >> 20) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x000F0000) >> 16) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x0000F000) >> 12) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x00000F00) >>  8) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x000000F0) >>  4) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x0000000F)))],				4);
 }
 
 
@@ -1147,6 +1147,119 @@ void ubf_hex_simple_hash	(
 		ubf_expect_bool_AND (b, 8 == st);
 		ubf_expect_bool_AND (b, 128 == o);
 		
+		char szRes	[128];
+		uint8_t		ui8;
+
+		// These functions do not write NUL terminators.
+		asc_bin_from_octet (szRes, 0x00);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000000", szRes, 8));
+		asc_bin_from_octet (szRes, 0x01);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000001", szRes, 8));
+		asc_bin_from_octet (szRes, 0x02);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000010", szRes, 8));
+		asc_bin_from_octet (szRes, 0x03);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000011", szRes, 8));
+		asc_bin_from_octet (szRes, 0x04);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000100", szRes, 8));
+		asc_bin_from_octet (szRes, 0x05);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000101", szRes, 8));
+		asc_bin_from_octet (szRes, 0x06);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000110", szRes, 8));
+		asc_bin_from_octet (szRes, 0x07);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000111", szRes, 8));
+		asc_bin_from_octet (szRes, 0x08);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001000", szRes, 8));
+		asc_bin_from_octet (szRes, 0x09);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001001", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0A);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001010", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0B);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001011", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0C);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001100", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0D);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001101", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0E);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001110", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0F);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001111", szRes, 8));
+		asc_bin_from_octet (szRes, 0x10);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010000", szRes, 8));
+		asc_bin_from_octet (szRes, 0x11);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010001", szRes, 8));
+		asc_bin_from_octet (szRes, 0x12);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010010", szRes, 8));
+		asc_bin_from_octet (szRes, 0x13);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010011", szRes, 8));
+		asc_bin_from_octet (szRes, 0x15);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010101", szRes, 8));
+		asc_bin_from_octet (szRes, 0x16);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010110", szRes, 8));
+		asc_bin_from_octet (szRes, 0x19);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00011001", szRes, 8));
+		asc_bin_from_octet (szRes, 0x20);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00100000", szRes, 8));
+		asc_bin_from_octet (szRes, 0x22);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00100010", szRes, 8));
+		asc_bin_from_octet (szRes, 0x24);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00100100", szRes, 8));
+		asc_bin_from_octet (szRes, 0xA0);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10100000", szRes, 8));
+		asc_bin_from_octet (szRes, 0xA1);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10100001", szRes, 8));
+		asc_bin_from_octet (szRes, 0xFC);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111100", szRes, 8));
+		asc_bin_from_octet (szRes, 0xFD);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111101", szRes, 8));
+		asc_bin_from_octet (szRes, 0xFE);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111110", szRes, 8));
+		asc_bin_from_octet (szRes, 0xFF);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111111", szRes, 8));
+
+		asc_bin_from_word (szRes, 0x0000);
+		ubf_expect_bool_AND (b, 0 == memcmp ("0000000000000000", szRes, 8));
+		asc_bin_from_word (szRes, 0x1111);
+		ubf_expect_bool_AND (b, 0 == memcmp ("0001000100010001", szRes, 8));
+		asc_bin_from_word (szRes, 0x2222);
+		ubf_expect_bool_AND (b, 0 == memcmp ("0010001000100010", szRes, 8));
+		asc_bin_from_word (szRes, 0x3333);
+		ubf_expect_bool_AND (b, 0 == memcmp ("0011001100110011", szRes, 8));
+		asc_bin_from_word (szRes, 0xAAAA);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1010101010101010", szRes, 8));
+		asc_bin_from_word (szRes, 0xAAAB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1010101010101011", szRes, 8));
+		asc_bin_from_word (szRes, 0xAABB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1010101010111011", szRes, 8));
+		asc_bin_from_word (szRes, 0xABBB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1010101110111011", szRes, 8));
+		asc_bin_from_word (szRes, 0xBBBB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1011101110111011", szRes, 8));
+		asc_bin_from_word (szRes, 0xFFFF);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1111111111111111", szRes, 8));
+
+		asc_bin_from_dword (szRes, 0x00000000);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000000000000000000000000000000", szRes, 8));
+		asc_bin_from_dword (szRes, 0x11111111);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010001000100010001000100010001", szRes, 8));
+		asc_bin_from_dword (szRes, 0x22222222);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00100010001000100010001000100010", szRes, 8));
+		asc_bin_from_dword (szRes, 0x33333333);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00110011001100110011001100110011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xAAAAAAAA);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10101010101010101010101010101010", szRes, 8));
+		asc_bin_from_dword (szRes, 0xAAABAAAB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10101010101010111010101010101011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xAABBAABB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10101010101110111010101010111011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xABBBABBB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10101011101110111010101110111011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xBBBBBBBB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10111011101110111011101110111011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xFFFFBBBB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111111111111111011101110111011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xFFFFFFFF);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111111111111111111111111111111", szRes, 8));
+
 		// UCS2UTF16bin_from_hex.
 		uint16_t		bin [128];
 		char			*hex;
