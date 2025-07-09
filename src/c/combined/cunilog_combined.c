@@ -27809,8 +27809,10 @@ int cunilog_printf_sev_fmtpy_vl	(
 {
 	ubf_assert_non_NULL (format);
 
+	bool bUseColour = bUseCunilogDefaultOutputColour;
+
 	size_t lenRequired = 0;
-	if (bUseCunilogDefaultOutputColour)
+	if (bUseColour)
 		lenRequired = evtSeverityColoursLen (sev);
 	lenRequired += requiredEventSeverityChars (sev, sftpy);
 
@@ -27833,7 +27835,7 @@ int cunilog_printf_sev_fmtpy_vl	(
 	if (pzToPrint)
 	{
 		char *pz = pzToPrint;
-		if (bUseCunilogDefaultOutputColour)
+		if (bUseColour)
 			cpyEvtSeverityColour (&pz, sev);
 		size_t st = writeEventSeverity (pz, sev, sftpy);
 		pz += st;
@@ -27841,7 +27843,7 @@ int cunilog_printf_sev_fmtpy_vl	(
 		if (iReq < 0)
 			goto Leave;
 		pz += iReq;
-		if (bUseCunilogDefaultOutputColour)
+		if (bUseColour)
 			cpyRstEvtSeverityColour (&pz, sev);
 		pz [0] = ASCII_NUL;
 
@@ -27927,9 +27929,11 @@ int cunilog_puts_sev_fmtpy_l	(
 	if (NULL == strU8)
 		return EOF;
 
+	bool bUseColour = bUseCunilogDefaultOutputColour;
+
 	len = USE_STRLEN == len ? strlen (strU8) : len;
 	size_t lenRequired = 0;
-	if (bUseCunilogDefaultOutputColour)
+	if (bUseColour)
 		evtSeverityColoursLen (sev);						// Includes reset.
 
 	#ifdef DEBUG
@@ -27957,7 +27961,7 @@ int cunilog_puts_sev_fmtpy_l	(
 	{
 		char *pz = pzToPrint;
 
-		if (bUseCunilogDefaultOutputColour)
+		if (bUseColour)
 			cpyEvtSeverityColour (&pz, sev);
 
 		#ifdef DEBUG
@@ -27975,7 +27979,7 @@ int cunilog_puts_sev_fmtpy_l	(
 			szCpy = pz;
 		#endif
 
-		if (bUseCunilogDefaultOutputColour)
+		if (bUseColour)
 			cpyRstEvtSeverityColour (&pz, sev);
 		ubf_assert (UBF_ERROR_CHAR == pzToPrint [lenRequired]);
 		ubf_assert (UBF_ERROR_CHAR == pz [0]);

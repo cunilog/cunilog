@@ -190,6 +190,7 @@ EXPORTS
 	CloseHandleAndInvalidate						@nnn
 	CreateMutexU8									@nnn
 	CreateMutexExU8									@nnn
+	CreatePipeOverlapped							@nnn
 	CreateProcessU8EnvW								@nnn
 	CreateProcessU8									@nnn
 	CreateSemaphoreU8								@nnn

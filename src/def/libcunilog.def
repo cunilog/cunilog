@@ -9,7 +9,7 @@
 ;
 ;	Purpose:	Provides ordinals for functions and variables for Windows DLL.
 ;	OS:			Windows
-;	Created:	2025-07-09 08:35:19 (by script CreateWindowsDLLDef)
+;	Created:	2025-07-09 18:54:38 (by script CreateWindowsDLLDef)
 ;
 ;	License:	Public domain.
 ;
@@ -72,185 +72,200 @@ EXPORTS
 	CreateCUNILOG_EVENT_TextTS						@139
 	DuplicateCUNILOG_EVENT							@140
 	DoneCUNILOG_EVENT								@141
-	ChangeCUNILOG_TARGETuseColourForEcho			@142
-	ChangeCUNILOG_TARGETcunilognewline				@143
-	ChangeCUNILOG_TARGETdisableTaskProcessors		@144
-	ChangeCUNILOG_TARGETenableTaskProcessors		@145
-	ChangeCUNILOG_TARGETdisableEchoProcessor		@146
-	ChangeCUNILOG_TARGETenableEchoProcessor			@147
-	ChangeCUNILOG_TARGETeventSeverityFormatType		@148
-	ChangeCUNILOG_TARGETlogPriority					@149
-	CunilogChangeCurrentThreadPriority				@150
 
-	cunilogCheckVersionIntChk						@151
+	logEv											@142
+	logTextU8sevl									@143
+	logTextU8sevlts									@144
+	logTextU8sevlq									@145
+	logTextU8sevlqts								@146
+	logTextU8sev									@147
+	logTextU8sevq									@148
+	logTextU8l										@149
+	logTextU8lq										@150
+	logTextU8										@151
+	logTextU8q										@152
+	logTextU8vfmt									@153
+	logTextU8fmt									@154
+	logTextU8qvfmt									@155
+	logTextU8qfmt									@156
+	logTextU8svfmt									@157
+	logTextU8sfmt									@158
+	logTextU8sqvfmt									@159
+	logTextU8sqfmt									@160
+	logTextU8svfmtsev								@161
+	logTextU8sfmtsev								@162
+	logTextU8smbvfmtsev								@163
+	logTextU8smbfmtsev								@164
+	logTextU8smbvfmt								@165
+	logTextU8smbfmt									@166
+	logHexDumpU8sevl								@167
+	logHexDumpU8l									@168
+	logHexDump										@169
+	logHexDumpq										@170
+	logHexOrText									@171
+	logHexOrTextq									@172
+	logHexOrTextU8									@173
 
-	logEv											@152
-	logTextU8sevl									@153
-	logTextU8sevlts									@154
-	logTextU8sevlq									@155
-	logTextU8sevlqts								@156
-	logTextU8sev									@157
-	logTextU8sevq									@158
-	logTextU8l										@159
-	logTextU8lq										@160
-	logTextU8										@161
-	logTextU8q										@162
-	logTextU8vfmt									@163
-	logTextU8fmt									@164
-	logTextU8qvfmt									@165
-	logTextU8qfmt									@166
-	logTextU8svfmt									@167
-	logTextU8sfmt									@168
-	logTextU8sqvfmt									@169
-	logTextU8sqfmt									@170
-	logTextU8svfmtsev								@171
-	logTextU8sfmtsev								@172
-	logTextU8smbvfmtsev								@173
-	logTextU8smbfmtsev								@174
-	logTextU8smbvfmt								@175
-	logTextU8smbfmt									@176
-	logHexDumpU8sevl								@177
-	logHexDumpU8l									@178
-	logHexDump										@179
-	logHexDumpq										@180
-	logHexOrText									@181
-	logHexOrTextq									@182
-	logHexOrTextU8									@183
+	logTextWU16sevl									@174
+	logTextWU16sev									@175
+	logTextWU16l									@176
+	logTextWU16										@177
 
-	logTextWU16sevl									@184
-	logTextWU16sev									@185
-	logTextWU16l									@186
-	logTextWU16										@187
+	ChangeCUNILOG_TARGETuseColourForEcho			@178
+	ChangeCUNILOG_TARGETcunilognewline				@179
+	ChangeCUNILOG_TARGETdisableTaskProcessors		@180
+	ChangeCUNILOG_TARGETenableTaskProcessors		@181
+	ChangeCUNILOG_TARGETdisableEchoProcessor		@182
+	ChangeCUNILOG_TARGETenableEchoProcessor			@183
+	ChangeCUNILOG_TARGETeventSeverityFormatType		@184
+	ChangeCUNILOG_TARGETlogPriority					@185
+	CunilogChangeCurrentThreadPriority				@186
+
+	cunilogSetDefaultPrintEventSeverityFormatType	@187
+	cunilogUseColourForOutput						@188
+	cunilog_printf_sev_fmtpy_vl						@189
+	cunilog_printf_sev_fmtpy						@190
+	cunilog_printf_sev								@191
+	cunilog_printf									@192
+	cunilog_puts_sev_fmtpy_l						@193
+	cunilog_puts_sev_fmtpy							@194
+	cunilog_puts_sev_l								@195
+	cunilog_puts_sev								@196
+	cunilog_puts_l									@197
+	cunilog_puts
+
+	cunilogCheckVersionIntChk						@199
 
 ; membuf
-	setToSizeSMEMBUF								@188
-	growToSizeSMEMBUF								@189
-	growToSizeSMEMBUFreserve						@190
-	growToSizeSMEMBUF64aligned						@191
-	freeSMEMBUF										@192
-	doneSMEMBUF										@193
-	copySMEMBUF										@194
-	copySMEMBUFsiz									@195
+	setToSizeSMEMBUF								@200
+	growToSizeSMEMBUF								@201
+	growToSizeSMEMBUFreserve						@202
+	growToSizeSMEMBUF64aligned						@203
+	freeSMEMBUF										@204
+	doneSMEMBUF										@205
+	copySMEMBUF										@206
+	copySMEMBUFsiz									@207
 
 ; strmembuf
-	SMEMBUFfromStrReserveBytes						@196
-	SMEMBUFfromStr									@197
-	SMEMBUFstrFromUINT64							@198
+	SMEMBUFfromStrReserveBytes						@208
+	SMEMBUFfromStr									@209
+	SMEMBUFstrFromUINT64							@210
 
 ; ISO__DATE__
-	szBuild_ISO__DATE__								@199
-	szBuild_ISO__DATE__TIME__						@200
-	replace_ISO_DATE_								@201
+	szBuild_ISO__DATE__								@211
+	szBuild_ISO__DATE__TIME__						@212
+	replace_ISO_DATE_								@213
 
-	ubf_debug_assert								@202
-	ubf_debug_assert_pass							@203
+	ubf_debug_assert								@214
+	ubf_debug_assert_pass							@215
 
-	memstrstr										@204
-	memstrstrn										@205
-	memchrreplace									@206
-	memstrchr										@207
-	memstrrchr										@208
+	memstrstr										@216
+	memstrstrn										@217
+	memchrreplace									@218
+	memstrchr										@219
+	memstrrchr										@220
 
 ; WinAPI_U8
-	reqUTF8size										@209
-	reqUTF8sizel									@210
-	UTF8_from_WinU16								@211
-	UTF8_from_WinU16l								@212
-	reqWinU16wchars									@213
-	WinU16_from_UTF8								@214
-	reqWinU16wcharsFileName							@215
-	HasLongFileNamePrefixW							@216
-	HasLongFileNamePrefixU8							@217
-	WinU16_from_UTF8_FileName						@218
-	AllocWinU16_from_UTF8							@219
-	AllocWinU16_from_UTF8_00						@220
-	AllocWinU16_from_UTF8_FileName					@221
-	DoneWinU16										@222
-	AllocU8_from_WinU16								@223
-	AllocU8path_from_U8path_and_WinU16FileName		@224
-	DoneU8											@225
-	AllocWinU16fromU8orUseThreshold					@226
-	AllocWinU16fromU8orUseThresholdLongFileName		@227
-	DoneWinU16fromU8orUseThreshold					@228
-	AllocU8ArgsFromWinU16							@229
-	DoneU8Args										@230
-	CmdLineArgsW									@231
-	CopyFileU8										@232
-	CopyFileU8long									@233
-	CreateAllFoldersW								@234
-	CreateAllFoldersU8								@235
-	CreateDirectoryIfNotExistsU8					@236
-	CreateDirectoryU8								@237
-	CreateDirectoryU8long							@238
-	CreateEventU8									@239
-	CreateEventExU8									@240
-	CreateFileMappingU8								@241
-	CreateFileU8									@242
-	CreateFileU8long								@243
-	STARTUPINFOW_from_STARTUPINFOA					@244
-	DoneSTARTUPINFOW								@245
-	CloseHandleAndInvalidate						@246
-	CreateMutexU8									@247
-	CreateMutexExU8									@248
-	CreateProcessU8EnvW								@249
-	CreateProcessU8									@250
-	CreateSemaphoreU8								@251
+	reqUTF8size										@221
+	reqUTF8sizel									@222
+	UTF8_from_WinU16								@223
+	UTF8_from_WinU16l								@224
+	reqWinU16wchars									@225
+	WinU16_from_UTF8								@226
+	reqWinU16wcharsFileName							@227
+	HasLongFileNamePrefixW							@228
+	HasLongFileNamePrefixU8							@229
+	WinU16_from_UTF8_FileName						@230
+	AllocWinU16_from_UTF8							@231
+	AllocWinU16_from_UTF8_00						@232
+	AllocWinU16_from_UTF8_FileName					@233
+	DoneWinU16										@234
+	AllocU8_from_WinU16								@235
+	AllocU8path_from_U8path_and_WinU16FileName		@236
+	DoneU8											@237
+	AllocWinU16fromU8orUseThreshold					@238
+	AllocWinU16fromU8orUseThresholdLongFileName		@239
+	DoneWinU16fromU8orUseThreshold					@240
+	AllocU8ArgsFromWinU16							@241
+	DoneU8Args										@242
+	CmdLineArgsW									@243
+	CopyFileU8										@244
+	CopyFileU8long									@245
+	CreateAllFoldersW								@246
+	CreateAllFoldersU8								@247
+	CreateDirectoryIfNotExistsU8					@248
+	CreateDirectoryU8								@249
+	CreateDirectoryU8long							@250
+	CreateEventU8									@251
+	CreateEventExU8									@252
+	CreateFileMappingU8								@253
+	CreateFileU8									@254
+	CreateFileU8long								@255
+	STARTUPINFOW_from_STARTUPINFOA					@256
+	DoneSTARTUPINFOW								@257
+	CloseHandleAndInvalidate						@258
+	CreateMutexU8									@259
+	CreateMutexExU8									@260
+	CreatePipeOverlapped							@261
+	CreateProcessU8EnvW								@262
+	CreateProcessU8									@263
+	CreateSemaphoreU8								@264
 ;	CreateServiceU8									@nnn	Not exported
-	CreateWin16tringArrayFromU8						@252
-	DoneWin16StringArray							@253
-	CreateWinU16EnvironmentFromU8					@254
-	DoneWinU16Environment							@255
+	CreateWin16tringArrayFromU8						@265
+	DoneWin16StringArray							@266
+	CreateWinU16EnvironmentFromU8					@267
+	DoneWinU16Environment							@268
 ;	DecryptFileU8									@nnn	Not exported
-	DeleteFileU8									@256
-	DeleteFileU8long								@257
+	DeleteFileU8									@269
+	DeleteFileU8long								@270
 ;	EncryptFileU8									@nnn	Not exported
 ;	FileEncryptionStatusU8							@nnn	Not exported
-	FileExistsU8									@258
-	FileExistsU8long								@259
-	FileOrPathExistsU8								@260
-	FindFirstChangeNotificationU8					@261
-	FindFirstChangeNotificationU8long				@262
-	FindFirstFileExU8								@263
-	FindFirstFileExU8long							@264
-	FindFirstFileU8									@265
-	FindFirstFileU8long								@266
-	WIN32_FIND_DATAU8_from_WIN32_FIND_DATAW			@267
-	copyWIN32_FIND_DATAW							@268
-	copyWIN32_FIND_DATAU8							@269
+	FileExistsU8									@271
+	FileExistsU8long								@272
+	FileOrPathExistsU8								@273
+	FindFirstChangeNotificationU8					@274
+	FindFirstChangeNotificationU8long				@275
+	FindFirstFileExU8								@276
+	FindFirstFileExU8long							@277
+	FindFirstFileU8									@278
+	FindFirstFileU8long								@279
+	WIN32_FIND_DATAU8_from_WIN32_FIND_DATAW			@280
+	copyWIN32_FIND_DATAW							@281
+	copyWIN32_FIND_DATAU8							@282
 ;	FindProcessByNameU8								@nnn	Not exported
-	GetComputerNameExU8								@270
-	GetComputerNameU8								@271
-	GetEnvironmentVariableU8						@272
-	GetFileAttributesU8								@273
-	GetFileAttributesU8long							@274
-	GetFilePointerEx								@275
+	GetComputerNameExU8								@283
+	GetComputerNameU8								@284
+	GetEnvironmentVariableU8						@285
+	GetFileAttributesU8								@286
+	GetFileAttributesU8long							@287
+	GetFilePointerEx								@288
 ;	GetFileSecurityU8								@nnn	Not exported
-	GetFileSystemType								@276
-	GetFullPathNameU8								@277
-	GetModuleFileNameU8								@278
-	GetModuleHandleU8								@279
-	GetPrivateProfileStringU8						@280
-	GetSystemDirectoryU8							@281
-	SystemDirectoryU8								@282
-	SystemDirectoryU8len							@283
-	DoneSystemDirectoryU8							@284
-	GetSystemWindowsDirectoryU8						@285
-	SystemWindowsDirectoryU8						@286
-	SystemWindowsDirectoryU8len						@287
-	DoneSystemWindowsDirectoryU8					@288
+	GetFileSystemType								@289
+	GetFullPathNameU8								@290
+	GetModuleFileNameU8								@291
+	GetModuleHandleU8								@292
+	GetPrivateProfileStringU8						@293
+	GetSystemDirectoryU8							@294
+	SystemDirectoryU8								@295
+	SystemDirectoryU8len							@296
+	DoneSystemDirectoryU8							@297
+	GetSystemWindowsDirectoryU8						@298
+	SystemWindowsDirectoryU8						@299
+	SystemWindowsDirectoryU8len						@300
+	DoneSystemWindowsDirectoryU8					@301
 ;	GetUserNameU8									@nnn	Not exported
-	GetDefaultUserProfileDirectoryU8				@289
-	GetUserProfileDirectoryU8						@290
-	GetVolumeInformationU8							@291
-	GetWinErrorTextU8								@292
+	GetDefaultUserProfileDirectoryU8				@302
+	GetUserProfileDirectoryU8						@303
+	GetVolumeInformationU8							@304
+	GetWinErrorTextU8								@305
 ;	InitiateSystemShutdownExU8						@nnn	Not exported
 ;	InitiateShutdownU8								@nnn	Not exported
-	IsCmdArgumentSwitchW							@293
-	IsEqualUpToW									@294
-	IsPathDirectoryU8								@295
-	IsPathDirectoryW								@296
-	LoadLibraryExU8									@297
-	LoadLibraryU8									@298
+	IsCmdArgumentSwitchW							@306
+	IsEqualUpToW									@307
+	IsPathDirectoryU8								@308
+	IsPathDirectoryW								@309
+	LoadLibraryExU8									@310
+	LoadLibraryU8									@311
 ;	LookupAccountNameU8								@nnn	Not exported
 ;	LookupAccountSidU8								@nnn	Not exported
 ;	MessageBoxU8									@nnn	Not exported
@@ -258,63 +273,63 @@ EXPORTS
 ;	MaxiMiseThisConsoleWindow						@nnn	Not exported
 ;	MiniMiseThisConsoleWindow						@nnn	Not exported
 ;	RestoreThisConsoleWindow						@nnn	Not exported
-	MoveFileU8										@299
-	MoveFileExU8									@300
-	MoveFileExU8long								@301
-	MoveFileWithProgressU8							@302
-	MoveFileWithProgressU8long						@303
-	MoveToRecycleBinU8								@304
-	MoveToRecycleBinW								@305
+	MoveFileU8										@312
+	MoveFileExU8									@313
+	MoveFileExU8long								@314
+	MoveFileWithProgressU8							@315
+	MoveFileWithProgressU8long						@316
+	MoveToRecycleBinU8								@317
+	MoveToRecycleBinW								@318
 ;	NetUserEnumU8									@nnn	Not exported
-	OpenEventU8										@306
+	OpenEventU8										@319
 ;	OpenEventLogU8									@nnn	Not exported
 ;	ClearEventLogU8									@nnn	Not exported
-	OpenFileMappingU8								@307
-	OpenMutexU8										@308
+	OpenFileMappingU8								@320
+	OpenMutexU8										@321
 ;	OpenSCManagerU8									@nnn	Not exported
 ;	OpenServiceU8									@nnn	Not exported
-	PathsEqualfromEndW								@309
+	PathsEqualfromEndW								@322
 ;	PathIsUNCU8										@nnn	Not exported
 ;	PathIsNetworkPathU8								@nnn	Not exported
 ;	PathFindNextComponentU8							@nnn	Not exported
 ;	RegisterEventSourceU8							@nnn	Not exported
 ;	RegisterServiceCtrlHandlerU8					@nnn	Not exported
 ;	RegisterServiceCtrlHandlerExU8					@nnn	Not exported
-	RemoveDirectoryU8								@310
-	RemoveDirectoryU8long							@311
+	RemoveDirectoryU8								@323
+	RemoveDirectoryU8long							@324
 ;	ReportEventU8									@nnn	Not exported
-	SetConsoleCodePageToANSI						@312
-	SetConsoleCodePageToUTF8						@313
-	SetConsoleEnableANSI							@314
-	WinSetStdoutToUTF16								@315
-	WinSetStdinToUTF16								@316
-	SetCurrentDirectoryU8							@317
-	SetCurrentDirectoryU8long						@318
-	SetFileAttributesU8								@319
-	SetFileAttributesU8long							@320
+	SetConsoleCodePageToANSI						@325
+	SetConsoleCodePageToUTF8						@326
+	SetConsoleEnableANSI							@327
+	WinSetStdoutToUTF16								@328
+	WinSetStdinToUTF16								@329
+	SetCurrentDirectoryU8							@330
+	SetCurrentDirectoryU8long						@331
+	SetFileAttributesU8								@332
+	SetFileAttributesU8long							@333
 ;	SetFileSecurityU8								@nnn	Not exported
-	IsFirstArgumentExeArgumentW						@321
-	SwallowExeArgumentW								@322
-	InsertExeArgumentIfMissingW						@323
+	IsFirstArgumentExeArgumentW						@334
+	SwallowExeArgumentW								@335
+	InsertExeArgumentIfMissingW						@336
 ;	WNetGetUniversalNameU8							@nnn	Not exported
-	WritePrivateProfileStringU8						@324
-	vfprintfU8toU16stream							@325
-	fprintfU8toU16stream							@326
-	putsU8toU16stdout								@327
+	WritePrivateProfileStringU8						@337
+	vfprintfU8toU16stream							@338
+	fprintfU8toU16stream							@339
+	putsU8toU16stdout								@340
 
 ; ubfcharscountsandchecks
-	ubf_is_printable_ASCII							@328
-	str_has_only_printable_ASCII					@329
-	ubf_is_letter									@330
-	ubf_is_letter_until								@331
-	isWhiteSpace									@332
-	isDirectorySeparator							@333
-	isWrongDirectorySeparator						@334
-	ubf_count_numerical_digits						@335
-	ubf_count_starts_with_numerical_digits_up_to	@336
-	ubf_count_special_characters					@337
-	ubf_count_char									@338
-	ubf_obtain_strlen								@339
+	ubf_is_printable_ASCII							@341
+	str_has_only_printable_ASCII					@342
+	ubf_is_letter									@343
+	ubf_is_letter_until								@344
+	isWhiteSpace									@345
+	isDirectorySeparator							@346
+	isWrongDirectorySeparator						@347
+	ubf_count_numerical_digits						@348
+	ubf_count_starts_with_numerical_digits_up_to	@349
+	ubf_count_special_characters					@350
+	ubf_count_char									@351
+	ubf_obtain_strlen								@352
 
 ; check_utf8
-	c_check_utf8									@340
+	c_check_utf8									@353
