@@ -92,9 +92,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./functionptrtpydef.h"
+		#include "./platform.h"
 	#else
 		#include "./../../pre/externC.h"
 		#include "./../../pre/functionptrtpydef.h"
+		#include "./../../pre/platform.h"
 	#endif
 
 #endif
@@ -207,9 +209,10 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 // The threshold up to which buffers are placed on the stack as automatic
 //	variables.
-#ifndef BUILD_TEST_WINAPI_U8_TEST_DEBUG
+#ifdef BUILD_TEST_WINAPI_U8_FNCT
 	#ifndef WINAPI_U8_HEAP_THRESHOLD
-	#define WINAPI_U8_HEAP_THRESHOLD		(1024)
+	#define WINAPI_U8_HEAP_THRESHOLD		(16)
+	//#define WINAPI_U8_HEAP_THRESHOLD		(256)
 	#endif
 #else
 	#ifndef WINAPI_U8_HEAP_THRESHOLD
@@ -1089,6 +1092,37 @@ TYPEDEF_FNCT_PTR (HANDLE, CreateMutexExU8)
 );
 
 /*
+	CreatePipeOverlapped
+
+	This is not a Windows API but rather a convenience function to create a pipe
+	with overlapped handles. The two boolean parameters set the handle in question
+	to overlapped when true. Otherwise, the function is identical to CreatePipe ().
+	See
+	https://learn.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-createpipe .
+
+	The function utilises a modified version of MyCreatePipeEx (), originally found at
+	http://www.davehart.net/remote/PipeEx.c . It has been taken from
+	https://web.archive.org/web/20150125081922/http://www.davehart.net:80/remote/PipeEx.c
+	and modified for UTF-16.
+*/
+BOOL CreatePipeOverlapped(
+		PHANDLE					hReadPipe,
+		bool					bOverlappedRead,
+		PHANDLE					hWritePipe,
+		bool					bOverlappedWrite,
+		LPSECURITY_ATTRIBUTES	lpPipeAttributes,
+		DWORD					nSize
+);
+TYPEDEF_FNCT_PTR (BOOL, CreatePipeOverlapped)(
+		PHANDLE					hReadPipe,
+		bool					bOverlappedRead,
+		PHANDLE					hWritePipe,
+		bool					bOverlappedWrite,
+		LPSECURITY_ATTRIBUTES	lpPipeAttributes,
+		DWORD					nSize
+);
+
+/*
 	CreateProcessU8EnvW
 	
 	UTF-8 version of CreateProcessW (). See
@@ -1249,8 +1283,8 @@ TYPEDEF_FNCT_PTR (SC_HANDLE, CreateServiceU8)
 	Call DoneWin16StringArray () on the returned pointer when it is not
 	required anymore to deallocate its resources.
 */
-WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, WORD numStrings);
-TYPEDEF_FNCT_PTR (WCHAR **, CreateWin16tringArrayFromU8) (const char **pu8, WORD numStrings);
+WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, size_t numStrings);
+TYPEDEF_FNCT_PTR (WCHAR **, CreateWin16tringArrayFromU8) (const char **pu8, size_t numStrings);
 
 
 /*
@@ -1259,8 +1293,8 @@ TYPEDEF_FNCT_PTR (WCHAR **, CreateWin16tringArrayFromU8) (const char **pu8, WORD
 	Deallocates the resources of a Windows UTF-16 string array created with
 	CreateWin16tringArrayFromU8 ().
 */
-void DoneWin16StringArray (WCHAR **pwcStringArray, WORD numStrings);
-TYPEDEF_FNCT_PTR (void, DoneWin16StringArray) (WCHAR **pwcStringArray, WORD numStrings);
+void DoneWin16StringArray (WCHAR **pwcStringArray, size_t numStrings);
+TYPEDEF_FNCT_PTR (void, DoneWin16StringArray) (WCHAR **pwcStringArray, size_t numStrings);
 
 /*
 	CreateWinU16EnvironmentFromU8
@@ -2029,6 +2063,105 @@ TYPEDEF_FNCT_PTR (DWORD, GetPrivateProfileStringU8)
 ;
 
 /*
+	GetSystemDirectoryU8
+
+	UTF-8 version of GetSystemDirectoryW (). See
+	https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsystemdirectoryw
+	for details.
+
+	Note that the parameter uSize as well as the return value are in octets (bytes) rather than
+	TCHARs.
+
+	A typical directory returned by this function could be C:\Windows\System32.
+*/
+UINT GetSystemDirectoryU8(
+	LPSTR	lpBuffer,
+	UINT	uSize
+);
+TYPEDEF_FNCT_PTR (UINT, GetSystemDirectoryU8)
+(
+	LPSTR	lpBuffer,
+	UINT	uSize
+);
+
+/*
+	SystemDirectoryU8
+	SystemDirectoryU8len
+	DoneSystemDirectoryU8
+
+	Obtain and keep a copy of the system directory, which is the folder retrieved by
+	GetSystemDirectoryU8 ().
+
+	The function SystemDirectoryU8 () obtains the path of the system directory (excluding
+	a directory separator), while SystemDirectoryU8ln () obtains its length.
+
+	You may call DoneSystemDirectoryU8 () to free the buffer that holds the path to the
+	system directory. If DoneSystemDirectoryU8 () is not called before the application
+	exits, the operating system reclaims the memory implicitely after the application
+	has terminated.
+
+	Since the system directory cannot change during the runtime of an application, and
+	if the name of the system directory is required more than once, it is usually more
+	efficient to call SystemDirectoryU8 () instead of GetSystemDirectoryU8 ().
+*/
+const char	*SystemDirectoryU8		(void);
+size_t		SystemDirectoryU8len	(void);
+void		DoneSystemDirectoryU8	(void);
+TYPEDEF_FNCT_PTR (const char*,	SystemDirectoryU8)		(void);
+TYPEDEF_FNCT_PTR (size_t,		SystemDirectoryU8len)	(void);
+TYPEDEF_FNCT_PTR (void,			DoneSystemDirectoryU8)	(void);
+
+/*
+	GetSystemWindowsDirectoryU8
+
+	UTF-8 version of the Windows API function GetSystemWindowsDirectoryW (). See
+	https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsystemwindowsdirectoryw
+	for details.
+
+	Note that the parameter uSize as well as the return value are in octets (bytes) rather than
+	TCHARs.
+
+	A typical directory returned by this function could be C:\Windows.
+*/
+UINT GetSystemWindowsDirectoryU8(
+	LPSTR	lpBuffer,
+	UINT	uSize
+);
+TYPEDEF_FNCT_PTR (UINT, GetSystemWindowsDirectoryU8)
+(
+	LPSTR	lpBuffer,
+	UINT	uSize
+);
+
+/*
+	SystemWindowsDirectoryU8
+	SystemWindowsDirectoryU8len
+	DoneSystemWindowsDirectoryU8
+
+	Obtain and keep a copy of the shared Windows directory, which is the folder retrieved by
+	GetSystemWindowsDirectoryU8 ().
+
+	The function GetSystemWindowsDirectoryU8 () obtains the path of the shared Windows
+	directory (excluding a directory separator), while SystemWindowsDirectoryU8len () obtains
+	its length.
+
+	You may call DoneSystemWindowsDirectoryU8 () to free the buffer that holds the path to the
+	system directory. If DoneSystemWindowsDirectoryU8 () is not called before the application
+	exits, the operating system reclaims the memory implicitely after the application
+	has terminated.
+
+	Since the shared Windows directory cannot change during the runtime of an application,
+	and if the name of the system directory is required more than once, it is usually more
+	efficient to call SystemWindowsDirectoryU8 () instead of GetSystemWindowsDirectoryU8 ().
+*/
+const char	*SystemWindowsDirectoryU8		(void);
+size_t		SystemWindowsDirectoryU8len		(void);
+void		DoneSystemWindowsDirectoryU8	(void);
+TYPEDEF_FNCT_PTR (const char*,	SystemWindowsDirectoryU8)		(void);
+TYPEDEF_FNCT_PTR (size_t,		SystemWindowsDirectoryU8len)	(void);
+TYPEDEF_FNCT_PTR (void,			DoneSystemWindowsDirectoryU8)	(void);
+
+/*
 	GetUserNameU8
 	
 	UTF-8 version of GetUserNameW (). See
@@ -2248,7 +2381,7 @@ enum en_is_cmd_case_sensitive
 	IsCmdArgumentSwitchW
 	
 	Compares the Windows UTF-16 text wcArgument points to with the Windows UTF-16
-text wcConstIs points to, which is expected to be a constant string. 
+	text wcConstIs points to, which is expected to be a constant string. 
 	The argument can be shortened down to at least nRelevant characters. The parameter
 	enHow tells the function if single or double dashes before the actual switch
 	are accepted or not.
@@ -3293,6 +3426,17 @@ TYPEDEF_FNCT_PTR (DWORD, SetFileAttributesU8long)
 	)
 	;
 #endif
+
+/*
+	TerminateChildProcess
+
+	Terminates the given child process.
+
+	The function first tries to terminate the child process in a peaceful way.
+	If this fails, TerminateProcess () is called on the child process.
+*/
+bool TerminateChildProcess (HANDLE hProcess);
+TYPEDEF_FNCT_PTR (bool, TerminateChildProcess) (HANDLE hProcess);
 
 /*
 	IsFirstArgumentExeArgumentW

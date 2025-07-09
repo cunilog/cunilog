@@ -9,7 +9,7 @@
 ;
 ;	Purpose:	Provides ordinals for functions and variables for Windows DLL.
 ;	OS:			Windows
-;	Created:	__ISO_DATE_AND_TIME (by script script CreateWindowsDLLDef)
+;	Created:	__ISO_DATE_AND_TIME (by script CreateWindowsDLLDef)
 ;
 ;	License:	Public domain.
 ;

@@ -53,23 +53,15 @@ EXPORTS
 	ResumeLogCUNILOG_TARGET							@nnn
 	CreateCUNILOG_EVENT_Data						@nnn
 	CreateCUNILOG_EVENT_Text						@nnn
+	CreateCUNILOG_EVENT_TextTS						@nnn
 	DuplicateCUNILOG_EVENT							@nnn
 	DoneCUNILOG_EVENT								@nnn
-	ChangeCUNILOG_TARGETuseColourForEcho			@nnn
-	ChangeCUNILOG_TARGETcunilognewline				@nnn
-	ChangeCUNILOG_TARGETdisableTaskProcessors		@nnn
-	ChangeCUNILOG_TARGETenableTaskProcessors		@nnn
-	ChangeCUNILOG_TARGETdisableEchoProcessor		@nnn
-	ChangeCUNILOG_TARGETenableEchoProcessor			@nnn
-	ChangeCUNILOG_TARGETeventSeverityFormatType		@nnn
-	ChangeCUNILOG_TARGETlogPriority					@nnn
-	CunilogChangeCurrentThreadPriority				@nnn
-
-	cunilogCheckVersionIntChk						@nnn
 
 	logEv											@nnn
 	logTextU8sevl									@nnn
+	logTextU8sevlts									@nnn
 	logTextU8sevlq									@nnn
+	logTextU8sevlqts								@nnn
 	logTextU8sev									@nnn
 	logTextU8sevq									@nnn
 	logTextU8l										@nnn
@@ -103,9 +95,35 @@ EXPORTS
 	logTextWU16l									@nnn
 	logTextWU16										@nnn
 
+	ChangeCUNILOG_TARGETuseColourForEcho			@nnn
+	ChangeCUNILOG_TARGETcunilognewline				@nnn
+	ChangeCUNILOG_TARGETdisableTaskProcessors		@nnn
+	ChangeCUNILOG_TARGETenableTaskProcessors		@nnn
+	ChangeCUNILOG_TARGETdisableEchoProcessor		@nnn
+	ChangeCUNILOG_TARGETenableEchoProcessor			@nnn
+	ChangeCUNILOG_TARGETeventSeverityFormatType		@nnn
+	ChangeCUNILOG_TARGETlogPriority					@nnn
+	CunilogChangeCurrentThreadPriority				@nnn
+
+	cunilogSetDefaultPrintEventSeverityFormatType	@nnn
+	cunilogUseColourForOutput						@nnn
+	cunilog_printf_sev_fmtpy_vl						@nnn
+	cunilog_printf_sev_fmtpy						@nnn
+	cunilog_printf_sev								@nnn
+	cunilog_printf									@nnn
+	cunilog_puts_sev_fmtpy_l						@nnn
+	cunilog_puts_sev_fmtpy							@nnn
+	cunilog_puts_sev_l								@nnn
+	cunilog_puts_sev								@nnn
+	cunilog_puts_l									@nnn
+	cunilog_puts
+
+	cunilogCheckVersionIntChk						@nnn
+
 	; membuf
 	setToSizeSMEMBUF								@nnn
 	growToSizeSMEMBUF								@nnn
+	growToSizeSMEMBUFreserve						@nnn
 	growToSizeSMEMBUF64aligned						@nnn
 	freeSMEMBUF										@nnn
 	doneSMEMBUF										@nnn
@@ -210,6 +228,14 @@ EXPORTS
 	GetModuleFileNameU8								@nnn
 	GetModuleHandleU8								@nnn
 	GetPrivateProfileStringU8						@nnn
+	GetSystemDirectoryU8							@nnn
+	SystemDirectoryU8								@nnn
+	SystemDirectoryU8len							@nnn
+	DoneSystemDirectoryU8							@nnn
+	GetSystemWindowsDirectoryU8						@nnn
+	SystemWindowsDirectoryU8						@nnn
+	SystemWindowsDirectoryU8len						@nnn
+	DoneSystemWindowsDirectoryU8					@nnn
 ;	GetUserNameU8									@nnn	Not exported
 	GetDefaultUserProfileDirectoryU8				@nnn
 	GetUserProfileDirectoryU8						@nnn

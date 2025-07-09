@@ -67,10 +67,16 @@ When		Who				What
 	{
 		#if defined (OS_IS_WINDOWS)
 
-			enfilecompressresult r = IsFileNTFSCompressedByName (szFilename);
-			ubf_assert (fscompress_compressed	== ntfscompress_compressed);
-			ubf_assert (fscompress_uncompressed	== ntfscompress_uncompressed);
-			ubf_assert (fscompress_error		== ntfscompress_error);
+			#ifdef DEBUG
+				// Since the NTFS compressor provides a different enum, we need to make sure that
+				//	its values are identical to the ones in enfilecompressresult.
+				int a, b;
+				a = fscompress_compressed;		b = ntfscompress_compressed;	ubf_assert (a == b);
+				a = fscompress_uncompressed;	b = ntfscompress_uncompressed;	ubf_assert (a == b);
+				a = fscompress_error;			b = ntfscompress_error;			ubf_assert (a == b);
+			#endif
+
+			enfilecompressresult r = (enfilecompressresult) IsFileNTFSCompressedByName (szFilename);
 			return r;
 
 		#elif defined (OS_IS_LINUX)

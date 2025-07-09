@@ -587,6 +587,18 @@ size_t ubf_uint64_from_str_n (uint64_t *ui, const char *chStr, size_t nLen, enum
 	return r;
 }
 
+bool is_number_str_l (const char *str, size_t len)
+{
+	len = USE_STRLEN == len ? strlen (str) : len;
+
+	for (size_t st = 0; st < len; ++ st)
+	{
+		if (!ubf_isdigit (str [st]))
+			return false;
+	}
+	return true;
+}
+
 bool ubf_int64_from_str (int64_t *pi, const char *chStr)
 {
 	int64_t				i				= 0;
@@ -818,7 +830,7 @@ void ubf_strd_from_uint64 (char *chStr, uint64_t u64)
 
 	bool ubf_test_str0 (void)
 	{
-		bool		b;
+		bool		b = true;
 		char		c [UBF_UINT64_LEN + 1];						// Needs room for a NUL.
 		UBF_DEF_GUARD_VAR (v, "012345");
 		uint64_t	u;
@@ -831,126 +843,139 @@ void ubf_strd_from_uint64 (char *chStr, uint64_t u64)
 		ubf_assert (UBF_UINT64_SIZE == UBF_UINT64_LEN + 1);
 		u = 0;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (1 == s);
+		ubf_expect_bool_AND (b, 1 == s);
 		b = 1 == s;
 		u = 9;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (1 == s);
+		ubf_expect_bool_AND (b, 1 == s);
 		b &= 1 == s;
 		u = 10;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (2 == s);
+		ubf_expect_bool_AND (b, 2 == s);
 		u = 100;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (3 == s);
+		ubf_expect_bool_AND (b, 3 == s);
 		u = 999;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (3 == s);
+		ubf_expect_bool_AND (b, 3 == s);
 		u = 9999;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (4 == s);
+		ubf_expect_bool_AND (b, 4 == s);
 		u = 1000000;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (7 == s);
+		ubf_expect_bool_AND (b, 7 == s);
 		u = 0;
 		s = ubf_str0_from_uint64 (c, 1, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (1 == s);
+		ubf_expect_bool_AND (b, 1 == s);
 		//assert (false);
 		u = 10;
 		s = ubf_str0_from_uint64 (c, 2, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (2 == s);
-		ubf_assert (!memcmp (c, "10", 3));
+		ubf_expect_bool_AND (b, 2 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "10", 3));
 		u = 100;
 		s = ubf_str0_from_uint64 (c, 3, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "100", 4));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "100", 4));
 		u = 100;
 		s = ubf_str0_from_uint64 (c, 5, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "00100", 6));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "00100", 6));
 		u = 99;
 		s = ubf_str0_from_uint64 (c, 10, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (2 == s);
-		ubf_assert (!memcmp (c, "0000000099", 11));
+		ubf_expect_bool_AND (b, 2 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "0000000099", 11));
 		u = 9999;
 		s = ubf_str0_from_uint64 (c, UBF_UINT64_LEN, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (4 == s);
-		ubf_assert (!memcmp (c, "00000000000000009999", 11));
+		ubf_expect_bool_AND (b, 4 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "00000000000000009999", 11));
 		u = 9999;
 		// Too short.
 		s = ubf_str0_from_uint64 (c, 2, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (STR0_NOT_ENOUGH_DIGITS == s);
+		ubf_expect_bool_AND (b, STR0_NOT_ENOUGH_DIGITS == s);
 		//ubf_assert (!memcmp (c, "0000000099", 11));
 
 		s = ubf_str0_from_uint64 (c, 10, 3000);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (4 == s);
-		ubf_assert (!memcmp (c, "0000003000", 11));
+		ubf_expect_bool_AND (b, 4 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "0000003000", 11));
 
 		s = ubf_str0_from_uint64 (c, 10, 200);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "0000000200", 11));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "0000000200", 11));
 
 		s = ubf_str0_from_uint64 (c, 3, 555);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "555", 4));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "555", 4));
 
 		s = ubf_str0_from_uint64 (c, 2, 200);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (STR0_NOT_ENOUGH_DIGITS == s);
-		ubf_assert (!memcmp (c, "00", 3));
+		ubf_expect_bool_AND (b, STR0_NOT_ENOUGH_DIGITS == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "00", 3));
 
 		s = ubf_str0_from_uint64 (c, 3, 1999);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (STR0_NOT_ENOUGH_DIGITS == s);
-		ubf_assert (!memcmp (c, "999", 3));
+		ubf_expect_bool_AND (b, STR0_NOT_ENOUGH_DIGITS == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "999", 3));
 
 		// The 16 bit version.
 		s = ubf_str0_from_uint16 (c, 10, 3000);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (4 == s);
-		ubf_assert (!memcmp (c, "0000003000", 11));
+		ubf_expect_bool_AND (b, 4 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "0000003000", 11));
 
 		s = ubf_str0_from_uint16 (c, 10, 200);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "0000000200", 11));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "0000000200", 11));
 
 		s = ubf_str0_from_uint16 (c, 3, 555);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "555", 4));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "555", 4));
 
 		s = ubf_str0_from_uint16 (c, 2, 200);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (STR0_NOT_ENOUGH_DIGITS == s);
-		ubf_assert (!memcmp (c, "00", 3));
+		ubf_expect_bool_AND (b, STR0_NOT_ENOUGH_DIGITS == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "00", 3));
 
 		s = ubf_str0_from_uint16 (c, 3, 1999);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (STR0_NOT_ENOUGH_DIGITS == s);
-		ubf_assert (!memcmp (c, "999", 3));
+		ubf_expect_bool_AND (b, STR0_NOT_ENOUGH_DIGITS == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "999", 3));
 
 		// Min.
 		ubf_str0_from_59max (c, 0);
-		ubf_assert (!memcmp (c, "00", 2));
+		ubf_expect_bool_AND (b, !memcmp (c, "00", 2));
 		ubf_str0_from_59max (c, 61);
-		ubf_assert (!memcmp (c, "61", 2));
+		ubf_expect_bool_AND (b, !memcmp (c, "61", 2));
 		// NUL-terminated.
 		ubf_str0_from_59max_n (c, 0);
-		ubf_assert (!memcmp (c, "00", 3));
+		ubf_expect_bool_AND (b, !memcmp (c, "00", 3));
 		// Max.
 		ubf_str0_from_59max_n (c, 61);
-		ubf_assert (!memcmp (c, "61", 3));
+		ubf_expect_bool_AND (b, !memcmp (c, "61", 3));
+
+		ubf_expect_bool_AND (b, is_number_str_l ("0", 1));
+		ubf_expect_bool_AND (b, is_number_str_l ("1", 1));
+		ubf_expect_bool_AND (b, is_number_str_l ("2", 1));
+		ubf_expect_bool_AND (b, is_number_str_l ("9", 1));
+		ubf_expect_bool_AND (b, is_number_str_l ("10", 2));
+		ubf_expect_bool_AND (b, !is_number_str_l ("abcd", 4));
+		ubf_expect_bool_AND (b, is_number_str_l ("000000000000000000000000000000000000000000000000000000000000", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_number_str_l ("111111111111111111111111111111111111111111111111111111111111", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_number_str_l ("999999999999999999999999999999999999999999999999999999999999", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_number_str_l ("1234abc", 4));
+		ubf_expect_bool_AND (b, !is_number_str_l ("1234abc", 5));
+
 
 		return b;
 	}

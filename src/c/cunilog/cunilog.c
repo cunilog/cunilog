@@ -2608,6 +2608,15 @@ STRANSICOLOURSEQUENCE evtSeverityColours [cunilogEvtSeverityXAmountEnumValues] =
 #endif
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	/*
+		The return value of this function not only returns the space required for the ANSI escape
+		sequence to set the colour of the severity, but also the space required to reset the
+		colour again.
+		
+		This means that both, cpyEvtSeverityColour () and cpyRstEvtSeverityColour () can safely be
+		called on a buffer that reserves the size returned by evtSeverityColoursLen (), provided
+		that the parameter sev is not changed.
+	*/
 	static inline size_t evtSeverityColoursLen (cueventseverity sev)
 	{
 		ubf_assert (0 <= sev);
@@ -3328,6 +3337,67 @@ static CUNILOG_EVENT *CreateCUNILOG_EVENTandData	(
 	return pev;
 }
 
+/*
+	Note that ccData can be NULL for event type cunilogEvtTypeCommand,
+	in which case a buffer of siz octets is reserved but not initialised!
+
+	This function is identical to CreateCUNILOG_EVENTandData () but requires
+	an additional UBF_TIMESTAMP parameter (ts).
+
+	This is a separate function so that it could easily be removed via
+	macro definitions later if required.
+*/
+static CUNILOG_EVENT *CreateCUNILOG_EVENTandDataTS	(
+					CUNILOG_TARGET				*put,
+					cueventseverity				sev,
+					const char					*ccCapt,
+					size_t						lenCapt,
+					cueventtype					type,
+					const char					*ccData,
+					size_t						siz,
+					UBF_TIMESTAMP				ts
+													)
+{
+	ubf_assert_non_NULL	(put);
+	if (ccData)
+		ubf_assert (cunilogEvtTypeCommand != type && NULL != ccData);
+	else
+		ubf_assert (cunilogEvtTypeCommand == type && NULL == ccData);
+	ubf_assert			(USE_STRLEN != siz);
+	ubf_assert			(0 <= type);
+	ubf_assert			(cunilogEvtTypeAmountEnumValues > type);
+
+	size_t			wl		= widthOfCaptionLengthFromCunilogEventType (type);
+	ubf_assert (wl || 0 == lenCapt);						// If 0 == wl we can't have a caption.
+	size_t			aln		= ALIGNED_SIZE (sizeof (CUNILOG_EVENT), CUNILOG_DEFAULT_ALIGNMENT);
+	size_t			ln		= aln + wl + lenCapt + siz;
+	CUNILOG_EVENT	*pev	= ubf_malloc (ln);
+
+	if (pev)
+	{
+		unsigned char *pData = (unsigned char *) pev + aln;
+		
+		FillCUNILOG_EVENT	(
+			pev, put,
+			CUNILOGEVENT_ALLOCATED,
+			ts,
+			sev, type,
+			pData, siz, ln
+							);
+		if (wl)
+		{
+			storeCaptionLength (&pData, wl, lenCapt);
+			memcpy (pData, ccCapt, lenCapt);
+			pData += lenCapt;
+		}
+		if (ccData)
+			memcpy (pData, ccData, siz);
+		else
+			ubf_assert (cunilogEvtTypeCommand == type);
+	}
+	return pev;
+}
+
 static inline cueventtype cunilogEventTypeFromLength (size_t len)
 {
 	ubf_assert (USE_STRLEN != len);
@@ -3390,6 +3460,32 @@ CUNILOG_EVENT *CreateCUNILOG_EVENT_Text		(
 							put, sev, NULL, 0, cunilogEvtTypeNormalText,
 							ccText, len
 													);
+	return pev;
+}
+
+CUNILOG_EVENT *CreateCUNILOG_EVENT_TextTS		(
+					CUNILOG_TARGET				*put,
+					cueventseverity				sev,
+					const char					*ccText,
+					size_t						len,
+					UBF_TIMESTAMP				ts
+											)
+{
+	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL (ccText);
+
+	len = USE_STRLEN == len ? strlen (ccText) : len;
+
+	/*
+	while (len && ('\n' == ccText [len - 1] || '\r' == ccText [len - 1]))
+		-- len;
+	*/
+	len = strRemoveLineEndingsFromEnd (ccText, len);
+
+	CUNILOG_EVENT *pev = CreateCUNILOG_EVENTandDataTS	(
+							put, sev, NULL, 0, cunilogEvtTypeNormalText,
+							ccText, len, ts
+														);
 	return pev;
 }
 
@@ -5888,6 +5984,17 @@ bool logTextU8sevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccTe
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
+bool logTextU8sevlts		(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len, UBF_TIMESTAMP ts)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
+		return false;
+
+	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_TextTS (put, sev, ccText, len, ts);
+	return pev && cunilogProcessOrQueueEvent (pev);
+}
+
 bool logTextU8sevlq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len)
 {
 	ubf_assert_non_NULL (put);
@@ -5896,6 +6003,22 @@ bool logTextU8sevlq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccT
 		return false;
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Text (put, sev, ccText, len);
+	if (pev)
+	{
+		cunilogSetEventNoRotation (pev);
+		return cunilogProcessOrQueueEvent (pev);
+	}
+	return false;
+}
+
+bool logTextU8sevlqts		(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len, UBF_TIMESTAMP ts)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
+		return false;
+
+	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_TextTS (put, sev, ccText, len, ts);
 	if (pev)
 	{
 		cunilogSetEventNoRotation (pev);
@@ -6822,6 +6945,19 @@ bool CunilogChangeCurrentThreadPriority (cunilogprio prio)
 	return false;
 }
 
+void cunilogSetDefaultPrintEventSeverityFormatType (cueventsevfmtpy fmtpy)
+{
+	ubf_assert			(0 <= fmtpy);
+	ubf_assert			(cunilogEvtSeverityTypeXAmountEnumValues > fmtpy);
+
+	cunilogEvtSeverityTypeDefault = fmtpy;
+}
+
+void cunilogUseColourForOutput (bool bUseColour)
+{
+	bUseCunilogDefaultOutputColour = bUseColour;
+}
+
 int cunilog_printf_sev_fmtpy_vl	(
 		cueventseverity		sev,
 		cueventsevfmtpy		sftpy,
@@ -6831,7 +6967,11 @@ int cunilog_printf_sev_fmtpy_vl	(
 {
 	ubf_assert_non_NULL (format);
 
-	size_t lenRequired = evtSeverityColoursLen (sev);
+	bool bUseColour = bUseCunilogDefaultOutputColour;
+
+	size_t lenRequired = 0;
+	if (bUseColour)
+		lenRequired = evtSeverityColoursLen (sev);
 	lenRequired += requiredEventSeverityChars (sev, sftpy);
 
 	int			iReq;
@@ -6853,14 +6993,16 @@ int cunilog_printf_sev_fmtpy_vl	(
 	if (pzToPrint)
 	{
 		char *pz = pzToPrint;
-		cpyEvtSeverityColour (&pz, sev);
+		if (bUseColour)
+			cpyEvtSeverityColour (&pz, sev);
 		size_t st = writeEventSeverity (pz, sev, sftpy);
 		pz += st;
 		iReq = vsnprintf (pz, lenRequired + 1, format, ap);
 		if (iReq < 0)
 			goto Leave;
 		pz += iReq;
-		cpyRstEvtSeverityColour (&pz, sev);
+		if (bUseColour)
+			cpyRstEvtSeverityColour (&pz, sev);
 		pz [0] = ASCII_NUL;
 
 		#ifdef PLATFORM_IS_WINDOWS
@@ -6945,30 +7087,66 @@ int cunilog_puts_sev_fmtpy_l	(
 	if (NULL == strU8)
 		return EOF;
 
+	bool bUseColour = bUseCunilogDefaultOutputColour;
+
 	len = USE_STRLEN == len ? strlen (strU8) : len;
-	size_t lenRequired = evtSeverityColoursLen (sev);
-	lenRequired += requiredEventSeverityChars (sev, sftpy);
+	size_t lenRequired = 0;
+	if (bUseColour)
+		evtSeverityColoursLen (sev);						// Includes reset.
+
+	#ifdef DEBUG
+		size_t	sizDbgEvtSeverityColours = lenRequired;
+		size_t	sizDbgEvtSeverityCol;
+		size_t	sizDbgEvtSeverityRst;
+		char	*szCpy;
+	#endif
+
+	size_t reqSevl = requiredEventSeverityChars (sev, sftpy);
+	lenRequired += reqSevl;
 	lenRequired += len;
 
 	int		iRet = EOF;
 	char	szToPrint [WINAPI_U8_HEAP_THRESHOLD];
+	UBF_DEFINE_GUARD_VAR (testvar, 1234567);
 	char	*pzToPrint;
 
 	if (lenRequired < WINAPI_U8_HEAP_THRESHOLD)
 		pzToPrint = szToPrint;
 	else
-		pzToPrint = ubf_malloc (lenRequired + 1);		// Max. length of newline is 3.
+		pzToPrint = ubf_malloc (lenRequired + 1);
 
 	if (pzToPrint)
 	{
 		char *pz = pzToPrint;
-		cpyEvtSeverityColour (&pz, sev);
+
+		if (bUseColour)
+			cpyEvtSeverityColour (&pz, sev);
+
+		#ifdef DEBUG
+			pzToPrint [lenRequired]	= UBF_ERROR_CHAR;
+			sizDbgEvtSeverityCol	= pz - pzToPrint;
+		#endif
+
 		size_t st = writeEventSeverity (pz, sev, sftpy);
+		ubf_assert (reqSevl == st);
 		pz += st;
 		memcpy (pz, strU8, len);
 		pz += len;
-		cpyRstEvtSeverityColour (&pz, sev);
+
+		#ifdef DEBUG
+			szCpy = pz;
+		#endif
+
+		if (bUseColour)
+			cpyRstEvtSeverityColour (&pz, sev);
+		ubf_assert (UBF_ERROR_CHAR == pzToPrint [lenRequired]);
+		ubf_assert (UBF_ERROR_CHAR == pz [0]);
 		pz [0] = ASCII_NUL;
+
+		#ifdef DEBUG
+			sizDbgEvtSeverityRst = pz - szCpy;
+			ubf_assert (sizDbgEvtSeverityCol + sizDbgEvtSeverityRst == sizDbgEvtSeverityColours);
+		#endif
 
 		#ifdef PLATFORM_IS_WINDOWS
 			iRet = cunilogPutsWin (pzToPrint, lenRequired);
@@ -6979,10 +7157,12 @@ int cunilog_puts_sev_fmtpy_l	(
 				iRet = puts ("");
 		#endif
 
+		ubf_assert (ASCII_NUL == pzToPrint [lenRequired]);
 		if (pzToPrint != szToPrint)
 			ubf_free (pzToPrint);
 	}
 
+	UBF_CHECK_GUARD_VAR (testvar, 1234567);
 	return iRet;
 }
 
@@ -6997,6 +7177,17 @@ int cunilog_puts_sev_fmtpy		(
 	return cunilog_puts_sev_fmtpy_l (sev, sftpy, strU8, USE_STRLEN);
 }
 
+int cunilog_puts_sev_l			(
+		cueventseverity		sev,
+		const char			*strU8,
+		size_t				len
+								)
+{
+	ubf_assert_non_NULL (strU8);
+
+	return cunilog_puts_sev_fmtpy_l (sev, cunilogEvtSeverityTypeDefault, strU8, len);
+}
+
 int cunilog_puts_sev			(
 		cueventseverity		sev,
 		const char			*strU8
@@ -7005,6 +7196,18 @@ int cunilog_puts_sev			(
 	ubf_assert_non_NULL (strU8);
 
 	return cunilog_puts_sev_fmtpy_l (sev, cunilogEvtSeverityTypeDefault, strU8, USE_STRLEN);
+}
+
+int cunilog_puts_l				(
+		const char			*strU8,
+		size_t				len
+								)
+{
+	ubf_assert_non_NULL (strU8);
+
+	return cunilog_puts_sev_fmtpy_l	(
+				cunilogEvtSeverityNone, cunilogEvtSeverityTypeDefault, strU8, len
+									);
 }
 
 int cunilog_puts				(

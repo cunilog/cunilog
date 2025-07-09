@@ -1719,6 +1719,151 @@ uint16_t BuildYear_uint16 (void)
 	return BuildYear_uint64 () & 0xFFFF;
 }
 
+bool is_datetimestampformat_l (const char *str, size_t len)
+{
+	size_t		ln	= USE_STRLEN == len ? strlen (str) : len;
+	const char	*sz = str;
+
+	if (4 <= ln)
+	{
+		// We require at least a year ("2025").
+		if (!is_number_str_l (sz, 4))
+			return false;
+		ln -= 4;
+		sz += 4;
+		if (0 == ln)
+			return true;
+
+		// "2025-"
+		if ('-' == sz [0])
+		{
+			++ sz;
+			-- ln;
+		}
+		if (0 == ln)
+			return true;
+		if (2 <= ln)
+		{
+			//	"2025-07" or "202507"
+			if (!is_number_str_l (sz, 2))
+				return false;
+			ln -= 2;
+			sz += 2;
+			if (0 == ln)
+				return true;
+			// "2025-07-"
+			if ('-' == sz [0])
+			{
+				++ sz;
+				-- ln;
+			}
+			if (0 == ln)
+				return true;
+			if (2 <= ln)
+			{
+				//	"2025-07-05" or "20250705"
+				if (!is_number_str_l (sz, 2))
+					return false;
+				ln -= 2;
+				sz += 2;
+				if (0 == ln)
+					return true;
+				// Separator between date and time or 'T' required.
+				if (' ' == sz [0] || 'T' == sz [0])
+				{
+					++ sz;
+					-- ln;
+				} else
+					return false;
+				if (0 == ln)
+					return true;
+				if (2 <= ln)
+				{
+					//	"2025-07-05 16" or "2025070516"
+					if (!is_number_str_l (sz, 2))
+						return false;
+					ln -= 2;
+					sz += 2;
+					if (0 == ln)
+						return true;
+					if (':' == sz [0])
+					{
+						++ sz;
+						-- ln;
+					}
+					if (0 == ln)
+						return true;
+					if (2 <= ln)
+					{
+						//	"2025-07-05 16:10" or "202507051610"
+						if (!is_number_str_l (sz, 2))
+							return false;
+						ln -= 2;
+						sz += 2;
+						if (0 == ln)
+							return true;
+						if (':' == sz [0])
+						{
+							++ sz;
+							-- ln;
+						} else
+							return false;
+						if (0 == ln)
+							return true;
+						if (2 <= ln)
+						{
+							//	"2025-07-05 16:10:56" or "20250705161056"
+							if (!is_number_str_l (sz, 2))
+								return false;
+							ln -= 2;
+							sz += 2;
+							if (0 == ln)
+								return true;
+							if ('.' == sz [0])
+							{
+								++ sz;
+								-- ln;
+							} else
+								return false;
+							if (0 == ln)
+								return true;
+							if (ln)
+							{
+								//	"2025-07-05 16:10:56.1"		or "202507051610561"
+								//	"2025-07-05 16:10:56.12"	or "2025070516105612"
+								//	"2025-07-05 16:10:56.123"	or "20250705161056123"
+								if (!is_number_str_l (sz, 1))
+									return false;
+								-- ln;
+								++ sz;
+								if (0 == ln)
+									return true;
+								if (ln)
+								{
+									if (!is_number_str_l (sz, 1))
+										return false;
+									-- ln;
+									++ sz;
+									if (ln)
+									{
+										if (!is_number_str_l (sz, 1))
+											return false;
+										-- ln;
+										++ sz;
+									}
+								}
+								if (0 == ln)
+									return true;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
 bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMilliseconds)
 {
 	uint64_t	uHours;
@@ -2134,6 +2279,58 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ubf_expect_bool_AND (b, ASCII_NUL == ctncsa [LEN_NCSA_COMMON_LOG_DATETIME]);
 		ubf_expect_bool_AND (b, '#' == ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME]);
 
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("", 0));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("1", 1));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("12", 1));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("12", 2));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("123", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("1234", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00T", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00T00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00 00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00 00:00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:00.", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:00.1", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:00.12", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:00.123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00 00:00:00.1 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00 00:00:00.12 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00 00:00:00.123 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00T00:00:00.123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00T00:00:00.123 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00T00:00:00.1 23 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("9999", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("999911", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("9999111", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122 16", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122x16", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("9999112216", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122 16 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122 16:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122 16:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122 16:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122 16:00:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122 16:00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122 16:00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122T16:00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122T16:00:00.123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16:00:00x123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16:00:00123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T160000123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16 00 00 123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16.00.00.123", USE_STRLEN));
 
 		// Timings.
 		/*

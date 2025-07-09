@@ -129,6 +129,17 @@ void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz)
 	return pb->buf.pvoid;
 }
 
+void *growToSizeSMEMBUFreserve (SMEMBUF *pb, size_t siz, size_t res)
+{
+	ubf_assert_non_NULL (pb);
+
+	if (siz > pb->size)
+	{
+		setToSizeSMEMBUF (pb, siz + res);
+	}
+	return pb->buf.pvoid;
+}
+
 void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 {
 	ubf_assert_non_NULL (pb);
@@ -530,57 +541,62 @@ char *AllocU8_from_WinU16 (const WCHAR *wc16)
 }
 
 #ifdef HAVE_STRWILDCARDS
-char *AllocU8path_from_U8path_and_WinU16FileName (const char *ccPath, WCHAR *wcFileName)
-{
-	ASSERT (NULL != ccPath);
-	ASSERT (NULL != wcFileName);
+	char *AllocU8path_from_U8path_and_WinU16FileName (const char *ccPath, WCHAR *wcFileName)
+	{
+		ASSERT (NULL != ccPath);
+		ASSERT (NULL != wcFileName);
 	
-	if (NULL == ccPath || NULL == wcFileName)
-		return NULL;
+		if (NULL == ccPath || NULL == wcFileName)
+			return NULL;
 		
-	size_t		stPath		= strlen (ccPath);
-	const char	*ccWCfname;
-	size_t		stWCflen;										// Length of the wildcard
-																//	filename, if there is
-																//	one.
-	char		*ccRet		= NULL;
-	int			iReq;
+		size_t		stPath		= strlen (ccPath);
+		const char	*ccWCfname;
+		size_t		stWCflen;										// Length of the wildcard
+																	//	filename, if there is
+																	//	one.
+		char		*ccRet		= NULL;
+		int			iReq;
 
-	// Must not be an empty string or end with a directory separator.
-	ASSERT (0 < stPath);										// Not supported.
-	ASSERT ('\\' != ccPath [stPath - 1]);						// Not supported.
-	ASSERT ('/' != ccPath [stPath - 1]);						// Not supported.
-	if (0 == stPath)
-		return NULL;
-	ccWCfname = wildCardFileName (&stWCflen, ccPath);
-	iReq = reqUTF8size (wcFileName);
-	if (NULL == ccWCfname)
-	{	// We got no wildcards in the filename. This is a simple copy operation.
-		ccRet = ubf_malloc (stPath + iReq + 2);
+		// Must not be an empty string or end with a directory separator.
+		ASSERT (0 < stPath);										// Not supported.
+		ASSERT ('\\' != ccPath [stPath - 1]);						// Not supported.
+		ASSERT ('/' != ccPath [stPath - 1]);						// Not supported.
+		if (0 == stPath)
+			return NULL;
+		ccWCfname = wildCardFileName (&stWCflen, ccPath);
+		iReq = reqUTF8size (wcFileName);
+		if (NULL == ccWCfname)
+		{	// We got no wildcards in the filename. This is a simple copy operation.
+			ccRet = ubf_malloc (stPath + iReq + 2);
+			if (ccRet)
+			{
+				memcpy (ccRet, ccPath, stPath);
+				memcpy (ccRet + stPath, "\\", 1);
+				UTF8_from_WinU16 (ccRet + stPath + 1, iReq, wcFileName);
+			}
+			return ccRet;
+		}
+		// Note that iReq contains the NUL terminator already but to be sure we add
+		//	2 octets more.
+		ccRet = ubf_malloc (stPath + stWCflen + iReq + 2);
 		if (ccRet)
 		{
+			if (ubf_isdirseparator (ccWCfname [0]))
+				stPath -= stWCflen - 1;
+			else
+				stPath -= stWCflen;
 			memcpy (ccRet, ccPath, stPath);
-			memcpy (ccRet + stPath, "\\", 1);
-			UTF8_from_WinU16 (ccRet + stPath + 1, iReq, wcFileName);
+			UTF8_from_WinU16 (ccRet + stPath, iReq, wcFileName);
+			/*
+			if (ccWCfname && stWCflen)
+			{	// We got a mask that needs to be added.
+				memcpy (ccRet + stPath + iReq - 1, ccWCfname, stWCflen + 1);
+			}
+			*/
+			forward_to_backslashU8 (ccRet, iReq);
 		}
 		return ccRet;
 	}
-	// Note that iReq contains the NUL terminator already but to be sure we add
-	//	2 octets more.
-	ccRet = ubf_malloc (stPath + stWCflen + iReq + 2);
-	if (ccRet)
-	{
-		stPath -= stWCflen - 1;								// We keep the dir separator.
-		memcpy (ccRet, ccPath, stPath);
-		UTF8_from_WinU16 (ccRet + stPath, iReq, wcFileName);
-		if (ccWCfname && stWCflen)
-		{	// We got a mask that needs to be added.
-			memcpy (ccRet + stPath + iReq - 1, ccWCfname, stWCflen + 1);
-		}
-		forward_to_backslashU8 (ccRet, iReq);
-	}
-	return ccRet;
-}
 #endif
 
 #if defined (HAVE_STRWILDCARDS) && defined (HAVE_MEMBUF)
@@ -1055,6 +1071,7 @@ void STARTUPINFOW_from_STARTUPINFOA (STARTUPINFOW *siw, STARTUPINFOA *sia)
 	ASSERT (NULL == sia->lpReserved);
 	ASSERT (0 == sia->cbReserved2);
 	ASSERT (NULL == sia->lpReserved2);
+	ASSERT (sizeof (STARTUPINFOW) == sizeof (STARTUPINFOA));
 	siw->cb					= sia->cb;
 	ASSERT (NULL == sia->lpReserved);
 	siw->lpReserved			= NULL;
@@ -1126,6 +1143,166 @@ HANDLE CreateMutexExU8(
 	
 	WinU16_from_UTF8 (wcName, MAX_PATH + 1, lpName);
 	return CreateMutexExW (lpMutexAttributes, wcName, dwFlags, dwDesiredAccess);
+}
+
+/*
+	This is the MyCreatePipeEx () function originally found at
+	http://www.davehart.net/remote/PipeEx.c .
+
+	Taken from https://web.archive.org/web/20150125081922/http://www.davehart.net:80/remote/PipeEx.c .
+
+	The function has been modified for UTF-16. The ID of the current thread is additionally
+	part of the pipe name to make it safe for multi-threading.
+*/
+
+static volatile LONG PipeSerialNumber;
+
+BOOL
+APIENTRY
+MyCreatePipeEx(
+    OUT LPHANDLE lpReadPipe,
+    OUT LPHANDLE lpWritePipe,
+    IN LPSECURITY_ATTRIBUTES lpPipeAttributes,
+    IN DWORD nSize,
+    DWORD dwReadMode,
+    DWORD dwWriteMode
+    )
+
+/*++
+
+Routine Description:
+
+    The CreatePipeEx API is used to create an anonymous pipe I/O device.
+    Unlike CreatePipe FILE_FLAG_OVERLAPPED may be specified for one or
+    both handles.
+    Two handles to the device are created.  One handle is opened for
+    reading and the other is opened for writing.  These handles may be
+    used in subsequent calls to ReadFile and WriteFile to transmit data
+    through the pipe.
+
+Arguments:
+
+    lpReadPipe - Returns a handle to the read side of the pipe.  Data
+        may be read from the pipe by specifying this handle value in a
+        subsequent call to ReadFile.
+
+    lpWritePipe - Returns a handle to the write side of the pipe.  Data
+        may be written to the pipe by specifying this handle value in a
+        subsequent call to WriteFile.
+
+    lpPipeAttributes - An optional parameter that may be used to specify
+        the attributes of the new pipe.  If the parameter is not
+        specified, then the pipe is created without a security
+        descriptor, and the resulting handles are not inherited on
+        process creation.  Otherwise, the optional security attributes
+        are used on the pipe, and the inherit handles flag effects both
+        pipe handles.
+
+    nSize - Supplies the requested buffer size for the pipe.  This is
+        only a suggestion and is used by the operating system to
+        calculate an appropriate buffering mechanism.  A value of zero
+        indicates that the system is to choose the default buffering
+        scheme.
+
+Return Value:
+
+    TRUE - The operation was successful.
+
+    FALSE/NULL - The operation failed. Extended error status is available
+        using GetLastError.
+
+--*/
+
+{
+	ASSERT (NULL != lpReadPipe);
+	ASSERT (NULL != lpWritePipe);
+
+    HANDLE ReadPipeHandle, WritePipeHandle;
+    DWORD dwError;
+    WCHAR PipeNameBuffer[ MAX_PATH ];
+
+    //
+    // Only one valid OpenMode flag - FILE_FLAG_OVERLAPPED
+    //
+
+    if ((dwReadMode | dwWriteMode) & (~FILE_FLAG_OVERLAPPED)) {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    //
+    //  Set the default timeout to 120 seconds
+    //
+
+    if (nSize == 0) {
+        nSize = 4096;
+        }
+
+	// There's certainly a race condition here but even if this happens,
+	//	we still got our unique thread ID, hence it's practically impossible to accidentally
+	//	create two pipes with the same name.
+	InterlockedIncrement (&PipeSerialNumber);
+    swprintf( PipeNameBuffer, MAX_PATH,
+				L"\\\\.\\Pipe\\culRWinAPI_U8.%08x.%08x.%08x",
+				GetCurrentProcessId (),
+				GetCurrentThreadId (),
+				(ULONG) PipeSerialNumber
+           );
+
+    ReadPipeHandle = CreateNamedPipeW(
+                         PipeNameBuffer,
+                         PIPE_ACCESS_INBOUND | dwReadMode,
+                         PIPE_TYPE_BYTE | PIPE_WAIT,
+                         1,             // Number of pipes
+                         nSize,         // Out buffer size
+                         nSize,         // In buffer size
+                         120 * 1000,    // Timeout in ms
+                         lpPipeAttributes
+                         );
+
+    if (! ReadPipeHandle) {
+        return FALSE;
+    }
+
+    WritePipeHandle = CreateFileW(
+                        PipeNameBuffer,
+                        GENERIC_WRITE,
+                        0,                         // No sharing
+                        lpPipeAttributes,
+                        OPEN_EXISTING,
+                        FILE_ATTRIBUTE_NORMAL | dwWriteMode,
+                        NULL                       // Template file
+                      );
+
+    if (INVALID_HANDLE_VALUE == WritePipeHandle) {
+        dwError = GetLastError();
+        CloseHandle( ReadPipeHandle );
+        SetLastError(dwError);
+        return FALSE;
+    }
+
+    *lpReadPipe = ReadPipeHandle;
+    *lpWritePipe = WritePipeHandle;
+    return( TRUE );
+}
+
+BOOL CreatePipeOverlapped(
+		PHANDLE					hReadPipe,
+		bool					bOverlappedRead,
+		PHANDLE					hWritePipe,
+		bool					bOverlappedWrite,
+		LPSECURITY_ATTRIBUTES	lpPipeAttributes,
+		DWORD					nSize
+)
+{
+	DWORD dwReadMode	= bOverlappedRead	? FILE_FLAG_OVERLAPPED : 0;
+	DWORD dwWriteMode	= bOverlappedWrite	? FILE_FLAG_OVERLAPPED : 0; 
+	BOOL b = MyCreatePipeEx	(
+				hReadPipe, hWritePipe,
+				lpPipeAttributes, nSize,
+				dwReadMode, dwWriteMode
+							);
+	return b;
 }
 
 BOOL CreateProcessU8EnvW(
@@ -1313,14 +1490,14 @@ SC_HANDLE CreateServiceU8(
 }
 #endif
 
-WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, WORD numStrings)
+WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, size_t numStrings)
 {
 	WCHAR		**pwcRet;
 	
-	pwcRet = ubf_malloc (numStrings * sizeof (WCHAR *));
+	pwcRet = ubf_malloc (sizeof (WCHAR *) * numStrings);
 	if (pwcRet)
 	{
-		WORD	n	= 0;
+		size_t n = 0;
 		while (n < numStrings)
 		{
 			pwcRet [n] = AllocWinU16_from_UTF8 (pu8 [n]);
@@ -1330,9 +1507,9 @@ WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, WORD numStrings)
 	return pwcRet;
 }
 
-void DoneWin16StringArray (WCHAR **pwcStringArray, WORD numStrings)
+void DoneWin16StringArray (WCHAR **pwcStringArray, size_t numStrings)
 {
-	WORD n = 0;
+	size_t n = 0;
 	while (n < numStrings)
 	{
 		ubf_free (pwcStringArray [n]);
@@ -1401,7 +1578,14 @@ BOOL DecryptFileU8(
 	BOOL	bRet;
 
 	pwcFileName = AllocWinU16fromU8orUseThreshold (wcFileName, lpFileName);
-	bRet = DecryptFileW (pwcFileName, dwReserved);
+	// See
+	//	https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-decryptfilew .
+	//	The parameter dwReserved must be zero.
+	//bRet = DecryptFileW (pwcFileName, dwReserved);
+	ASSERT (0 == dwReserved);
+	UNREFERENCED_PARAMETER (dwReserved);
+
+	bRet = DecryptFileW (pwcFileName, 0);
 	DoneWinU16fromU8orUseThreshold (pwcFileName, wcFileName);
 	return bRet;
 }
@@ -2137,28 +2321,46 @@ DWORD GetModuleFileNameU8(
 {
 	DWORD	dwRet;
 	WCHAR	wcModuleName [WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pcModuleName = wcModuleName;
 	int		iu8;
 	
-	dwRet = GetModuleFileNameW (hModule, wcModuleName, WINAPI_U8_HEAP_THRESHOLD);
-	if (dwRet == WINAPI_U8_HEAP_THRESHOLD)
+	if (0 == nSize)
+		return 0;
+
+	dwRet = GetModuleFileNameW (hModule, pcModuleName, WINAPI_U8_HEAP_THRESHOLD);
+	if (WINAPI_U8_HEAP_THRESHOLD == dwRet)
 	{	// Stack buffer (WINAPI_U8_HEAP_THRESHOLD) too small.
-		ASSERT (FALSE);
+		DWORD dwtot = WINAPI_U8_HEAP_THRESHOLD;
+		do
+		{
+			if (pcModuleName != wcModuleName)
+				ubf_free (pcModuleName);
+			dwtot += WINAPI_U8_HEAP_THRESHOLD;
+			pcModuleName = ubf_malloc (sizeof (WCHAR) * dwtot);
+			if (NULL == pcModuleName)
+				return 0;
+			dwRet = GetModuleFileNameW (hModule, pcModuleName, dwtot);
+		} while (dwRet == dwtot);
 	}
-	iu8 = reqUTF8size (wcModuleName);
+	iu8 = reqUTF8size (pcModuleName);
 	ASSERT (0 < iu8);
-	dwRet = (DWORD) iu8;
-	if (dwRet < nSize)
+	if ((DWORD) iu8 < nSize)
 	{	// Success.
-		UTF8_from_WinU16 (lpFilenameU8, iu8, wcModuleName);
-		// I can't think of any quicker way to obtain the length
-		//	to return, so let's use strlen ().
-		return (DWORD) (strlen (lpFilenameU8) & 0xFFFFFFFF);
+		int iRet = UTF8_from_WinU16 (lpFilenameU8, iu8, pcModuleName);
+		if (pcModuleName != wcModuleName)
+			ubf_free (pcModuleName);
+		ASSERT (0 < iRet);
+		return (DWORD) iRet - 1;
 	}
 	// Buffer provided by the user too small.
 	#ifdef GETMODULEFILENAMEU8_ASSERT_BUFFER_TOO_SMALL
 		ASSERT (FALSE);
 	#endif
-	UTF8_from_WinU16 (lpFilenameU8, (int) nSize, wcModuleName);
+	UTF8_from_WinU16 (lpFilenameU8, (int) nSize, pcModuleName);
+	lpFilenameU8 [nSize - 1] = ASCII_NUL;
+	if (pcModuleName != wcModuleName)
+		ubf_free (pcModuleName);
+	SetLastError (ERROR_INSUFFICIENT_BUFFER);
 	return nSize;
 }
 
@@ -2317,6 +2519,138 @@ DWORD GetPrivateProfileStringU8(
 	return dwRet;
 }
 
+UINT GetSystemDirectoryU8(
+	LPSTR	lpBuffer,
+	UINT	uSize
+)
+{
+	WCHAR	wcSysDir [WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pcSysDir = wcSysDir;
+
+	if (uSize > INT_MAX)
+		return 0;
+	UINT uReqSize = GetSystemDirectoryW (pcSysDir, WINAPI_U8_HEAP_THRESHOLD);
+	if (0 == uReqSize)
+		return 0;
+	if (uReqSize >= WINAPI_U8_HEAP_THRESHOLD)
+	{
+		pcSysDir = ubf_malloc (sizeof (wchar_t) * uReqSize);
+		if (pcSysDir)
+			GetSystemDirectoryW (pcSysDir, uReqSize);
+	}
+
+	int iReq = reqUTF8size (pcSysDir);
+	if ((int) uSize >= iReq)
+	{
+		iReq = UTF8_from_WinU16 (lpBuffer, uSize, pcSysDir);
+		if (iReq)
+			-- iReq;
+	}
+	if (pcSysDir && pcSysDir != wcSysDir)
+		ubf_free (pcSysDir);
+	return (UINT) iReq;
+}
+
+static const char	*szWinSystemDirectory;
+static size_t		lnWinSystemDirectory;
+
+const char *SystemDirectoryU8 (void)
+{
+	if (NULL == szWinSystemDirectory)
+	{
+		UINT ui = GetSystemDirectoryU8 (NULL, 0);
+		szWinSystemDirectory = ubf_malloc (ui);
+		if (szWinSystemDirectory)
+		{
+			UINT u2 = GetSystemDirectoryU8 ((char *) szWinSystemDirectory, ui);
+			ASSERT (ui == u2 + 1);
+			lnWinSystemDirectory = u2;
+		}
+	}
+	return szWinSystemDirectory;
+}
+
+size_t SystemDirectoryU8len (void)
+{
+	if (0 == lnWinSystemDirectory)
+		SystemDirectoryU8 ();
+	return lnWinSystemDirectory;
+}
+
+void DoneSystemDirectoryU8 (void)
+{
+	if (szWinSystemDirectory)
+		ubf_free ((char *) szWinSystemDirectory);
+	szWinSystemDirectory = NULL;
+	lnWinSystemDirectory = 0;
+}
+
+UINT GetSystemWindowsDirectoryU8(
+	LPSTR	lpBuffer,
+	UINT	uSize
+)
+{
+	WCHAR	wcWinDir [WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pcWinDir = wcWinDir;
+
+	if (uSize > INT_MAX)
+		return 0;
+	UINT uReqSize = GetSystemWindowsDirectoryW (pcWinDir, WINAPI_U8_HEAP_THRESHOLD);
+	if (0 == uReqSize)
+		return 0;
+	if (uReqSize >= WINAPI_U8_HEAP_THRESHOLD)
+	{
+		pcWinDir = ubf_malloc (sizeof (wchar_t) * uReqSize);
+		if (pcWinDir)
+			GetSystemWindowsDirectoryW (pcWinDir, uReqSize);
+	}
+
+	int iReq = reqUTF8size (pcWinDir);
+	if ((int) uSize >= iReq)
+	{
+		iReq = UTF8_from_WinU16 (lpBuffer, uSize, pcWinDir);
+		if (iReq)
+			-- iReq;
+	}
+	if (pcWinDir && pcWinDir != wcWinDir)
+		ubf_free (pcWinDir);
+	return (UINT) iReq;
+}
+
+static const char	*szWinSystemWindowsDirectory;
+static size_t		lnWinSystemWindowsDirectory;
+
+const char *SystemWindowsDirectoryU8 (void)
+{
+	if (NULL == szWinSystemWindowsDirectory)
+	{
+		UINT ui = GetSystemWindowsDirectoryU8 (NULL, 0);
+		szWinSystemWindowsDirectory = ubf_malloc (ui);
+		if (szWinSystemWindowsDirectory)
+		{
+			UINT u2 = GetSystemWindowsDirectoryU8 ((char *) szWinSystemWindowsDirectory, ui);
+			ASSERT (ui == u2 + 1);
+			lnWinSystemWindowsDirectory = u2;
+		}
+	}
+	return szWinSystemWindowsDirectory;
+}
+
+size_t SystemWindowsDirectoryU8len (void)
+{
+	if (0 == lnWinSystemWindowsDirectory)
+		SystemWindowsDirectoryU8 ();
+	return lnWinSystemWindowsDirectory;
+}
+
+void DoneSystemWindowsDirectoryU8 (void)
+{
+	if (szWinSystemWindowsDirectory)
+		ubf_free ((char *) szWinSystemWindowsDirectory);
+	szWinSystemWindowsDirectory = NULL;
+	lnWinSystemWindowsDirectory = 0;
+}
+
 #ifdef HAVE_ADVAPI32
 	BOOL GetUserNameU8(
 	  LPSTR   lpBuffer,
@@ -2331,35 +2665,28 @@ DWORD GetPrivateProfileStringU8(
 		// As of 2021-01-24 and Windows 10 SDK UNLEN is 256. See
 		//	https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getusernamew
 		//	for more information.
-		#if UNLEN < WINAPI_U8_HEAP_THRESHOLD
-			WCHAR	wcUserName [UNLEN + 1];
-			dwLen = UNLEN + 1;
-			#ifdef DEBUG
-				bRet = GetUserNameW (wcUserName, &dwLen);
-			#else
-				GetUserNameW (wcUserName, &dwLen);
-			#endif
-			ASSERT (FALSE != bRet);
-			ASSERT (UNLEN >= dwLen);
-			int iReq = reqUTF8size (wcUserName);
-			ASSERT (INT_MAX > *pcbBuffer);
-			if (iReq <= (int) *pcbBuffer)
-			{
-				UTF8_from_WinU16 (lpBuffer, iReq, wcUserName);
-				bRet = TRUE;
-			} else
-			{
-				SetLastError (ERROR_INSUFFICIENT_BUFFER);
-				bRet = FALSE;
-			}
-			*pcbBuffer = (DWORD) iReq;
-			return bRet;
+		WCHAR	wcUserName [UNLEN + 1];
+		dwLen = UNLEN + 1;
+		#ifdef DEBUG
+			bRet = GetUserNameW (wcUserName, &dwLen);
 		#else
-			// Not supported.
-			#error UNLEN > WINAPI_U8_HEAP_THRESHOLD not supported
-			ASSERT (FALSE);
-			return FALSE;
+			GetUserNameW (wcUserName, &dwLen);
 		#endif
+		ASSERT (FALSE != bRet);
+		ASSERT (UNLEN >= dwLen);
+		int iReq = reqUTF8size (wcUserName);
+		ASSERT (INT_MAX > *pcbBuffer);
+		if (iReq <= (int) *pcbBuffer)
+		{
+			UTF8_from_WinU16 (lpBuffer, iReq, wcUserName);
+			bRet = TRUE;
+		} else
+		{
+			SetLastError (ERROR_INSUFFICIENT_BUFFER);
+			bRet = FALSE;
+		}
+		*pcbBuffer = (DWORD) iReq;
+		return bRet;
 	}
 #endif
 
@@ -2496,8 +2823,10 @@ BOOL GetVolumeInformationU8(
 BOOL GetWinErrorTextU8 (char *lpszBuf, DWORD dwSize, DWORD dwError)
 {
 	int		iReqSize;
-	DWORD	dwRet;
+	DWORD	dwRet									= 1;
 	WCHAR	wcErrText [WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pcErrText								= wcErrText;
+	DWORD	dwErrText								= WINAPI_U8_HEAP_THRESHOLD;
 
 	// See
 	//	https://docs.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-multibytetowidechar .
@@ -2505,31 +2834,56 @@ BOOL GetWinErrorTextU8 (char *lpszBuf, DWORD dwSize, DWORD dwError)
 
 	// See
 	//	https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-formatmessagew .
-	dwRet = FormatMessageW	(
-					FORMAT_MESSAGE_FROM_SYSTEM
-				|	FORMAT_MESSAGE_ARGUMENT_ARRAY
-				|	FORMAT_MESSAGE_IGNORE_INSERTS,
-				NULL,
-				dwError,
-				0,
-				wcErrText,
-				WINAPI_U8_HEAP_THRESHOLD - 1,
-				NULL
-							);
-	if (dwRet && dwRet > 2)
-    {	// Remove the line ending (CR/LF).
-		wcErrText [dwRet - 2] = L'\0';
-		// Convert to UTF-8.
-		iReqSize = reqUTF8size (wcErrText);
-		if (iReqSize <= WINAPI_U8_HEAP_THRESHOLD)
+	do
+	{
+		if (0 == dwRet)
 		{
-			char	chU8 [WINAPI_U8_HEAP_THRESHOLD];
-			UTF8_from_WinU16 (chU8, iReqSize, wcErrText);
-			snprintf (lpszBuf, dwSize, "\"%s\" (Error %lu, 0%lXh)", chU8, dwError, dwError);
+			if (pcErrText != wcErrText)
+				free (pcErrText);
+			ASSERT (INT_MAX < MAXDWORD);
+			if (dwErrText <= INT_MAX - WINAPI_U8_HEAP_THRESHOLD)
+				dwErrText += WINAPI_U8_HEAP_THRESHOLD;
+			else
+				return false;
+			pcErrText = malloc (sizeof (WCHAR) * dwErrText);
+		}
+		if (pcErrText)
+		{
+			dwRet = FormatMessageW	(
+							FORMAT_MESSAGE_FROM_SYSTEM
+						|	FORMAT_MESSAGE_ARGUMENT_ARRAY
+						|	FORMAT_MESSAGE_IGNORE_INSERTS,
+						NULL,
+						dwError,
+						0,
+						pcErrText,
+						dwErrText - 1,
+						NULL
+									);
+		} else
+		{
+			return false;
+		}
+	} while (0 == dwRet && ERROR_INSUFFICIENT_BUFFER == GetLastError ());
+	if (dwRet > 2)
+    {	// Remove the line ending (CR/LF).
+		pcErrText [dwRet - 2] = L'\0';
+		// Convert to UTF-8.
+		iReqSize = reqUTF8size (pcErrText);
+		char *szU8 = malloc (iReqSize);
+		if (szU8)
+		{
+			UTF8_from_WinU16 (szU8, iReqSize, pcErrText);
+			snprintf (lpszBuf, dwSize, "\"%s\" (Error %lu, 0%lXh)", szU8, dwError, dwError);
+			free (szU8);
+			if (pcErrText != wcErrText)
+				free (pcErrText);
 			return TRUE;
 		}
     }
-	_ASSERT (FALSE);
+	_ASSERT (FALSE);										// Must be a bug.
+	if (pcErrText != wcErrText)
+		free (pcErrText);
 	return FALSE;
 }
 
@@ -2600,14 +2954,17 @@ BOOL IsCmdArgumentSwitchW	(
 			enum en_is_cmd_case_sensitive	enCase
                             )
 {
-	UNREFERENCED_PARAMETER (enHow);
 	UNREFERENCED_PARAMETER (nRelevant);
+	UNREFERENCED_PARAMETER (enHow);
+	UNREFERENCED_PARAMETER (enCase);
+
 	ASSERT (NULL != wcArgument);
 	ASSERT (NULL != wcConstIs);
 	ASSERT (0 != wcArgument [0]);
 	ASSERT (0 != wcConstIs [0]);
-	if (EN_IS_CMD_ARG_ALLOW_NO_DASH_ONLY == enCase && L'-' == wcConstIs [0])
+	if (EN_IS_CMD_ARG_ALLOW_NO_DASH_ONLY == enHow && L'-' == wcConstIs [0])
 		return FALSE;
+
 	// To do!!!
 	if (wcscmp (wcArgument, wcConstIs))
 	{	// We allow both options ("-delete" and "delete") if the argument
@@ -2892,7 +3249,7 @@ HMODULE LoadLibraryU8(
 #endif
 
 #ifdef HAVE_WINUSER
-	BOOL SendSysCommandWPARAMtoThisConsole (WPARAM wparam)
+	BOOL PostSysCommandWPARAMtoThisConsole (WPARAM wparam)
 	{
 		HWND		hConsoleWindow;
 	
@@ -2908,14 +3265,21 @@ HMODULE LoadLibraryU8(
 #ifdef HAVE_WINUSER
 	BOOL MaxiMiseThisConsoleWindow (void)
 	{
-		return SendSysCommandWPARAMtoThisConsole (SC_MAXIMIZE);
+		return PostSysCommandWPARAMtoThisConsole (SC_MAXIMIZE);
 	}
 #endif
 
 #ifdef HAVE_WINUSER
 	BOOL MiniMiseThisConsoleWindow (void)
 	{
-		return SendSysCommandWPARAMtoThisConsole (SC_MINIMIZE);
+		return PostSysCommandWPARAMtoThisConsole (SC_MINIMIZE);
+	}
+#endif
+
+#ifdef HAVE_WINUSER
+	BOOL RestoreThisConsoleWindow (void)
+	{
+		return PostSysCommandWPARAMtoThisConsole (SC_RESTORE);
 	}
 #endif
 
@@ -3040,13 +3404,6 @@ BOOL MoveFileWithProgressU8long(
 	DoneWinU16fromU8orUseThreshold (pwcSrc, wcSrc);
 	return bRet;
 }
-
-#ifdef HAVE_WINUSER
-	BOOL RestoreThisConsoleWindow (void)
-	{
-		return SendSysCommandWPARAMtoThisConsole (SC_RESTORE);
-	}
-#endif
 
 #ifdef HAVE_SHELLAPI
 	BOOL MoveToRecycleBinU8 (const char *chFileName8)
@@ -3499,19 +3856,20 @@ void SetConsoleCodePageToUTF8 (void)
 
 bool SetConsoleEnableANSI (void)
 {
+	bool b = false;
+
 	HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
 	if (INVALID_HANDLE_VALUE != hConsole)
 	{
 		DWORD	dwMode;
-		BOOL b = GetConsoleMode (hConsole, &dwMode);
+		b = GetConsoleMode (hConsole, &dwMode);
 		if (b)
 		{
 			dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
 			b = SetConsoleMode (hConsole, dwMode);
-			return b;
 		}
 	}
-	return false;
+	return b;
 }
 
 int WinSetStdoutToUTF16 (void)
@@ -3531,8 +3889,8 @@ BOOL SetCurrentDirectoryU8(
 )
 {
 	WCHAR wcPathName [WINAPI_U8_HEAP_THRESHOLD];
-	WCHAR *pwcPathName = AllocWinU16fromU8orUseThreshold (wcPathName, lpPathNameU8);
-	BOOL bRet = SetCurrentDirectoryW (pwcPathName);
+	WCHAR *pwcPathName	= AllocWinU16fromU8orUseThreshold (wcPathName, lpPathNameU8);
+	BOOL bRet			= SetCurrentDirectoryW (pwcPathName);
 	DoneWinU16fromU8orUseThreshold (pwcPathName, wcPathName);
 	return bRet;
 }
@@ -3542,8 +3900,8 @@ BOOL SetCurrentDirectoryU8long(
 )
 {
 	WCHAR wcPathName [WINAPI_U8_HEAP_THRESHOLD];
-	WCHAR *pwcPathName = AllocWinU16fromU8orUseThresholdLongFileName (wcPathName, lpPathNameU8);
-	BOOL bRet = SetCurrentDirectoryW (pwcPathName);
+	WCHAR *pwcPathName	= AllocWinU16fromU8orUseThresholdLongFileName (wcPathName, lpPathNameU8);
+	BOOL bRet			= SetCurrentDirectoryW (pwcPathName);
 	DoneWinU16fromU8orUseThreshold (pwcPathName, wcPathName);
 	return bRet;
 }
@@ -3554,8 +3912,8 @@ DWORD SetFileAttributesU8(
 )
 {
 	WCHAR wcFileName [WINAPI_U8_HEAP_THRESHOLD];
-	WCHAR *pwcFileName = AllocWinU16fromU8orUseThreshold (wcFileName, lpFileNameU8);
-	DWORD dwRet = SetFileAttributesW (pwcFileName, dwFileAttributes);
+	WCHAR *pwcFileName	= AllocWinU16fromU8orUseThreshold (wcFileName, lpFileNameU8);
+	DWORD dwRet			= SetFileAttributesW (pwcFileName, dwFileAttributes);
 	DoneWinU16fromU8orUseThreshold (pwcFileName, wcFileName);
 	return dwRet;
 }
@@ -3566,8 +3924,8 @@ DWORD SetFileAttributesU8long(
 )
 {
 	WCHAR wcFileName [WINAPI_U8_HEAP_THRESHOLD];
-	WCHAR *pwcFileName = AllocWinU16fromU8orUseThresholdLongFileName (wcFileName, lpFileNameU8);
-	DWORD dwRet = SetFileAttributesW (pwcFileName, dwFileAttributes);
+	WCHAR *pwcFileName	= AllocWinU16fromU8orUseThresholdLongFileName (wcFileName, lpFileNameU8);
+	DWORD dwRet			= SetFileAttributesW (pwcFileName, dwFileAttributes);
 	DoneWinU16fromU8orUseThreshold (pwcFileName, wcFileName);
 	return dwRet;
 }
@@ -3586,6 +3944,30 @@ BOOL SetFileSecurityU8(
 	return bRet;
 }
 #endif
+
+/*
+	ToDo!!!
+	Doesn't seem to work!!!
+*/
+bool TerminateChildProcess (HANDLE hProcess)
+{
+	bool b = true;
+
+	b &= GenerateConsoleCtrlEvent (CTRL_C_EVENT, GetProcessId (hProcess));
+	b &= GenerateConsoleCtrlEvent (CTRL_BREAK_EVENT, GetProcessId (hProcess));
+
+	DWORD dwWait = WaitForSingleObject (hProcess, 500);
+	if (WAIT_OBJECT_0 == dwWait)
+		return true;
+
+	// Child still running.
+	b &= TerminateProcess (hProcess, ERROR_PROCESS_ABORTED);
+	dwWait = WaitForSingleObject (hProcess, 500);
+	if (WAIT_OBJECT_0 == dwWait)
+		return true;
+
+	return b;
+}
 
 BOOL IsFirstArgumentExeArgumentW (int *pargc, WCHAR **pargv [])
 {
@@ -3842,6 +4224,183 @@ int putsU8toU16stdout (const char *strU8)
 	}
 	return iRet;
 }
+
+#endif														// Of #ifdef _WIN32.
+/****************************************************************************************
+
+	File		WinAPI_U8_Test.c
+	Why:		Test module for WinAPI_U8.
+	OS:			Windows
+	Author:		Thomas
+	Created:	2021-04-17
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2021-04-17	Thomas			Created.
+
+****************************************************************************************/
+
+#ifdef _WIN32
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include "./WinAPI_U8.h"
+	#include "./WinAPI_U8_Test.h"
+	#include "./WinAPI_ReadDirFncts.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ubfdebug.h"
+		#include "./ubfmem.h"
+		#include "./strisdotordotdot.h"
+	#else
+		#include "./../../dbg/ubfdebug.h"
+		#include "./../../mem/ubfmem.h"
+		#include "./../../string/strisdotordotdot.h"
+	#endif
+
+#endif
+
+#ifdef BUILD_TEST_WINAPI_U8_FNCT
+	bool Test_AllocU8path_from_U8path_and_WinU16FileName (void)
+	{
+		bool		b			= true;
+		char		*chU8Path;
+		
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\Fil*", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:*", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\*", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\*?", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\?", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\??????????", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\?????????*", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:?", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:*?", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:????????????", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server\\share", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\share\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server\\share*", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server\\share?", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server\\share*?", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server\\?????????", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server", L"File.txt");
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path)));
+		DoneU8 (chU8Path);
+
+		return b;
+	}
+#endif
+
+#ifdef BUILD_TEST_WINAPI_U8_FNCT
+	bool Test_WinAPI_U8 (void)
+	{
+		bool b;
+
+		b = Test_AllocU8path_from_U8path_and_WinU16FileName ();
+		ubf_expect_bool_AND (b, !isDotOrDotDotW (L""));
+		ubf_expect_bool_AND (b, !isDotOrDotDotW (L"A"));
+		ubf_expect_bool_AND (b, isDotOrDotDotW (L"."));
+		ubf_expect_bool_AND (b, isDotOrDotDotW (L".."));
+
+		char			sz [1024];
+		unsigned int	ui, u2, u3;
+
+		/*
+			Return value checks for GetSystemDirectoryU8 () and GetSystemWindowsDirectoryU8 ().
+
+			From
+			https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsystemdirectoryw
+			and
+			https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsystemwindowsdirectoryw :
+
+			Return value
+
+			If the function succeeds, the return value is the length, in TCHARs, of the string
+			copied to the buffer, not including the terminating null character. If the length
+			is greater than the size of the buffer, the return value is the size of the buffer
+			required to hold the path, including the terminating null character.
+
+			If the function fails, the return value is zero. To get extended error information,
+			call GetLastError.
+		*/
+		ui = GetSystemDirectoryU8 (sz, 1024);
+		ubf_expect_bool_AND (b, ui > 0);
+		// We assume that the returned directory is not longer than 1024 characters.
+		for (u2 = 0; u2 < ui; ++ u2)
+		{
+			u3 = GetSystemDirectoryU8 (sz, u2);
+			ubf_expect_bool_AND (b, ui + 1 == u3);
+		}
+		u2 = GetSystemDirectoryU8 (sz, ui);
+		ubf_expect_bool_AND (b, ui + 1 == u2);
+		const char *szSysDir = SystemDirectoryU8 ();
+		ubf_expect_bool_AND (b, 0 == memcmp (sz, szSysDir, SystemDirectoryU8len () + 1));
+		DoneSystemDirectoryU8 ();
+		/*
+			The same applies to our GetSystemWindowsDirectoryU8 () function.
+		*/
+		ui = GetSystemWindowsDirectoryU8 (sz, 1024);
+		ubf_expect_bool_AND (b, ui > 0);
+		// We assume that the returned directory is not longer than 1024 characters.
+		for (u2 = 0; u2 < ui; ++ u2)
+		{
+			u3 = GetSystemWindowsDirectoryU8 (sz, u2);
+			ubf_expect_bool_AND (b, ui + 1 == u3);
+		}
+		u2 = GetSystemWindowsDirectoryU8 (sz, ui);
+		ubf_expect_bool_AND (b, ui + 1 == u2);
+		const char *szWinDir = SystemWindowsDirectoryU8 ();
+		ubf_expect_bool_AND (b, 0 == memcmp (sz, szWinDir, SystemWindowsDirectoryU8len () + 1));
+		DoneSystemWindowsDirectoryU8 ();
+
+		b &= GetWinErrorTextU8 (sz, 1024, 455);
+		ubf_assert_true (b);
+		b &= GetWinErrorTextU8 (sz, 1024, 456);
+		ubf_assert_true (b);
+		b &= GetWinErrorTextU8 (sz, 1024, 457);
+		ubf_assert_true (b);
+
+
+		return b;
+	}
+#endif
 
 #endif														// Of #ifdef _WIN32.
 /****************************************************************************************
@@ -4801,6 +5360,11 @@ When		Who				What
 			copySMEMBUF (&mbOurExecutablePath, mb);
 			lnOurExectuablePath = ln;
 
+			#ifdef DEBUG
+				size_t sl1 = strlen (mbOurExecutablePath.buf.pch);
+				UNUSED (sl1);
+			#endif
+
 			// Ensure we have a NUL terminator.
 			ubf_assert (0 == mbOurExecutablePath.buf.pch [ln]);
 			ubf_assert (strlen (mbOurExecutablePath.buf.pch) == ln);
@@ -4842,11 +5406,11 @@ When		Who				What
 
 		DWORD	dwCurrSiz	= EXEFILENAME_MALLOC_BLOCKSIZE;
 		DWORD	dw;
-		char	*szExe		= (char *) &dw;						// Dummy value.
+		char	*szExe;
 
-		while (szExe)
+		do
 		{
-			szExe = malloc (dwCurrSiz);
+			szExe = ubf_malloc (dwCurrSiz);
 			if (szExe)
 			{
 				dw = GetModuleFileNameU8 (NULL, szExe, dwCurrSiz);
@@ -4863,19 +5427,20 @@ When		Who				What
 						size_t m = strlen (mb->buf.pch);
 						UNUSED_PARAMETER (m);
 						StoreExecutableModuleName (mb, elen);
-						free (szExe);
+						ubf_free (szExe);
 						return dw;
 					}
 				}
-				free (szExe);
+				ubf_free (szExe);
 				if (0 == dw)
 				{
 					ubf_assert (false);
 					return false;
 				}
 				dwCurrSiz += EXEFILENAME_MALLOC_BLOCKSIZE;
-			}
-		}
+			} else
+				break;
+		} while (dwCurrSiz < INT16_MAX);
 		return 0;
 	}
 
@@ -6223,10 +6788,16 @@ When		Who				What
 	{
 		#if defined (OS_IS_WINDOWS)
 
-			enfilecompressresult r = IsFileNTFSCompressedByName (szFilename);
-			ubf_assert (fscompress_compressed	== ntfscompress_compressed);
-			ubf_assert (fscompress_uncompressed	== ntfscompress_uncompressed);
-			ubf_assert (fscompress_error		== ntfscompress_error);
+			#ifdef DEBUG
+				// Since the NTFS compressor provides a different enum, we need to make sure that
+				//	its values are identical to the ones in enfilecompressresult.
+				int a, b;
+				a = fscompress_compressed;		b = ntfscompress_compressed;	ubf_assert (a == b);
+				a = fscompress_uncompressed;	b = ntfscompress_uncompressed;	ubf_assert (a == b);
+				a = fscompress_error;			b = ntfscompress_error;			ubf_assert (a == b);
+			#endif
+
+			enfilecompressresult r = (enfilecompressresult) IsFileNTFSCompressedByName (szFilename);
 			return r;
 
 		#elif defined (OS_IS_LINUX)
@@ -6303,6 +6874,1151 @@ When		Who				What
 	#include "./ExeFileName.h"
 
 #endif
+/****************************************************************************************
+
+	File:		ProcessHelpers.c
+	Why:		Functions for creating and handling processes.
+	OS:			C99
+	Author:		Thomas
+	Created:	2025-06-05
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-06-05	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS
+
+#include <string.h>
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include "./ProcessHelpers.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+
+		#if defined (PLATFORM_IS_WINDOWS)
+			#include "./WinAPI_U8.h"
+		#elif defined (PLATFORM_IS_POSIX)
+
+		#elif
+			#error Not supported
+		#endif
+
+		#include "./ubfdebug.h"
+		#include "./membuf.h"
+		#include "./unref.h"
+		#include "./strnewline.h"
+		#include "./strmembuf.h"
+
+		#ifdef PROCESS_HELPERS_BUILD_TEST_FNCT
+
+		#endif
+
+	#else
+
+		#if defined (PLATFORM_IS_WINDOWS)
+			#include "./Windows/WinAPI_U8.h"
+		#elif defined (PLATFORM_IS_POSIX)
+
+		#elif
+			#error Not supported
+		#endif
+
+		#include "./../dbg/ubfdebug.h"
+		#include "./../mem/membuf.h"
+		#include "./../pre/unref.h"
+		#include "./../string/strnewline.h"
+		#include "./../string/strmembuf.h"
+
+		#ifdef PROCESS_HELPERS_BUILD_TEST_FNCT
+
+		#endif
+
+	#endif
+
+#endif
+
+/*
+*/
+size_t phlpsStdBufSize = PRCHLPS_DEF_EXCESS_BUFFER;
+
+size_t ProcessHelpersSetBufferSize (size_t bufsize)
+{
+	ubf_assert_non_0 (bufsize);
+
+	size_t prev = phlpsStdBufSize;
+	phlpsStdBufSize = bufsize;
+	return prev;
+}
+
+/*
+	Squeezes the executable's name plus all arguments in a single string.
+	The executable's name is going to be the first argument.
+*/
+char *CreateArgsList (const char *szExecutable, int argc, const char *argv [], bool bNoExeArg)
+{
+	ubf_assert (NULL != szExecutable);
+
+	int		n;
+	size_t	r	= 0;
+	size_t	l;
+
+	if (!bNoExeArg)
+	{
+		r += 2;												// For the double quotes.
+		r += strlen (szExecutable);
+		++ r;												// NUL.
+	}
+	for (n = 0; n < argc; ++ n)
+	{
+		if (n)
+			++ r;											// For the space between args.
+		r += strlen (argv [n]);
+	}
+	r += 0 == r ? 1 : n ? 1 : 0;							// NUL.
+	char *szArgsList = ubf_malloc (r);
+	if (szArgsList)
+	{
+		if (1 == r)
+		{
+			szArgsList [0] = ASCII_NUL;
+			return szArgsList;
+		}
+
+		char *wri = szArgsList;
+
+		if (!bNoExeArg)
+		{
+			*wri ++ = '\"';
+			l = strlen (szExecutable);
+			memcpy (wri, szExecutable, l);
+			wri += l;
+			*wri ++ = '\"';
+			*wri = ASCII_NUL;
+		}
+		for (n = 0; n < argc; ++ n)
+		{
+			if (n || !bNoExeArg)
+				*wri ++ = ' ';
+			l = strlen (argv [n]);
+			memcpy (wri, argv [n], l);
+			wri += l;
+			*wri = ASCII_NUL;
+		}
+		ubf_assert (strlen (szArgsList) == r - 1);
+		return szArgsList;
+	}
+	return NULL;
+}
+
+char *CreateArgsListFromString (const char *szExecutable, const char *szCmdLine, bool bNoExeArg)
+{
+	size_t	r	= 0;
+	size_t	l;
+
+	if (!bNoExeArg)
+	{
+		r += 2;												// For the double quotes.
+		r += strlen (szExecutable);
+		++ r;												// NUL.
+	}
+	if (szCmdLine)
+	{
+		r += strlen (szCmdLine);
+		++ r;
+	}
+	r += 0 == r ? 1 : 0;									// NUL.
+	char *szArgsList = ubf_malloc (r);
+	if (szArgsList)
+	{
+		if (1 == r)
+		{
+			szArgsList [0] = ASCII_NUL;
+			return szArgsList;
+		}
+
+		char *wri = szArgsList;
+
+		if (!bNoExeArg)
+		{
+			*wri ++ = '\"';
+			l = strlen (szExecutable);
+			memcpy (wri, szExecutable, l);
+			wri += l;
+			*wri ++ = '\"';
+			*wri = ASCII_NUL;
+		}
+		l = szCmdLine ? strlen (szCmdLine) : 0;
+		if (szCmdLine && l)
+		{
+			if (!bNoExeArg)
+				*wri ++ = ' ';
+			memcpy (wri, szCmdLine, l);
+			wri += l;
+			*wri = ASCII_NUL;
+		}
+		ubf_assert (strlen (szArgsList) <= r - 1);
+		return szArgsList;
+	}
+	return NULL;
+}
+
+void DoneArgsList (char *szArgsList)
+{
+	if (szArgsList)
+		ubf_free (szArgsList);
+}
+
+#ifdef PLATFORM_IS_WINDOWS
+	typedef struct sPrcHlpsInOutBuf
+	{
+		SMEMBUF					smb;
+		char					*szWrite;
+		size_t					lenSmb;
+		bool					bIOcomplete;
+		bool					bNeedsWait;
+		bool					bEOF;
+		OVERLAPPED				ovlpd;
+		enRCmdCBval				cbretval;
+		HANDLE					hEvent;
+		DWORD					dwTransferred;
+		HANDLE					hDEvent;					// Dummy event.
+	} SPRCHLPSINOUTBUF;
+
+	typedef struct ph_sChildHandles
+	{
+		HANDLE	hChildInpRD;
+		HANDLE	hChildInpWR;
+
+		HANDLE	hChildOutRD;
+		HANDLE	hChildOutWR;
+
+		HANDLE	hChildErrRD;
+		HANDLE	hChildErrWR;
+	} PH_SCHILDHANDLES;
+
+	static bool CloseInheritableHandlesForChild (PH_SCHILDHANDLES *ph)
+	{
+		ubf_assert_non_NULL (ph);
+
+		bool b = true;
+		b &= CloseHandle (ph->hChildInpRD);
+		b &= CloseHandle (ph->hChildInpWR);
+		b &= CloseHandle (ph->hChildOutRD);
+		b &= CloseHandle (ph->hChildOutWR);
+		b &= CloseHandle (ph->hChildErrRD);
+		b &= CloseHandle (ph->hChildErrWR);
+		return b;
+	}
+
+	/*
+		Derived from:
+		https://learn.microsoft.com/en-gb/windows/win32/procthread/creating-a-child-process-with-redirected-input-and-output?redirectedfrom=MSDN
+	*/
+	static bool CreateInheritableHandlesForChild (PH_SCHILDHANDLES *ph)
+	{
+		ubf_assert_non_NULL (ph);
+
+		SECURITY_ATTRIBUTES	saAttr;
+
+		saAttr.nLength				= sizeof (saAttr);
+		saAttr.bInheritHandle		= true;
+		saAttr.lpSecurityDescriptor	= NULL;
+
+		bool b = true;
+		b &= CreatePipeOverlapped	(
+				&ph->hChildInpRD, false,
+				&ph->hChildInpWR, true,
+				&saAttr, 0
+									);
+		ubf_assert_true (b);
+		b &= CreatePipeOverlapped	(
+				&ph->hChildOutRD, true,
+				&ph->hChildOutWR, false,
+				&saAttr, 0
+									);
+		ubf_assert_true (b);
+		b &= CreatePipeOverlapped	(
+				&ph->hChildErrRD, true,
+				&ph->hChildErrWR, false,
+				&saAttr, 0
+									);
+		ubf_assert_true (b);
+		// The child won't write to its input handle, and it won't read from its output handles.
+		b &= SetHandleInformation (ph->hChildInpWR, HANDLE_FLAG_INHERIT, 0);	ubf_assert_true (b);
+		b &= SetHandleInformation (ph->hChildOutRD, HANDLE_FLAG_INHERIT, 0);	ubf_assert_true (b);
+		b &= SetHandleInformation (ph->hChildErrRD, HANDLE_FLAG_INHERIT, 0);	ubf_assert_true (b);
+		return b;
+	}
+
+	/*
+	DWORD DataAvailableOnPipe (HANDLE hPipe)
+	{
+		DWORD dwAvailable = 0;
+		bool b = PeekNamedPipe (hPipe, NULL, 0, NULL, &dwAvailable, NULL);
+		UNUSED (b);
+		ubf_assert_true (b);
+		return dwAvailable;
+	}
+	*/
+
+	static DWORD avlbleSiz (SPRCHLPSINOUTBUF *pb)
+	{
+		ubf_assert_non_NULL	(pb);
+		ubf_assert_non_NULL	(pb->smb.buf.pcc);
+		ubf_assert_non_NULL	(pb->szWrite);
+		ubf_assert			(pb->lenSmb + 2 < pb->smb.size);
+
+		size_t s = 0;
+
+		if (pb->smb.size)
+		{
+			s = pb->smb.size - pb->lenSmb - 2;
+		}
+		return (DWORD) s & 0xFFFFFFFF;
+	}
+
+	static enRCmdCBval callOutCB (rcmdOutCB cb, uint16_t flags, char *buf, size_t blen, void *pCustom)
+	{
+		enRCmdCBval	rv			= enRunCmdRet_Continue;
+		char		cDummy []	= "";
+		char		*pOut		= blen ? buf : cDummy;
+
+		if (cb)
+		{
+			if (flags & RUNCMDPROC_CALLB_INTOUT)
+			{
+				if (flags & RUNCMDPROC_CALLB_STDOUT)
+					rv = cb (pOut, blen, pCustom);
+			} else
+			{	// Implied but not checked: (flags & RUNCMDPROC_CALLB_INTERR)
+				if (flags & RUNCMDPROC_CALLB_STDERR)
+					rv = cb (pOut, blen, pCustom);
+			}
+		}
+		return rv;
+	}
+
+	static enRCmdCBval callInpCB (rcmdInpCB cb, uint16_t flags, SPRCHLPSINOUTBUF *psb, void *pCustom)
+	{
+		enRCmdCBval	rv = enRunCmdRet_Continue;
+
+		size_t stLen = psb->lenSmb;
+		if (cb && flags & RUNCMDPROC_CALLB_STDINP)
+			rv = cb (&psb->smb, &stLen, pCustom);
+		psb->lenSmb = (DWORD) stLen & 0x00000000FFFFFFFF;
+		return rv;
+	}
+
+	static void handleHow_AsIs		(
+					SPRCHLPSINOUTBUF	*sb,
+					rcmdOutCB			cb,
+					uint16_t			flags,
+					void				*pCustom
+									)
+	{
+		ubf_assert_non_NULL	(sb);
+		ubf_assert_0		(sb->lenSmb);					// Should never change.
+
+		if (enRunCmdRet_Continue == sb->cbretval)
+		{
+			if (sb->dwTransferred)
+			{
+				sb->szWrite [sb->dwTransferred]		= ASCII_NUL;
+				sb->szWrite [sb->dwTransferred + 1]	= ASCII_NUL;
+				sb->cbretval = callOutCB (cb, flags, sb->szWrite, sb->dwTransferred, pCustom);
+				sb->dwTransferred					= 0;
+				sb->szWrite	= sb->smb.buf.pch;
+			}
+		}
+	}
+
+	#ifdef _MSC_VER
+	#pragma warning (disable: 4706)							// Assignment within condition.
+	#endif
+
+	static void handleHow_OneLine	(
+					SPRCHLPSINOUTBUF	*sb,
+					rcmdOutCB			cb,
+					uint16_t			flags,
+					void				*pCustom
+									)
+	{
+		ubf_assert_non_NULL (sb);
+
+		if (enRunCmdRet_Continue == sb->cbretval)
+		{
+			if (sb->dwTransferred)
+			{
+				sb->lenSmb += (size_t) sb->dwTransferred;
+				size_t	lnNewLn;
+				char	*szNewLn;
+				while (sb->lenSmb && (szNewLn = strFirstLineEnding_l (sb->smb.buf.pcc, sb->lenSmb, &lnNewLn)))
+				{
+					size_t lnLine = szNewLn - sb->smb.buf.pch;
+					szNewLn [0] = ASCII_NUL;
+					sb->cbretval = callOutCB (cb, flags, sb->smb.buf.pch, lnLine, pCustom);
+					if (lnLine + lnNewLn == sb->lenSmb)
+					{	// Fully consumed.
+						sb->lenSmb = 0;
+					} else
+					{	// Read data exceeds beyond a single line ending.
+						sb->lenSmb -= (DWORD) (lnLine + lnNewLn) & 0x00000000FFFFFFFF;
+						memmove	(
+							sb->smb.buf.pch,
+							szNewLn + lnNewLn,
+							sb->lenSmb
+								);
+					}
+				}
+				if (sb->lenSmb >= sb->smb.size - 2)
+				{
+					growToSizeRetainSMEMBUF (&sb->smb, sb->smb.size + phlpsStdBufSize);
+				}
+				sb->szWrite = sb->smb.buf.pch + sb->lenSmb;
+				sb->dwTransferred = 0;
+			}
+		}
+	}
+
+	#ifdef _MSC_VER
+	#pragma warning (default: 4706)							// Assignment within condition.
+	#endif
+
+	static void handleHow_All	(
+					SPRCHLPSINOUTBUF	*sb
+								)
+	{
+		ubf_assert_non_NULL (sb);
+
+		//printf ("-> Data: %p, Length: %zu\n", sb->smb.buf.pch, sb->lenSmb);
+		if (sb->dwTransferred)
+		{
+			sb->szWrite	+= sb->dwTransferred;
+			sb->lenSmb	+= sb->dwTransferred;
+			sb->dwTransferred = 0;
+			if (sb->lenSmb >= sb->smb.size - 2)
+			{
+				growToSizeRetainSMEMBUF (&sb->smb, sb->smb.size + phlpsStdBufSize);
+				sb->szWrite = sb->smb.buf.pch + sb->lenSmb;
+			}
+		}
+		//printf ("<- Data: %p, Length: %zu\n", sb->smb.buf.pch, sb->lenSmb);
+	}
+
+	static void handleHow_Finalise		(
+							SPRCHLPSINOUTBUF	*sb,
+							rcmdOutCB			cb,
+							uint16_t			flags,
+							enRCmdCBhow			cbHow,
+							void				*pCustom
+											)
+	{
+		UNUSED (cbHow);
+
+		if (sb->bEOF && enRunCmdHow_All == cbHow && sb->lenSmb)
+		{
+			ubf_assert (sb->lenSmb <= sb->smb.size - 2);
+			sb->smb.buf.pch [sb->lenSmb]		= ASCII_NUL;
+			sb->smb.buf.pch [sb->lenSmb + 1]	= ASCII_NUL;
+			callOutCB (cb, flags, sb->smb.buf.pch, sb->lenSmb, pCustom);
+		}
+	}
+
+	static inline DWORD getLastWindowsError (DWORD *pdw)
+	{
+		ubf_assert_non_NULL (pdw);
+
+		*pdw = GetLastError ();
+		return *pdw;
+	}
+
+	void readFromHandle (SPRCHLPSINOUTBUF *sb, HANDLE hdl)
+	{
+		ubf_assert_non_NULL (sb);
+		
+		DWORD	dwErr;
+
+		if (!sb->bNeedsWait)
+		{
+			sb->bIOcomplete = ReadFile (hdl, sb->szWrite, avlbleSiz (sb), &sb->dwTransferred, &sb->ovlpd);
+			if (!sb->bIOcomplete && ERROR_IO_PENDING == getLastWindowsError (&dwErr))
+				sb->bNeedsWait = true;
+			ubf_assert (ERROR_INVALID_USER_BUFFER != getLastWindowsError (&dwErr));
+		}
+	}
+
+	void writeToHandle (SPRCHLPSINOUTBUF *sb, HANDLE hdl)
+	{
+		ubf_assert_non_NULL (sb);
+		
+		DWORD	dwErr;
+
+		if (!sb->bNeedsWait)
+		{
+			DWORD dwToTransfer = (DWORD) sb->lenSmb;
+			sb->bIOcomplete = WriteFile (hdl, sb->smb.buf.pcc, dwToTransfer, &sb->dwTransferred, &sb->ovlpd);
+			sb->lenSmb -= sb->dwTransferred;
+			if (!sb->bIOcomplete && ERROR_IO_PENDING == getLastWindowsError (&dwErr))
+				sb->bNeedsWait = true;
+			ubf_assert (ERROR_INVALID_USER_BUFFER != getLastWindowsError (&dwErr));
+		}
+	}
+
+	void checkOverlapped (SPRCHLPSINOUTBUF *sb, HANDLE hdl)
+	{
+		ubf_assert_non_NULL (sb);
+		
+		DWORD	dwErr;
+
+		if (sb->bNeedsWait)
+		{
+			sb->bIOcomplete = GetOverlappedResult (hdl, &sb->ovlpd, &sb->dwTransferred, false);
+			if (sb->bIOcomplete)
+				sb->bNeedsWait = false;
+			sb->bEOF = !sb->bIOcomplete && ERROR_HANDLE_EOF == getLastWindowsError (&dwErr);
+		}
+	}
+
+	static void handleReceiveBuffer		(
+					SPRCHLPSINOUTBUF		*sb,
+					rcmdOutCB				cb,
+					uint16_t				flags,
+					enRCmdCBhow				cbHow,
+					void					*pCustom
+										)
+	{
+		ubf_assert_non_NULL (sb);
+
+		if (sb->bIOcomplete && sb->dwTransferred)
+		{
+			switch (cbHow)
+			{
+				case enRunCmdHow_AsIs:
+				case enRunCmdHow_AsIs0:
+					if (sb->bIOcomplete)
+						handleHow_AsIs (sb, cb, flags, pCustom);
+					break;
+				case enRunCmdHow_OneLine:
+					if (sb->bIOcomplete)
+						handleHow_OneLine (sb, cb, flags, pCustom);
+					break;
+				case enRunCmdHow_All:
+					handleHow_All (sb);
+					break;
+			}
+		}
+	}
+
+	#define OUTFLGS		(uiCBflags | RUNCMDPROC_CALLB_INTOUT)
+	#define ERRFLGS		(uiCBflags | RUNCMDPROC_CALLB_INTERR)
+
+	bool HandleCommPipes	(
+			HANDLE				hProcess,
+			PH_SCHILDHANDLES	*pph,
+			SRCMDCBS			*pCBs,
+			enRCmdCBhow			cbHow,
+			uint16_t			uiCBflags,
+			void				*pCustom
+							)
+	{
+		bool				bRet	= false;
+
+		// Standard input (stdin) of child process.
+		SPRCHLPSINOUTBUF	sbInp;
+		memset (&sbInp, 0, sizeof (SPRCHLPSINOUTBUF));
+		INITSMEMBUF (sbInp.smb);
+		sbInp.cbretval		= enRunCmdRet_Continue;
+		sbInp.hEvent		= CreateEvent (NULL, true, false, NULL);
+		sbInp.ovlpd.hEvent	= sbInp.hEvent;
+		sbInp.dwTransferred	= 0;
+		sbInp.hDEvent		= CreateEvent (NULL, true, false, NULL);
+
+		// Standard output (stdout) of child process.
+		SPRCHLPSINOUTBUF	sbOut;
+		memset (&sbOut, 0, sizeof (SPRCHLPSINOUTBUF));
+		INITSMEMBUF (sbOut.smb);
+		sbOut.cbretval		= enRunCmdRet_Continue;
+		sbOut.hEvent		= CreateEvent (NULL, true, false, NULL);
+		sbOut.ovlpd.hEvent	= sbOut.hEvent;
+		sbOut.dwTransferred	= 0;
+		sbOut.hDEvent		= CreateEvent (NULL, true, false, NULL);
+
+		// Standard error (stderr) of child process.
+		SPRCHLPSINOUTBUF	sbErr;
+		memset (&sbErr, 0, sizeof (SPRCHLPSINOUTBUF));
+		INITSMEMBUF (sbErr.smb);
+		sbErr.cbretval		= enRunCmdRet_Continue;
+		sbErr.hEvent		= CreateEvent (NULL, true, false, NULL);
+		sbErr.ovlpd.hEvent	= sbErr.hEvent;
+		sbErr.dwTransferred	= 0;
+		sbErr.hDEvent		= CreateEvent (NULL, true, false, NULL);
+
+		if	(
+					NULL == sbInp.hEvent
+				||	NULL == sbOut.hEvent
+				||	NULL == sbErr.hEvent
+				||	NULL == sbInp.hDEvent
+				||	NULL == sbOut.hDEvent
+				||	NULL == sbErr.hDEvent
+			)
+			goto Escape;
+
+		//growToSizeSMEMBUF (&sbInp.smb, phlpsStdBufSize);
+		growToSizeSMEMBUF (&sbOut.smb, phlpsStdBufSize);
+		growToSizeSMEMBUF (&sbErr.smb, phlpsStdBufSize);
+		sbOut.szWrite = sbOut.smb.buf.pch;
+		sbErr.szWrite = sbErr.smb.buf.pch;
+
+		//DWORD dwErr;
+
+		do
+		{
+			bool bNoWaitRequired;
+			do
+			{
+				// We call the write input handler callback function with every iteration,
+				//	provided that the send buffer is empty.
+				if (enRunCmdRet_Continue == sbInp.cbretval && 0 == sbInp.lenSmb)
+					sbInp.cbretval = callInpCB (pCBs->cbInp, uiCBflags, &sbInp, pCustom);
+				if (isUsableSMEMBUF (&sbInp.smb))
+				{
+					writeToHandle		(&sbInp, pph->hChildInpWR);
+					checkOverlapped		(&sbInp, pph->hChildInpWR);
+				}
+				if (isUsableSMEMBUF (&sbOut.smb))
+				{
+					readFromHandle		(&sbOut, pph->hChildOutRD);
+					checkOverlapped		(&sbOut, pph->hChildOutRD);
+					handleReceiveBuffer	(&sbOut, pCBs->cbOut, OUTFLGS, cbHow, pCustom);
+				} else
+					goto Escape;
+				if (isUsableSMEMBUF (&sbErr.smb))
+				{
+					readFromHandle		(&sbErr, pph->hChildErrRD);
+					checkOverlapped		(&sbErr, pph->hChildErrRD);
+					handleReceiveBuffer	(&sbErr, pCBs->cbErr, ERRFLGS, cbHow, pCustom);
+				} else
+					goto Escape;
+				bNoWaitRequired = !(sbOut.bNeedsWait && sbErr.bNeedsWait);
+			} while (bNoWaitRequired);
+
+			#define PHNHDLS (4)
+			HANDLE h [PHNHDLS];
+			if (sbOut.bNeedsWait) h [0] = sbOut.hEvent; else h [0] = sbOut.hDEvent;
+			if (sbErr.bNeedsWait) h [1] = sbErr.hEvent; else h [1] = sbErr.hDEvent;
+			if (sbInp.bNeedsWait) h [2] = sbInp.hEvent; else h [2] = sbInp.hDEvent;
+			h [3] = hProcess;
+			DWORD dw = WaitForMultipleObjects (PHNHDLS, h, false, INFINITE);
+			//printf ("Wait complete with %d.\n", dw);
+			if (WAIT_OBJECT_0 <= dw && dw < WAIT_OBJECT_0 + PHNHDLS)
+			{
+				switch (dw - WAIT_OBJECT_0)
+				{
+					// The process has exited/terminated.
+					case 3:		sbOut.bEOF = true;
+								sbErr.bEOF = true;
+								sbInp.bEOF = true;
+								break;
+
+					// We don't check which operation completed the wait. We just check all
+					//	of them.
+					default:	checkOverlapped		(&sbOut, pph->hChildOutRD);
+								handleReceiveBuffer	(&sbOut, pCBs->cbOut, OUTFLGS, cbHow, pCustom);
+
+								checkOverlapped		(&sbErr, pph->hChildErrRD);
+								handleReceiveBuffer	(&sbErr, pCBs->cbErr, ERRFLGS, cbHow, pCustom);
+
+								checkOverlapped		(&sbInp, pph->hChildInpWR);
+								writeToHandle		(&sbInp, pph->hChildInpWR);
+								break;
+				}
+			}
+
+			if	(
+						enRunCmdRet_Terminate		== sbOut.cbretval
+					||	enRunCmdRet_TerminateFail	== sbOut.cbretval
+					||	enRunCmdRet_Terminate		== sbErr.cbretval
+					||	enRunCmdRet_TerminateFail	== sbErr.cbretval
+					||	enRunCmdRet_Terminate		== sbInp.cbretval
+					||	enRunCmdRet_TerminateFail	== sbInp.cbretval
+				)
+			{
+				bool bc = TerminateChildProcess (hProcess);
+				ubf_assert_true (bc);
+				UNUSED (bc);
+
+				if	(
+							enRunCmdRet_TerminateFail	== sbOut.cbretval
+						||	enRunCmdRet_TerminateFail	== sbErr.cbretval
+						||	enRunCmdRet_TerminateFail	== sbInp.cbretval
+					)
+					goto Escape;
+			}
+		} while (!sbOut.bEOF && !sbErr.bEOF && !sbInp.bEOF);
+
+		bRet = true;
+
+		handleHow_Finalise (&sbOut, pCBs->cbOut, OUTFLGS, cbHow, pCustom);
+		handleHow_Finalise (&sbErr, pCBs->cbErr, ERRFLGS, cbHow, pCustom);
+
+		Escape:
+		DONESMEMBUF (sbInp.smb);
+		DONESMEMBUF (sbOut.smb);
+		DONESMEMBUF (sbErr.smb);
+
+		// We better cancel outstanding I/O operations. See
+		//	https://learn.microsoft.com/en-us/windows/win32/FileIO/cancelio .
+		CancelIo (pph->hChildOutRD);
+		CancelIo (pph->hChildErrRD);
+		CancelIo (pph->hChildInpWR);
+
+		if (sbInp.hEvent)	CloseHandle (sbInp.hEvent);
+		if (sbInp.hDEvent)	CloseHandle (sbInp.hDEvent);
+		if (sbOut.hEvent)	CloseHandle (sbOut.hEvent);
+		if (sbOut.hDEvent)	CloseHandle (sbOut.hDEvent);
+		if (sbErr.hEvent)	CloseHandle (sbErr.hEvent);
+		if (sbErr.hDEvent)	CloseHandle (sbErr.hDEvent);
+
+		return bRet;
+	}
+
+	bool HandleCommunication	(
+			HANDLE					hProcess,
+			PH_SCHILDHANDLES		*pph,
+			SRCMDCBS				*pCBs,
+			enRCmdCBhow				cbHow,
+			uint16_t				uiCBflags,
+			void					*pCustom
+								)
+	{
+		ubf_assert_non_NULL (hProcess);
+		ubf_assert_non_NULL (pph);
+
+		SRCMDCBS cbs;
+		if (NULL == pCBs)
+		{
+			ZeroMemory (&cbs, sizeof (SRCMDCBS));
+			pCBs = &cbs;
+		}
+
+		bool b = HandleCommPipes (hProcess, pph, pCBs, cbHow, uiCBflags, pCustom);
+
+		return b;
+	}
+#endif
+
+#if defined (PLATFORM_IS_WINDOWS)
+
+	bool CreateAndRunCmdProcessCaptureStdout	(
+			const char				*szExecutable,
+			const char				*szCmdLine,
+			const char				*szWorkingDir,
+			SRCMDCBS				*pCBs,
+			enRCmdCBhow				cbHow,					// How to call the callback functions.
+			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
+															//	flags.
+			void					*pCustom				// Passed on unchanged to callback
+															//	functions.
+												)
+	{
+		if (NULL == szExecutable)
+			return false;
+
+		PROCESS_INFORMATION	pi;
+		ZeroMemory (&pi, sizeof(pi));
+
+		PH_SCHILDHANDLES	ph;
+		bool				b;
+
+		b = CreateInheritableHandlesForChild (&ph);		ubf_assert_true (b);
+		if (b)
+		{
+			STARTUPINFOA		si;
+			ZeroMemory (&si, sizeof(si));
+			si.cb			= sizeof(si);
+			si.hStdInput	= ph.hChildInpRD;
+			si.hStdOutput	= ph.hChildOutWR;
+			si.hStdError	= ph.hChildErrWR;
+			si.dwFlags		= STARTF_USESTDHANDLES;
+
+			//char *szArgsList = CreateArgsList (szExecutable, argc, argv, uiCBflags & RUNCMDPROC_EXEARG_NOEXE);
+			char *szArgsList = CreateArgsListFromString	(
+									szExecutable, szCmdLine, uiRCflags & RUNCMDPROC_EXEARG_NOEXE
+														);
+			if (szArgsList)
+			{
+				DWORD dwCreationFlags	= CREATE_NEW_PROCESS_GROUP;
+
+				b &= CreateProcessU8	(
+						szExecutable, szArgsList,			// Command line arguments.
+						NULL, NULL, true,					// Inherits our handles.
+						dwCreationFlags,					// Creation flags.
+						NULL,								// Use our environment block.
+						szWorkingDir,						// Child's startup folder.
+						&si,								// Pointer to STARTUPINFOA.
+						&pi									// Pointer to PROCESS_INFORMATION.
+										);
+
+				DoneArgsList (szArgsList);
+
+				// This function returns false if a callback funciton returned enRunCmdRet_TerminateFail.
+				b &= HandleCommunication (pi.hProcess, &ph, pCBs, cbHow, uiRCflags, pCustom);
+			}
+		}
+
+		// Close process and thread handles.				// May have terminated already.
+		b &= CloseHandle (pi.hProcess);						// ubf_assert_true (b);
+		b &= CloseHandle (pi.hThread);						// ubf_assert_true (b);
+		b &= CloseInheritableHandlesForChild (&ph);
+		return b;
+	}
+
+#elif defined (PLATFORM_IS_POSIX)
+
+	// Taken from somewhere. Won't build and totally untested.
+	bool CreateAndRunCmdProcessCaptureStdout	(
+			const char				*szExecutable,
+			int						argc,
+			const char				*argv [],
+			const char				*szWorkingDir,
+			SRCMDCBS				*pCBs,
+			enRCmdCBhow				cbHow,					// How to call the callback functions.
+			uint16_t				uiCBflags,				// One or more of the RUNCMDPROC_CBFLAG_
+															//	flags.
+			void					*pCusom					// Passed on unchanged to callback
+															//	functions.
+												)
+	{
+		#include <stdio.h>
+		#include <stdlib.h>
+		#include <unistd.h>
+
+		int main() {
+			int pipefd[2];
+			if (pipe(pipefd) == -1) {
+				perror("pipe");
+				exit(EXIT_FAILURE);
+			}
+
+			pid_t pid = fork();
+			if (pid == -1) {
+				perror("fork");
+				exit(EXIT_FAILURE);
+			}
+
+			if (pid == 0) {  // Child process
+				close(pipefd[0]);  // Close unused read end
+				dup2(pipefd[1], STDOUT_FILENO);  // Redirect stdout to pipe
+				close(pipefd[1]);
+
+				execl("/path/to/executable", "executable", (char *) NULL);
+				perror("execl");  // Exec failed
+				exit(EXIT_FAILURE);
+			} else {  // Parent process
+				close(pipefd[1]);  // Close unused write end
+				char buffer[128];
+				ssize_t count;
+				while ((count = read(pipefd[0], buffer, sizeof(buffer) - 1)) > 0) {
+					buffer[count] = '\0';  // Null terminate
+					printf("Output: %s", buffer);
+				}
+				close(pipefd[0]);
+			}
+
+			return 0;
+		}
+	}
+
+#elif
+
+	// Neither Windows nor POSIX.
+	#error Not supported
+
+#endif
+
+#ifdef PROCESS_HELPERS_BUILD_TEST_FNCT
+	static unsigned int uiLn = 0;
+
+	enRCmdCBval cbInp (SMEMBUF *psmb, size_t *plnData, void *pCustom)
+	{
+		UNUSED (pCustom);
+
+		*plnData = SMEMBUFfromStr (psmb, "dir\ndir\nexit\n", USE_STRLEN);
+		return enRunCmdRet_Continue;
+	}
+	enRCmdCBval cbOutWhoAmI (const char *szData, size_t lnData, void *pCustom)
+	{
+		ubf_assert_non_NULL	(szData);
+		ubf_assert			((void *) 1 == pCustom);
+		UNUSED (pCustom);
+
+		if (szData && lnData)
+			return enRunCmdRet_Continue;
+		return enRunCmdRet_Ignore;
+	}
+	enRCmdCBval cbErrWhoAmI (const char *szData, size_t lnData, void *pCustom)
+	{
+		UNUSED (szData);
+		UNUSED (lnData);
+		UNUSED (pCustom);
+
+		ubf_assert_non_NULL	(szData);
+		//ubf_assert			((void *) 1 == pCustom);
+
+		if (szData && lnData)
+			return enRunCmdRet_Continue;
+		return enRunCmdRet_Ignore;
+	}
+
+	enRCmdCBval cbOut (const char *szData, size_t lnData, void *pCustom)
+	{
+		UNUSED (szData);
+		UNUSED (lnData);
+		UNUSED (pCustom);
+
+		printf ("Data: %p, Length: %zu\n", szData, lnData);
+		puts (szData);
+		printf ("Data: %p, Length: %zu\n", szData, lnData);
+		return enRunCmdRet_Continue;
+	}
+	enRCmdCBval cbOutOneLine (const char *szData, size_t lnData, void *pCustom)
+	{
+		UNUSED (szData);
+		UNUSED (lnData);
+		UNUSED (pCustom);
+
+		ubf_assert (strlen (szData) == lnData);
+
+		if (0 == uiLn)
+			puts ("");
+		
+		++ uiLn;
+		if (lnData)
+			printf ("%5.5d %s\n", uiLn, szData);
+		else
+			printf ("%5.5d\n", uiLn);
+		//return enRunCmdRet_TerminateFail;
+		return enRunCmdRet_Continue;
+	}
+	enRCmdCBval cbErr (const char *szData, size_t lnData, void *pCustom)
+	{
+		UNUSED (szData);
+		UNUSED (lnData);
+		UNUSED (pCustom);
+
+		ASSERT (false);
+		return enRunCmdRet_Continue;
+	}
+
+	bool ProcessHelpersTestFnct (void)
+	{
+		bool				b		= true;
+		char				*sz;
+
+		sz = CreateArgsList ("exe", 0, NULL, true);
+		ubf_expect_bool_AND (b, !memcmp (sz, "", 1));
+		ubf_free (sz);
+		sz = CreateArgsList ("exe", 0, NULL, false);
+		ubf_expect_bool_AND (b, !memcmp (sz, "\"exe\"", 6));
+		ubf_free (sz);
+		sz = CreateArgsList ("exe exe", 0, NULL, false);
+		ubf_expect_bool_AND (b, !memcmp (sz, "\"exe exe\"", 10));
+		ubf_free (sz);
+		char *args [10];
+		args [0] = "arg1";
+		args [1] = "arg2";
+		args [2] = "arg3";
+		sz = CreateArgsList ("exe", 1, args, false);
+		ubf_expect_bool_AND (b, !memcmp (sz, "\"exe\" arg1", 11));
+		ubf_free (sz);
+		sz = CreateArgsList ("exe", 1, args, true);
+		ubf_expect_bool_AND (b, !memcmp (sz, "arg1", 5));
+		ubf_free (sz);
+		sz = CreateArgsList ("exe", 2, args, true);
+		ubf_expect_bool_AND (b, !memcmp (sz, "arg1 arg2", 10));
+		ubf_free (sz);
+		sz = CreateArgsList ("exe", 3, args, true);
+		ubf_expect_bool_AND (b, !memcmp (sz, "arg1 arg2 arg3", 15));
+		ubf_free (sz);
+		sz = CreateArgsList ("exe", 2, args, false);
+		ubf_expect_bool_AND (b, !memcmp (sz, "\"exe\" arg1 arg2", 16));
+		ubf_free (sz);
+		sz = CreateArgsList ("exe", 3, args, false);
+		ubf_expect_bool_AND (b, !memcmp (sz, "\"exe\" arg1 arg2 arg3", 21));
+		ubf_free (sz);
+
+		SRCMDCBS cbs;
+		cbs.cbInp = cbInp;
+		cbs.cbOut = cbOutOneLine;
+		cbs.cbErr = cbErr;
+
+		uint16_t cbflgs	=		RUNCMDPROC_CALLB_STDINP
+							|	RUNCMDPROC_CALLB_STDOUT
+							|	RUNCMDPROC_CALLB_STDERR;
+
+		const char *argv [10];
+		argv [0] = "/C DIR";
+
+		#if defined (PLATFORM_IS_WINDOWS)
+
+			char szSystemFolder [512];
+			UINT uiw = GetSystemDirectoryU8 (szSystemFolder, 512);
+			if (uiw > 512 - 1)
+			{	// Buffer too small.
+				ubf_assert_msg (false, "Increase static buffer of currently 512 octets! It's only for tests.");
+				return false;
+			}
+
+			//char *szURL = "https://raw.githubusercontent.com/cunilog/cunilog/refs/heads/master/src/c/combined/cunilog_combined.c";
+			char szArgs [1024];
+			//snprintf (szArgs, 1024, "%s --silent --show-error", szURL);
+			snprintf (szArgs, 1024, "/C dir");
+			cbs.cbOut = cbOut;
+
+			char szCmd [2056];
+
+			//cunilog_printf ("Retrieving log file from \"%s\"...\n", szURL);
+			/*
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\cmd.exe",
+					szArgs, NULL,
+					&cbs, enRunCmdHow_All, cbflgs, NULL
+														);
+			*/
+
+			snprintf (szArgs, 1024, "/C type ..\\..\\..\\..\\src\\def\\libcunilog.def");
+			snprintf (szArgs, 1024, "/C type ..\\..\\..\\..\\src\\c\\combined\\cunilog_combined.c");
+			//snprintf (szArgs, 1024, "/C type testcunilog.vcxproj");
+			
+			snprintf (szCmd, 2048, "%s%s", szSystemFolder, "cmd.exe");
+
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\cmd.exe",
+					szArgs, NULL,
+					&cbs, enRunCmdHow_All, cbflgs, NULL
+														);
+
+			cbs.cbOut = cbOutOneLine;
+			snprintf (szArgs, 1024, "/C type ..\\..\\..\\..\\src\\def\\libcunilog.def");
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\cmd.exe",
+					szArgs, NULL,
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+														);
+
+			uiLn = 0;
+			snprintf (szArgs, 1024, "/C type ..\\..\\..\\..\\src\\c\\combined\\cunilog_combined.c");
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\cmd.exe",
+					szArgs, NULL,
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+														);
+
+
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\cmd.exe",
+					"/C dir", NULL,
+					&cbs, enRunCmdHow_All, cbflgs, NULL
+														);
+
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\cmd.exe",
+					"/C dir", NULL,
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+														);
+
+			cbs.cbOut = cbOutWhoAmI;
+			cbs.cbErr = cbErrWhoAmI;
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\whoami.exe",
+					"", NULL,
+					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1
+														);
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\whoami.exe",
+					"some argument that fails whoami", NULL,
+					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1
+														);
+
+			cbs.cbOut = cbOut;
+
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\cmd.exe",
+					"/C dir", NULL,
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+														);
+
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\whoami.exe",
+					"", NULL,
+					&cbs, enRunCmdHow_AsIs, cbflgs, NULL
+														);
+
+			cbs.cbOut = cbOut;
+
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\whoami.exe",
+					"", NULL,
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+														);
+
+			b &= CreateAndRunCmdProcessCaptureStdout	(
+					"C:\\Windows\\System32\\cmd.exe",
+					"/C dir", NULL,
+					&cbs, enRunCmdHow_All, cbflgs, NULL
+														);
+
+		#elif defined (PLATFORM_IS_POSIX)
+
+			b &= CreateAndRunProcessCaptureStdout	(
+					"whoami",
+					1, argv, NULL,
+					&cbs, enRunCmdHow_AsIs, cbflgs, NULL
+													);
+
+		#elif
+			b = false;
+		#endif
+		//ubf_expect_true (b);
+
+		return b;
+	}
+#endif
+
+#endif														// Of #ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS.
 /****************************************************************************************
 
 	File:		SharedMutex.c
@@ -10278,6 +11994,151 @@ uint16_t BuildYear_uint16 (void)
 	return BuildYear_uint64 () & 0xFFFF;
 }
 
+bool is_datetimestampformat_l (const char *str, size_t len)
+{
+	size_t		ln	= USE_STRLEN == len ? strlen (str) : len;
+	const char	*sz = str;
+
+	if (4 <= ln)
+	{
+		// We require at least a year ("2025").
+		if (!is_number_str_l (sz, 4))
+			return false;
+		ln -= 4;
+		sz += 4;
+		if (0 == ln)
+			return true;
+
+		// "2025-"
+		if ('-' == sz [0])
+		{
+			++ sz;
+			-- ln;
+		}
+		if (0 == ln)
+			return true;
+		if (2 <= ln)
+		{
+			//	"2025-07" or "202507"
+			if (!is_number_str_l (sz, 2))
+				return false;
+			ln -= 2;
+			sz += 2;
+			if (0 == ln)
+				return true;
+			// "2025-07-"
+			if ('-' == sz [0])
+			{
+				++ sz;
+				-- ln;
+			}
+			if (0 == ln)
+				return true;
+			if (2 <= ln)
+			{
+				//	"2025-07-05" or "20250705"
+				if (!is_number_str_l (sz, 2))
+					return false;
+				ln -= 2;
+				sz += 2;
+				if (0 == ln)
+					return true;
+				// Separator between date and time or 'T' required.
+				if (' ' == sz [0] || 'T' == sz [0])
+				{
+					++ sz;
+					-- ln;
+				} else
+					return false;
+				if (0 == ln)
+					return true;
+				if (2 <= ln)
+				{
+					//	"2025-07-05 16" or "2025070516"
+					if (!is_number_str_l (sz, 2))
+						return false;
+					ln -= 2;
+					sz += 2;
+					if (0 == ln)
+						return true;
+					if (':' == sz [0])
+					{
+						++ sz;
+						-- ln;
+					}
+					if (0 == ln)
+						return true;
+					if (2 <= ln)
+					{
+						//	"2025-07-05 16:10" or "202507051610"
+						if (!is_number_str_l (sz, 2))
+							return false;
+						ln -= 2;
+						sz += 2;
+						if (0 == ln)
+							return true;
+						if (':' == sz [0])
+						{
+							++ sz;
+							-- ln;
+						} else
+							return false;
+						if (0 == ln)
+							return true;
+						if (2 <= ln)
+						{
+							//	"2025-07-05 16:10:56" or "20250705161056"
+							if (!is_number_str_l (sz, 2))
+								return false;
+							ln -= 2;
+							sz += 2;
+							if (0 == ln)
+								return true;
+							if ('.' == sz [0])
+							{
+								++ sz;
+								-- ln;
+							} else
+								return false;
+							if (0 == ln)
+								return true;
+							if (ln)
+							{
+								//	"2025-07-05 16:10:56.1"		or "202507051610561"
+								//	"2025-07-05 16:10:56.12"	or "2025070516105612"
+								//	"2025-07-05 16:10:56.123"	or "20250705161056123"
+								if (!is_number_str_l (sz, 1))
+									return false;
+								-- ln;
+								++ sz;
+								if (0 == ln)
+									return true;
+								if (ln)
+								{
+									if (!is_number_str_l (sz, 1))
+										return false;
+									-- ln;
+									++ sz;
+									if (ln)
+									{
+										if (!is_number_str_l (sz, 1))
+											return false;
+										-- ln;
+										++ sz;
+									}
+								}
+								if (0 == ln)
+									return true;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
 bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMilliseconds)
 {
 	uint64_t	uHours;
@@ -10693,6 +12554,58 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ubf_expect_bool_AND (b, ASCII_NUL == ctncsa [LEN_NCSA_COMMON_LOG_DATETIME]);
 		ubf_expect_bool_AND (b, '#' == ctncsa [SIZ_NCSA_COMMON_LOG_DATETIME]);
 
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("", 0));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("1", 1));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("12", 1));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("12", 2));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("123", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("1234", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00T", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00T00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00 00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00 00:00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:00.", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:00.1", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:00.12", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00:00:00.123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00 00:00:00.1 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00 00:00:00.12 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00 00:00:00.123 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00T00:00:00.123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00T00:00:00.123 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-00-00T00:00:00.1 23 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("9999", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("999911", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("9999111", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122 16", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122x16", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("9999112216", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122 16 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122 16:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122 16:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122 16:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122 16:00:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122 16:00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122 16:00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122T16:00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("99991122T16:00:00.123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16:00:00x123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16:00:00123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T160000123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16 00 00 123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16.00.00.123", USE_STRLEN));
 
 		// Timings.
 		/*
@@ -11686,13 +13599,130 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./ubfmem.h"
+		#include "./ubfdebug.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../mem/ubfmem.h"
+		#include "./../dbg/ubfdebug.h"
 	#endif
 
 #endif
 
+/*
+	The Wikipedia article https://en.wikipedia.org/wiki/ANSI_escape_code has been used
+	as the basis to determine if sz is an ANSI escape sequence:
+
+	https://en.wikipedia.org/wiki/ANSI_escape_code#Control_Sequence_Introducer_commands
+
+	"For Control Sequence Introducer, or CSI, commands, the ESC [ (written as \e[, \x1b[
+	or \033[ in several programming languages) is followed by any number (including none)
+	of "parameter bytes" in the range 0x30-0x3F (ASCII 0-9:;<=>?), then by any number of
+	"intermediate bytes" in the range 0x20-0x2F (ASCII space and !"#$%&'()*+,-./), then
+	finally by a single "final byte" in the range 0x40-0x7E (ASCII @A-Z[\]^_`a-z{|}~)"
+*/
+#define UC	unsigned char
+
+size_t isANSIescSequence (const char *sz, size_t ln)
+{
+	size_t n = 0;
+
+	ln = USE_STRLEN == ln ? strlen (sz) : ln;
+
+	if (ln && (UC) ASCII_ESC == (UC) sz [n])
+	{
+		++ n;
+		if (n < ln && (UC) '[' == (UC) sz [n])
+		{
+			++ n;
+			while	(n < ln && (UC) '\x30' <= (UC) sz [n] && (UC) '\x3F' >= (UC) sz [n])	++ n;
+			while	(n < ln && (UC) '\x20' <= (UC) sz [n] && (UC) '\x2F' >= (UC) sz [n])	++ n;
+			if		(n < ln && (UC) '\x40' <= (UC) sz [n] && (UC) '\x7E' >= (UC) sz [n])	++ n;
+		}
+	}
+	return n;
+}
+
+size_t removeANSIescSequences (char *sz, size_t ln)
+{
+	ln = USE_STRLEN == ln ? strlen (sz) : ln;
+
+	size_t rt	= ln;
+	size_t lo	= ln;
+	size_t le;
+
+	while (ln)
+	{
+		le = isANSIescSequence (sz, ln);
+		if (le)
+		{
+			rt -= le;
+			ln -= le;
+			if (ln)
+				memmove (sz, sz + le, ln);
+		} else
+		{
+			++ sz;
+			-- ln;
+		}
+	};
+	if (rt < lo)
+		sz [0] = ASCII_NUL;
+	return rt;
+}
+
+#ifdef STRANSI_BUILD_TEST_FNCT
+	bool stransi_test_fnct (void)
+	{
+		bool	b = true;
+		char	sz [1024];
+
+		b &= 0 == isANSIescSequence ("A normal text", USE_STRLEN);
+		b &= 1 == isANSIescSequence ("\x1B", 1);
+		b &= 2 == isANSIescSequence ("\x1B[", 2);
+		b &= LEN_ANSI_RESET == isANSIescSequence (STR_ANSI_RESET, LEN_ANSI_RESET);
+		
+		b &= 3 == removeANSIescSequences ("ABC", 3);
+		strcpy (sz, "ABC\x1B");
+		b &= 3 == removeANSIescSequences (sz, 4);
+		ubf_expect_bool_AND (b, !memcmp ("ABC", sz, 4));
+		strcpy (sz, "ABC\x1B[");
+		b &= 3 == removeANSIescSequences (sz, 5);
+		ubf_expect_bool_AND (b, !memcmp ("ABC", sz, 4));
+		strcpy (sz, STR_ANSI_FGCOL_BRIGHT_BLACK "ABC" STR_ANSI_FGCOL_BRIGHT_BLACK);
+		b &= 3 == removeANSIescSequences (sz, USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("ABC", sz, 4));
+		strcpy (sz, STR_ANSI_FGCOL_BRIGHT_BLACK "ABC" STR_ANSI_FGCOL_BRIGHT_BLACK "ABC");
+		b &= 6 == removeANSIescSequences (sz, USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("ABCABC", sz, 7));
+		strcpy (sz, "\0x1B\0x1B\0x1B\0x1B\0x1B\0x1B\0x1B\0x1B\0x1B\0x1B");
+		b &= 0 == removeANSIescSequences (sz, USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("", sz, 1));
+		strcpy (sz, "[");
+		b &= 1 == removeANSIescSequences (sz, 1);
+		ubf_expect_bool_AND (b, !memcmp ("[", sz, 2));
+		strcpy (sz, "\033[n;nH");							// "n" is not a number.
+		b &= 3 == removeANSIescSequences (sz, USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp (";nH", sz, 4));
+		strcpy (sz, "\033[9999;8888H");
+		b &= 0 == removeANSIescSequences (sz, USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("", sz, 1));
+		strcpy (sz, "\033[111122223333444455557777888899990000;111122223333444455557777888899990000H");
+		b &= 0 == removeANSIescSequences (sz, USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("", sz, 1));
+		strcpy (sz, "ABC\033[1K");
+		b &= 3 == removeANSIescSequences (sz, USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("ABC", sz, 4));
+		strcpy (sz, "\033[?25hABC");
+		b &= 3 == removeANSIescSequences (sz, USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("ABC", sz, 4));
+		strcpy (sz, "ABC[ABC");
+		b &= 7 == removeANSIescSequences (sz, USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("ABC[ABC", sz, 8));
+
+
+		return b;
+	}
+#endif
 /****************************************************************************************
 
 	File:		check_utf8.c
@@ -13285,32 +15315,32 @@ void asc_bin_from_octet (char *pc, uint8_t ui)
 {
 	ubf_assert_non_NULL (pc);
 
-	memcpy (pc, &binASCII [((ui & 0xF0) >> 4) & 0x0F],		4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x0F))], 4);
+	memcpy (pc, &binASCII [4 * (((ui & 0xF0) >> 4) & 0x0F)],		4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x0F)))], 4);
 }
 
 void asc_bin_from_word (char *pc, uint16_t ui)
 {
 	ubf_assert_non_NULL (pc);
 
-	memcpy (pc, &binASCII [((ui & 0xF000) >> 12) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x0F00) >>  8) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x00F0) >>  4) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x000F))],				4);
+	memcpy (pc, &binASCII [4 * (((ui & 0xF000) >> 12) & 0x0F)],		4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x0F00) >>  8) & 0x0F)],		4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x00F0) >>  4) & 0x0F)],		4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x000F)))],					4);
 }
 
 void asc_bin_from_dword (char *pc, uint32_t ui)
 {
 	ubf_assert_non_NULL (pc);
 
-	memcpy (pc, &binASCII [((ui & 0xF0000000) >> 28) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x0F000000) >> 24) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x00F00000) >> 20) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x000F0000) >> 16) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x0000F000) >> 12) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x00000F00) >>  8) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x000000F0) >>  4) & 0x0F],	4);		pc += 4;
-	memcpy (pc, &binASCII [((ui & 0x0000000F))],				4);
+	memcpy (pc, &binASCII [4 * (((ui & 0xF0000000) >> 28) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x0F000000) >> 24) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x00F00000) >> 20) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x000F0000) >> 16) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x0000F000) >> 12) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x00000F00) >>  8) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x000000F0) >>  4) & 0x0F)],	4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x0000000F)))],				4);
 }
 
 
@@ -13927,6 +15957,119 @@ void ubf_hex_simple_hash	(
 		ubf_expect_bool_AND (b, 8 == st);
 		ubf_expect_bool_AND (b, 128 == o);
 		
+		char szRes	[128];
+		//uint8_t		ui8;
+
+		// These functions do not write NUL terminators.
+		asc_bin_from_octet (szRes, 0x00);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000000", szRes, 8));
+		asc_bin_from_octet (szRes, 0x01);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000001", szRes, 8));
+		asc_bin_from_octet (szRes, 0x02);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000010", szRes, 8));
+		asc_bin_from_octet (szRes, 0x03);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000011", szRes, 8));
+		asc_bin_from_octet (szRes, 0x04);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000100", szRes, 8));
+		asc_bin_from_octet (szRes, 0x05);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000101", szRes, 8));
+		asc_bin_from_octet (szRes, 0x06);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000110", szRes, 8));
+		asc_bin_from_octet (szRes, 0x07);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000111", szRes, 8));
+		asc_bin_from_octet (szRes, 0x08);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001000", szRes, 8));
+		asc_bin_from_octet (szRes, 0x09);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001001", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0A);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001010", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0B);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001011", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0C);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001100", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0D);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001101", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0E);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001110", szRes, 8));
+		asc_bin_from_octet (szRes, 0x0F);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00001111", szRes, 8));
+		asc_bin_from_octet (szRes, 0x10);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010000", szRes, 8));
+		asc_bin_from_octet (szRes, 0x11);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010001", szRes, 8));
+		asc_bin_from_octet (szRes, 0x12);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010010", szRes, 8));
+		asc_bin_from_octet (szRes, 0x13);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010011", szRes, 8));
+		asc_bin_from_octet (szRes, 0x15);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010101", szRes, 8));
+		asc_bin_from_octet (szRes, 0x16);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010110", szRes, 8));
+		asc_bin_from_octet (szRes, 0x19);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00011001", szRes, 8));
+		asc_bin_from_octet (szRes, 0x20);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00100000", szRes, 8));
+		asc_bin_from_octet (szRes, 0x22);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00100010", szRes, 8));
+		asc_bin_from_octet (szRes, 0x24);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00100100", szRes, 8));
+		asc_bin_from_octet (szRes, 0xA0);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10100000", szRes, 8));
+		asc_bin_from_octet (szRes, 0xA1);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10100001", szRes, 8));
+		asc_bin_from_octet (szRes, 0xFC);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111100", szRes, 8));
+		asc_bin_from_octet (szRes, 0xFD);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111101", szRes, 8));
+		asc_bin_from_octet (szRes, 0xFE);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111110", szRes, 8));
+		asc_bin_from_octet (szRes, 0xFF);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111111", szRes, 8));
+
+		asc_bin_from_word (szRes, 0x0000);
+		ubf_expect_bool_AND (b, 0 == memcmp ("0000000000000000", szRes, 8));
+		asc_bin_from_word (szRes, 0x1111);
+		ubf_expect_bool_AND (b, 0 == memcmp ("0001000100010001", szRes, 8));
+		asc_bin_from_word (szRes, 0x2222);
+		ubf_expect_bool_AND (b, 0 == memcmp ("0010001000100010", szRes, 8));
+		asc_bin_from_word (szRes, 0x3333);
+		ubf_expect_bool_AND (b, 0 == memcmp ("0011001100110011", szRes, 8));
+		asc_bin_from_word (szRes, 0xAAAA);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1010101010101010", szRes, 8));
+		asc_bin_from_word (szRes, 0xAAAB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1010101010101011", szRes, 8));
+		asc_bin_from_word (szRes, 0xAABB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1010101010111011", szRes, 8));
+		asc_bin_from_word (szRes, 0xABBB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1010101110111011", szRes, 8));
+		asc_bin_from_word (szRes, 0xBBBB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1011101110111011", szRes, 8));
+		asc_bin_from_word (szRes, 0xFFFF);
+		ubf_expect_bool_AND (b, 0 == memcmp ("1111111111111111", szRes, 8));
+
+		asc_bin_from_dword (szRes, 0x00000000);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00000000000000000000000000000000", szRes, 8));
+		asc_bin_from_dword (szRes, 0x11111111);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00010001000100010001000100010001", szRes, 8));
+		asc_bin_from_dword (szRes, 0x22222222);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00100010001000100010001000100010", szRes, 8));
+		asc_bin_from_dword (szRes, 0x33333333);
+		ubf_expect_bool_AND (b, 0 == memcmp ("00110011001100110011001100110011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xAAAAAAAA);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10101010101010101010101010101010", szRes, 8));
+		asc_bin_from_dword (szRes, 0xAAABAAAB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10101010101010111010101010101011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xAABBAABB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10101010101110111010101010111011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xABBBABBB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10101011101110111010101110111011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xBBBBBBBB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("10111011101110111011101110111011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xFFFFBBBB);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111111111111111011101110111011", szRes, 8));
+		asc_bin_from_dword (szRes, 0xFFFFFFFF);
+		ubf_expect_bool_AND (b, 0 == memcmp ("11111111111111111111111111111111", szRes, 8));
+
 		// UCS2UTF16bin_from_hex.
 		uint16_t		bin [128];
 		char			*hex;
@@ -14140,6 +16283,484 @@ void ubf_hex_simple_hash	(
 #endif
 /****************************************************************************************
 
+	File:		strlineextract.h
+	Why:		Line extractor.
+	OS:			C99.
+	Author:		Thomas
+	Created:	2022-03-31
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2022-03-31	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include "./strlineextract.h"
+	#include "./strnewline.h"
+	#include "./ubfcharscountsandchecks.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ubfdebug.h"
+		#include "./ArrayMacros.h"
+	#else
+		#include "./../dbg/ubfdebug.h"
+		#include "./../pre/ArrayMacros.h"
+	#endif
+
+#endif
+
+void InitSTRLINEINF (STRLINEINF *pi, void *pCustom)
+{
+	ubf_assert_non_NULL (pi);
+
+	pi->absPosition				= 1;
+	pi->charNumber				= 0;
+	pi->lineNumber				= 0;
+	pi->pCustom					= pCustom;
+	pi->pStart					= NULL;
+	pi->lnLength				= 0;
+	#ifdef DEBUG
+		pi->bInitialised		= true;
+	#endif
+}
+
+char *ccCLineComment []	= {"//"};
+char *ccULineComment []	= {"//", "#", ";", "+", "-", "!"};
+char *ccSMultComment [] = {"/*"};
+char *ccEMultComment [] = {"*/"};
+
+void InitSTRLINECONFforUBFL (STRLINECONF *pc)
+{
+	ubf_assert_non_NULL (pc);
+	pc->CharacterSet			= EN_STRLINEEXTRACT_UTF8;
+	pc->tabSize					= 4;
+	pc->pchLineCommentStr		= ccULineComment;
+	pc->nLineCommentStr			= GET_ARRAY_LEN (ccULineComment);
+	pc->pchStartMultiCommentStr	= ccSMultComment;
+	pc->pchEndMultiCommentStr	= ccEMultComment;
+	pc->nMultiCommentStr		= GET_ARRAY_LEN (ccSMultComment);
+	#ifdef DEBUG
+		pc->bInitialised		= true;
+	#endif
+}
+
+void InitSTRLINECONFforC (STRLINECONF *pc)
+{
+	ubf_assert_non_NULL (pc);
+	pc->CharacterSet			= EN_STRLINEEXTRACT_UTF8;
+	pc->tabSize					= 4;
+	pc->pchLineCommentStr		= ccCLineComment;
+	pc->nLineCommentStr			= GET_ARRAY_LEN (ccCLineComment);
+	pc->pchStartMultiCommentStr	= ccSMultComment;
+	pc->pchEndMultiCommentStr	= ccEMultComment;
+	pc->nMultiCommentStr		= GET_ARRAY_LEN (ccSMultComment);
+	#ifdef DEBUG
+		pc->bInitialised		= true;
+	#endif
+}
+/*
+	Checks that every start of a multi-line comment has a partner string
+	in the array that contains the end of multi-line comments.
+*/
+bool SanityCheckMultiComments (STRLINECONF *pc)
+{
+	ubf_assert_non_NULL (pc);
+
+	if (0 == pc->nMultiCommentStr)
+		return true;
+	if (pc && pc->pchStartMultiCommentStr && pc->pchEndMultiCommentStr)
+	{
+		size_t		n;
+
+		for (n = 0; n < pc->nMultiCommentStr; ++ n)
+		{	// Each start of a multi-line comment needs an end of a multi-line comment.
+			ubf_assert_non_NULL (pc->pchStartMultiCommentStr [n]);
+			ubf_assert_non_NULL (pc->pchEndMultiCommentStr [n]);
+			if (NULL == pc->pchStartMultiCommentStr [n] && NULL == pc->pchEndMultiCommentStr [n])
+				return false;
+		}
+		return true;
+	}
+	return false;
+}
+
+/*
+	Returns true if the buffer p points to starts with the NUL terminated string
+	sz. The parameter l is the length of the buffer p.
+
+	Returns false if p is NULL.
+	Returns false if l is 0.
+	Returns false if sz is NULL or has no length.
+*/
+bool cmpBufStartsWith (const char *p, size_t l, const char *sz)
+{
+	ubf_assert (NULL != p);
+	ubf_assert (NULL != sz);
+
+	size_t	lc	= sz ? strlen (sz) : 0;
+	if (p && lc && l && l >= lc)
+	{
+		return 0 == memcmp (p, sz, lc);
+	}
+	return false;
+}
+
+/*
+	Returns the index of the found start of a multi-line comment + 1, or 0 if pb does not
+	start with the start of a multi-line comment.
+*/
+unsigned int isStartMultiLineComment (char *pb, size_t lb, STRLINECONF *pc)
+{
+	ubf_assert (NULL != pb);
+	ubf_assert (NULL != pc);
+
+	unsigned int n;
+
+	if (pc && pc->pchStartMultiCommentStr)
+	{
+		for (n = 0; n < pc->nMultiCommentStr; ++ n)
+		{
+			if (cmpBufStartsWith (pb, lb, pc->pchStartMultiCommentStr [n]))
+				return n + 1;
+		}
+	}
+	return 0;
+}
+
+/*
+	Returns true if pb starts with the end string of the multi-line comment uMCn
+	refers to. The parameter uMCn is the index of the start of a multi-line comment + 1
+	as returned by isStartMultiLineComment ().
+*/
+bool isEndMultiLineComment (char *pb, size_t lb, STRLINECONF *pc, unsigned int uMCn)
+{
+	ubf_assert_non_NULL (pb);
+	ubf_assert_non_NULL (pc);
+	ubf_assert (0 < uMCn);
+	
+	if (pc && pc->pchEndMultiCommentStr && uMCn && pc->nMultiCommentStr >= uMCn)
+	{
+		return cmpBufStartsWith (pb, lb, pc->pchEndMultiCommentStr [uMCn - 1]);
+	}
+	return false;
+}
+
+/*
+	Steps pb on to the next line and updates the STRLINEINF structure pi points
+	to as it goes along.
+*/
+void nextLine (char **pb, size_t *pl, STRLINEINF *pi)
+{
+	ubf_assert_non_NULL (pb);
+	ubf_assert_non_NULL (*pb);
+	ubf_assert_non_NULL (pl);
+	ubf_assert_non_NULL (pi);
+
+	char			*ch	= *pb;
+	unsigned int	nls	= 0;
+	size_t			jmp	= 0;
+	size_t			l	= *pl;
+
+	while (l && 0 == (nls = strIsNewLine (ch, l, &jmp)))
+	{
+		-- l;
+		++ ch;
+		++ pi->absPosition;
+	}
+	if (nls)
+	{
+		l	-= jmp;
+		ch	+= jmp;
+		pi->absPosition += jmp;
+		pi->charNumber = 1;
+	}
+	*pl = l;
+	*pb = ch;
+	pi->lineNumber += nls;
+}
+
+/*
+	Swallows single-line comments up to the next line. Returns true if a line
+	comment was swallowed.
+*/
+bool swallowLineComment (char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
+{
+	ubf_assert_non_NULL (pb);
+	ubf_assert_non_NULL (*pb);
+	ubf_assert_non_NULL (pc);
+	ubf_assert_non_NULL (pi);
+
+	unsigned int n	= 0;
+
+	if (pc && pc->nLineCommentStr)
+	{
+		for (n = 0; n < pc->nLineCommentStr; ++ n)
+		{
+			if (cmpBufStartsWith (*pb, *pl, pc->pchLineCommentStr [n]))
+			{
+				nextLine (pb, pl, pi);
+				// *pb should now point to the first character of a new line.
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+/*
+	Swallows a multi-line/block comment. Returns true when a block comment was swallowed.
+*/
+bool swallowMultiComment (char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
+{
+	ubf_assert_non_NULL (pb);
+	ubf_assert_non_NULL (*pb);
+	ubf_assert_non_NULL (pc);
+	ubf_assert_non_NULL (pi);
+
+	unsigned int	idx;
+	size_t			l;
+	unsigned int	nls;
+	size_t			jmp;
+
+	if (0 < (idx = isStartMultiLineComment (*pb, *pl, pc)))
+	{
+		l = strlen (pc->pchStartMultiCommentStr [idx - 1]);
+		*pb += l;
+		*pl -= l;
+		++ pi->absPosition;
+		while (*pl && **pb)
+		{
+			if (isEndMultiLineComment (*pb, *pl, pc, idx))
+			{
+				l = strlen (pc->pchEndMultiCommentStr [idx - 1]);
+				*pb += l;
+				*pl -= l;
+				++ pi->absPosition;
+				return true;
+			} else
+			{
+				nls = strIsNewLine (*pb, *pl, &jmp);
+				if (nls)
+				{
+					pi->lineNumber	+= nls;
+					pi->absPosition	+= jmp;
+					pi->charNumber = 1;
+					*pb += jmp;
+					*pl -= jmp;
+				} else
+				{
+					*pb += 1;
+					*pl -= 1;
+					++ pi->absPosition;
+				}
+			}
+		}
+		ubf_assert_msg (false, "Error: End of block comment missing.");
+	}
+	return false;
+}
+
+/*
+	Returns true when white space or a new line was swallowed.
+*/
+bool swallowEmptyAndWhiteSpaceLines (char **pb, size_t *pl, STRLINEINF *pi)
+{
+	ubf_assert_non_NULL (pb);
+	ubf_assert_non_NULL (*pb);
+	ubf_assert_non_NULL (pl);
+	ubf_assert_non_NULL (pi);
+	
+	unsigned int		nls;
+	size_t				jmp;
+	bool				bRet	= false;
+	
+	if (pb && *pb && pl && pi)
+	{
+		while (*pb && *pl)
+		{
+			char	c;
+			
+			c = **pb;
+			if (isWhiteSpace (c))
+			{
+				*pb += 1;
+				*pl -= 1;
+				++ pi->absPosition;
+				++ pi->charNumber;
+				bRet = true;
+			} else
+				break;
+		}
+		nls = strIsNewLine (*pb, *pl, &jmp);
+		if (nls)
+		{
+			pi->lineNumber	+= nls;
+			pi->absPosition	+= jmp;
+			*pb += jmp;
+			*pl -= jmp;
+			bRet = true;
+		}
+	}
+	return bRet;
+}
+
+/*
+	Returns the new length of pb when trailing white space is removed.
+*/
+size_t getLengthTrailingWhiteSpaceRemoved (char *pb, size_t l)
+{
+	ubf_assert_non_NULL (pb);
+	ubf_assert (0 < l);
+
+	while (l && isWhiteSpace (pb [l - 1]))
+	{
+		-- l;
+	}
+	return l;
+}
+
+/*
+	Returns the length of a line.
+*/
+size_t getLineLength (char *pb, size_t lb) //, STRLINECONF *pc)
+{
+	ubf_assert_non_NULL (pb);
+
+	unsigned int	nls		= 0;
+	size_t			jmp;
+	char			*p		= pb;
+	size_t			r		= 0;
+
+	while (*p && lb && 0 == (nls = strIsNewLine (p, lb, &jmp)))
+	{
+		++ p;
+		-- lb;
+	}
+	if (nls || 0 == lb)
+	{
+		r = p - pb;
+		// Comment out the following line if trailing white space should not be removed.
+		r = getLengthTrailingWhiteSpaceRemoved (pb, r);
+	}
+	return r;
+}
+
+/*
+	The UTF-8 payload line extractor.
+*/
+unsigned int StrLineExtractU8	(
+				char					*pBuf,
+				size_t					lenBuf,
+				STRLINECONF				*pConf,
+				StrLineExtractCallback	cb,
+				void					*pCustom
+								)
+{
+	unsigned int		uiRet	= 0;						// Return value; counts how often
+															//	the callback function has been
+															//	called.
+
+	ubf_assert_non_NULL (pConf);
+	ubf_assert (EN_STRLINEEXTRACT_UTF8 == pConf->CharacterSet);
+
+	if (SanityCheckMultiComments (pConf))
+	{
+		STRLINEINF			sLineInfo;
+		bool				cbRet;
+		bool				b;
+
+		if (pBuf)
+		{
+			InitSTRLINEINF (&sLineInfo, pCustom);
+			sLineInfo.lineNumber = 1;						// Line 1 unless buffer empty.
+			while (lenBuf)
+			{
+				do	{
+						b = swallowLineComment (&pBuf, &lenBuf, pConf, &sLineInfo);
+						b |= swallowMultiComment (&pBuf, &lenBuf, pConf, &sLineInfo);
+						b |= swallowEmptyAndWhiteSpaceLines (&pBuf, &lenBuf, &sLineInfo);
+					} while (b);
+				if (lenBuf)
+				{
+					// We now got a single line.
+					sLineInfo.lnLength		= getLineLength (pBuf, lenBuf); //, pConf);
+					sLineInfo.pStart		= pBuf;
+					sLineInfo.charNumber	= 0;			// Currently not supported.
+					if (cb)
+					{
+						cbRet = (*cb) (&sLineInfo);
+						++ uiRet;
+						if (!cbRet)
+							break;
+					}
+					pBuf += sLineInfo.lnLength;
+					lenBuf -= sLineInfo.lnLength;
+				}
+			}
+		}
+	}
+	return uiRet;
+}
+
+unsigned int StrLineExtract	(
+				void					*pBuf,
+				size_t					lenBuf,
+				STRLINECONF				*pConf,
+				StrLineExtractCallback	cb,
+				void					*pCustom
+							)
+{
+	ubf_assert_non_NULL (pBuf);
+
+	// Default STRLINECONF.
+	STRLINECONF			conf;
+	InitSTRLINECONFforUBFL (&conf);
+
+	STRLINECONF			*pC		= pConf ? pConf : &conf;
+	switch (pC->CharacterSet)
+	{
+		case EN_STRLINEEXTRACT_UTF8:
+			return StrLineExtractU8 (pBuf, lenBuf, pC, cb, pCustom);
+		case EN_STRLINEEXTRACT_UTF16:
+			ubf_assert_msg (false, "Not implemented.");
+			return 0;
+	}
+	return 0;
+}
+/****************************************************************************************
+
 	File:		strnewline.c
 	Why:		New line functions.
 	OS:			C99
@@ -14206,65 +16827,180 @@ When		Who				What
 
 #endif
 
-unsigned int strIsNewLine (char *ch, size_t stLen, size_t *stJump)
-{	/* New line found?
-		A new line is found when:
-		<CR>		(0x0D)
-		<CR><LF>	(0x0D)(0x0A)
-		<LF>		(0x0A)
-		This counts as two new lines (a single LF and a single CR):
-		<LF><CR>	(0x0A)(0x0D)
-	*/
-	size_t				st;
-	unsigned int		uiRet	= 0;
+/*
+	This should be:
 
-	if (ch && *ch)
+	static const char *aszCunilogNewLine [unilogNewLineAmountEnumValues - 1] =
+
+	But we want to check the amount of elements at runtime.
+*/
+#if defined (CUNILOG_NEWLINE_POSIX_ONLY)
+	const char *aszLineEndings [] =
 	{
-	
-		#ifdef DEBUG
-			// This was used to find the bug with the wrong line numbers. Thomas, 2018-10-29.
-			//#define UBF_LANG_TEXTS_TEST_LINE_NUMBERS
-			#ifdef UBF_LANG_TEXTS_TEST_LINE_NUMBERS
-				char		chDbg [32];
-			#endif
+			"\n"				// 0 = cunilogNewLineSystem
+	};
+	size_t lenLineEndings [] =
+	{
+			1					// 0 = cunilogNewLineSystem		"\n"
+	};
+#elif defined (CUNILOG_NEWLINE_WINDOWS_ONLY)
+	const char *aszLineEndings [] =
+	{
+			"\r\n"				// 0 = cunilogNewLineSystem
+	};
+	size_t lenLineEndings [] =
+	{
+			2,					// 0 = cunilogNewLineSystem		"\r\n"
+	};
+#elif defined (CUNILOG_NEWLINE_POSIX_AND_WINDOWS_ONLY)
+	const char *aszLineEndings [] =
+	{
+		#ifdef PLATFORM_IS_WINDOWS
+			"\r\n",				// 0 = cunilogNewLineSystem
+		#else
+			"\n",				// 0 = cunilogNewLineSystem
 		#endif
-	
-		st = (size_t) -1 == stLen ? strlen (ch) : stLen;
-	
-		#ifdef DEBUG
-			#ifdef UBF_LANG_TEXTS_TEST_LINE_NUMBERS
-			if (st > 20 && uiLineCount)
-			{
-				memcpy (chDbg, ch, 31);
-				chDbg [31] = '\0';
-				printf ("Line %u, \"%s\"\n", *uiLineCount, chDbg);
-			}
-			#endif
+			"\n",				// 1 = cunilogNewLinePOSIX
+			"\r\n",				// 2 = cunilogNewLineWindows
+	};
+	size_t lenLineEndings [] =
+	{
+		#ifdef PLATFORM_IS_WINDOWS
+			2,					// 0 = cunilogNewLineSystem		"\r\n"
+		#else
+			1,					// 0 = cunilogNewLineSystem		"\n"
 		#endif
-	
-		if	(
-					st > 1
-				&&	ASCII_CR_VAL	==	(unsigned char) ch [0]
-				&&	ASCII_LF_VAL	==	(unsigned char) ch [1]
-			)
-		{
-			++ uiRet;
-			if (stJump)
-				*stJump			= 2;
-			return true;
-		}
-		if	((unsigned char) ch [0] == ASCII_LF_VAL || (unsigned char) ch [0] == ASCII_CR_VAL)
-		{
-			++ uiRet;
-			if (stJump)
-				*stJump			= 1;
-			return true;
-		}
+			1,					// 1 = cunilogNewLinePOSIX		"\n"
+			2,					// 2 = cunilogNewLineWindows	"\r\n"
+	};
+#else
+	const char *aszLineEndings [] =
+	{
+		#ifdef PLATFORM_IS_WINDOWS
+			"\r\n",				// 0 = cunilogNewLineSystem
+		#else
+			"\n",				// 0 = cunilogNewLineSystem
+		#endif
+			"\n",				// 1 = cunilogNewLinePOSIX
+			"\r\n",				// 2 = cunilogNewLineWindows
+			"\r"				// 3 = cunilogNewLineApple
+		,	"\n\r"				// 4 = cunilogNewLineRISCOS
+		,	"\0x1E"				// 5 = cunilogNewLineQNXbef4
+		,	"\0x15"				// 6 = cunilogNewLineIBMzOS
+		,	"\0xC2\0x85"		// 7 = cunilogNewLineNEL
+		,	"\0xE2\0x80\0xA8"	// 8 = cunilogNewLineLS
+		,	"\0xE2\0x80\0xA9"	// 9 = cunilogNewLinePS
+	};
+	size_t lenLineEndings [] =
+	{
+		#ifdef PLATFORM_IS_WINDOWS
+			2,					// 0 = cunilogNewLineSystem		"\r\n"
+		#else
+			1,					// 0 = cunilogNewLineSystem		"\n"
+		#endif
+			1,					// 1 = cunilogNewLinePOSIX		"\n"
+			2,					// 2 = cunilogNewLineWindows	"\r\n"
+			1					// 3 = cunilogNewLineApple		"\r"
+		,	2					// 4 = cunilogNewLineRISCOS		"\n\r"
+		,	1					// 5 = cunilogNewLineQNXbef4	"\0x1E"
+		,	1					// 6 = cunilogNewLineIBMzOS		"\0x15"
+		,	2					// 7 = cunilogNewLineNEL		"\0xC2\0x85"
+		,	3					// 8 = cunilogNewLineLS			"\0xE2\0x80\0xA8"
+		,	3					// 9 = cunilogNewLinePS			"\0xE2\0x80\0xA9"
+	};
+#endif
+
+#ifdef DEBUG
+	const char *ccLineEnding (newline_t nl)
+	{
+		ubf_assert (nl >= 0);
+		ubf_assert (nl < cunilogNewLineAmountEnumValues);
+
+		return aszLineEndings [nl];
 	}
-	if (stJump)
-		*stJump					= 0;
-	return uiRet;
+#endif
+
+#ifdef DEBUG
+	size_t lnLineEnding (newline_t nl)
+	{
+		ubf_assert (nl >= 0);
+		ubf_assert (nl < cunilogNewLineAmountEnumValues);
+
+		return lenLineEndings [nl];
+	}
+#endif
+
+const char *szLineEnding (newline_t nl, size_t *pln)
+{
+	ubf_assert (nl >= 0);
+	ubf_assert (nl < cunilogNewLineAmountEnumValues);
+	ubf_assert_non_NULL (pln);
+
+	*pln = lenLineEndings [nl];
+	return aszLineEndings [nl];
 }
+
+#ifdef STRNEWLINE_FORCE_ORG_STRISNEWLINE
+	unsigned int strIsNewLine (char *ch, size_t stLen, size_t *stJump)
+	{	/* New line found?
+			A new line is found when:
+			<CR>		(0x0D)
+			<CR><LF>	(0x0D)(0x0A)
+			<LF>		(0x0A)
+			This counts as two new lines (a single LF and a single CR):
+			<LF><CR>	(0x0A)(0x0D)
+		*/
+		size_t				st;
+		unsigned int		uiRet	= 0;
+
+		if (ch && *ch)
+		{
+	
+			#ifdef DEBUG
+				// This was used to find the bug with the wrong line numbers. Thomas, 2018-10-29.
+				//#define UBF_LANG_TEXTS_TEST_LINE_NUMBERS
+				#ifdef UBF_LANG_TEXTS_TEST_LINE_NUMBERS
+					char		chDbg [32];
+				#endif
+			#endif
+	
+			st = (size_t) -1 == stLen ? strlen (ch) : stLen;
+	
+			#ifdef DEBUG
+				#ifdef UBF_LANG_TEXTS_TEST_LINE_NUMBERS
+				if (st > 20 && uiLineCount)
+				{
+					memcpy (chDbg, ch, 31);
+					chDbg [31] = '\0';
+					printf ("Line %u, \"%s\"\n", *uiLineCount, chDbg);
+				}
+				#endif
+			#endif
+	
+			if	(
+						st > 1
+					&&	ASCII_CR_VAL	==	(unsigned char) ch [0]
+					&&	ASCII_LF_VAL	==	(unsigned char) ch [1]
+				)
+			{
+				++ uiRet;
+				if (stJump)
+					*stJump			= 2;
+				return true;
+			}
+			if	((unsigned char) ch [0] == ASCII_LF_VAL || (unsigned char) ch [0] == ASCII_CR_VAL)
+			{
+				++ uiRet;
+				if (stJump)
+					*stJump			= 1;
+				return true;
+			}
+		}
+		if (stJump)
+			*stJump					= 0;
+		return uiRet;
+	}
+#endif
 
 size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 {
@@ -14303,117 +17039,54 @@ size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 	return r;
 }
 
-/*
-	This should be:
-
-	static const char *aszCunilogNewLine [unilogNewLineAmountEnumValues - 1] =
-
-	But we want to check the amount of elements at runtime.
-*/
-#if defined (CUNILOG_NEWLINE_POSIX_ONLY)
-	static const char *aszLineEndings [] =
-	{
-			"\n",				// 0 = cunilogNewLineSystem
-			"\n",				// 1 = cunilogNewLinePOSIX
-	};
-	size_t lenLineEndings [] =
-	{
-			1,					// 0 = cunilogNewLineSystem		"\n"
-			1,					// 1 = cunilogNewLinePOSIX		"\n"
-	};
-#elif defined (CUNILOG_NEWLINE_WINDOWS_ONLY)
-	static const char *aszLineEndings [] =
-	{
-			"\r\n",				// 0 = cunilogNewLineSystem
-			"\r\n",				// 1 = cunilogNewLineWindows
-	};
-	size_t lenLineEndings [] =
-	{
-			2,					// 0 = cunilogNewLineSystem		"\r\n"
-			2,					// 1 = cunilogNewLineWindows	"\r\n"
-	};
-#elif defined (CUNILOG_NEWLINE_POSIX_AND_WINDOWS_ONLY)
-	static const char *aszLineEndings [] =
-	{
-		#ifdef PLATFORM_IS_WINDOWS
-			"\r\n",				// 0 = cunilogNewLineSystem
-		#else
-			"\n",				// 0 = cunilogNewLineSystem
-		#endif
-			"\n",				// 1 = cunilogNewLinePOSIX
-			"\r\n",				// 2 = cunilogNewLineWindows
-	};
-	size_t lenLineEndings [] =
-	{
-		#ifdef PLATFORM_IS_WINDOWS
-			2,					// 0 = cunilogNewLineSystem		"\r\n"
-		#else
-			1,					// 0 = cunilogNewLineSystem		"\n"
-		#endif
-			1,					// 1 = cunilogNewLinePOSIX		"\n"
-			2,					// 2 = cunilogNewLineWindows	"\r\n"
-	};
-#else
-	static const char *aszLineEndings [] =
-	{
-		#ifdef PLATFORM_IS_WINDOWS
-			"\r\n",				// 0 = cunilogNewLineSystem
-		#else
-			"\n",				// 0 = cunilogNewLineSystem
-		#endif
-			"\n",				// 1 = cunilogNewLinePOSIX
-			"\r\n",				// 2 = cunilogNewLineWindows
-			"\r"				// 3 = cunilogNewLineApple
-		,	"\n\r"				// 4 = cunilogNewLineRISCOS
-		,	"\0x1E"				// 5 = cunilogNewLineQNXbef4
-		,	"\0x15"				// 6 = cunilogNewLineIBMzOS
-		,	"\0xC2\0x85"		// 7 = cunilogNewLineNEL
-		,	"\0xE2\0x80\0xA8"	// 8 = cunilogNewLineLS
-		,	"\0xE2\0x80\0xA9"	// 9 = cunilogNewLinePS
-	};
-	size_t lenLineEndings [] =
-	{
-		#ifdef PLATFORM_IS_WINDOWS
-			2,					// 0 = cunilogNewLineSystem		"\r\n"
-		#else
-			1,					// 0 = cunilogNewLineSystem		"\n"
-		#endif
-			1,					// 1 = cunilogNewLinePOSIX		"\n"
-			2,					// 2 = cunilogNewLineWindows	"\r\n"
-			1					// 3 = cunilogNewLineApple		"\r"
-		,	2					// 4 = cunilogNewLineRISCOS		"\n\r"
-		,	1					// 5 = cunilogNewLineQNXbef4	"\0x1E"
-		,	1					// 6 = cunilogNewLineIBMzOS		"\0x15"
-		,	2					// 7 = cunilogNewLineNEL		"\0xC2\0x85"
-		,	3					// 8 = cunilogNewLineLS			"\0xE2\0x80\0xA8"
-		,	3					// 9 = cunilogNewLinePS			"\0xE2\0x80\0xA9"
-	};
-#endif
-
-const char *ccLineEnding (newline_t nl)
+char *strFirstLineEnding (const char *ch, size_t len)
 {
-	ubf_assert (nl >= 0);
-	ubf_assert (nl < cunilogNewLineAmountEnumValues);
+	int		e;
+	size_t	l;
 
-	return aszLineEndings [nl];
+	len = USE_STRLEN == len ? strlen (ch) : len;
+
+	while (len)
+	{
+		e = 0;
+		while (cunilogNewLineAmountEnumValues > e)
+		{
+			l = lnLineEnding (e);
+			if (len >= l && !memcmp (ch, ccLineEnding (e), l))
+				return (char *) ch;
+			++ e;
+		}
+		++ ch;
+		-- len;
+	}
+	return NULL;
 }
 
-size_t lnLineEnding (newline_t nl)
+char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE)
 {
-	ubf_assert (nl >= 0);
-	ubf_assert (nl < cunilogNewLineAmountEnumValues);
+	int		e;
+	size_t	l;
 
-	return lenLineEndings [nl];
-}
+	len = USE_STRLEN == len ? strlen (ch) : len;
 
-const char *szLineEnding (newline_t nl, size_t *pln)
-{
-	ubf_assert (nl >= 0);
-	ubf_assert (nl < cunilogNewLineAmountEnumValues);
-	ubf_assert_non_NULL (pln);
-
-	*pln = lenLineEndings [nl];
-	return aszLineEndings [nl];
+	while (len)
+	{
+		e = 0;
+		while (cunilogNewLineAmountEnumValues > e)
+		{
+			l = lnLineEnding (e);
+			if (len >= l && !memcmp (ch, ccLineEnding (e), l))
+			{
+				if (*plLE)
+					*plLE = l;
+				return (char *) ch;
+			}
+			++ e;
+		}
+		++ ch;
+		-- len;
+	}
+	return NULL;
 }
 
 size_t strRemoveLineEndingsFromEnd (const char *sz, size_t len)
@@ -14451,31 +17124,100 @@ size_t strRemoveLineEndingsFromEnd (const char *sz, size_t len)
 		size_t			st;
 		size_t			us;
 		char			sz [1024];
+		char			*sr;
 
-		strcpy (sz, "\r\n\r");
-		us = strIsLineEndings (sz, strlen (sz), &st);
-		ubf_assert (2 == us);
-		b &= 2 == us;
+		#ifdef CUNILOG_NEWLINE_POSIX_ONLY
 
-		strcpy (sz, "\na");
-		us = strIsLineEndings (sz, strlen (sz), &st);
-		ubf_assert (1 == us);
-		b &= 1 == us;
+			strcpy (sz, "\r\n\r");
+			us = strIsLineEndings (sz, strlen (sz), &st);
+			ubf_expect_bool_AND (b, 0 == us);
+			ubf_expect_bool_AND (b, 0 == st);
 
-		strcpy (sz, "\r\n\r");
-		us = strRemoveLineEndingsFromEnd (sz, strlen (sz));
-		ubf_assert (0 == us);
-		b &= 0 == us;
+			strcpy (sz, "\n\r");
+			us = strIsLineEndings (sz, strlen (sz), &st);
+			ubf_expect_bool_AND (b, 1 == us);
+			ubf_expect_bool_AND (b, 1 == st);
 
-		strcpy (sz, "ABC\r\n\r");
-		us = strRemoveLineEndingsFromEnd (sz, strlen (sz));
-		ubf_assert (3 == us);
-		b &= 3 == us;
+			strcpy (sz, "\n\n\n");
+			us = strIsLineEndings (sz, strlen (sz), &st);
+			ubf_expect_bool_AND (b, 3 == us);
+			ubf_expect_bool_AND (b, 3 == st);
 
-		strcpy (sz, "A\rBC\r\n\r");
-		us = strRemoveLineEndingsFromEnd (sz, strlen (sz));
-		ubf_assert (4 == us);
-		b &= 4 == us;
+		#endif
+
+		#ifdef CUNILOG_NEWLINE_EXTENDED
+
+			strcpy (sz, "\r\n\r");
+			us = strIsLineEndings (sz, strlen (sz), &st);
+			ubf_assert (2 == us);
+			b &= 2 == us;
+
+			strcpy (sz, "ABC\r\n");
+			sr = strFirstLineEnding (sz, USE_STRLEN);
+			ubf_expect_bool_AND (b, !memcmp (sr, "\r\n", 3));
+
+			strcpy (sz, "\r\n\r");
+			us = strRemoveLineEndingsFromEnd (sz, strlen (sz));
+			ubf_assert (0 == us);
+			b &= 0 == us;
+
+			strcpy (sz, "ABC\r\n\r");
+			us = strRemoveLineEndingsFromEnd (sz, strlen (sz));
+			ubf_assert (3 == us);
+			b &= 3 == us;
+
+			strcpy (sz, "A\rBC\r\n\r");
+			us = strRemoveLineEndingsFromEnd (sz, strlen (sz));
+			ubf_assert (4 == us);
+			b &= 4 == us;
+
+		#endif
+
+		#ifdef CUNILOG_NEWLINE_POSIX_AND_WINDOWS_ONLY
+
+			strcpy (sz, "\n\n\nABC");
+			us = strIsLineEndings (sz, strlen (sz), &st);
+			ubf_expect_bool_AND (b, 3 == us);
+			ubf_expect_bool_AND (b, 3 == st);
+
+			strcpy (sz, "\r\n\r\n\r\nABC");
+			us = strIsLineEndings (sz, strlen (sz), &st);
+			ubf_expect_bool_AND (b, 3 == us);
+			ubf_expect_bool_AND (b, 6 == st);
+
+			strcpy (sz, "\r\n\r");
+			us = strIsLineEndings (sz, strlen (sz), &st);
+			ubf_expect_bool_AND (b, 1 == us);
+			ubf_expect_bool_AND (b, 2 == st);
+
+			strcpy (sz, "\na");
+			us = strIsLineEndings (sz, strlen (sz), &st);
+			ubf_expect_bool_AND (b, 1 == us);
+
+			strcpy (sz, "ABC\r\n");
+			sr = strFirstLineEnding (sz, USE_STRLEN);
+			ubf_expect_bool_AND (b, !memcmp (sr, "\r\n", 3));
+
+			strcpy (sz, "ABC\r\n");
+			sr = strFirstLineEnding_l (sz, USE_STRLEN, &st);
+			ubf_expect_bool_AND (b, !memcmp (sr, "\r\n", 3));
+			ubf_expect_bool_AND (b, 2 == st);
+
+			strcpy (sz, "ABC\r\r\n");
+			sr = strFirstLineEnding (sz, USE_STRLEN);
+			ubf_expect_bool_AND (b, !memcmp (sr, "\r\n", 3));
+
+			strcpy (sz, "\r\n\r");
+			us = strRemoveLineEndingsFromEnd (sz, strlen (sz));
+			ubf_expect_bool_AND (b, 3 == us);
+			ubf_expect_bool_AND (b, !memcmp (sz, "\r\n\r", 4));
+
+			strcpy (sz, "ABC\r\n\r");
+			us = strRemoveLineEndingsFromEnd (sz, strlen (sz));
+			ubf_expect_bool_AND (b, 6 == us);
+			ubf_expect_bool_AND (b, !memcmp (sz, "ABC\r\n\r", 7));
+
+		#endif
 
 		return b;
 	}
@@ -15780,6 +18522,18 @@ size_t ubf_uint64_from_str_n (uint64_t *ui, const char *chStr, size_t nLen, enum
 	return r;
 }
 
+bool is_number_str_l (const char *str, size_t len)
+{
+	len = USE_STRLEN == len ? strlen (str) : len;
+
+	for (size_t st = 0; st < len; ++ st)
+	{
+		if (!ubf_isdigit (str [st]))
+			return false;
+	}
+	return true;
+}
+
 bool ubf_int64_from_str (int64_t *pi, const char *chStr)
 {
 	int64_t				i				= 0;
@@ -16011,7 +18765,7 @@ void ubf_strd_from_uint64 (char *chStr, uint64_t u64)
 
 	bool ubf_test_str0 (void)
 	{
-		bool		b;
+		bool		b = true;
 		char		c [UBF_UINT64_LEN + 1];						// Needs room for a NUL.
 		UBF_DEF_GUARD_VAR (v, "012345");
 		uint64_t	u;
@@ -16024,126 +18778,139 @@ void ubf_strd_from_uint64 (char *chStr, uint64_t u64)
 		ubf_assert (UBF_UINT64_SIZE == UBF_UINT64_LEN + 1);
 		u = 0;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (1 == s);
+		ubf_expect_bool_AND (b, 1 == s);
 		b = 1 == s;
 		u = 9;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (1 == s);
+		ubf_expect_bool_AND (b, 1 == s);
 		b &= 1 == s;
 		u = 10;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (2 == s);
+		ubf_expect_bool_AND (b, 2 == s);
 		u = 100;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (3 == s);
+		ubf_expect_bool_AND (b, 3 == s);
 		u = 999;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (3 == s);
+		ubf_expect_bool_AND (b, 3 == s);
 		u = 9999;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (4 == s);
+		ubf_expect_bool_AND (b, 4 == s);
 		u = 1000000;
 		s = ubf_str_from_int64 (c, u);
-		ubf_assert (7 == s);
+		ubf_expect_bool_AND (b, 7 == s);
 		u = 0;
 		s = ubf_str0_from_uint64 (c, 1, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (1 == s);
+		ubf_expect_bool_AND (b, 1 == s);
 		//assert (false);
 		u = 10;
 		s = ubf_str0_from_uint64 (c, 2, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (2 == s);
-		ubf_assert (!memcmp (c, "10", 3));
+		ubf_expect_bool_AND (b, 2 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "10", 3));
 		u = 100;
 		s = ubf_str0_from_uint64 (c, 3, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "100", 4));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "100", 4));
 		u = 100;
 		s = ubf_str0_from_uint64 (c, 5, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "00100", 6));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "00100", 6));
 		u = 99;
 		s = ubf_str0_from_uint64 (c, 10, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (2 == s);
-		ubf_assert (!memcmp (c, "0000000099", 11));
+		ubf_expect_bool_AND (b, 2 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "0000000099", 11));
 		u = 9999;
 		s = ubf_str0_from_uint64 (c, UBF_UINT64_LEN, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (4 == s);
-		ubf_assert (!memcmp (c, "00000000000000009999", 11));
+		ubf_expect_bool_AND (b, 4 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "00000000000000009999", 11));
 		u = 9999;
 		// Too short.
 		s = ubf_str0_from_uint64 (c, 2, u);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (STR0_NOT_ENOUGH_DIGITS == s);
+		ubf_expect_bool_AND (b, STR0_NOT_ENOUGH_DIGITS == s);
 		//ubf_assert (!memcmp (c, "0000000099", 11));
 
 		s = ubf_str0_from_uint64 (c, 10, 3000);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (4 == s);
-		ubf_assert (!memcmp (c, "0000003000", 11));
+		ubf_expect_bool_AND (b, 4 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "0000003000", 11));
 
 		s = ubf_str0_from_uint64 (c, 10, 200);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "0000000200", 11));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "0000000200", 11));
 
 		s = ubf_str0_from_uint64 (c, 3, 555);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "555", 4));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "555", 4));
 
 		s = ubf_str0_from_uint64 (c, 2, 200);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (STR0_NOT_ENOUGH_DIGITS == s);
-		ubf_assert (!memcmp (c, "00", 3));
+		ubf_expect_bool_AND (b, STR0_NOT_ENOUGH_DIGITS == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "00", 3));
 
 		s = ubf_str0_from_uint64 (c, 3, 1999);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (STR0_NOT_ENOUGH_DIGITS == s);
-		ubf_assert (!memcmp (c, "999", 3));
+		ubf_expect_bool_AND (b, STR0_NOT_ENOUGH_DIGITS == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "999", 3));
 
 		// The 16 bit version.
 		s = ubf_str0_from_uint16 (c, 10, 3000);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (4 == s);
-		ubf_assert (!memcmp (c, "0000003000", 11));
+		ubf_expect_bool_AND (b, 4 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "0000003000", 11));
 
 		s = ubf_str0_from_uint16 (c, 10, 200);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "0000000200", 11));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "0000000200", 11));
 
 		s = ubf_str0_from_uint16 (c, 3, 555);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (3 == s);
-		ubf_assert (!memcmp (c, "555", 4));
+		ubf_expect_bool_AND (b, 3 == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "555", 4));
 
 		s = ubf_str0_from_uint16 (c, 2, 200);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (STR0_NOT_ENOUGH_DIGITS == s);
-		ubf_assert (!memcmp (c, "00", 3));
+		ubf_expect_bool_AND (b, STR0_NOT_ENOUGH_DIGITS == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "00", 3));
 
 		s = ubf_str0_from_uint16 (c, 3, 1999);
 		UBF_CHK_GUARD_VAR (v, "012345");
-		ubf_assert (STR0_NOT_ENOUGH_DIGITS == s);
-		ubf_assert (!memcmp (c, "999", 3));
+		ubf_expect_bool_AND (b, STR0_NOT_ENOUGH_DIGITS == s);
+		ubf_expect_bool_AND (b, !memcmp (c, "999", 3));
 
 		// Min.
 		ubf_str0_from_59max (c, 0);
-		ubf_assert (!memcmp (c, "00", 2));
+		ubf_expect_bool_AND (b, !memcmp (c, "00", 2));
 		ubf_str0_from_59max (c, 61);
-		ubf_assert (!memcmp (c, "61", 2));
+		ubf_expect_bool_AND (b, !memcmp (c, "61", 2));
 		// NUL-terminated.
 		ubf_str0_from_59max_n (c, 0);
-		ubf_assert (!memcmp (c, "00", 3));
+		ubf_expect_bool_AND (b, !memcmp (c, "00", 3));
 		// Max.
 		ubf_str0_from_59max_n (c, 61);
-		ubf_assert (!memcmp (c, "61", 3));
+		ubf_expect_bool_AND (b, !memcmp (c, "61", 3));
+
+		ubf_expect_bool_AND (b, is_number_str_l ("0", 1));
+		ubf_expect_bool_AND (b, is_number_str_l ("1", 1));
+		ubf_expect_bool_AND (b, is_number_str_l ("2", 1));
+		ubf_expect_bool_AND (b, is_number_str_l ("9", 1));
+		ubf_expect_bool_AND (b, is_number_str_l ("10", 2));
+		ubf_expect_bool_AND (b, !is_number_str_l ("abcd", 4));
+		ubf_expect_bool_AND (b, is_number_str_l ("000000000000000000000000000000000000000000000000000000000000", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_number_str_l ("111111111111111111111111111111111111111111111111111111111111", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_number_str_l ("999999999999999999999999999999999999999999999999999999999999", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_number_str_l ("1234abc", 4));
+		ubf_expect_bool_AND (b, !is_number_str_l ("1234abc", 5));
+
 
 		return b;
 	}
@@ -17674,6 +20441,17 @@ const char		*szCunilogLogFileNameExtension	= ".log";
 const wchar_t	*wcCunilogLogFileNameExtension	= L".log";
 const size_t	lenCunilogLogFileNameExtension	= 4;			// ".log"
 const size_t	sizCunilogLogFileNameExtension	= 4 + 1;		// ".log" + NUL.
+
+/*
+	The default event severity type.
+*/
+cueventsevfmtpy	cunilogEvtSeverityTypeDefault = cunilogEvtSeverityTypeChars3;
+
+/*
+	Default ANSI escape colour output for the cunilog_puts... and cunilog_printf...
+	type functions.
+*/
+bool bUseCunilogDefaultOutputColour				= true;
 /****************************************************************************************
 
 	File		cunilogevtcmdsstructs.h
@@ -20672,6 +23450,15 @@ STRANSICOLOURSEQUENCE evtSeverityColours [cunilogEvtSeverityXAmountEnumValues] =
 #endif
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+	/*
+		The return value of this function not only returns the space required for the ANSI escape
+		sequence to set the colour of the severity, but also the space required to reset the
+		colour again.
+		
+		This means that both, cpyEvtSeverityColour () and cpyRstEvtSeverityColour () can safely be
+		called on a buffer that reserves the size returned by evtSeverityColoursLen (), provided
+		that the parameter sev is not changed.
+	*/
 	static inline size_t evtSeverityColoursLen (cueventseverity sev)
 	{
 		ubf_assert (0 <= sev);
@@ -21392,6 +24179,67 @@ static CUNILOG_EVENT *CreateCUNILOG_EVENTandData	(
 	return pev;
 }
 
+/*
+	Note that ccData can be NULL for event type cunilogEvtTypeCommand,
+	in which case a buffer of siz octets is reserved but not initialised!
+
+	This function is identical to CreateCUNILOG_EVENTandData () but requires
+	an additional UBF_TIMESTAMP parameter (ts).
+
+	This is a separate function so that it could easily be removed via
+	macro definitions later if required.
+*/
+static CUNILOG_EVENT *CreateCUNILOG_EVENTandDataTS	(
+					CUNILOG_TARGET				*put,
+					cueventseverity				sev,
+					const char					*ccCapt,
+					size_t						lenCapt,
+					cueventtype					type,
+					const char					*ccData,
+					size_t						siz,
+					UBF_TIMESTAMP				ts
+													)
+{
+	ubf_assert_non_NULL	(put);
+	if (ccData)
+		ubf_assert (cunilogEvtTypeCommand != type && NULL != ccData);
+	else
+		ubf_assert (cunilogEvtTypeCommand == type && NULL == ccData);
+	ubf_assert			(USE_STRLEN != siz);
+	ubf_assert			(0 <= type);
+	ubf_assert			(cunilogEvtTypeAmountEnumValues > type);
+
+	size_t			wl		= widthOfCaptionLengthFromCunilogEventType (type);
+	ubf_assert (wl || 0 == lenCapt);						// If 0 == wl we can't have a caption.
+	size_t			aln		= ALIGNED_SIZE (sizeof (CUNILOG_EVENT), CUNILOG_DEFAULT_ALIGNMENT);
+	size_t			ln		= aln + wl + lenCapt + siz;
+	CUNILOG_EVENT	*pev	= ubf_malloc (ln);
+
+	if (pev)
+	{
+		unsigned char *pData = (unsigned char *) pev + aln;
+		
+		FillCUNILOG_EVENT	(
+			pev, put,
+			CUNILOGEVENT_ALLOCATED,
+			ts,
+			sev, type,
+			pData, siz, ln
+							);
+		if (wl)
+		{
+			storeCaptionLength (&pData, wl, lenCapt);
+			memcpy (pData, ccCapt, lenCapt);
+			pData += lenCapt;
+		}
+		if (ccData)
+			memcpy (pData, ccData, siz);
+		else
+			ubf_assert (cunilogEvtTypeCommand == type);
+	}
+	return pev;
+}
+
 static inline cueventtype cunilogEventTypeFromLength (size_t len)
 {
 	ubf_assert (USE_STRLEN != len);
@@ -21454,6 +24302,32 @@ CUNILOG_EVENT *CreateCUNILOG_EVENT_Text		(
 							put, sev, NULL, 0, cunilogEvtTypeNormalText,
 							ccText, len
 													);
+	return pev;
+}
+
+CUNILOG_EVENT *CreateCUNILOG_EVENT_TextTS		(
+					CUNILOG_TARGET				*put,
+					cueventseverity				sev,
+					const char					*ccText,
+					size_t						len,
+					UBF_TIMESTAMP				ts
+											)
+{
+	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL (ccText);
+
+	len = USE_STRLEN == len ? strlen (ccText) : len;
+
+	/*
+	while (len && ('\n' == ccText [len - 1] || '\r' == ccText [len - 1]))
+		-- len;
+	*/
+	len = strRemoveLineEndingsFromEnd (ccText, len);
+
+	CUNILOG_EVENT *pev = CreateCUNILOG_EVENTandDataTS	(
+							put, sev, NULL, 0, cunilogEvtTypeNormalText,
+							ccText, len, ts
+														);
 	return pev;
 }
 
@@ -23952,6 +26826,17 @@ bool logTextU8sevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccTe
 	return pev && cunilogProcessOrQueueEvent (pev);
 }
 
+bool logTextU8sevlts		(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len, UBF_TIMESTAMP ts)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
+		return false;
+
+	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_TextTS (put, sev, ccText, len, ts);
+	return pev && cunilogProcessOrQueueEvent (pev);
+}
+
 bool logTextU8sevlq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len)
 {
 	ubf_assert_non_NULL (put);
@@ -23960,6 +26845,22 @@ bool logTextU8sevlq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccT
 		return false;
 
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Text (put, sev, ccText, len);
+	if (pev)
+	{
+		cunilogSetEventNoRotation (pev);
+		return cunilogProcessOrQueueEvent (pev);
+	}
+	return false;
+}
+
+bool logTextU8sevlqts		(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len, UBF_TIMESTAMP ts)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
+		return false;
+
+	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_TextTS (put, sev, ccText, len, ts);
 	if (pev)
 	{
 		cunilogSetEventNoRotation (pev);
@@ -24886,6 +27787,19 @@ bool CunilogChangeCurrentThreadPriority (cunilogprio prio)
 	return false;
 }
 
+void cunilogSetDefaultPrintEventSeverityFormatType (cueventsevfmtpy fmtpy)
+{
+	ubf_assert			(0 <= fmtpy);
+	ubf_assert			(cunilogEvtSeverityTypeXAmountEnumValues > fmtpy);
+
+	cunilogEvtSeverityTypeDefault = fmtpy;
+}
+
+void cunilogUseColourForOutput (bool bUseColour)
+{
+	bUseCunilogDefaultOutputColour = bUseColour;
+}
+
 int cunilog_printf_sev_fmtpy_vl	(
 		cueventseverity		sev,
 		cueventsevfmtpy		sftpy,
@@ -24895,7 +27809,9 @@ int cunilog_printf_sev_fmtpy_vl	(
 {
 	ubf_assert_non_NULL (format);
 
-	size_t lenRequired = evtSeverityColoursLen (sev);
+	size_t lenRequired = 0;
+	if (bUseCunilogDefaultOutputColour)
+		lenRequired = evtSeverityColoursLen (sev);
 	lenRequired += requiredEventSeverityChars (sev, sftpy);
 
 	int			iReq;
@@ -24917,14 +27833,16 @@ int cunilog_printf_sev_fmtpy_vl	(
 	if (pzToPrint)
 	{
 		char *pz = pzToPrint;
-		cpyEvtSeverityColour (&pz, sev);
+		if (bUseCunilogDefaultOutputColour)
+			cpyEvtSeverityColour (&pz, sev);
 		size_t st = writeEventSeverity (pz, sev, sftpy);
 		pz += st;
 		iReq = vsnprintf (pz, lenRequired + 1, format, ap);
 		if (iReq < 0)
 			goto Leave;
 		pz += iReq;
-		cpyRstEvtSeverityColour (&pz, sev);
+		if (bUseCunilogDefaultOutputColour)
+			cpyRstEvtSeverityColour (&pz, sev);
 		pz [0] = ASCII_NUL;
 
 		#ifdef PLATFORM_IS_WINDOWS
@@ -25010,29 +27928,63 @@ int cunilog_puts_sev_fmtpy_l	(
 		return EOF;
 
 	len = USE_STRLEN == len ? strlen (strU8) : len;
-	size_t lenRequired = evtSeverityColoursLen (sev);
-	lenRequired += requiredEventSeverityChars (sev, sftpy);
+	size_t lenRequired = 0;
+	if (bUseCunilogDefaultOutputColour)
+		evtSeverityColoursLen (sev);						// Includes reset.
+
+	#ifdef DEBUG
+		size_t	sizDbgEvtSeverityColours = lenRequired;
+		size_t	sizDbgEvtSeverityCol;
+		size_t	sizDbgEvtSeverityRst;
+		char	*szCpy;
+	#endif
+
+	size_t reqSevl = requiredEventSeverityChars (sev, sftpy);
+	lenRequired += reqSevl;
 	lenRequired += len;
 
 	int		iRet = EOF;
 	char	szToPrint [WINAPI_U8_HEAP_THRESHOLD];
+	UBF_DEFINE_GUARD_VAR (testvar, 1234567);
 	char	*pzToPrint;
 
 	if (lenRequired < WINAPI_U8_HEAP_THRESHOLD)
 		pzToPrint = szToPrint;
 	else
-		pzToPrint = ubf_malloc (lenRequired + 1);		// Max. length of newline is 3.
+		pzToPrint = ubf_malloc (lenRequired + 1);
 
 	if (pzToPrint)
 	{
 		char *pz = pzToPrint;
-		cpyEvtSeverityColour (&pz, sev);
+
+		if (bUseCunilogDefaultOutputColour)
+			cpyEvtSeverityColour (&pz, sev);
+
+		#ifdef DEBUG
+			pzToPrint [lenRequired]	= UBF_ERROR_CHAR;
+			sizDbgEvtSeverityCol	= pz - pzToPrint;
+		#endif
+
 		size_t st = writeEventSeverity (pz, sev, sftpy);
+		ubf_assert (reqSevl == st);
 		pz += st;
 		memcpy (pz, strU8, len);
 		pz += len;
-		cpyRstEvtSeverityColour (&pz, sev);
+
+		#ifdef DEBUG
+			szCpy = pz;
+		#endif
+
+		if (bUseCunilogDefaultOutputColour)
+			cpyRstEvtSeverityColour (&pz, sev);
+		ubf_assert (UBF_ERROR_CHAR == pzToPrint [lenRequired]);
+		ubf_assert (UBF_ERROR_CHAR == pz [0]);
 		pz [0] = ASCII_NUL;
+
+		#ifdef DEBUG
+			sizDbgEvtSeverityRst = pz - szCpy;
+			ubf_assert (sizDbgEvtSeverityCol + sizDbgEvtSeverityRst == sizDbgEvtSeverityColours);
+		#endif
 
 		#ifdef PLATFORM_IS_WINDOWS
 			iRet = cunilogPutsWin (pzToPrint, lenRequired);
@@ -25043,10 +27995,12 @@ int cunilog_puts_sev_fmtpy_l	(
 				iRet = puts ("");
 		#endif
 
+		ubf_assert (ASCII_NUL == pzToPrint [lenRequired]);
 		if (pzToPrint != szToPrint)
 			ubf_free (pzToPrint);
 	}
 
+	UBF_CHECK_GUARD_VAR (testvar, 1234567);
 	return iRet;
 }
 
@@ -25061,6 +28015,17 @@ int cunilog_puts_sev_fmtpy		(
 	return cunilog_puts_sev_fmtpy_l (sev, sftpy, strU8, USE_STRLEN);
 }
 
+int cunilog_puts_sev_l			(
+		cueventseverity		sev,
+		const char			*strU8,
+		size_t				len
+								)
+{
+	ubf_assert_non_NULL (strU8);
+
+	return cunilog_puts_sev_fmtpy_l (sev, cunilogEvtSeverityTypeDefault, strU8, len);
+}
+
 int cunilog_puts_sev			(
 		cueventseverity		sev,
 		const char			*strU8
@@ -25069,6 +28034,18 @@ int cunilog_puts_sev			(
 	ubf_assert_non_NULL (strU8);
 
 	return cunilog_puts_sev_fmtpy_l (sev, cunilogEvtSeverityTypeDefault, strU8, USE_STRLEN);
+}
+
+int cunilog_puts_l				(
+		const char			*strU8,
+		size_t				len
+								)
+{
+	ubf_assert_non_NULL (strU8);
+
+	return cunilog_puts_sev_fmtpy_l	(
+				cunilogEvtSeverityNone, cunilogEvtSeverityTypeDefault, strU8, len
+									);
 }
 
 int cunilog_puts				(

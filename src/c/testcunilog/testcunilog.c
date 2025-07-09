@@ -28,17 +28,8 @@ When		Who				What
 #include "./CunilogTestFncts.h"
 
 // For testing here.
-#include "./../datetime/ISO__DATE__.h"
-#include "./../datetime/ubf_date_and_time.h"
 #include "./../dbg/ubfdebug.h"
-#include "./../string/stransi.h"
-#include "./../string/strfilesys.h"
-#include "./../string/strhexdump.h"
-#include "./../string/strintuint.h"
-#include "./../string/strnewline.h"
-#include "./../string/strwildcards.h"
 #include "./../cunilog/cunilogcfgparser.h"
-#include "./../string/strcustomfmt.h"
 #include "./../OS/POSIX/PsxHome.h"
 
 #ifndef _WIN32
@@ -85,17 +76,6 @@ int main (int argc, char *argv [])
 	*/
 
 	TestCunilogCfgParser ();
-	test_strnewline ();
-	test_strhexdump ();
-	Test_ubf_times_functions ();
-	Test_strintuint ();
-	strwildcards_test_function ();
-	ubf_test_ubf_strfilesys ();
-	const char *szBld = szBuild_ISO__DATE__ ();
-	ubf_assert (LEN_ISO8601DATE == strlen (szBld));
-	szBld = szBuild_ISO__DATE__TIME__ ();
-	ubf_assert (LEN_ISO8601DATETIMESTAMP_NO_OFFS == strlen (szBld));
-	TestStrCustomFmt ();
 	TestPsxHome ();
 
 	/*

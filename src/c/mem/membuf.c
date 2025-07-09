@@ -109,6 +109,17 @@ void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz)
 	return pb->buf.pvoid;
 }
 
+void *growToSizeSMEMBUFreserve (SMEMBUF *pb, size_t siz, size_t res)
+{
+	ubf_assert_non_NULL (pb);
+
+	if (siz > pb->size)
+	{
+		setToSizeSMEMBUF (pb, siz + res);
+	}
+	return pb->buf.pvoid;
+}
+
 void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 {
 	ubf_assert_non_NULL (pb);

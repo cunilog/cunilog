@@ -1391,6 +1391,17 @@ uint64_t BuildYear_uint64 (void);
 uint16_t BuildYear_uint16 (void);
 
 /*
+	is_datetimestampformat_l
+
+	Checks if the string str might be a date/timestamp.
+
+	The function only checks if digits are where they should be. It does not carry out
+	any sanity check on the date/timestamp itself. This means "0000-00-00" is a valid
+	date/timestamp, and the function returns true in this case.
+*/
+bool is_datetimestampformat_l (const char *str, size_t len);
+
+/*
 	FormattedMilliseconds
 
 	Copies the time value in uiTimeInMilliseconds as a formatted string to the

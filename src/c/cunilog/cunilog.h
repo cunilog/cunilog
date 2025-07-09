@@ -454,8 +454,8 @@ TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
 	See https://no-color.org/ for the specification.
 
 	The function checks the environment variable NO_COLOR every time it is called. It is
-	therefore recommended to call the functions only when really required, for example at the
-	start of an application and store its return value in a variable.
+	therefore recommended to call the function only when really required, for example at the
+	start of an application, and store its return value in a variable.
 */
 bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
@@ -1608,11 +1608,35 @@ CUNILOG_EVENT *CreateCUNILOG_EVENT_Text		(
 											)
 ;
 TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_Text)
-(
+											(
 					CUNILOG_TARGET				*put,
 					cueventseverity				sev,
 					const char					*ccText,
 					size_t						len
+											)
+;
+
+/*
+	CreateCUNILOG_EVENT_TextTS
+
+	This function is identical to CreateCUNILOG_EVENT_Text () but expects the timestamp
+	for the event in the additional UBF_TIMESTAMP parameter ts.
+*/
+CUNILOG_EVENT *CreateCUNILOG_EVENT_TextTS		(
+					CUNILOG_TARGET				*put,
+					cueventseverity				sev,
+					const char					*ccText,
+					size_t						len,
+					UBF_TIMESTAMP				ts
+											)
+;
+TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_TextTS)
+											(
+					CUNILOG_TARGET				*put,
+					cueventseverity				sev,
+					const char					*ccText,
+					size_t						len,
+					UBF_TIMESTAMP				ts
 											)
 ;
 
@@ -1703,6 +1727,9 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 	octets, which includes the NUL-terminator. UTF-8 characters can have up to 4 octets/bytes.
 	Cunilog writes out only UTF-8 but doesn't actually understand its encoding.
 
+	Functions ending in ts expect the timestamp of the event in an additional UBF_TIMESTAMP
+	parameter.
+
 	The vfmt versions are variadic functions/macros that expect a va_list argument. Note that
 	these functions/macros are normal logging functions and do not compose the output and write
 	to a buffer provided by the caller like standard library functions vsnprintf () and family
@@ -1731,7 +1758,9 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 	on the CUNILOG_TARGET structure put points to.
 */
 bool logTextU8sevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len);
+bool logTextU8sevlts		(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len, UBF_TIMESTAMP ts);
 bool logTextU8sevlq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len);
+bool logTextU8sevlqts		(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len, UBF_TIMESTAMP ts);
 bool logTextU8sev			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText);
 bool logTextU8sevq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText);
 bool logTextU8l				(CUNILOG_TARGET *put, const char *ccText, size_t len);
@@ -1987,6 +2016,28 @@ bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 bool CunilogChangeCurrentThreadPriority (cunilogprio prio);
 TYPEDEF_FNCT_PTR (bool, CunilogChangeCurrentThreadPriority) (cunilogprio prio);
 
+/*
+	cunilogSetDefaultPrintEventSeverityFormatType
+
+	Sets the default event severity format type that is used by the cunilog_printf...
+	and cunilog_puts... type functions (see below).
+
+*/
+void cunilogSetDefaultPrintEventSeverityFormatType (cueventsevfmtpy fmtpy);
+TYPEDEF_FNCT_PTR (void, cunilogSetDefaultPrintEventSeverityFormatType) (cueventsevfmtpy fmtpy);
+
+/*
+	cunilogUseColourForOutput
+
+	Coloured output for the cunilog_printf... and cunilog_puts... type funcitons (see
+	below).
+
+	Configures whether ANSI escape sequences are inserted in the output to enable colours.
+	The default is true, meaning that by default event severities are sent to the console
+	with ANSI escape colour sequences enabled.
+*/
+void cunilogUseColourForOutput (bool bUseColour);
+TYPEDEF_FNCT_PTR (void, cunilogUseColourForOutput) (bool bUseColour);
 
 /*
 	cunilog_printf_sev_fmtpy_vl
@@ -1995,14 +2046,19 @@ TYPEDEF_FNCT_PTR (bool, CunilogChangeCurrentThreadPriority) (cunilogprio prio);
 	cunilog_printf
 	cunilog_puts_sev_fmtpy_l
 	cunilog_puts_sev_fmtpy
+	cunilog_puts_sev_l
 	cunilog_puts_sev
+	cunilog_puts_l
 	cunilog_puts
 
 	The Cunilog printf () and puts () functions.
 
-	The _sev_fmtpy_vl version expects a severity, a serverity format type, and a va_list
+	The _sev_fmtpy_vl versions expect a severity, a serverity format type, and a va_list
 	argument. The _sev_fmtpy versions expect a severity and a severity format type while
 	the _sev versions expect a severity only.
+
+	The _l functions expect a length parameter. The value USE_STRLEN can be provided instead
+	of the length, in which case these functions use strlen () to obtain it.
 
 	None of these functions abide by the NO_COLOR standard (see https://no-color.org/).
 	To make an application NO_COLOR complient, guard them with the return value of
@@ -2011,15 +2067,21 @@ TYPEDEF_FNCT_PTR (bool, CunilogChangeCurrentThreadPriority) (cunilogprio prio);
 	bool bUserWantsColour = !Cunilog_Have_NO_COLOR ();		// At application start.
 
 	if (bUserWantsColour)
-		cunilog_printf_sev (cunilogEvtSeverityNonePass,	"Text for printf () output.\n");
+		cunilogUseColourForOutput (true);
 	else
-		cunilog_printf_sev (cunilogEvtSeverityNone,		"Text for printf () output.\n");
+		cunilogUseColourForOutput (false);
 
+	Or, simpler, since the default is to use ANSI escape colours:
+
+	if (Cunilog_Have_NO_COLOR ())
+		cunilogUseColourForOutput (false);
 
 	The functions cunilog_printf () and cunilog_puts () are replacements for the standard
 	library functions printf () and puts () respectively. These functions honour Cunilog's
 	console settings functions CunilogSetConsoleToUTF8 (), CunilogSetConsoleToUTF16 (),
-	and CunilogSetConsoleToNone () on Windows.
+	and CunilogSetConsoleToNone () on Windows, and its default output severity format functions
+	cunilogSetDefaultPrintEventSeverityFormatType (), and cunilogUseColourForOutput ().
+
 */
 int cunilog_printf_sev_fmtpy_vl	(
 		cueventseverity		sev,
@@ -2028,6 +2090,15 @@ int cunilog_printf_sev_fmtpy_vl	(
 		va_list				ap
 								)
 ;
+TYPEDEF_FNCT_PTR (int, cunilog_printf_sev_fmtpy_vl)
+								(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*format,
+		va_list				ap
+								)
+;
+
 
 int cunilog_printf_sev_fmtpy	(
 		cueventseverity		sev,
@@ -2036,8 +2107,24 @@ int cunilog_printf_sev_fmtpy	(
 		...
 								)
 ;
+TYPEDEF_FNCT_PTR (int, cunilog_printf_sev_fmtpy)
+								(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*format,
+		...
+								)
+;
+
 
 int cunilog_printf_sev			(
+		cueventseverity		sev,
+		const char			*format,
+		...
+								)
+;
+TYPEDEF_FNCT_PTR (int, cunilog_printf_sev)
+								(
 		cueventseverity		sev,
 		const char			*format,
 		...
@@ -2049,8 +2136,22 @@ int cunilog_printf				(
 		...
 								)
 ;
+TYPEDEF_FNCT_PTR (int, cunilog_printf)
+								(
+		const char			*format,
+		...
+								)
+;
 
 int cunilog_puts_sev_fmtpy_l	(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*strU8,
+		size_t				len
+								)
+;
+TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_fmtpy_l)
+								(
 		cueventseverity		sev,
 		cueventsevfmtpy		sftpy,
 		const char			*strU8,
@@ -2064,14 +2165,59 @@ int cunilog_puts_sev_fmtpy		(
 		const char			*strU8
 								)
 ;
+TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_fmtpy)
+								(
+		cueventseverity		sev,
+		cueventsevfmtpy		sftpy,
+		const char			*strU8
+								)
+;
+
+
+int cunilog_puts_sev_l			(
+		cueventseverity		sev,
+		const char			*strU8,
+		size_t				len
+								)
+;
+TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_l)
+								(
+		cueventseverity		sev,
+		const char			*strU8,
+		size_t				len
+								)
+;
 
 int cunilog_puts_sev			(
 		cueventseverity		sev,
 		const char			*strU8
 								)
 ;
+TYPEDEF_FNCT_PTR (int, cunilog_puts_sev)
+								(
+		cueventseverity		sev,
+		const char			*strU8
+								)
+;
+
+int cunilog_puts_l				(
+		const char			*strU8,
+		size_t				len
+								)
+;
+TYPEDEF_FNCT_PTR (int, cunilog_puts_l)
+								(
+		const char			*strU8,
+		size_t				len
+								)
+;
 
 int cunilog_puts				(
+		const char			*strU8
+								)
+;
+TYPEDEF_FNCT_PTR (int, cunilog_puts)
+								(
 		const char			*strU8
 								)
 ;

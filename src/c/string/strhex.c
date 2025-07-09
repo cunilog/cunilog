@@ -513,10 +513,10 @@ void asc_bin_from_word (char *pc, uint16_t ui)
 {
 	ubf_assert_non_NULL (pc);
 
-	memcpy (pc, &binASCII [4 * (((ui & 0xF000) >> 12) & 0x0F)],	4);		pc += 4;
-	memcpy (pc, &binASCII [4 * (((ui & 0x0F00) >>  8) & 0x0F)],	4);		pc += 4;
-	memcpy (pc, &binASCII [4 * (((ui & 0x00F0) >>  4) & 0x0F)],	4);		pc += 4;
-	memcpy (pc, &binASCII [4 * (((ui & 0x000F)))],				4);
+	memcpy (pc, &binASCII [4 * (((ui & 0xF000) >> 12) & 0x0F)],		4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x0F00) >>  8) & 0x0F)],		4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x00F0) >>  4) & 0x0F)],		4);		pc += 4;
+	memcpy (pc, &binASCII [4 * (((ui & 0x000F)))],					4);
 }
 
 void asc_bin_from_dword (char *pc, uint32_t ui)
@@ -1148,7 +1148,7 @@ void ubf_hex_simple_hash	(
 		ubf_expect_bool_AND (b, 128 == o);
 		
 		char szRes	[128];
-		uint8_t		ui8;
+		//uint8_t		ui8;
 
 		// These functions do not write NUL terminators.
 		asc_bin_from_octet (szRes, 0x00);

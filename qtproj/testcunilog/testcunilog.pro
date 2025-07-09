@@ -57,6 +57,8 @@ DEFINES += BUILD_DEBUG_UBF_STRFILESYS_TESTS
 DEFINES += STRCUSTOMFMT_BUILD_TEST_FNCTS
 DEFINES += BUILD_BULKMALLOC_TEST_FUNCTIONS
 DEFINES += U_CHECK_UTF8_BUILD_TEST_FNCT
+DEFINES += BUILD_TEST_WINAPI_U8_FNCT
+DEFINES += PROCESS_HELPERS_BUILD_TEST_FNCT
 
 # If this -ldl is missing, the linker on Linux complains with
 #	"sqlite3.o: undefined reference to symbol 'dlclose@@GLIBC_2.2.5'".
@@ -81,11 +83,13 @@ HEADERS += \
     ../../src/c/OS/POSIX/PsxReadDirFncts.h \
     ../../src/c/OS/POSIX/PsxSharedMutex.h \
     ../../src/c/OS/POSIX/PsxTrash.h \
+    ../../src/c/OS/ProcessHelpers.h \
     ../../src/c/OS/SharedMutex.h \
     ../../src/c/OS/UserHome.h \
     ../../src/c/OS/Windows/CompressNTFS_U8.h \
     ../../src/c/OS/Windows/WinAPI_ReadDirFncts.h \
     ../../src/c/OS/Windows/WinAPI_U8.h \
+    ../../src/c/OS/Windows/WinAPI_U8_Test.h \
     ../../src/c/OS/Windows/WinExeFileName.h \
     ../../src/c/OS/Windows/WinSharedMutex.h \
     ../../src/c/cunilog/cunilog.h \
@@ -140,11 +144,13 @@ SOURCES += \
     ../../src/c/OS/POSIX/PsxReadDirFncts.c \
     ../../src/c/OS/POSIX/PsxSharedMutex.c \
     ../../src/c/OS/POSIX/PsxTrash.c \
+    ../../src/c/OS/ProcessHelpers.c \
     ../../src/c/OS/SharedMutex.c \
     ../../src/c/OS/UserHome.c \
     ../../src/c/OS/Windows/CompressNTFS_U8.c \
     ../../src/c/OS/Windows/WinAPI_ReadDirFncts.c \
     ../../src/c/OS/Windows/WinAPI_U8.c \
+    ../../src/c/OS/Windows/WinAPI_U8_Test.c \
     ../../src/c/OS/Windows/WinExeFileName.c \
     ../../src/c/OS/Windows/WinSharedMutex.c \
     ../../src/c/cunilog/cunilog.c \

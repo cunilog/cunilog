@@ -2,6 +2,7 @@
 # Cunilog basics
 
 ## General
+
 ### Comments and documentation
 
 Each Cunilog interface definition, function, macro, structure, variable, constant, and enumeration

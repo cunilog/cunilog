@@ -70,7 +70,7 @@ When		Who				What
 EXTERN_C_BEGIN
 
 /*
-	SMEMBUFfromStr
+	SMEMBUFfromStrReserveBytes
 	
 	Duplicates str and fills the SMEMBUF structure pmb points to accordingly.
 	If len is (size_t) -1, the function strlen () is used to obtain the length of str.
@@ -121,21 +121,23 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrFromUINT64) (SMEMBUF *pmb, uint64_t ui)
 	Concatenates the string with a length of len in the buffer of the SMEMBUF structrue pmb
 	points to and the string str with a length of lenstr, storing the result in the SMEMBUF
 	structure's buffer. Both length parameters, len and lenstr, can be USE_STRLEN. If precise
-	lengths are given, the strings de not need to be NUL-terminated.
+	lengths are given, the strings do not need to be NUL-terminated.
 	
 	If str is NULL, the parameter lenstr is ignored and the buffer of the SMEMBUF structure
 	is not changed.
 
 	The resulting string in the buffer of pmb is NUL-terminated.
 
-	If the buffer of pmb has to be reallocated, the buffer is made big enough to additionally
-	hold reserve octets. Set reserve to 0 if no additional buffer space is needed.
+	If the buffer of pmb needs reallocating, the buffer is made big enough to additionally
+	hold at least reserve octets. Set reserve to 0 if no additional buffer space is needed.
+	If the buffer of pmb is already big enough to hold the original string plus str plus
+	a NUL terminator, its size is not changed and the parameter reserve ignored.
 
 	The function returns the new length of the string in the buffer of pmb. If str is NULL
 	or lenstr is 0, the function returns len without touching the buffer.
 
-	Do not use the return value to determine if the function failed. Use the macro
-	isUsableSMEMBUF() instead.
+	Do not use the return value to determine whether the function succeeded or failed. Use the
+	macro isUsableSMEMBUF() instead.
 */
 size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve)
 ;

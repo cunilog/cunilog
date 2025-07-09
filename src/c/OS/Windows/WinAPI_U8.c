@@ -276,57 +276,62 @@ char *AllocU8_from_WinU16 (const WCHAR *wc16)
 }
 
 #ifdef HAVE_STRWILDCARDS
-char *AllocU8path_from_U8path_and_WinU16FileName (const char *ccPath, WCHAR *wcFileName)
-{
-	ASSERT (NULL != ccPath);
-	ASSERT (NULL != wcFileName);
+	char *AllocU8path_from_U8path_and_WinU16FileName (const char *ccPath, WCHAR *wcFileName)
+	{
+		ASSERT (NULL != ccPath);
+		ASSERT (NULL != wcFileName);
 	
-	if (NULL == ccPath || NULL == wcFileName)
-		return NULL;
+		if (NULL == ccPath || NULL == wcFileName)
+			return NULL;
 		
-	size_t		stPath		= strlen (ccPath);
-	const char	*ccWCfname;
-	size_t		stWCflen;										// Length of the wildcard
-																//	filename, if there is
-																//	one.
-	char		*ccRet		= NULL;
-	int			iReq;
+		size_t		stPath		= strlen (ccPath);
+		const char	*ccWCfname;
+		size_t		stWCflen;										// Length of the wildcard
+																	//	filename, if there is
+																	//	one.
+		char		*ccRet		= NULL;
+		int			iReq;
 
-	// Must not be an empty string or end with a directory separator.
-	ASSERT (0 < stPath);										// Not supported.
-	ASSERT ('\\' != ccPath [stPath - 1]);						// Not supported.
-	ASSERT ('/' != ccPath [stPath - 1]);						// Not supported.
-	if (0 == stPath)
-		return NULL;
-	ccWCfname = wildCardFileName (&stWCflen, ccPath);
-	iReq = reqUTF8size (wcFileName);
-	if (NULL == ccWCfname)
-	{	// We got no wildcards in the filename. This is a simple copy operation.
-		ccRet = ubf_malloc (stPath + iReq + 2);
+		// Must not be an empty string or end with a directory separator.
+		ASSERT (0 < stPath);										// Not supported.
+		ASSERT ('\\' != ccPath [stPath - 1]);						// Not supported.
+		ASSERT ('/' != ccPath [stPath - 1]);						// Not supported.
+		if (0 == stPath)
+			return NULL;
+		ccWCfname = wildCardFileName (&stWCflen, ccPath);
+		iReq = reqUTF8size (wcFileName);
+		if (NULL == ccWCfname)
+		{	// We got no wildcards in the filename. This is a simple copy operation.
+			ccRet = ubf_malloc (stPath + iReq + 2);
+			if (ccRet)
+			{
+				memcpy (ccRet, ccPath, stPath);
+				memcpy (ccRet + stPath, "\\", 1);
+				UTF8_from_WinU16 (ccRet + stPath + 1, iReq, wcFileName);
+			}
+			return ccRet;
+		}
+		// Note that iReq contains the NUL terminator already but to be sure we add
+		//	2 octets more.
+		ccRet = ubf_malloc (stPath + stWCflen + iReq + 2);
 		if (ccRet)
 		{
+			if (ubf_isdirseparator (ccWCfname [0]))
+				stPath -= stWCflen - 1;
+			else
+				stPath -= stWCflen;
 			memcpy (ccRet, ccPath, stPath);
-			memcpy (ccRet + stPath, "\\", 1);
-			UTF8_from_WinU16 (ccRet + stPath + 1, iReq, wcFileName);
+			UTF8_from_WinU16 (ccRet + stPath, iReq, wcFileName);
+			/*
+			if (ccWCfname && stWCflen)
+			{	// We got a mask that needs to be added.
+				memcpy (ccRet + stPath + iReq - 1, ccWCfname, stWCflen + 1);
+			}
+			*/
+			forward_to_backslashU8 (ccRet, iReq);
 		}
 		return ccRet;
 	}
-	// Note that iReq contains the NUL terminator already but to be sure we add
-	//	2 octets more.
-	ccRet = ubf_malloc (stPath + stWCflen + iReq + 2);
-	if (ccRet)
-	{
-		stPath -= stWCflen - 1;								// We keep the dir separator.
-		memcpy (ccRet, ccPath, stPath);
-		UTF8_from_WinU16 (ccRet + stPath, iReq, wcFileName);
-		if (ccWCfname && stWCflen)
-		{	// We got a mask that needs to be added.
-			memcpy (ccRet + stPath + iReq - 1, ccWCfname, stWCflen + 1);
-		}
-		forward_to_backslashU8 (ccRet, iReq);
-	}
-	return ccRet;
-}
 #endif
 
 #if defined (HAVE_STRWILDCARDS) && defined (HAVE_MEMBUF)
@@ -801,6 +806,7 @@ void STARTUPINFOW_from_STARTUPINFOA (STARTUPINFOW *siw, STARTUPINFOA *sia)
 	ASSERT (NULL == sia->lpReserved);
 	ASSERT (0 == sia->cbReserved2);
 	ASSERT (NULL == sia->lpReserved2);
+	ASSERT (sizeof (STARTUPINFOW) == sizeof (STARTUPINFOA));
 	siw->cb					= sia->cb;
 	ASSERT (NULL == sia->lpReserved);
 	siw->lpReserved			= NULL;
@@ -872,6 +878,166 @@ HANDLE CreateMutexExU8(
 	
 	WinU16_from_UTF8 (wcName, MAX_PATH + 1, lpName);
 	return CreateMutexExW (lpMutexAttributes, wcName, dwFlags, dwDesiredAccess);
+}
+
+/*
+	This is the MyCreatePipeEx () function originally found at
+	http://www.davehart.net/remote/PipeEx.c .
+
+	Taken from https://web.archive.org/web/20150125081922/http://www.davehart.net:80/remote/PipeEx.c .
+
+	The function has been modified for UTF-16. The ID of the current thread is additionally
+	part of the pipe name to make it safe for multi-threading.
+*/
+
+static volatile LONG PipeSerialNumber;
+
+BOOL
+APIENTRY
+MyCreatePipeEx(
+    OUT LPHANDLE lpReadPipe,
+    OUT LPHANDLE lpWritePipe,
+    IN LPSECURITY_ATTRIBUTES lpPipeAttributes,
+    IN DWORD nSize,
+    DWORD dwReadMode,
+    DWORD dwWriteMode
+    )
+
+/*++
+
+Routine Description:
+
+    The CreatePipeEx API is used to create an anonymous pipe I/O device.
+    Unlike CreatePipe FILE_FLAG_OVERLAPPED may be specified for one or
+    both handles.
+    Two handles to the device are created.  One handle is opened for
+    reading and the other is opened for writing.  These handles may be
+    used in subsequent calls to ReadFile and WriteFile to transmit data
+    through the pipe.
+
+Arguments:
+
+    lpReadPipe - Returns a handle to the read side of the pipe.  Data
+        may be read from the pipe by specifying this handle value in a
+        subsequent call to ReadFile.
+
+    lpWritePipe - Returns a handle to the write side of the pipe.  Data
+        may be written to the pipe by specifying this handle value in a
+        subsequent call to WriteFile.
+
+    lpPipeAttributes - An optional parameter that may be used to specify
+        the attributes of the new pipe.  If the parameter is not
+        specified, then the pipe is created without a security
+        descriptor, and the resulting handles are not inherited on
+        process creation.  Otherwise, the optional security attributes
+        are used on the pipe, and the inherit handles flag effects both
+        pipe handles.
+
+    nSize - Supplies the requested buffer size for the pipe.  This is
+        only a suggestion and is used by the operating system to
+        calculate an appropriate buffering mechanism.  A value of zero
+        indicates that the system is to choose the default buffering
+        scheme.
+
+Return Value:
+
+    TRUE - The operation was successful.
+
+    FALSE/NULL - The operation failed. Extended error status is available
+        using GetLastError.
+
+--*/
+
+{
+	ASSERT (NULL != lpReadPipe);
+	ASSERT (NULL != lpWritePipe);
+
+    HANDLE ReadPipeHandle, WritePipeHandle;
+    DWORD dwError;
+    WCHAR PipeNameBuffer[ MAX_PATH ];
+
+    //
+    // Only one valid OpenMode flag - FILE_FLAG_OVERLAPPED
+    //
+
+    if ((dwReadMode | dwWriteMode) & (~FILE_FLAG_OVERLAPPED)) {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    //
+    //  Set the default timeout to 120 seconds
+    //
+
+    if (nSize == 0) {
+        nSize = 4096;
+        }
+
+	// There's certainly a race condition here but even if this happens,
+	//	we still got our unique thread ID, hence it's practically impossible to accidentally
+	//	create two pipes with the same name.
+	InterlockedIncrement (&PipeSerialNumber);
+    swprintf( PipeNameBuffer, MAX_PATH,
+				L"\\\\.\\Pipe\\culRWinAPI_U8.%08x.%08x.%08x",
+				GetCurrentProcessId (),
+				GetCurrentThreadId (),
+				(ULONG) PipeSerialNumber
+           );
+
+    ReadPipeHandle = CreateNamedPipeW(
+                         PipeNameBuffer,
+                         PIPE_ACCESS_INBOUND | dwReadMode,
+                         PIPE_TYPE_BYTE | PIPE_WAIT,
+                         1,             // Number of pipes
+                         nSize,         // Out buffer size
+                         nSize,         // In buffer size
+                         120 * 1000,    // Timeout in ms
+                         lpPipeAttributes
+                         );
+
+    if (! ReadPipeHandle) {
+        return FALSE;
+    }
+
+    WritePipeHandle = CreateFileW(
+                        PipeNameBuffer,
+                        GENERIC_WRITE,
+                        0,                         // No sharing
+                        lpPipeAttributes,
+                        OPEN_EXISTING,
+                        FILE_ATTRIBUTE_NORMAL | dwWriteMode,
+                        NULL                       // Template file
+                      );
+
+    if (INVALID_HANDLE_VALUE == WritePipeHandle) {
+        dwError = GetLastError();
+        CloseHandle( ReadPipeHandle );
+        SetLastError(dwError);
+        return FALSE;
+    }
+
+    *lpReadPipe = ReadPipeHandle;
+    *lpWritePipe = WritePipeHandle;
+    return( TRUE );
+}
+
+BOOL CreatePipeOverlapped(
+		PHANDLE					hReadPipe,
+		bool					bOverlappedRead,
+		PHANDLE					hWritePipe,
+		bool					bOverlappedWrite,
+		LPSECURITY_ATTRIBUTES	lpPipeAttributes,
+		DWORD					nSize
+)
+{
+	DWORD dwReadMode	= bOverlappedRead	? FILE_FLAG_OVERLAPPED : 0;
+	DWORD dwWriteMode	= bOverlappedWrite	? FILE_FLAG_OVERLAPPED : 0; 
+	BOOL b = MyCreatePipeEx	(
+				hReadPipe, hWritePipe,
+				lpPipeAttributes, nSize,
+				dwReadMode, dwWriteMode
+							);
+	return b;
 }
 
 BOOL CreateProcessU8EnvW(
@@ -1059,14 +1225,14 @@ SC_HANDLE CreateServiceU8(
 }
 #endif
 
-WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, WORD numStrings)
+WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, size_t numStrings)
 {
 	WCHAR		**pwcRet;
 	
-	pwcRet = ubf_malloc (numStrings * sizeof (WCHAR *));
+	pwcRet = ubf_malloc (sizeof (WCHAR *) * numStrings);
 	if (pwcRet)
 	{
-		WORD	n	= 0;
+		size_t n = 0;
 		while (n < numStrings)
 		{
 			pwcRet [n] = AllocWinU16_from_UTF8 (pu8 [n]);
@@ -1076,9 +1242,9 @@ WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, WORD numStrings)
 	return pwcRet;
 }
 
-void DoneWin16StringArray (WCHAR **pwcStringArray, WORD numStrings)
+void DoneWin16StringArray (WCHAR **pwcStringArray, size_t numStrings)
 {
-	WORD n = 0;
+	size_t n = 0;
 	while (n < numStrings)
 	{
 		ubf_free (pwcStringArray [n]);
@@ -1147,7 +1313,14 @@ BOOL DecryptFileU8(
 	BOOL	bRet;
 
 	pwcFileName = AllocWinU16fromU8orUseThreshold (wcFileName, lpFileName);
-	bRet = DecryptFileW (pwcFileName, dwReserved);
+	// See
+	//	https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-decryptfilew .
+	//	The parameter dwReserved must be zero.
+	//bRet = DecryptFileW (pwcFileName, dwReserved);
+	ASSERT (0 == dwReserved);
+	UNREFERENCED_PARAMETER (dwReserved);
+
+	bRet = DecryptFileW (pwcFileName, 0);
 	DoneWinU16fromU8orUseThreshold (pwcFileName, wcFileName);
 	return bRet;
 }
@@ -1883,28 +2056,46 @@ DWORD GetModuleFileNameU8(
 {
 	DWORD	dwRet;
 	WCHAR	wcModuleName [WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pcModuleName = wcModuleName;
 	int		iu8;
 	
-	dwRet = GetModuleFileNameW (hModule, wcModuleName, WINAPI_U8_HEAP_THRESHOLD);
-	if (dwRet == WINAPI_U8_HEAP_THRESHOLD)
+	if (0 == nSize)
+		return 0;
+
+	dwRet = GetModuleFileNameW (hModule, pcModuleName, WINAPI_U8_HEAP_THRESHOLD);
+	if (WINAPI_U8_HEAP_THRESHOLD == dwRet)
 	{	// Stack buffer (WINAPI_U8_HEAP_THRESHOLD) too small.
-		ASSERT (FALSE);
+		DWORD dwtot = WINAPI_U8_HEAP_THRESHOLD;
+		do
+		{
+			if (pcModuleName != wcModuleName)
+				ubf_free (pcModuleName);
+			dwtot += WINAPI_U8_HEAP_THRESHOLD;
+			pcModuleName = ubf_malloc (sizeof (WCHAR) * dwtot);
+			if (NULL == pcModuleName)
+				return 0;
+			dwRet = GetModuleFileNameW (hModule, pcModuleName, dwtot);
+		} while (dwRet == dwtot);
 	}
-	iu8 = reqUTF8size (wcModuleName);
+	iu8 = reqUTF8size (pcModuleName);
 	ASSERT (0 < iu8);
-	dwRet = (DWORD) iu8;
-	if (dwRet < nSize)
+	if ((DWORD) iu8 < nSize)
 	{	// Success.
-		UTF8_from_WinU16 (lpFilenameU8, iu8, wcModuleName);
-		// I can't think of any quicker way to obtain the length
-		//	to return, so let's use strlen ().
-		return (DWORD) (strlen (lpFilenameU8) & 0xFFFFFFFF);
+		int iRet = UTF8_from_WinU16 (lpFilenameU8, iu8, pcModuleName);
+		if (pcModuleName != wcModuleName)
+			ubf_free (pcModuleName);
+		ASSERT (0 < iRet);
+		return (DWORD) iRet - 1;
 	}
 	// Buffer provided by the user too small.
 	#ifdef GETMODULEFILENAMEU8_ASSERT_BUFFER_TOO_SMALL
 		ASSERT (FALSE);
 	#endif
-	UTF8_from_WinU16 (lpFilenameU8, (int) nSize, wcModuleName);
+	UTF8_from_WinU16 (lpFilenameU8, (int) nSize, pcModuleName);
+	lpFilenameU8 [nSize - 1] = ASCII_NUL;
+	if (pcModuleName != wcModuleName)
+		ubf_free (pcModuleName);
+	SetLastError (ERROR_INSUFFICIENT_BUFFER);
 	return nSize;
 }
 
@@ -2063,6 +2254,138 @@ DWORD GetPrivateProfileStringU8(
 	return dwRet;
 }
 
+UINT GetSystemDirectoryU8(
+	LPSTR	lpBuffer,
+	UINT	uSize
+)
+{
+	WCHAR	wcSysDir [WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pcSysDir = wcSysDir;
+
+	if (uSize > INT_MAX)
+		return 0;
+	UINT uReqSize = GetSystemDirectoryW (pcSysDir, WINAPI_U8_HEAP_THRESHOLD);
+	if (0 == uReqSize)
+		return 0;
+	if (uReqSize >= WINAPI_U8_HEAP_THRESHOLD)
+	{
+		pcSysDir = ubf_malloc (sizeof (wchar_t) * uReqSize);
+		if (pcSysDir)
+			GetSystemDirectoryW (pcSysDir, uReqSize);
+	}
+
+	int iReq = reqUTF8size (pcSysDir);
+	if ((int) uSize >= iReq)
+	{
+		iReq = UTF8_from_WinU16 (lpBuffer, uSize, pcSysDir);
+		if (iReq)
+			-- iReq;
+	}
+	if (pcSysDir && pcSysDir != wcSysDir)
+		ubf_free (pcSysDir);
+	return (UINT) iReq;
+}
+
+static const char	*szWinSystemDirectory;
+static size_t		lnWinSystemDirectory;
+
+const char *SystemDirectoryU8 (void)
+{
+	if (NULL == szWinSystemDirectory)
+	{
+		UINT ui = GetSystemDirectoryU8 (NULL, 0);
+		szWinSystemDirectory = ubf_malloc (ui);
+		if (szWinSystemDirectory)
+		{
+			UINT u2 = GetSystemDirectoryU8 ((char *) szWinSystemDirectory, ui);
+			ASSERT (ui == u2 + 1);
+			lnWinSystemDirectory = u2;
+		}
+	}
+	return szWinSystemDirectory;
+}
+
+size_t SystemDirectoryU8len (void)
+{
+	if (0 == lnWinSystemDirectory)
+		SystemDirectoryU8 ();
+	return lnWinSystemDirectory;
+}
+
+void DoneSystemDirectoryU8 (void)
+{
+	if (szWinSystemDirectory)
+		ubf_free ((char *) szWinSystemDirectory);
+	szWinSystemDirectory = NULL;
+	lnWinSystemDirectory = 0;
+}
+
+UINT GetSystemWindowsDirectoryU8(
+	LPSTR	lpBuffer,
+	UINT	uSize
+)
+{
+	WCHAR	wcWinDir [WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pcWinDir = wcWinDir;
+
+	if (uSize > INT_MAX)
+		return 0;
+	UINT uReqSize = GetSystemWindowsDirectoryW (pcWinDir, WINAPI_U8_HEAP_THRESHOLD);
+	if (0 == uReqSize)
+		return 0;
+	if (uReqSize >= WINAPI_U8_HEAP_THRESHOLD)
+	{
+		pcWinDir = ubf_malloc (sizeof (wchar_t) * uReqSize);
+		if (pcWinDir)
+			GetSystemWindowsDirectoryW (pcWinDir, uReqSize);
+	}
+
+	int iReq = reqUTF8size (pcWinDir);
+	if ((int) uSize >= iReq)
+	{
+		iReq = UTF8_from_WinU16 (lpBuffer, uSize, pcWinDir);
+		if (iReq)
+			-- iReq;
+	}
+	if (pcWinDir && pcWinDir != wcWinDir)
+		ubf_free (pcWinDir);
+	return (UINT) iReq;
+}
+
+static const char	*szWinSystemWindowsDirectory;
+static size_t		lnWinSystemWindowsDirectory;
+
+const char *SystemWindowsDirectoryU8 (void)
+{
+	if (NULL == szWinSystemWindowsDirectory)
+	{
+		UINT ui = GetSystemWindowsDirectoryU8 (NULL, 0);
+		szWinSystemWindowsDirectory = ubf_malloc (ui);
+		if (szWinSystemWindowsDirectory)
+		{
+			UINT u2 = GetSystemWindowsDirectoryU8 ((char *) szWinSystemWindowsDirectory, ui);
+			ASSERT (ui == u2 + 1);
+			lnWinSystemWindowsDirectory = u2;
+		}
+	}
+	return szWinSystemWindowsDirectory;
+}
+
+size_t SystemWindowsDirectoryU8len (void)
+{
+	if (0 == lnWinSystemWindowsDirectory)
+		SystemWindowsDirectoryU8 ();
+	return lnWinSystemWindowsDirectory;
+}
+
+void DoneSystemWindowsDirectoryU8 (void)
+{
+	if (szWinSystemWindowsDirectory)
+		ubf_free ((char *) szWinSystemWindowsDirectory);
+	szWinSystemWindowsDirectory = NULL;
+	lnWinSystemWindowsDirectory = 0;
+}
+
 #ifdef HAVE_ADVAPI32
 	BOOL GetUserNameU8(
 	  LPSTR   lpBuffer,
@@ -2077,35 +2400,28 @@ DWORD GetPrivateProfileStringU8(
 		// As of 2021-01-24 and Windows 10 SDK UNLEN is 256. See
 		//	https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getusernamew
 		//	for more information.
-		#if UNLEN < WINAPI_U8_HEAP_THRESHOLD
-			WCHAR	wcUserName [UNLEN + 1];
-			dwLen = UNLEN + 1;
-			#ifdef DEBUG
-				bRet = GetUserNameW (wcUserName, &dwLen);
-			#else
-				GetUserNameW (wcUserName, &dwLen);
-			#endif
-			ASSERT (FALSE != bRet);
-			ASSERT (UNLEN >= dwLen);
-			int iReq = reqUTF8size (wcUserName);
-			ASSERT (INT_MAX > *pcbBuffer);
-			if (iReq <= (int) *pcbBuffer)
-			{
-				UTF8_from_WinU16 (lpBuffer, iReq, wcUserName);
-				bRet = TRUE;
-			} else
-			{
-				SetLastError (ERROR_INSUFFICIENT_BUFFER);
-				bRet = FALSE;
-			}
-			*pcbBuffer = (DWORD) iReq;
-			return bRet;
+		WCHAR	wcUserName [UNLEN + 1];
+		dwLen = UNLEN + 1;
+		#ifdef DEBUG
+			bRet = GetUserNameW (wcUserName, &dwLen);
 		#else
-			// Not supported.
-			#error UNLEN > WINAPI_U8_HEAP_THRESHOLD not supported
-			ASSERT (FALSE);
-			return FALSE;
+			GetUserNameW (wcUserName, &dwLen);
 		#endif
+		ASSERT (FALSE != bRet);
+		ASSERT (UNLEN >= dwLen);
+		int iReq = reqUTF8size (wcUserName);
+		ASSERT (INT_MAX > *pcbBuffer);
+		if (iReq <= (int) *pcbBuffer)
+		{
+			UTF8_from_WinU16 (lpBuffer, iReq, wcUserName);
+			bRet = TRUE;
+		} else
+		{
+			SetLastError (ERROR_INSUFFICIENT_BUFFER);
+			bRet = FALSE;
+		}
+		*pcbBuffer = (DWORD) iReq;
+		return bRet;
 	}
 #endif
 
@@ -2242,8 +2558,10 @@ BOOL GetVolumeInformationU8(
 BOOL GetWinErrorTextU8 (char *lpszBuf, DWORD dwSize, DWORD dwError)
 {
 	int		iReqSize;
-	DWORD	dwRet;
+	DWORD	dwRet									= 1;
 	WCHAR	wcErrText [WINAPI_U8_HEAP_THRESHOLD];
+	WCHAR	*pcErrText								= wcErrText;
+	DWORD	dwErrText								= WINAPI_U8_HEAP_THRESHOLD;
 
 	// See
 	//	https://docs.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-multibytetowidechar .
@@ -2251,31 +2569,56 @@ BOOL GetWinErrorTextU8 (char *lpszBuf, DWORD dwSize, DWORD dwError)
 
 	// See
 	//	https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-formatmessagew .
-	dwRet = FormatMessageW	(
-					FORMAT_MESSAGE_FROM_SYSTEM
-				|	FORMAT_MESSAGE_ARGUMENT_ARRAY
-				|	FORMAT_MESSAGE_IGNORE_INSERTS,
-				NULL,
-				dwError,
-				0,
-				wcErrText,
-				WINAPI_U8_HEAP_THRESHOLD - 1,
-				NULL
-							);
-	if (dwRet && dwRet > 2)
-    {	// Remove the line ending (CR/LF).
-		wcErrText [dwRet - 2] = L'\0';
-		// Convert to UTF-8.
-		iReqSize = reqUTF8size (wcErrText);
-		if (iReqSize <= WINAPI_U8_HEAP_THRESHOLD)
+	do
+	{
+		if (0 == dwRet)
 		{
-			char	chU8 [WINAPI_U8_HEAP_THRESHOLD];
-			UTF8_from_WinU16 (chU8, iReqSize, wcErrText);
-			snprintf (lpszBuf, dwSize, "\"%s\" (Error %lu, 0%lXh)", chU8, dwError, dwError);
+			if (pcErrText != wcErrText)
+				free (pcErrText);
+			ASSERT (INT_MAX < MAXDWORD);
+			if (dwErrText <= INT_MAX - WINAPI_U8_HEAP_THRESHOLD)
+				dwErrText += WINAPI_U8_HEAP_THRESHOLD;
+			else
+				return false;
+			pcErrText = malloc (sizeof (WCHAR) * dwErrText);
+		}
+		if (pcErrText)
+		{
+			dwRet = FormatMessageW	(
+							FORMAT_MESSAGE_FROM_SYSTEM
+						|	FORMAT_MESSAGE_ARGUMENT_ARRAY
+						|	FORMAT_MESSAGE_IGNORE_INSERTS,
+						NULL,
+						dwError,
+						0,
+						pcErrText,
+						dwErrText - 1,
+						NULL
+									);
+		} else
+		{
+			return false;
+		}
+	} while (0 == dwRet && ERROR_INSUFFICIENT_BUFFER == GetLastError ());
+	if (dwRet > 2)
+    {	// Remove the line ending (CR/LF).
+		pcErrText [dwRet - 2] = L'\0';
+		// Convert to UTF-8.
+		iReqSize = reqUTF8size (pcErrText);
+		char *szU8 = malloc (iReqSize);
+		if (szU8)
+		{
+			UTF8_from_WinU16 (szU8, iReqSize, pcErrText);
+			snprintf (lpszBuf, dwSize, "\"%s\" (Error %lu, 0%lXh)", szU8, dwError, dwError);
+			free (szU8);
+			if (pcErrText != wcErrText)
+				free (pcErrText);
 			return TRUE;
 		}
     }
-	_ASSERT (FALSE);
+	_ASSERT (FALSE);										// Must be a bug.
+	if (pcErrText != wcErrText)
+		free (pcErrText);
 	return FALSE;
 }
 
@@ -2346,14 +2689,17 @@ BOOL IsCmdArgumentSwitchW	(
 			enum en_is_cmd_case_sensitive	enCase
                             )
 {
-	UNREFERENCED_PARAMETER (enHow);
 	UNREFERENCED_PARAMETER (nRelevant);
+	UNREFERENCED_PARAMETER (enHow);
+	UNREFERENCED_PARAMETER (enCase);
+
 	ASSERT (NULL != wcArgument);
 	ASSERT (NULL != wcConstIs);
 	ASSERT (0 != wcArgument [0]);
 	ASSERT (0 != wcConstIs [0]);
-	if (EN_IS_CMD_ARG_ALLOW_NO_DASH_ONLY == enCase && L'-' == wcConstIs [0])
+	if (EN_IS_CMD_ARG_ALLOW_NO_DASH_ONLY == enHow && L'-' == wcConstIs [0])
 		return FALSE;
+
 	// To do!!!
 	if (wcscmp (wcArgument, wcConstIs))
 	{	// We allow both options ("-delete" and "delete") if the argument
@@ -2638,7 +2984,7 @@ HMODULE LoadLibraryU8(
 #endif
 
 #ifdef HAVE_WINUSER
-	BOOL SendSysCommandWPARAMtoThisConsole (WPARAM wparam)
+	BOOL PostSysCommandWPARAMtoThisConsole (WPARAM wparam)
 	{
 		HWND		hConsoleWindow;
 	
@@ -2654,14 +3000,21 @@ HMODULE LoadLibraryU8(
 #ifdef HAVE_WINUSER
 	BOOL MaxiMiseThisConsoleWindow (void)
 	{
-		return SendSysCommandWPARAMtoThisConsole (SC_MAXIMIZE);
+		return PostSysCommandWPARAMtoThisConsole (SC_MAXIMIZE);
 	}
 #endif
 
 #ifdef HAVE_WINUSER
 	BOOL MiniMiseThisConsoleWindow (void)
 	{
-		return SendSysCommandWPARAMtoThisConsole (SC_MINIMIZE);
+		return PostSysCommandWPARAMtoThisConsole (SC_MINIMIZE);
+	}
+#endif
+
+#ifdef HAVE_WINUSER
+	BOOL RestoreThisConsoleWindow (void)
+	{
+		return PostSysCommandWPARAMtoThisConsole (SC_RESTORE);
 	}
 #endif
 
@@ -2786,13 +3139,6 @@ BOOL MoveFileWithProgressU8long(
 	DoneWinU16fromU8orUseThreshold (pwcSrc, wcSrc);
 	return bRet;
 }
-
-#ifdef HAVE_WINUSER
-	BOOL RestoreThisConsoleWindow (void)
-	{
-		return SendSysCommandWPARAMtoThisConsole (SC_RESTORE);
-	}
-#endif
 
 #ifdef HAVE_SHELLAPI
 	BOOL MoveToRecycleBinU8 (const char *chFileName8)
@@ -3245,19 +3591,20 @@ void SetConsoleCodePageToUTF8 (void)
 
 bool SetConsoleEnableANSI (void)
 {
+	bool b = false;
+
 	HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
 	if (INVALID_HANDLE_VALUE != hConsole)
 	{
 		DWORD	dwMode;
-		BOOL b = GetConsoleMode (hConsole, &dwMode);
+		b = GetConsoleMode (hConsole, &dwMode);
 		if (b)
 		{
 			dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
 			b = SetConsoleMode (hConsole, dwMode);
-			return b;
 		}
 	}
-	return false;
+	return b;
 }
 
 int WinSetStdoutToUTF16 (void)
@@ -3277,8 +3624,8 @@ BOOL SetCurrentDirectoryU8(
 )
 {
 	WCHAR wcPathName [WINAPI_U8_HEAP_THRESHOLD];
-	WCHAR *pwcPathName = AllocWinU16fromU8orUseThreshold (wcPathName, lpPathNameU8);
-	BOOL bRet = SetCurrentDirectoryW (pwcPathName);
+	WCHAR *pwcPathName	= AllocWinU16fromU8orUseThreshold (wcPathName, lpPathNameU8);
+	BOOL bRet			= SetCurrentDirectoryW (pwcPathName);
 	DoneWinU16fromU8orUseThreshold (pwcPathName, wcPathName);
 	return bRet;
 }
@@ -3288,8 +3635,8 @@ BOOL SetCurrentDirectoryU8long(
 )
 {
 	WCHAR wcPathName [WINAPI_U8_HEAP_THRESHOLD];
-	WCHAR *pwcPathName = AllocWinU16fromU8orUseThresholdLongFileName (wcPathName, lpPathNameU8);
-	BOOL bRet = SetCurrentDirectoryW (pwcPathName);
+	WCHAR *pwcPathName	= AllocWinU16fromU8orUseThresholdLongFileName (wcPathName, lpPathNameU8);
+	BOOL bRet			= SetCurrentDirectoryW (pwcPathName);
 	DoneWinU16fromU8orUseThreshold (pwcPathName, wcPathName);
 	return bRet;
 }
@@ -3300,8 +3647,8 @@ DWORD SetFileAttributesU8(
 )
 {
 	WCHAR wcFileName [WINAPI_U8_HEAP_THRESHOLD];
-	WCHAR *pwcFileName = AllocWinU16fromU8orUseThreshold (wcFileName, lpFileNameU8);
-	DWORD dwRet = SetFileAttributesW (pwcFileName, dwFileAttributes);
+	WCHAR *pwcFileName	= AllocWinU16fromU8orUseThreshold (wcFileName, lpFileNameU8);
+	DWORD dwRet			= SetFileAttributesW (pwcFileName, dwFileAttributes);
 	DoneWinU16fromU8orUseThreshold (pwcFileName, wcFileName);
 	return dwRet;
 }
@@ -3312,8 +3659,8 @@ DWORD SetFileAttributesU8long(
 )
 {
 	WCHAR wcFileName [WINAPI_U8_HEAP_THRESHOLD];
-	WCHAR *pwcFileName = AllocWinU16fromU8orUseThresholdLongFileName (wcFileName, lpFileNameU8);
-	DWORD dwRet = SetFileAttributesW (pwcFileName, dwFileAttributes);
+	WCHAR *pwcFileName	= AllocWinU16fromU8orUseThresholdLongFileName (wcFileName, lpFileNameU8);
+	DWORD dwRet			= SetFileAttributesW (pwcFileName, dwFileAttributes);
 	DoneWinU16fromU8orUseThreshold (pwcFileName, wcFileName);
 	return dwRet;
 }
@@ -3332,6 +3679,30 @@ BOOL SetFileSecurityU8(
 	return bRet;
 }
 #endif
+
+/*
+	ToDo!!!
+	Doesn't seem to work!!!
+*/
+bool TerminateChildProcess (HANDLE hProcess)
+{
+	bool b = true;
+
+	b &= GenerateConsoleCtrlEvent (CTRL_C_EVENT, GetProcessId (hProcess));
+	b &= GenerateConsoleCtrlEvent (CTRL_BREAK_EVENT, GetProcessId (hProcess));
+
+	DWORD dwWait = WaitForSingleObject (hProcess, 500);
+	if (WAIT_OBJECT_0 == dwWait)
+		return true;
+
+	// Child still running.
+	b &= TerminateProcess (hProcess, ERROR_PROCESS_ABORTED);
+	dwWait = WaitForSingleObject (hProcess, 500);
+	if (WAIT_OBJECT_0 == dwWait)
+		return true;
+
+	return b;
+}
 
 BOOL IsFirstArgumentExeArgumentW (int *pargc, WCHAR **pargv [])
 {

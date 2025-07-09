@@ -260,6 +260,9 @@ When		Who				What
 #ifndef ASCII_SPC
 #define ASCII_SPC			'\x20'
 #endif
+#ifndef ASCII_ESC
+#define	ASCII_ESC			'\x1B'
+#endif
 #ifndef ASCII_SLASH
 #define ASCII_SLASH			'/'
 #endif

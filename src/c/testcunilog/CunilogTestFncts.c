@@ -54,16 +54,20 @@ When		Who				What
 		#include "./cunilog.h"
 		#include "./unref.h"
 		#include "./memstrstr.h"
+		#include "./stransi.h"
 		#include "./strcustomfmt.h"
+		#include "./strfilesys.h"
 		#include "./strwildcards.h"
 		#include "./strhex.h"
 		#include "./check_utf8.h"
+		#include "./ProcessHelpers.h"
 
 		// Required for the tests.
 		#include "./ubfdebug.h"
 
 		#ifdef PLATFORM_IS_WINDOWS
 			#include "./WinAPI_ReadDirFncts.h"
+			#include "./WinAPI_U8_Test.h"
 		#else
 
 		#endif
@@ -75,16 +79,20 @@ When		Who				What
 		#include "./../datetime/ubf_date_and_time.h"
 		#include "./../pre/unref.h"
 		#include "./../mem/memstrstr.h"
+		#include "./../string/stransi.h"
 		#include "./../string/strcustomfmt.h"
+		#include "./../string/strfilesys.h"
 		#include "./../string/strhex.h"
 		#include "./../string/strwildcards.h"
 		#include "./../string/check_utf8.h"
+		#include "./../OS/ProcessHelpers.h"
 
 		// Required for the tests.
 		#include "./../dbg/ubfdebug.h"
 
 		#ifdef PLATFORM_IS_WINDOWS
 			#include "./../OS/Windows/WinAPI_ReadDirFncts.h"
+			#include "./../OS/Windows/WinAPI_U8_Test.h"
 		#else
 
 		#endif
@@ -122,6 +130,11 @@ void CunilogTestFnctDisabledToConsole (bool bResult)
 		ubf_assert (false);
 	}
 
+}
+
+void CunilogTestFnctNotRequiredToConsole (void)
+{
+	cunilog_puts_sev (cunilogEvtSeverityNonePass, "\tUntested because not required on this platform");
 }
 
 static bool testV (CUNILOG_TARGET *put, char *sz, ...)
@@ -423,6 +436,46 @@ bool CunilogTestFunction	(
 
 	cunilog_puts ("Starting Cunilog tests...");
 
+	CunilogTestFnctStartTestToConsole ("Internal test of module stransi...");
+	#ifdef STRANSI_BUILD_TEST_FNCT
+		b &= stransi_test_fnct ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		b &= stransi_test_fnct ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macros tested. Internal test of module stransi...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Quick ISO date tests...");
+	const char *szBld = szBuild_ISO__DATE__ ();
+	ubf_expect_bool_AND (b, LEN_ISO8601DATE == strlen (szBld));
+	szBld = szBuild_ISO__DATE__TIME__ ();
+	ubf_expect_bool_AND (b, LEN_ISO8601DATETIMESTAMP_NO_OFFS == strlen (szBld));
+	CunilogTestFnctResultToConsole (b);
+
+	CunilogTestFnctStartTestToConsole ("Internal test of module WinAPI_U8...");
+	#ifdef _WIN32
+		#ifdef BUILD_TEST_WINAPI_U8_FNCT
+			b &= Test_WinAPI_U8 ();
+			CunilogTestFnctResultToConsole (b);
+		#else
+			b &= Test_WinAPI_U8 ();
+			CunilogTestFnctResultToConsole (b);
+			CunilogTestFnctStartTestToConsole ("Only macros tested. Internal test of module WinAPI_U8...");
+			CunilogTestFnctDisabledToConsole (b);
+		#endif
+	#else
+		CunilogTestFnctNotRequiredToConsole ();
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Internal test of module ProcessHelpers...");
+	#ifdef PROCESS_HELPERS_BUILD_TEST_FNCT
+		CunilogTestFnctResultToConsole (ProcessHelpersTestFnct ());
+	#else
+		CunilogTestFnctDisabledToConsole (ProcessHelpersTestFnct ());
+	#endif
+
 	CunilogTestFnctStartTestToConsole ("Testing directory reader...");
 	#ifdef PLATFORM_IS_WINDOWS
 		b &= ForEachDirectoryEntryMaskU8TestFnct ();
@@ -537,6 +590,18 @@ bool CunilogTestFunction	(
 		b &= ISO_DATE_Test_function ();
 		CunilogTestFnctResultToConsole (b);
 		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module ISO__DATE__...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	#if BUILD_DEBUG_UBF_STRFILESYS_TESTS
+		CunilogTestFnctStartTestToConsole ("Self-test module strfilesys...");
+		b &= ubf_test_ubf_strfilesys ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		CunilogTestFnctStartTestToConsole ("Self-test module strfilesys...");
+		b &= ubf_test_ubf_strfilesys ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. self-test module strfilesys...");
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 
@@ -664,7 +729,7 @@ bool CunilogTestFunction	(
 				cunilogEvtTS_Default,
 				cunilogNewLineDefault,
 				cunilogRunProcessorsOnStartup
-	);
+										);
 	CunilogTestFnctResultToConsole (NULL != put);
 	if (NULL == put)
 		return false;
@@ -691,7 +756,7 @@ bool CunilogTestFunction	(
 				cunilogEvtTS_Default,
 				cunilogNewLineDefault,
 				cunilogRunProcessorsOnStartup
-	);
+										);
 	CunilogTestFnctResultToConsole (NULL != put);
 	if (NULL == put)
 		return false;
@@ -833,7 +898,7 @@ bool CunilogTestFunction	(
 	Sleep (2000);
 	ResumeLogCUNILOG_TARGETstatic ();
 
-	logTextU8_static ("This one's in UTF-16 (\xC5\x98), which should be an \"R\" with a flipped roof.");
+	logTextU8_static ("This one's in UTF-8 (\xC5\x98), which should be an \"R\" with a flipped roof (U+0158).");
 	testV (put, "Hello %i", 20);
 	logTextU8sev_static (cunilogEvtSeverityDebug, "This is a debug message");
 	logTextU8sev_static (cunilogEvtSeverityCritical, "This is a critical message");

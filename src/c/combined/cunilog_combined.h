@@ -732,6 +732,9 @@ When		Who				What
 #ifndef ASCII_SPC
 #define ASCII_SPC			'\x20'
 #endif
+#ifndef ASCII_ESC
+#define	ASCII_ESC			'\x1B'
+#endif
 #ifndef ASCII_SLASH
 #define ASCII_SLASH			'/'
 #endif
@@ -1608,6 +1611,23 @@ void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
 TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 
 /*
+	growToSizeSMEMBUFreserve
+
+	The function is identical to growToSizeSMEMBUF () but additionally reserves res bytes/
+	octets when the buffer size is increased.
+
+	The current content of the buffer is not transferred to the new buffer and is therefore
+	lost.
+
+	The function returns a pointer to ps->buf.pvoid.
+	
+	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	Check with isUsableSMEMBUF() if the structure can be used afterwards.
+*/
+void *growToSizeSMEMBUFreserve (SMEMBUF *pb, size_t siz, size_t res);
+TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUFreserve) (SMEMBUF *pb, size_t siz, size_t res);
+
+/*
 	growToSizeSMEMBUF64aligned
 
 	The function is identical to growToSizeSMEMBUF () but always aligns the size to
@@ -1863,9 +1883,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./functionptrtpydef.h"
+		#include "./platform.h"
 	#else
 		#include "./../../pre/externC.h"
 		#include "./../../pre/functionptrtpydef.h"
+		#include "./../../pre/platform.h"
 	#endif
 
 #endif
@@ -1978,9 +2000,10 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 
 // The threshold up to which buffers are placed on the stack as automatic
 //	variables.
-#ifndef BUILD_TEST_WINAPI_U8_TEST_DEBUG
+#ifdef BUILD_TEST_WINAPI_U8_FNCT
 	#ifndef WINAPI_U8_HEAP_THRESHOLD
-	#define WINAPI_U8_HEAP_THRESHOLD		(1024)
+	#define WINAPI_U8_HEAP_THRESHOLD		(16)
+	//#define WINAPI_U8_HEAP_THRESHOLD		(256)
 	#endif
 #else
 	#ifndef WINAPI_U8_HEAP_THRESHOLD
@@ -2860,6 +2883,37 @@ TYPEDEF_FNCT_PTR (HANDLE, CreateMutexExU8)
 );
 
 /*
+	CreatePipeOverlapped
+
+	This is not a Windows API but rather a convenience function to create a pipe
+	with overlapped handles. The two boolean parameters set the handle in question
+	to overlapped when true. Otherwise, the function is identical to CreatePipe ().
+	See
+	https://learn.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-createpipe .
+
+	The function utilises a modified version of MyCreatePipeEx (), originally found at
+	http://www.davehart.net/remote/PipeEx.c . It has been taken from
+	https://web.archive.org/web/20150125081922/http://www.davehart.net:80/remote/PipeEx.c
+	and modified for UTF-16.
+*/
+BOOL CreatePipeOverlapped(
+		PHANDLE					hReadPipe,
+		bool					bOverlappedRead,
+		PHANDLE					hWritePipe,
+		bool					bOverlappedWrite,
+		LPSECURITY_ATTRIBUTES	lpPipeAttributes,
+		DWORD					nSize
+);
+TYPEDEF_FNCT_PTR (BOOL, CreatePipeOverlapped)(
+		PHANDLE					hReadPipe,
+		bool					bOverlappedRead,
+		PHANDLE					hWritePipe,
+		bool					bOverlappedWrite,
+		LPSECURITY_ATTRIBUTES	lpPipeAttributes,
+		DWORD					nSize
+);
+
+/*
 	CreateProcessU8EnvW
 	
 	UTF-8 version of CreateProcessW (). See
@@ -3020,8 +3074,8 @@ TYPEDEF_FNCT_PTR (SC_HANDLE, CreateServiceU8)
 	Call DoneWin16StringArray () on the returned pointer when it is not
 	required anymore to deallocate its resources.
 */
-WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, WORD numStrings);
-TYPEDEF_FNCT_PTR (WCHAR **, CreateWin16tringArrayFromU8) (const char **pu8, WORD numStrings);
+WCHAR **CreateWin16tringArrayFromU8 (const char **pu8, size_t numStrings);
+TYPEDEF_FNCT_PTR (WCHAR **, CreateWin16tringArrayFromU8) (const char **pu8, size_t numStrings);
 
 
 /*
@@ -3030,8 +3084,8 @@ TYPEDEF_FNCT_PTR (WCHAR **, CreateWin16tringArrayFromU8) (const char **pu8, WORD
 	Deallocates the resources of a Windows UTF-16 string array created with
 	CreateWin16tringArrayFromU8 ().
 */
-void DoneWin16StringArray (WCHAR **pwcStringArray, WORD numStrings);
-TYPEDEF_FNCT_PTR (void, DoneWin16StringArray) (WCHAR **pwcStringArray, WORD numStrings);
+void DoneWin16StringArray (WCHAR **pwcStringArray, size_t numStrings);
+TYPEDEF_FNCT_PTR (void, DoneWin16StringArray) (WCHAR **pwcStringArray, size_t numStrings);
 
 /*
 	CreateWinU16EnvironmentFromU8
@@ -3800,6 +3854,105 @@ TYPEDEF_FNCT_PTR (DWORD, GetPrivateProfileStringU8)
 ;
 
 /*
+	GetSystemDirectoryU8
+
+	UTF-8 version of GetSystemDirectoryW (). See
+	https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsystemdirectoryw
+	for details.
+
+	Note that the parameter uSize as well as the return value are in octets (bytes) rather than
+	TCHARs.
+
+	A typical directory returned by this function could be C:\Windows\System32.
+*/
+UINT GetSystemDirectoryU8(
+	LPSTR	lpBuffer,
+	UINT	uSize
+);
+TYPEDEF_FNCT_PTR (UINT, GetSystemDirectoryU8)
+(
+	LPSTR	lpBuffer,
+	UINT	uSize
+);
+
+/*
+	SystemDirectoryU8
+	SystemDirectoryU8len
+	DoneSystemDirectoryU8
+
+	Obtain and keep a copy of the system directory, which is the folder retrieved by
+	GetSystemDirectoryU8 ().
+
+	The function SystemDirectoryU8 () obtains the path of the system directory (excluding
+	a directory separator), while SystemDirectoryU8ln () obtains its length.
+
+	You may call DoneSystemDirectoryU8 () to free the buffer that holds the path to the
+	system directory. If DoneSystemDirectoryU8 () is not called before the application
+	exits, the operating system reclaims the memory implicitely after the application
+	has terminated.
+
+	Since the system directory cannot change during the runtime of an application, and
+	if the name of the system directory is required more than once, it is usually more
+	efficient to call SystemDirectoryU8 () instead of GetSystemDirectoryU8 ().
+*/
+const char	*SystemDirectoryU8		(void);
+size_t		SystemDirectoryU8len	(void);
+void		DoneSystemDirectoryU8	(void);
+TYPEDEF_FNCT_PTR (const char*,	SystemDirectoryU8)		(void);
+TYPEDEF_FNCT_PTR (size_t,		SystemDirectoryU8len)	(void);
+TYPEDEF_FNCT_PTR (void,			DoneSystemDirectoryU8)	(void);
+
+/*
+	GetSystemWindowsDirectoryU8
+
+	UTF-8 version of the Windows API function GetSystemWindowsDirectoryW (). See
+	https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-getsystemwindowsdirectoryw
+	for details.
+
+	Note that the parameter uSize as well as the return value are in octets (bytes) rather than
+	TCHARs.
+
+	A typical directory returned by this function could be C:\Windows.
+*/
+UINT GetSystemWindowsDirectoryU8(
+	LPSTR	lpBuffer,
+	UINT	uSize
+);
+TYPEDEF_FNCT_PTR (UINT, GetSystemWindowsDirectoryU8)
+(
+	LPSTR	lpBuffer,
+	UINT	uSize
+);
+
+/*
+	SystemWindowsDirectoryU8
+	SystemWindowsDirectoryU8len
+	DoneSystemWindowsDirectoryU8
+
+	Obtain and keep a copy of the shared Windows directory, which is the folder retrieved by
+	GetSystemWindowsDirectoryU8 ().
+
+	The function GetSystemWindowsDirectoryU8 () obtains the path of the shared Windows
+	directory (excluding a directory separator), while SystemWindowsDirectoryU8len () obtains
+	its length.
+
+	You may call DoneSystemWindowsDirectoryU8 () to free the buffer that holds the path to the
+	system directory. If DoneSystemWindowsDirectoryU8 () is not called before the application
+	exits, the operating system reclaims the memory implicitely after the application
+	has terminated.
+
+	Since the shared Windows directory cannot change during the runtime of an application,
+	and if the name of the system directory is required more than once, it is usually more
+	efficient to call SystemWindowsDirectoryU8 () instead of GetSystemWindowsDirectoryU8 ().
+*/
+const char	*SystemWindowsDirectoryU8		(void);
+size_t		SystemWindowsDirectoryU8len		(void);
+void		DoneSystemWindowsDirectoryU8	(void);
+TYPEDEF_FNCT_PTR (const char*,	SystemWindowsDirectoryU8)		(void);
+TYPEDEF_FNCT_PTR (size_t,		SystemWindowsDirectoryU8len)	(void);
+TYPEDEF_FNCT_PTR (void,			DoneSystemWindowsDirectoryU8)	(void);
+
+/*
 	GetUserNameU8
 	
 	UTF-8 version of GetUserNameW (). See
@@ -4019,7 +4172,7 @@ enum en_is_cmd_case_sensitive
 	IsCmdArgumentSwitchW
 	
 	Compares the Windows UTF-16 text wcArgument points to with the Windows UTF-16
-text wcConstIs points to, which is expected to be a constant string. 
+	text wcConstIs points to, which is expected to be a constant string. 
 	The argument can be shortened down to at least nRelevant characters. The parameter
 	enHow tells the function if single or double dashes before the actual switch
 	are accepted or not.
@@ -5066,6 +5219,17 @@ TYPEDEF_FNCT_PTR (DWORD, SetFileAttributesU8long)
 #endif
 
 /*
+	TerminateChildProcess
+
+	Terminates the given child process.
+
+	The function first tries to terminate the child process in a peaceful way.
+	If this fails, TerminateProcess () is called on the child process.
+*/
+bool TerminateChildProcess (HANDLE hProcess);
+TYPEDEF_FNCT_PTR (bool, TerminateChildProcess) (HANDLE hProcess);
+
+/*
 	IsFirstArgumentExeArgumentW
 
 	Returns TRUE if the function determined that the first argument in the argument
@@ -5245,6 +5409,58 @@ EXTERN_C_END
 #endif															// Of #ifdef _WIN32.
 
 #endif															// Of #ifndef WINDOWSU8_H.
+/****************************************************************************************
+
+	File		WinAPI_U8_Test.h
+	Why:		Test module for WinAPI_U8.
+	OS:			Windows
+	Author:		Thomas
+	Created:	2021-04-17
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2021-04-17	Thomas			Created.
+
+****************************************************************************************/
+
+#ifndef WINAPI_U8_TEST_H
+#define WINAPI_U8_TEST_H
+
+#ifdef _WIN32
+	#ifndef CUNILOG_USE_COMBINED_MODULE
+
+		#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+			#include "./WinAPI_U8.h"
+		#else
+			#include "./WinAPI_U8.h"
+		#endif
+
+	#endif
+#endif
+
+#ifdef _WIN32
+
+EXTERN_C_BEGIN
+
+/*
+	Test_WinAPI_U8
+	
+	Test function for the WinAPI_U8 module.
+*/
+#ifdef BUILD_TEST_WINAPI_U8_FNCT
+	bool Test_WinAPI_U8 (void);
+#else
+	#define Test_WinAPI_U8()	(true)
+#endif
+
+EXTERN_C_END
+
+#endif														// Of #ifdef _WIN32.
+
+#endif														// Of #ifndef WINAPI_U8_TEST_H.
 /****************************************************************************************
 
 	File		WinAPI_ReadDirFncts.h
@@ -7214,6 +7430,279 @@ EXTERN_C_BEGIN
 EXTERN_C_END
 
 #endif														// Of #ifndef EXEFILENAME_H.
+/****************************************************************************************
+
+	File:		ProcessHelpers.h
+	Why:		Functions for creating and handling processes.
+	OS:			C99
+	Author:		Thomas
+	Created:	2025-06-05
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-06-05	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS
+
+#ifndef U_PROCESSHELPERS_H
+#define U_PROCESSHELPERS_H
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <stddef.h>
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./platform.h"
+		#include "./membuf.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/platform.h"
+		#include "./../mem/membuf.h"
+	#endif
+
+#endif
+
+EXTERN_C_BEGIN
+
+#ifdef PLATFORM_IS_WINDOWS
+	//typedef cunilog_process_t
+#else
+
+#endif
+
+#ifndef PRCHLPS_DEF_EXCESS_BUFFER
+#define PRCHLPS_DEF_EXCESS_BUFFER		(256)
+#endif
+
+/*
+	ProcessHelpersSetBufferSize
+
+	Sets the default buffer size of the module. Default is PRCHLPS_DEF_EXCESS_BUFFER.
+
+	The function returns the prvious default buffer size.
+*/
+size_t ProcessHelpersSetBufferSize (size_t bufsize);
+
+/*
+	Squeezes the executable's name plus all arguments in a single string.
+	The executable's name is going to be the first argument.
+
+	If bNoExeArg is true, no executable argument is written to the returned string.
+	While pretty much standard in POSIX, some Windows applications don't like it when
+	their first argument is the name of the executable. Set bNoExeArg to true for
+	those applications; otherwise set it to false.
+*/
+char *CreateArgsList (const char *szExecutable, int argc, const char *argv [], bool bNoExeArg)
+;
+
+/*
+	Callback function return values.
+
+	enRunCmdRet_Continue			This is the default. The calling function carries
+									on until the child process exits.
+									CreateAndRunCmdProcessCaptureStdout () returns true.
+
+	enRunCmdRet_Ignore				The callback function is not called again but the
+									child process keeps running until it exits itself.
+									CreateAndRunCmdProcessCaptureStdout () returns true.
+
+	enRunCmdRet_Terminate			Terminate the child process.
+									CreateAndRunCmdProcessCaptureStdout () returns true.
+
+	enRunCmdRet_TerminateFail		Terminate the child process.
+									CreateAndRunCmdProcessCaptureStdout () returns true.
+*/
+enum enRunCmdCallbackRetValue
+{
+	enRunCmdRet_Continue,									// No change/continue.
+	enRunCmdRet_Terminate,									// Exit child process.
+	enRunCmdRet_Ignore,										// Keep child process running
+															//	but stop calling callback
+															//	function for this stream.
+	enRunCmdRet_TerminateFail
+};
+typedef enum enRunCmdRet enRCmdCBval;
+
+/*
+	Callback function for stdout andstderr.
+*/
+typedef enRCmdCBval rcmdOutCB (const char *szOutput, size_t lnOutput, void *pCustom);
+/*
+	Callback function for stdin.
+
+	The parameter psmb points to an initialised but otherwise empty SMEMBUF structure.
+	The buffer of this structure can be populated with data by the callback function.
+	This data is forwarded/sent to the child process's input stream stdin.
+
+	The address plnData points to must be set to the length of the data that should
+	be sent to the child's stdin stream. If nothing needs to be sent to the child process's
+	input stream, *plenData must be set to 0 by the callback function.
+
+	For example, a callback function of type rcmdInpCB could send the command "exit\n"
+	(note the "\n" to simulate the enter key) to the child process:
+
+	enRCmdCBval cbInp (SMEMBUF *psmb, size_t *plnData, void *pCustom)
+	{
+		UNUSED (pCustom);
+
+		*plnData = SMEMBUFfromStr (psmb, "exit\n", USE_STRLEN);
+		return enRunCmdRet_Continue;
+	}
+
+*/
+typedef enRCmdCBval rcmdInpCB (SMEMBUF *psmb, size_t *plnData, void *pCustom);
+
+typedef struct srcmdCBs
+{
+	rcmdInpCB	*cbInp;
+	rcmdOutCB	*cbOut;
+	rcmdOutCB	*cbErr;
+} SRCMDCBS;
+
+/*
+	Which callback functions to call and execeutable argument.
+*/
+#define RUNCMDPROC_CALLB_STDINP		(0x0001)				// Invoke callback for stdin.
+#define RUNCMDPROC_CALLB_STDOUT		(0x0002)				// Invoke callback for stdout.
+#define RUNCMDPROC_CALLB_STDERR		(0x0004)				// Invoke callback for stderr.
+#define RUNCMDPROC_EXEARG_NOEXE		(0x0008)				// No exe argument in parameter
+															//	list. See comments for function
+															//	CreateArgsList () for details.
+															//	This flag sets the parameter
+															//	bNoExeArg of CreateArgsList ()
+															//	to true.
+
+/*
+	Internal flags. Must not be utilised by callers.
+
+	Note that RUNCMDPROC_CALLB_INTERR only exists for consistency. It is implied that if
+	RUNCMDPROC_CALLB_INTOUT is not set, RUNCMDPROC_CALLB_INTERR is assumed. See function
+	callOutCB () on how it is implemented.
+*/
+#define RUNCMDPROC_CALLB_INTOUT		(0x0100)				// Called for stdout.
+#define RUNCMDPROC_CALLB_INTERR		(0x0200)				// Called for stderr. This flag only
+															//	exists for consistency reasons.
+															//	It is never checked.
+
+/*
+	How or when the callback functions are to be called.
+
+	enRunCmdHow_AsIs		Called whenever data is available, meaning it might arrive in
+							uncontrollable chunks. The data is not necessarily NUL-terminated.
+
+	enRunCmdHow_AsIs0		Called whenever data is available, may arrive in uncontrollable
+							chunks, but each chunk is always NUL-terminated.
+
+	enRunCmdHow_OneLine		Called for complete lines only, and called once for each collected
+							line. The data does not contain line endings but is always NUL-
+							terminated. A value of 0 for the parameter lnData means an empty
+							line has been encountered.
+
+	enRunCmdHow_All			Called only once with the entire collected output of the process.
+							The data is NUL-terminated. Never called with a length of 0.
+*/
+enum enRunCmdHowToCallCB
+{
+	enRunCmdHow_AsIs,										// Whenever data is available.
+	enRunCmdHow_AsIs0,										// Same but NUL-terminated.
+	enRunCmdHow_OneLine,									// Per complete line.
+	enRunCmdHow_All											// Everything in one go.
+															//	Buffer is NUL-terminated.
+};
+typedef enum enRunCmdHowToCallCB enRCmdCBhow;
+
+/*
+	CreateAndRunProcessCaptureStdout
+
+	Creates and runs a command-line process.
+	
+	The process's input (stdin) can be provided by a callback function, and its output (stdout
+	and stderr) can be captured by callback functions.
+
+	Parameters
+
+	szExecutable		A NUL-terminated string with the path and name of the executable module
+						of the command-line process.
+
+	szCmdLine			The command-line arguments/parameters.
+
+	szWorkingDir		The working directory/current directory of the command-line process.
+
+	pCBs				A pointer to an SRCMDCBS structure that contains pointers to the
+						callback functions.
+
+	cbHow				Specifies how and when the callback functions are to be invoked by the
+						function. See the enum enRunCmdHowToCallCB for a list of possible
+						options.
+
+	uiRCflags			Option flags.
+
+	pCustom				An arbitrary pointer or value that is passed on to the callback functions.
+*/
+	bool CreateAndRunCmdProcessCaptureStdout	(
+			const char				*szExecutable,
+			const char				*szCmdLine,
+			const char				*szWorkingDir,
+			SRCMDCBS				*pCBs,
+			enRCmdCBhow				cbHow,					// How to call the callback functions.
+			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
+															//	flags.
+			void					*pCustom				// Passed on unchanged to callback
+															//	functions.
+												)
+;
+
+
+/*
+	ProcessHelpersTestFnct
+
+*/
+#ifdef PROCESS_HELPERS_BUILD_TEST_FNCT
+	bool ProcessHelpersTestFnct (void);
+#else
+	#define ProcessHelpersTestFnct() (true)
+#endif
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_PROCESSHELPERS_H.
+
+#endif														// Of #ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS.
 /****************************************************************************************
 
 	File:		SharedMutex.h
@@ -12226,6 +12715,17 @@ uint64_t BuildYear_uint64 (void);
 uint16_t BuildYear_uint16 (void);
 
 /*
+	is_datetimestampformat_l
+
+	Checks if the string str might be a date/timestamp.
+
+	The function only checks if digits are where they should be. It does not carry out
+	any sanity check on the date/timestamp itself. This means "0000-00-00" is a valid
+	date/timestamp, and the function returns true in this case.
+*/
+bool is_datetimestampformat_l (const char *str, size_t len);
+
+/*
 	FormattedMilliseconds
 
 	Copies the time value in uiTimeInMilliseconds as a formatted string to the
@@ -13439,6 +13939,68 @@ typedef struct stransicoloursequence
 	size_t	lnColSequence;
 } STRANSICOLOURSEQUENCE;
 
+
+/*
+	isANSIescSequence
+
+	Checks if the character sequence starting at sz with length ln is an ANSI
+	escape sequence.
+
+	The Wikipedia article https://en.wikipedia.org/wiki/ANSI_escape_code has been used
+	as the basis to determine if sz is an ANSI escape sequence:
+
+	https://en.wikipedia.org/wiki/ANSI_escape_code#Control_Sequence_Introducer_commands
+
+	"For Control Sequence Introducer, or CSI, commands, the ESC [ (written as \e[, \x1b[
+	or \033[ in several programming languages) is followed by any number (including none)
+	of "parameter bytes" in the range 0x30-0x3F (ASCII 0-9:;<=>?), then by any number of
+	"intermediate bytes" in the range 0x20-0x2F (ASCII space and !"#$%&'()*+,-./), then
+	finally by a single "final byte" in the range 0x40-0x7E (ASCII @A-Z[\]^_`a-z{|}~)"
+
+	The function returns the amount of characters belonging to the escape sequence,
+	or 0, if sz does not start with an ANSI escape sequence. It never returns a
+	value greater than ln.
+
+	The function's purpose is not the ensure that an ANSI escape sequence is syntactically
+	correct. Its purpose is rather to identify sequences for removal. For instance, the
+	function returns 1 for a single ESC character (1Bh), and 2 for ESC + "[", but both
+	are not on their own valid ANSI escape sequences.
+
+	The parameter ln can be USE_STRLEN, in which case the function calls strlen () on sz
+	to determine its length.
+*/
+size_t isANSIescSequence (const char *sz, size_t ln)
+;
+
+/*
+	removeANSIescSequences
+
+	Removes all ANSI escape sequences from sz and returns its new length.
+
+	The function calls isANSIescSequence () to determine whether an ANSI escape sequence
+	should be removed or not. If at leas one ANSI escape sequence has been found at replaced,
+	then the function NUL-terminates sz even if it hasn't been NUL-terminated before the
+	call.
+
+	The parameter ln can be USE_STRLEN, in which case the function calls strlen () on sz
+	to determine its length.
+
+	The return value is the length of the string sz after all found ANSI escape sequences
+	have been removed.
+*/
+size_t removeANSIescSequences (char *sz, size_t ln)
+;
+
+/*
+	stransi_test_fnct
+
+	Function to test the module.
+*/
+#ifdef STRANSI_BUILD_TEST_FNCT
+	bool stransi_test_fnct (void);
+#else
+	#define stransi_test_fnct()	(true)
+#endif
 
 EXTERN_C_END
 
@@ -14691,6 +15253,217 @@ EXTERN_C_END
 #endif															// End of #ifndef U_STR_HEX_H.
 /****************************************************************************************
 
+	File:		strlineextract.h
+	Why:		Line extractor.
+	OS:			C99.
+	Author:		Thomas
+	Created:	2022-03-31
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2022-03-31	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef U_STRLINEEXTRACT_H
+#define U_STRLINEEXTRACT_H
+
+#include <stddef.h>
+#include <stdbool.h>
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./platform.h"
+		#include "./membuf.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/platform.h"
+		#include "./../mem/membuf.h"
+	#endif
+
+#endif
+
+EXTERN_C_BEGIN
+
+enum enStrlineExtractCharSet
+{
+		EN_STRLINEEXTRACT_UTF8
+	,	EN_STRLINEEXTRACT_UTF16								// Not supported yet.
+};
+
+typedef struct strlineconf
+{
+	enum enStrlineExtractCharSet	CharacterSet;			// Specifies the used character set.
+															//	Currently, only
+															//	EN_STRLINEEXTRACT_UTF8 is
+															//	supported.
+	size_t							tabSize;				// The width of a TAB character.
+															//	Currently not used/supported.
+	char							**pchLineCommentStr;	// Pointer to an array of strings, in
+															//	UTF-8, containing line comment
+															//	characters. If this is NULL, no
+															//	line comments are accepted.
+	size_t							nLineCommentStr;		// Size of the array of strings
+															//	pchLineCommentStr points to.
+															//	Must be 0 if pchLineCommentStr
+															//	is NULL. If this is 0, no line
+															//	comments are accepted.
+	// Start and end multi-line comments characters.
+	char							**pchStartMultiCommentStr;
+	char							**pchEndMultiCommentStr;
+	size_t							nMultiCommentStr;
+	#ifdef DEBUG
+		bool						bInitialised;
+	#endif
+} STRLINECONF;
+
+/*
+	STRLINEINF
+
+	The structure passed on to the callback function.
+*/
+typedef struct strlineinf
+{
+	void				*pStart;							// Pointer to the first character
+															//	of a line that is not a white
+															//	space character.
+	size_t				lnLength;							// Length of a line, not counting
+															//	ending white space characters
+															//	or new line control codes.
+	size_t				lineNumber;							// The line number within the buffer.
+															//	First line is 1.
+	size_t				charNumber;							// The position of pStart within
+															//	a line. 1 = first column/character.
+	size_t				absPosition;						// Position within the entrie buffer.
+															//	1 = first position/character.
+	void				*pCustom;							// Can be used by the caller.
+	#ifdef DEBUG
+		bool			bInitialised;
+	#endif
+} STRLINEINF;
+
+typedef bool (*StrLineExtractCallback) (STRLINEINF *psli);
+
+/*
+	InitSTRLINECONFforUBFL
+
+	Initialises the STRLINECONF structure pc points to for UBFL language file lines
+	and multi-line comments and a tab size of 4. Character set is UTF-8
+	(EN_STRLINEEXTRACT_UTF8).
+*/
+void InitSTRLINECONFforUBFL (STRLINECONF *pc)
+;
+
+/*
+	InitSTRLINECONFforC
+	
+	Initialises the STRLINECONF structure pc points to for C/C++ lines and multi-line
+	comments and a tab size of 4. Character set is UTF-8 (EN_STRLINEEXTRACT_UTF8).
+*/
+void InitSTRLINECONFforC (STRLINECONF *pc);
+
+/*
+	StrLineExtractU8
+
+	The actual UTF-8 line extractor, which is called by StrLineExtract () depending
+	on the CharacterSet member of the STRLINECONF structure. Debug versions assert that
+	this member is EN_STRLINEEXTRACT_UTF8.
+
+	See descrption of StrLineExtract () for details.
+
+	The function returns how many times the callback function has been invoked,
+	which can be 0.
+*/
+unsigned int StrLineExtractU8	(
+				char					*pBuf,
+				size_t					lenBuf,
+				STRLINECONF				*pConf,
+				StrLineExtractCallback	cb,
+				void					*pCustom
+								)
+;
+
+/*
+	StrLineExtract
+
+	The entry function for the line extractor. It calls the callback function for each
+	extracted line. The STRLINECONF structure pConf points to controls how lines are
+	extracted while line and block (multi-line) comments are ignored. Each extracted
+	line is stripped of leading and trailing white space before it is passed on to the
+	callback function cb points to. The callback function receives a pointer to a STRLINEINF
+	structure that contains a pointer to the line buffer, its length, and a few other
+	parameters, like for instance the line number.
+
+	Call InitSTRLINECONFforC () to configure the STRLINECONF structure for C-style
+	line and block comments, call InitSTRLINECONFforUBFL () to initialise the structure
+	for UBFL language file line and multi-line comments, or use either function as an
+	example to roll your own.
+
+	pBuf			A pointer to the buffer that contains the data of which lines are
+					to be extracted.
+	lenBuf			The length of the buffer, in characters.
+	pConf			A pointer to an initialised STRLINECONF structure. The caller fills
+					this structure to control the function. If this parameter is NULL,
+					the function uses its own STRLINECONF structure and calls
+					InitSTRLINECONFforC () for it before it is used.
+	cb				A pointer to a StrLineExtractCallback () callback function. This
+					function is called for each extracted line. The function is passed
+					an STRLINEINF structure with some information. The callback function
+					returns TRUE for each line processed. When the function returns
+					FALSE StrLineExtract returns too, returning the amount of times
+					the callback function has been called so far.
+	pCustom			An arbitrary pointer passed on to the callback function through
+					the pCustom member of the STRLINEINF structure.
+
+	The function returns how many times the callback function has been invoked,
+	which can be 0.
+*/
+unsigned int StrLineExtract	(
+				void					*pBuf,
+				size_t					lenBuf,
+				STRLINECONF				*pConf,
+				StrLineExtractCallback	cb,
+				void					*pCustom
+							)
+;
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_STRLINEEXTRACT_H.
+/****************************************************************************************
+
 	File:		strnewline.h
 	Why:		New line functions.
 	OS:			C99
@@ -14729,7 +15502,17 @@ When		Who				What
 	CUNILOG_NEWLINE_POSIX_AND_WINDOWS_ONLY
 
 	Only POSIX (LF) and Windows (CRLF) line endings are supported. The enumeration values
-	for other line endings are removed by the preprocessor.
+	for other line endings are removed by the preprocessor. Since June 2025, this is the
+	default and does not need to be defined anymore.
+
+
+	CUNILOG_NEWLINE_EXTENDED
+
+	All line endings supported are recognised. Overrides all other line ending definitions.
+	When CUNILOG_NEWLINE_EXTENDED is defined, three more definitions are implicitely defined
+	as well to allow for conditional builds:
+	CUNILOG_NEWLINE_POSIX, CUNILOG_NEWLINE_WINDOWS, and CUNILOG_NEWLINE_POSIX_AND_WINDOWS
+
 */
 
 /*
@@ -14761,17 +15544,60 @@ When		Who				What
 #ifndef STRNEWLINE_H
 #define STRNEWLINE_H
 
+// For quick checks.
+//#define CUNILOG_NEWLINE_EXTENDED
+
 /*
 	Correct the definitions. This also sets priorities and overrides of the definitions.
 */
+#if !defined (CUNILOG_NEWLINE_POSIX_ONLY) && !defined (CUNILOG_NEWLINE_WINDOWS_ONLY)
+	#ifndef CUNILOG_NEWLINE_POSIX_AND_WINDOWS_ONLY
+	#define CUNILOG_NEWLINE_POSIX_AND_WINDOWS_ONLY
+	#endif
+#endif
 #if defined (CUNILOG_NEWLINE_POSIX_AND_WINDOWS_ONLY)
+	#ifdef CUNILOG_NEWLINE_POSIX_ONLY
 	#undef CUNILOG_NEWLINE_POSIX_ONLY
+	#endif
+	#ifdef CUNILOG_NEWLINE_WINDOWS_ONLY
 	#undef CUNILOG_NEWLINE_WINDOWS_ONLY
+	#endif
+	#ifndef CUNILOG_NEWLINE_POSIX
+	#define CUNILOG_NEWLINE_POSIX
+	#endif
+	#ifndef CUNILOG_NEWLINE_WINDOWS
+	#define CUNILOG_NEWLINE_WINDOWS
+	#endif
+	#ifndef CUNILOG_NEWLINE_POSIX_AND_WINDOWS
+	#define CUNILOG_NEWLINE_POSIX_AND_WINDOWS
+	#endif
 #endif
 #if defined (CUNILOG_NEWLINE_POSIX_ONLY) && defined (CUNILOG_NEWLINE_WINDOWS_ONLY)
 	#undef CUNILOG_NEWLINE_POSIX_ONLY
 	#undef CUNILOG_NEWLINE_WINDOWS_ONLY
+	#ifndef CUNILOG_NEWLINE_POSIX_AND_WINDOWS_ONLY
 	#define CUNILOG_NEWLINE_POSIX_AND_WINDOWS_ONLY
+	#endif
+#endif
+#ifdef CUNILOG_NEWLINE_EXTENDED
+	#ifdef CUNILOG_NEWLINE_POSIX_ONLY
+	#undef CUNILOG_NEWLINE_POSIX_ONLY
+	#endif
+	#ifdef CUNILOG_NEWLINE_WINDOWS_ONLY
+	#undef CUNILOG_NEWLINE_WINDOWS_ONLY
+	#endif
+	#ifdef CUNILOG_NEWLINE_POSIX_AND_WINDOWS_ONLY
+	#undef CUNILOG_NEWLINE_POSIX_AND_WINDOWS_ONLY
+	#endif
+	#ifndef CUNILOG_NEWLINE_POSIX
+	#define CUNILOG_NEWLINE_POSIX
+	#endif
+	#ifndef CUNILOG_NEWLINE_WINDOWS
+	#define CUNILOG_NEWLINE_WINDOWS
+	#endif
+	#ifndef CUNILOG_NEWLINE_POSIX_AND_WINDOWS
+	#define CUNILOG_NEWLINE_POSIX_AND_WINDOWS
+	#endif
 #endif
 
 #include <stdbool.h>
@@ -14797,87 +15623,6 @@ When		Who				What
 EXTERN_C_BEGIN
 
 /*
-	strIsNewLine
-
-	Checks if ch points to one or more newline markers. The function returns the amount of
-	new lines found, 0 if ch does not point to a new line marker.
-
-	Since 2024-11-29 this function is considered deprecated. Use strIsLineEndings () instead.
-	The function might be made obsolete in the future.
-
-	See https://en.wikipedia.org/wiki/Newline .
-	
-	For our implementation, a new line is found when:
-		<CR>		(0x0D)
-		<CR><LF>	(0x0D)(0x0A)
-		<LF>		(0x0A)
-		This counts as two new lines (a single CR and a single LF):
-		<LF><CR>	(0x0A)(0x0D)
-
-	Parameters:
-	ch					A pointer to the character string to be checked.
-						Since stJump stores the amount of bytes that make up the
-						newline marker, if the caller increments ch by stJump the
-						new value of ch points to the first byte after the newline
-						marker.
-	stLen				Length of the character string in octets, not including
-						a terminating NUL character.  If this parameter is (size_t) -1,
-						the function obtains the length with a call to strlen (ch).
-	stJump				A pointer to the amount of octets in the new line phrase
-						returned by the function. The caller can for instance use
-						this information to increment the pointer to the character
-						string in order to jump over the new line marker. If
-						stJump is NULL, this parameter is ignored.
-						Possible return values:
-						stJump = 0			The found byte is not part of a newline
-											marker.
-						stJump = 1			A single <CR> (carriage return) was found
-											or a single <LF> was found.
-						stJump = 2			A <CR><LF> pair was found.
-
-	The function returns the amount of new lines found, or 0 if ch does not point
-	to at least one new line marker.
-*/
-unsigned int strIsNewLine (char *ch, size_t stLen, size_t *stJump);
-
-/*
-	strIsLineEndings
-
-	Checks if ch points to one or more newline markers/line endings. The function returns
-	the amount of consecutive line endings encountered, or 0 if ch does not point to at
-	least one.
-
-	The function is similar to strIsNewLine () but treats all possible line endings
-	of the enum enLineEndings as line endings, and counts them accordingly.
-
-	Parameters:
-	ch					A pointer to the character string to be checked.
-						Since stJump stores the amount of octets that make up the
-						newline marker(s), if the caller increments ch by stJump the
-						new value of ch points to the first byte after the encountered
-						line endings.
-	stLen				Length of the character string in octets, not including
-						a terminating NUL character.  If this parameter is (size_t) -1,
-						the function obtains the length with a call to strlen (ch).
-	stJump				A pointer to the amount of octets of consecutive line endings
-						returned by the function. The caller can for instance use
-						this information to increment the pointer to the character
-						string in order to jump over new line markers.
-						If not required, this parameter can be NULL.
-						Possible return values:
-						stJump = 0			The found byte is not part of a newline
-											marker.
-						stJump = 1			A single <CR> (carriage return) was found
-											or a single <LF> was found.
-						stJump = 2			A <CR><LF> pair was found.
-
-	The function returns the amount of new lines found, or 0 if ch does not point
-	to at least one new line marker.
-*/
-size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
-;
-
-/*
 	newline_t
 
 	Represents a new line.
@@ -14889,11 +15634,11 @@ size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 	other platform.
 
 	The value cunilogNewLineDefault used to be cunilogNewLineSystem to ensure logfiles
-	could be opened with Notepad on Windows systems but since newer versions of Notepad
+	could be opened with Notepad on Windows systems, but since newer versions of Notepad
 	(Windows 10 and newer) can perfectly display files that have POSIX line endings, the
 	default is now cunilogNewLinePOSIX to save one octet per event line. Use
 	cunilogNewLineWindows or cunilogNewLineSystem if textual logfiles need to be opened/
-	viewed with Notepad for Windows versions before Windows 10 or if they are opened/
+	viewed with Notepad for Windows versions before Windows 10, or if they are opened/
 	viewed/processed later with any other application that can't cope with POSIX line
 	endings.
 */
@@ -14901,8 +15646,8 @@ size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 	enum enLineEndings
 	{
 			cunilogNewLineSystem							// Use operating system default.
-		,	cunilogNewLinePOSIX								// LF only.
-		,	cunilogNewLineDefault = cunilogNewLinePOSIX
+		,	cunilogNewLinePOSIX		= cunilogNewLineSystem	// LF only.
+		,	cunilogNewLineDefault	= cunilogNewLinePOSIX
 		// Do not add anything below this line.
 		,	cunilogNewLineAmountEnumValues					// Used for table sizes.
 		// Do not add anything below unilogNewLineAmountEnumValues.
@@ -14911,8 +15656,8 @@ size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 	enum enLineEndings
 	{
 			cunilogNewLineSystem							// Use operating system default.
-		,	cunilogNewLineWindows							// CR + LF.
-		,	cunilogNewLineDefault = cunilogNewLineWindows
+		,	cunilogNewLineWindows	= cunilogNewLineSystem	// CR + LF.
+		,	cunilogNewLineDefault	= cunilogNewLineWindows
 		// Do not add anything below this line.
 		,	cunilogNewLineAmountEnumValues					// Used for table sizes.
 		// Do not add anything below unilogNewLineAmountEnumValues.
@@ -14951,12 +15696,22 @@ size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 typedef enum enLineEndings	newline_t;
 
 /*
+	The array with the line endings and the array with their lengths.
+*/
+const char	*aszLineEndings	[];
+size_t		lenLineEndings	[];
+
+/*
 	ccLineEnding
 
 	Returns the line ending for nl. Note that szLineEnding () also returns
 	its length.
 */
-const char *ccLineEnding (newline_t nl);
+#ifdef DEBUG
+	const char *ccLineEnding (newline_t nl);
+#else
+	#define ccLineEnding(nl)	aszLineEndings [nl]
+#endif
 
 /*
 	lnLineEnding
@@ -14964,7 +15719,11 @@ const char *ccLineEnding (newline_t nl);
 	Returns the length of the line ending nl. The value does not include the NUL
 	terminator.
 */
-size_t lnLineEnding (newline_t nl);
+#ifdef DEBUG
+	size_t lnLineEnding (newline_t nl);
+#else
+	#define lnLineEnding(nl)	lenLineEndings [nl]
+#endif
 
 /*
 	szLineEnding
@@ -14972,7 +15731,119 @@ size_t lnLineEnding (newline_t nl);
 	Returns the line ending and its length. The length does not include the NUL
 	terminator.
 */
-const char *szLineEnding (newline_t, size_t *pln);
+const char *szLineEnding (newline_t nl, size_t *pln);
+
+/*
+	strIsNewLine
+
+	Since 2024-11-29 this function is considered deprecated. Use strIsLineEndings () instead.
+	The function might be made obsolete in the future.
+
+	Since 2025-06-25 this function is not built anymore by default. It is instead a wrapper
+	macro for strIsLineEndings (). Define STRNEWLINE_FORCE_ORG_STRISNEWLINE to build and use
+	this function instead of strIsLineEndings ().
+
+	Checks if ch points to one or more newline markers. The function returns the amount of
+	new lines found, 0 if ch does not point to a new line marker.
+
+	See https://en.wikipedia.org/wiki/Newline .
+	
+	For our implementation, a new line is found when:
+		<CR>		(0x0D)
+		<CR><LF>	(0x0D)(0x0A)
+		<LF>		(0x0A)
+		This counts as two new lines (a single CR and a single LF):
+		<LF><CR>	(0x0A)(0x0D)
+
+	Parameters:
+	ch					A pointer to the character string to be checked.
+						Since stJump stores the amount of bytes that make up the
+						newline marker, if the caller increments ch by stJump the
+						new value of ch points to the first byte after the newline
+						marker.
+	stLen				Length of the character string in octets, not including
+						a terminating NUL character.  If this parameter is (size_t) -1,
+						the function obtains the length with a call to strlen (ch).
+	stJump				A pointer to the amount of octets in the new line phrase
+						returned by the function. The caller can for instance use
+						this information to increment the pointer to the character
+						string in order to jump over the new line marker. If
+						stJump is NULL, this parameter is ignored.
+						Possible return values:
+						stJump = 0			The found byte is not part of a newline
+											marker.
+						stJump = 1			A single <CR> (carriage return) was found
+											or a single <LF> was found.
+						stJump = 2			A <CR><LF> pair was found.
+
+	The function returns the amount of new lines found, or 0 if ch does not point
+	to at least one new line marker.
+*/
+#ifdef STRNEWLINE_FORCE_ORG_STRISNEWLINE
+	unsigned int strIsNewLine (char *ch, size_t stLen, size_t *stJump);
+#else
+	#define strIsNewLine(sz, ln, pj)					\
+		(unsigned int) strIsLineEndings (sz, ln, pj)
+#endif
+
+/*
+	strIsLineEndings
+
+	Checks if ch points to one or more newline markers/line endings. The function returns
+	the amount of consecutive line endings encountered, or 0 if ch does not point to at
+	least one.
+
+	The function is similar to strIsNewLine () but treats all possible line endings
+	of the enum enLineEndings as line endings, and counts them accordingly.
+
+	Parameters:
+	ch					A pointer to the character string to be checked.
+						Since stJump stores the amount of octets that make up the
+						newline marker(s), if the caller increments ch by stJump the
+						new value of ch points to the first byte after the encountered
+						line endings.
+	stLen				Length of the character string in octets, not including
+						a terminating NUL character.  If this parameter is (size_t) -1,
+						the function obtains the length with a call to strlen (ch).
+	stJump				A pointer to the amount of octets of consecutive line endings
+						returned by the function. The caller can for instance use
+						this information to increment the pointer to the character
+						string in order to jump over new line markers.
+						If not required, this parameter can be NULL.
+
+	The function returns the amount of new lines found, or 0 if ch does not point
+	to at least one new line marker.
+
+	Note that the current implementation of this function does not recognise RiscOS
+	line endings (LF + CR) correctly, as it finds a POSIX line ending (LF only) first,
+	and then an Apple line ending (CR only), and therefore identifies two consecutive
+	line endings instead of a single RiscOS line ending. If/when an implementation of
+	this function is required that identifies RiscOS line endings correctly, it will
+	have to be updated/implemented first.
+*/
+size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
+;
+
+/*
+	strFirstLineEnding
+
+	Finds and returns a pointer to the first line ending in the buffer ch points to,
+	or returns NULL if no line ending could be found.
+
+	The function reads up to len octets/bytes from ch. If len is USE_STRLEN, the function
+	calls strlen (ch) to obtain it.
+*/
+char *strFirstLineEnding (const char *ch, size_t len);
+
+/*
+	strFirstLineEnding_l
+
+	The function is identical to strFirstLineEnding but additionally returns the length
+	of the line ending encountered. The parameter plLE can be NULL, in which case the
+	length of the line ending is not returned. if no line ending is found, the size_t
+	plLE points to is not touched.
+*/
+char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE);
 
 /*
 	strRemoveLineEndingsFromEnd
@@ -15641,6 +16512,10 @@ When		Who				What
 	#endif
 #endif
 
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
 // Maximum lengths of unsigned and signed integer values in ASCII representation.
 //	The definitions that end with _LEN specify the length excluding NUL, the ones
 //	that end with _SIZE include the NUL terminator.
@@ -15999,12 +16874,28 @@ size_t ubf_uint64_from_str_n (uint64_t *ui, const char *chStr, size_t nLen, enum
 	ubf_std_uint64_from_str
 	
 	Wrapper macro for ubf_uint64_from_str_n () that provides an API that is more
-	standardised.
+	standardised. The caller does not need to provied a length paramter, and
+	'+' is always considered a valid character.
 */
 #define ubf_std_uint64_from_str(pui, pStr)				\
 	ubf_uint64_from_str_n (pui, pStr, (size_t) -1,		\
 			enUintFromStrAllowPlus)
-	
+
+/*
+	is_number_str_l
+
+	Returns true if str up to a length of len is a valid number.
+	The function checks if len characters are digits, and if they are,
+	returns true.
+
+	If len is 0, nothing is read from str, and the function returns true.
+
+	The function does not read beyond len unless len is USE_STRLEN.
+	If len is USE_STRLEN, the function calls strlen (str) to obtain it,
+	in which case str must be NUL-terminated.
+*/
+bool is_number_str_l (const char *str, size_t len);
+
 /*
 	ubf_int64_from_str
 
@@ -16549,7 +17440,7 @@ When		Who				What
 EXTERN_C_BEGIN
 
 /*
-	SMEMBUFfromStr
+	SMEMBUFfromStrReserveBytes
 	
 	Duplicates str and fills the SMEMBUF structure pmb points to accordingly.
 	If len is (size_t) -1, the function strlen () is used to obtain the length of str.
@@ -16600,21 +17491,23 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrFromUINT64) (SMEMBUF *pmb, uint64_t ui)
 	Concatenates the string with a length of len in the buffer of the SMEMBUF structrue pmb
 	points to and the string str with a length of lenstr, storing the result in the SMEMBUF
 	structure's buffer. Both length parameters, len and lenstr, can be USE_STRLEN. If precise
-	lengths are given, the strings de not need to be NUL-terminated.
+	lengths are given, the strings do not need to be NUL-terminated.
 	
 	If str is NULL, the parameter lenstr is ignored and the buffer of the SMEMBUF structure
 	is not changed.
 
 	The resulting string in the buffer of pmb is NUL-terminated.
 
-	If the buffer of pmb has to be reallocated, the buffer is made big enough to additionally
-	hold reserve octets. Set reserve to 0 if no additional buffer space is needed.
+	If the buffer of pmb needs reallocating, the buffer is made big enough to additionally
+	hold at least reserve octets. Set reserve to 0 if no additional buffer space is needed.
+	If the buffer of pmb is already big enough to hold the original string plus str plus
+	a NUL terminator, its size is not changed and the parameter reserve ignored.
 
 	The function returns the new length of the string in the buffer of pmb. If str is NULL
 	or lenstr is 0, the function returns len without touching the buffer.
 
-	Do not use the return value to determine if the function failed. Use the macro
-	isUsableSMEMBUF() instead.
+	Do not use the return value to determine whether the function succeeded or failed. Use the
+	macro isUsableSMEMBUF() instead.
 */
 size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve)
 ;
@@ -18213,7 +19106,6 @@ typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 enum cunilogeventseveritytpy
 {
 		cunilogEvtSeverityTypeChars3							// "EMG", "DBG"... (default).
-	,	cunilogEvtSeverityTypeDefault = cunilogEvtSeverityTypeChars3
 	,	cunilogEvtSeverityTypeChars5							// "EMRGY", "DEBUG"...
 	,	cunilogEvtSeverityTypeChars9							// "EMERGENCY", "DEBUG    "...
 	,	cunilogEvtSeverityTypeChars3InBrackets					// "[EMG]", "[DBG]"...
@@ -18226,6 +19118,17 @@ enum cunilogeventseveritytpy
 	// Do not add anything below cunilogEvtSeverityTypeXAmountEnumValues.
 };
 typedef enum cunilogeventseveritytpy cueventsevfmtpy;
+
+/*
+	The default event severity type.
+*/
+extern cueventsevfmtpy cunilogEvtSeverityTypeDefault;
+
+/*
+	Default ANSI escape colour output for the cunilog_puts... and cunilog_printf...
+	type functions.
+*/
+extern bool bUseCunilogDefaultOutputColour;
 
 /*
 	SUNILOGTARGET
@@ -19581,8 +20484,8 @@ TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
 	See https://no-color.org/ for the specification.
 
 	The function checks the environment variable NO_COLOR every time it is called. It is
-	therefore recommended to call the functions only when really required, for example at the
-	start of an application and store its return value in a variable.
+	therefore recommended to call the function only when really required, for example at the
+	start of an application, and store its return value in a variable.
 */
 bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
@@ -20735,11 +21638,35 @@ CUNILOG_EVENT *CreateCUNILOG_EVENT_Text		(
 											)
 ;
 TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_Text)
-(
+											(
 					CUNILOG_TARGET				*put,
 					cueventseverity				sev,
 					const char					*ccText,
 					size_t						len
+											)
+;
+
+/*
+	CreateCUNILOG_EVENT_TextTS
+
+	This function is identical to CreateCUNILOG_EVENT_Text () but expects the timestamp
+	for the event in the additional UBF_TIMESTAMP parameter ts.
+*/
+CUNILOG_EVENT *CreateCUNILOG_EVENT_TextTS		(
+					CUNILOG_TARGET				*put,
+					cueventseverity				sev,
+					const char					*ccText,
+					size_t						len,
+					UBF_TIMESTAMP				ts
+											)
+;
+TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_TextTS)
+											(
+					CUNILOG_TARGET				*put,
+					cueventseverity				sev,
+					const char					*ccText,
+					size_t						len,
+					UBF_TIMESTAMP				ts
 											)
 ;
 
@@ -20830,6 +21757,9 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 	octets, which includes the NUL-terminator. UTF-8 characters can have up to 4 octets/bytes.
 	Cunilog writes out only UTF-8 but doesn't actually understand its encoding.
 
+	Functions ending in ts expect the timestamp of the event in an additional UBF_TIMESTAMP
+	parameter.
+
 	The vfmt versions are variadic functions/macros that expect a va_list argument. Note that
 	these functions/macros are normal logging functions and do not compose the output and write
 	to a buffer provided by the caller like standard library functions vsnprintf () and family
@@ -20858,7 +21788,9 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 	on the CUNILOG_TARGET structure put points to.
 */
 bool logTextU8sevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len);
+bool logTextU8sevlts		(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len, UBF_TIMESTAMP ts);
 bool logTextU8sevlq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len);
+bool logTextU8sevlqts		(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len, UBF_TIMESTAMP ts);
 bool logTextU8sev			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText);
 bool logTextU8sevq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText);
 bool logTextU8l				(CUNILOG_TARGET *put, const char *ccText, size_t len);
@@ -21122,14 +22054,19 @@ TYPEDEF_FNCT_PTR (bool, CunilogChangeCurrentThreadPriority) (cunilogprio prio);
 	cunilog_printf
 	cunilog_puts_sev_fmtpy_l
 	cunilog_puts_sev_fmtpy
+	cunilog_puts_sev_l
 	cunilog_puts_sev
+	cunilog_puts_l
 	cunilog_puts
 
 	The Cunilog printf () and puts () functions.
 
-	The _sev_fmtpy_vl version expects a severity, a serverity format type, and a va_list
+	The _sev_fmtpy_vl versions expect a severity, a serverity format type, and a va_list
 	argument. The _sev_fmtpy versions expect a severity and a severity format type while
 	the _sev versions expect a severity only.
+
+	The _l functions expect a length parameter. The value USE_STRLEN can be provided instead
+	of the length, in which case these functions use strlen () to obtain it.
 
 	None of these functions abide by the NO_COLOR standard (see https://no-color.org/).
 	To make an application NO_COLOR complient, guard them with the return value of
@@ -21147,7 +22084,16 @@ TYPEDEF_FNCT_PTR (bool, CunilogChangeCurrentThreadPriority) (cunilogprio prio);
 	library functions printf () and puts () respectively. These functions honour Cunilog's
 	console settings functions CunilogSetConsoleToUTF8 (), CunilogSetConsoleToUTF16 (),
 	and CunilogSetConsoleToNone () on Windows.
+
+	The function cunilogSetDefaultPrintEventSeverityFormatType () sets the default event
+	severity format type that is used by cunilog_printf_sev () and cunilog_puts_sev ().
+
+	The function cunilogUseColourForOutput () determines whether ANSI escape sequences
+	are inserted in the output to enable colours.
 */
+void cunilogSetDefaultPrintEventSeverityFormatType (cueventsevfmtpy fmtpy);
+void cunilogUseColourForOutput (bool bUseColour);
+
 int cunilog_printf_sev_fmtpy_vl	(
 		cueventseverity		sev,
 		cueventsevfmtpy		sftpy,
@@ -21192,9 +22138,22 @@ int cunilog_puts_sev_fmtpy		(
 								)
 ;
 
+int cunilog_puts_sev_l			(
+		cueventseverity		sev,
+		const char			*strU8,
+		size_t				len
+								)
+;
+
 int cunilog_puts_sev			(
 		cueventseverity		sev,
 		const char			*strU8
+								)
+;
+
+int cunilog_puts_l				(
+		const char			*strU8,
+		size_t				len
 								)
 ;
 

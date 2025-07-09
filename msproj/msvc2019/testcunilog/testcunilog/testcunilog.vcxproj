@@ -90,12 +90,14 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <TreatWarningAsError>false</TreatWarningAsError>
+      <TreatWarningAsError>true</TreatWarningAsError>
       <SmallerTypeCheck>true</SmallerTypeCheck>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -108,12 +110,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <TreatWarningAsError>false</TreatWarningAsError>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,12 +128,14 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;HAVE_STRWILDCARDS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;UBF_HEX_BUILD_TEST_FUNCTION</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;HAVE_STRWILDCARDS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;UBF_HEX_BUILD_TEST_FUNCTION;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <TreatWarningAsError>false</TreatWarningAsError>
+      <TreatWarningAsError>true</TreatWarningAsError>
       <SmallerTypeCheck>true</SmallerTypeCheck>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,12 +148,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <TreatWarningAsError>false</TreatWarningAsError>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -187,9 +191,11 @@
     <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxReadDirFncts.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxTrash.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxSharedMutex.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\ProcessHelpers.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\SharedMutex.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\UserHome.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\CompressNTFS_U8.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8_Test.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinSharedMutex.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinExeFileName.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinAPI_ReadDirFncts.c" />
@@ -204,6 +210,7 @@
     <ClCompile Include="..\..\..\..\src\c\string\strintuint.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strisabsolutepath.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strisdotordotdot.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strlineextract.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strmembuf.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strnewline.c" />
     <ClCompile Include="..\..\..\..\src\c\string\struri.c" />
@@ -243,9 +250,11 @@
     <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxReadDirFncts.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxTrash.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxSharedMutex.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\ProcessHelpers.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\SharedMutex.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\UserHome.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\CompressNTFS_U8.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8_Test.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinSharedMutex.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinExeFileName.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinAPI_ReadDirFncts.h" />
@@ -269,6 +278,7 @@
     <ClInclude Include="..\..\..\..\src\c\string\strintuint.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strisabsolutepath.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strisdotordotdot.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strlineextract.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strmembuf.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strnewline.h" />
     <ClInclude Include="..\..\..\..\src\c\string\struri.h" />

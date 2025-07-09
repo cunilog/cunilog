@@ -215,6 +215,68 @@ typedef struct stransicoloursequence
 } STRANSICOLOURSEQUENCE;
 
 
+/*
+	isANSIescSequence
+
+	Checks if the character sequence starting at sz with length ln is an ANSI
+	escape sequence.
+
+	The Wikipedia article https://en.wikipedia.org/wiki/ANSI_escape_code has been used
+	as the basis to determine if sz is an ANSI escape sequence:
+
+	https://en.wikipedia.org/wiki/ANSI_escape_code#Control_Sequence_Introducer_commands
+
+	"For Control Sequence Introducer, or CSI, commands, the ESC [ (written as \e[, \x1b[
+	or \033[ in several programming languages) is followed by any number (including none)
+	of "parameter bytes" in the range 0x30-0x3F (ASCII 0-9:;<=>?), then by any number of
+	"intermediate bytes" in the range 0x20-0x2F (ASCII space and !"#$%&'()*+,-./), then
+	finally by a single "final byte" in the range 0x40-0x7E (ASCII @A-Z[\]^_`a-z{|}~)"
+
+	The function returns the amount of characters belonging to the escape sequence,
+	or 0, if sz does not start with an ANSI escape sequence. It never returns a
+	value greater than ln.
+
+	The function's purpose is not the ensure that an ANSI escape sequence is syntactically
+	correct. Its purpose is rather to identify sequences for removal. For instance, the
+	function returns 1 for a single ESC character (1Bh), and 2 for ESC + "[", but both
+	are not on their own valid ANSI escape sequences.
+
+	The parameter ln can be USE_STRLEN, in which case the function calls strlen () on sz
+	to determine its length.
+*/
+size_t isANSIescSequence (const char *sz, size_t ln)
+;
+
+/*
+	removeANSIescSequences
+
+	Removes all ANSI escape sequences from sz and returns its new length.
+
+	The function calls isANSIescSequence () to determine whether an ANSI escape sequence
+	should be removed or not. If at leas one ANSI escape sequence has been found at replaced,
+	then the function NUL-terminates sz even if it hasn't been NUL-terminated before the
+	call.
+
+	The parameter ln can be USE_STRLEN, in which case the function calls strlen () on sz
+	to determine its length.
+
+	The return value is the length of the string sz after all found ANSI escape sequences
+	have been removed.
+*/
+size_t removeANSIescSequences (char *sz, size_t ln)
+;
+
+/*
+	stransi_test_fnct
+
+	Function to test the module.
+*/
+#ifdef STRANSI_BUILD_TEST_FNCT
+	bool stransi_test_fnct (void);
+#else
+	#define stransi_test_fnct()	(true)
+#endif
+
 EXTERN_C_END
 
 #endif														// Of #ifndef U_STRANSI_H.

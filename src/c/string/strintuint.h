@@ -69,6 +69,10 @@ When		Who				What
 	#endif
 #endif
 
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
 // Maximum lengths of unsigned and signed integer values in ASCII representation.
 //	The definitions that end with _LEN specify the length excluding NUL, the ones
 //	that end with _SIZE include the NUL terminator.
@@ -427,12 +431,28 @@ size_t ubf_uint64_from_str_n (uint64_t *ui, const char *chStr, size_t nLen, enum
 	ubf_std_uint64_from_str
 	
 	Wrapper macro for ubf_uint64_from_str_n () that provides an API that is more
-	standardised.
+	standardised. The caller does not need to provied a length paramter, and
+	'+' is always considered a valid character.
 */
 #define ubf_std_uint64_from_str(pui, pStr)				\
 	ubf_uint64_from_str_n (pui, pStr, (size_t) -1,		\
 			enUintFromStrAllowPlus)
-	
+
+/*
+	is_number_str_l
+
+	Returns true if str up to a length of len is a valid number.
+	The function checks if len characters are digits, and if they are,
+	returns true.
+
+	If len is 0, nothing is read from str, and the function returns true.
+
+	The function does not read beyond len unless len is USE_STRLEN.
+	If len is USE_STRLEN, the function calls strlen (str) to obtain it,
+	in which case str must be NUL-terminated.
+*/
+bool is_number_str_l (const char *str, size_t len);
+
 /*
 	ubf_int64_from_str
 

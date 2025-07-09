@@ -17,6 +17,7 @@ head
 /pre/unref
 /mem/membuf
 /OS/Windows/WinAPI_U8
+/OS/Windows/WinAPI_U8_Test
 /OS/Windows/WinAPI_ReadDirFncts
 /OS/Windows/CompressNTFS_U8
 /OS/Windows/WinSharedMutex
@@ -30,6 +31,7 @@ head
 /OS/Apple/TrashCan
 /OS/CompressFile
 /OS/ExeFileName
+/OS/ProcessHelpers
 /OS/SharedMutex
 /OS/UserHome
 /extern/ExtCompressors
@@ -50,6 +52,7 @@ head
 /string/strcustomfmt
 /string/strfilesys
 /string/strhex
+/string/strlineextract
 /string/strnewline
 /string/strhexdumpstructs
 /string/strhexdump
@@ -71,6 +74,7 @@ bottom
 head
 /mem/membuf
 /OS/Windows/WinAPI_U8
+/OS/Windows/WinAPI_U8_Test
 /OS/Windows/WinAPI_ReadDirFncts
 /OS/Windows/CompressNTFS_U8
 /OS/Windows/WinSharedMutex
@@ -84,6 +88,7 @@ head
 /OS/Apple/TrashCan
 /OS/CompressFile
 /OS/ExeFileName
+/OS/ProcessHelpers
 /OS/SharedMutex
 /OS/UserHome
 /extern/ExtCompressors
@@ -103,6 +108,7 @@ head
 /string/strcustomfmt
 /string/strfilesys
 /string/strhex
+/string/strlineextract
 /string/strnewline
 /string/strhexdumpstructs
 /string/strhexdump

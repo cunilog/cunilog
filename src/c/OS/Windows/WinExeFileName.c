@@ -85,6 +85,11 @@ When		Who				What
 			copySMEMBUF (&mbOurExecutablePath, mb);
 			lnOurExectuablePath = ln;
 
+			#ifdef DEBUG
+				size_t sl1 = strlen (mbOurExecutablePath.buf.pch);
+				UNUSED (sl1);
+			#endif
+
 			// Ensure we have a NUL terminator.
 			ubf_assert (0 == mbOurExecutablePath.buf.pch [ln]);
 			ubf_assert (strlen (mbOurExecutablePath.buf.pch) == ln);
@@ -126,11 +131,11 @@ When		Who				What
 
 		DWORD	dwCurrSiz	= EXEFILENAME_MALLOC_BLOCKSIZE;
 		DWORD	dw;
-		char	*szExe		= (char *) &dw;						// Dummy value.
+		char	*szExe;
 
-		while (szExe)
+		do
 		{
-			szExe = malloc (dwCurrSiz);
+			szExe = ubf_malloc (dwCurrSiz);
 			if (szExe)
 			{
 				dw = GetModuleFileNameU8 (NULL, szExe, dwCurrSiz);
@@ -147,19 +152,20 @@ When		Who				What
 						size_t m = strlen (mb->buf.pch);
 						UNUSED_PARAMETER (m);
 						StoreExecutableModuleName (mb, elen);
-						free (szExe);
+						ubf_free (szExe);
 						return dw;
 					}
 				}
-				free (szExe);
+				ubf_free (szExe);
 				if (0 == dw)
 				{
 					ubf_assert (false);
 					return false;
 				}
 				dwCurrSiz += EXEFILENAME_MALLOC_BLOCKSIZE;
-			}
-		}
+			} else
+				break;
+		} while (dwCurrSiz < INT16_MAX);
 		return 0;
 	}
 

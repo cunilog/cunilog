@@ -903,7 +903,6 @@ typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 enum cunilogeventseveritytpy
 {
 		cunilogEvtSeverityTypeChars3							// "EMG", "DBG"... (default).
-	,	cunilogEvtSeverityTypeDefault = cunilogEvtSeverityTypeChars3
 	,	cunilogEvtSeverityTypeChars5							// "EMRGY", "DEBUG"...
 	,	cunilogEvtSeverityTypeChars9							// "EMERGENCY", "DEBUG    "...
 	,	cunilogEvtSeverityTypeChars3InBrackets					// "[EMG]", "[DBG]"...
@@ -916,6 +915,17 @@ enum cunilogeventseveritytpy
 	// Do not add anything below cunilogEvtSeverityTypeXAmountEnumValues.
 };
 typedef enum cunilogeventseveritytpy cueventsevfmtpy;
+
+/*
+	The default event severity type.
+*/
+extern cueventsevfmtpy cunilogEvtSeverityTypeDefault;
+
+/*
+	Default ANSI escape colour output for the cunilog_puts... and cunilog_printf...
+	type functions.
+*/
+extern bool bUseCunilogDefaultOutputColour;
 
 /*
 	SUNILOGTARGET

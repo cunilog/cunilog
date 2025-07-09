@@ -244,6 +244,23 @@ void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
 TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 
 /*
+	growToSizeSMEMBUFreserve
+
+	The function is identical to growToSizeSMEMBUF () but additionally reserves res bytes/
+	octets when the buffer size is increased.
+
+	The current content of the buffer is not transferred to the new buffer and is therefore
+	lost.
+
+	The function returns a pointer to ps->buf.pvoid.
+	
+	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	Check with isUsableSMEMBUF() if the structure can be used afterwards.
+*/
+void *growToSizeSMEMBUFreserve (SMEMBUF *pb, size_t siz, size_t res);
+TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUFreserve) (SMEMBUF *pb, size_t siz, size_t res);
+
+/*
 	growToSizeSMEMBUF64aligned
 
 	The function is identical to growToSizeSMEMBUF () but always aligns the size to
