@@ -27813,7 +27813,7 @@ int cunilog_printf_sev_fmtpy_vl	(
 
 	size_t lenRequired = 0;
 	if (bUseColour)
-		lenRequired = evtSeverityColoursLen (sev);
+		lenRequired += evtSeverityColoursLen (sev);
 	lenRequired += requiredEventSeverityChars (sev, sftpy);
 
 	int			iReq;
@@ -27934,7 +27934,7 @@ int cunilog_puts_sev_fmtpy_l	(
 	len = USE_STRLEN == len ? strlen (strU8) : len;
 	size_t lenRequired = 0;
 	if (bUseColour)
-		evtSeverityColoursLen (sev);						// Includes reset.
+		lenRequired += evtSeverityColoursLen (sev);			// Includes reset.
 
 	#ifdef DEBUG
 		size_t	sizDbgEvtSeverityColours = lenRequired;
