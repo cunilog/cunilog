@@ -27823,6 +27823,10 @@ int cunilog_printf_sev_fmtpy_vl	(
 		return iReq;
 	lenRequired += iReq;
 
+	#ifdef DEBUG
+		++ lenRequired;
+	#endif
+
 	int		iRet = -1;
 	char	szToPrint [CUNILOG_DEFAULT_SFMT_SIZE];
 	char	*pzToPrint;
@@ -27834,6 +27838,10 @@ int cunilog_printf_sev_fmtpy_vl	(
 
 	if (pzToPrint)
 	{
+		#ifdef DEBUG
+			pzToPrint [lenRequired]	= UBF_ERROR_CHAR;
+		#endif
+
 		char *pz = pzToPrint;
 		if (bUseColour)
 			cpyEvtSeverityColour (&pz, sev);
@@ -27842,10 +27850,16 @@ int cunilog_printf_sev_fmtpy_vl	(
 		iReq = vsnprintf (pz, lenRequired + 1, format, ap);
 		if (iReq < 0)
 			goto Leave;
+		ubf_assert (UBF_ERROR_CHAR == pz [lenRequired]);
+
 		pz += iReq;
 		if (bUseColour)
 			cpyRstEvtSeverityColour (&pz, sev);
 		pz [0] = ASCII_NUL;
+		ubf_assert (UBF_ERROR_CHAR == pzToPrint [lenRequired]);
+		#ifdef DEBUG
+			-- lenRequired;
+		#endif
 
 		#ifdef PLATFORM_IS_WINDOWS
 			iRet = cunilogPrintWin (pzToPrint, lenRequired);
@@ -27941,6 +27955,7 @@ int cunilog_puts_sev_fmtpy_l	(
 		size_t	sizDbgEvtSeverityCol;
 		size_t	sizDbgEvtSeverityRst;
 		char	*szCpy;
+		++ lenRequired;
 	#endif
 
 	size_t reqSevl = requiredEventSeverityChars (sev, sftpy);
@@ -27982,12 +27997,12 @@ int cunilog_puts_sev_fmtpy_l	(
 		if (bUseColour)
 			cpyRstEvtSeverityColour (&pz, sev);
 		ubf_assert (UBF_ERROR_CHAR == pzToPrint [lenRequired]);
-		ubf_assert (UBF_ERROR_CHAR == pz [0]);
 		pz [0] = ASCII_NUL;
 
 		#ifdef DEBUG
 			sizDbgEvtSeverityRst = pz - szCpy;
 			ubf_assert (sizDbgEvtSeverityCol + sizDbgEvtSeverityRst == sizDbgEvtSeverityColours);
+			-- lenRequired;
 		#endif
 
 		#ifdef PLATFORM_IS_WINDOWS
