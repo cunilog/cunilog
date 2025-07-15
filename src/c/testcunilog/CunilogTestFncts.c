@@ -436,6 +436,14 @@ bool CunilogTestFunction	(
 
 	cunilog_puts ("Starting Cunilog tests...");
 
+	/*
+		Was used for debugging.
+
+	uint64_t uiBSN = 230;
+	uint64_t uiBSNprev	= 244;
+	cunilog_printf_sev (cunilogEvtSeverityFail, "Wrong BSN: %4.4" PRId64 " (expected: %4.4" PRId64 ")\n", uiBSN, uiBSNprev);
+	*/
+
 	CunilogTestFnctStartTestToConsole ("Internal test of module stransi...");
 	#ifdef STRANSI_BUILD_TEST_FNCT
 		b &= stransi_test_fnct ();
@@ -453,6 +461,18 @@ bool CunilogTestFunction	(
 	szBld = szBuild_ISO__DATE__TIME__ ();
 	ubf_expect_bool_AND (b, LEN_ISO8601DATETIMESTAMP_NO_OFFS == strlen (szBld));
 	CunilogTestFnctResultToConsole (b);
+
+	#ifdef UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION
+		CunilogTestFnctStartTestToConsole ("Self-test module ubf_date_and_time and ubf_times...");
+		b &= Test_ubf_times_functions ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		CunilogTestFnctStartTestToConsole ("Self-test module ubf_date_and_time and ubf_times...");
+		b &= Test_ubf_times_functions ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module ubf_date_and_time and ubf_times...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
 
 	CunilogTestFnctStartTestToConsole ("Internal test of module WinAPI_U8...");
 	#ifdef _WIN32
@@ -554,18 +574,6 @@ bool CunilogTestFunction	(
 		b &= strwildcards_test_function ();
 		CunilogTestFnctResultToConsole (b);
 		CunilogTestFnctStartTestToConsole ("Only macro tested. self-test module strwildcards...");
-		CunilogTestFnctDisabledToConsole (b);
-	#endif
-
-	#ifdef UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION
-		CunilogTestFnctStartTestToConsole ("Self-test module ubf_date_and_time and ubf_times...");
-		b &= Test_ubf_times_functions ();
-		CunilogTestFnctResultToConsole (b);
-	#else
-		CunilogTestFnctStartTestToConsole ("Self-test module ubf_date_and_time and ubf_times...");
-		b &= Test_ubf_times_functions ();
-		CunilogTestFnctResultToConsole (b);
-		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module ubf_date_and_time and ubf_times...");
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 

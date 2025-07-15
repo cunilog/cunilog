@@ -7008,7 +7008,7 @@ int cunilog_printf_sev_fmtpy_vl	(
 		iReq = vsnprintf (pz, lenRequired + 1, format, ap);
 		if (iReq < 0)
 			goto Leave;
-		ubf_assert (UBF_ERROR_CHAR == pz [lenRequired]);
+		ubf_assert (UBF_ERROR_CHAR == pzToPrint [lenRequired]);
 
 		pz += iReq;
 		if (bUseColour)

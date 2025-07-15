@@ -211,7 +211,7 @@ typedef struct timespec TIMESPEC;
 	chBuf			A pointer to the buffer that receives the output.
 	stLen			The length of chBuf in bytes. It includes the terminating
 					NUL character.
-	ullIime			A ULONGLONG (unsignded __int64) value that contains
+	ullTime			A ULONGLONG (unsignded __int64) value that contains
 					the timespan. It is expected that the value has been
 					converted from a FILETIME structure.
 					
@@ -680,11 +680,20 @@ void ubf_get_system_time_ULONGLONG_rel (ULONGLONG *pulltime);
 	IsLeapYear
 
 	Returns true if the year in Y is a leap year, false otherwise.
+
+	Excerpt from https://en.wikipedia.org/wiki/Leap_year :
+
+	"Every year that is exactly divisible by four is a leap year, except for years that are
+	exactly divisible by 100, but these centurial years are leap years if they are exactly
+	divisible by 400. For example, the years 1700, 1800, and 1900 are not leap years, but
+	the years 1600 and 2000 are."
 */
 bool IsLeapYear (uint32_t uiYear);
 
 /*
 	GetISO8601DayOfYear
+
+	Returns the day number of the day of year Y, month M, and day of month D.
 */
 uint32_t GetISO8601DayOfYear (uint32_t Y, uint32_t M, uint32_t D);
 
@@ -713,16 +722,20 @@ uint32_t GetISO8601WeekNumberFromDate (uint32_t Y, uint32_t M, uint32_t D, uint3
 	
 	Returns true if the month m has 28 days. In addition to the month, this
 	function requires the year to determine if it is a leap year.
+
+	Note that this function had year y and month m swapped before 2025-07-15.
 */
-bool HasMonth28Days (uint8_t m, uint32_t y);
+bool HasMonth28Days (uint32_t y, uint8_t m);
 
 /*
 	HasMonth29Days
 	
 	Returns true if the month m has 29 days. In addition to the month, this
 	function requires the year to determine if it is a leap year.
+
+	Note that this function had year y and month m swapped before 2025-07-15.
 */
-bool HasMonth29Days (uint8_t m, uint32_t y);
+bool HasMonth29Days (uint32_t y, uint8_t m);
 
 /*
 	HasMonth30Days
@@ -743,13 +756,13 @@ bool HasMonth31Days (uint8_t m);
 	
 	Returns the number of days within month m of year y.
 */
-uint8_t DaysInMonth (uint8_t m, uint32_t y);
+uint8_t DaysInMonth (uint32_t y, uint8_t m);
 
 /*
 	_DayOfWeek
 	
 	Returns the day of the week starting with 0 == Sunday, 1 == Monday, etc.
-	The function has been taken from
+	The original version of this function has been taken from
 	https://en.wikipedia.org/wiki/Determination_of_the_day_of_the_week#Implementation-dependent_methods
 	(Tomohiko Sakamoto).
 	
@@ -758,7 +771,7 @@ uint8_t DaysInMonth (uint8_t m, uint32_t y);
 	Use the function DayOfWeek () to obtain the weekday according to ISO 8601
 	where 0 == Monday, 1 == Tuesday, ..., 6 == Sunday.
 */
-int _DayOfWeek (int y, int m, int d);
+uint8_t _DayOfWeek (uint32_t y, uint8_t m, uint8_t d);
 
 /*
 	DayOfWeek
@@ -767,9 +780,9 @@ int _DayOfWeek (int y, int m, int d);
 	0 == Monday, 1 == Tuesday, ..., 6 == Sunday.
 
 	The year must be > 1752, at least in the UK, since the function calls _DayOfWeek ()
-	to obtain the day of week and adjusts it to an ISO 8601 week.	
+	to obtain the day of week and adjusts it to an ISO 8601 weekday.
 */
-int DayOfWeek (int y, int m, int d);
+uint8_t DayOfWeek (uint32_t y, uint8_t m, uint8_t d);
 
 /*
 	FILETIME_to_ISO8601
@@ -777,7 +790,7 @@ int DayOfWeek (int y, int m, int d);
 	Writes an array of characters in ISO 8601 format to chISO from the FILETIME structure
 	ft points to. Since a FILETIME structure does not contain an offset to UTC, the
 	output has the format "YYYY-MM-DD hh:mm:ss.xxx" and does not include an offset. The
-	buffer chISO points to is expected to be at least LEN_ISO8601DATETIMESTAMPMS_NO_OFFS
+	buffer chISO points to is expected to be at least SIZ_ISO8601DATETIMESTAMPMS_NO_OFFS
 	bytes long.
 	
 	The function has never been implemented.
@@ -1382,6 +1395,15 @@ void GetLocalDateTime_ISO8601T_noMSnoOffs_n (char *szISO)
 uint64_t BuildYear_uint64 (void);
 
 /*
+	BuildYear_uint32
+
+	Returns the compilation year of the module (when it is compiled) as an unsigned
+	32 bit integer. The function calls YearOfBuilduint64 and shortens its result
+	to a uint32_t.
+*/
+uint32_t BuildYear_uint32 (void);
+
+/*
 	BuildYear_uint16
 
 	Returns the compilation year of the module (when it is compiled) as an unsigned
@@ -1398,8 +1420,29 @@ uint16_t BuildYear_uint16 (void);
 	The function only checks if digits are where they should be. It does not carry out
 	any sanity check on the date/timestamp itself. This means "0000-00-00" is a valid
 	date/timestamp, and the function returns true in this case.
+
+	The function is actually just a wrapper for is_datetimestampformat_l_store_corrected ()
+	that calls it with the parameter corr set to NULL.
 */
 bool is_datetimestampformat_l (const char *str, size_t len);
+
+/*
+	is_datetimestampformat_l_store_corrected
+
+	The function is identical to is_datetimestampformat_l () but additionally stores
+	the corrected format in the buffer corr points to.
+
+	The buffer corr points to can either be NULL, in which case the function is identical
+	to is_datetimestampformat_l (), or it must point to a buffer of at least
+	SIZ_ISO8601DATETIMESTAMPMS_NO_OFFS octets/bytes to store the result of the correction
+	in the format "YYYY-MM-DD hh:mm:ss.xxx". Note that the corrected version is always
+	written, independent of whether it is identical to str or not.
+
+	Note that the ISO 'T' date/time separator is replaced by a space charcter in corr.
+	The caller can only rely on something useful being in corr when the function returns
+	true.
+*/
+bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size_t len);
 
 /*
 	FormattedMilliseconds

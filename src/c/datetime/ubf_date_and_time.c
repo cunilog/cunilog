@@ -914,18 +914,18 @@ Algorithm Conventions:
 	return WeekNumber;
 }
 
-bool HasMonth28Days (uint8_t m, uint32_t y)
+bool HasMonth28Days (uint32_t y, uint8_t m)
 {
 	ubf_assert (m > 0);
 	ubf_assert (m < 12 + 1);
-	return 2 == m && !IsLeapYear (y) ? true : false;
+	return 2 == m && !IsLeapYear (y);
 }
 
-bool HasMonth29Days (uint8_t m, uint32_t y)
+bool HasMonth29Days (uint32_t y, uint8_t m)
 {
 	ubf_assert (m > 0);
 	ubf_assert (m < 12 + 1);
-	return 2 == m && IsLeapYear (y) ? true : false;
+	return 2 == m && IsLeapYear (y);
 }
 
 // The lookup table for HasMonth30Days ().
@@ -948,12 +948,12 @@ bool HasMonth31Days (uint8_t m)
 	return m_30days [m - 1];
 }
 
-uint8_t DaysInMonth (uint8_t m, uint32_t y)
+uint8_t DaysInMonth (uint32_t y, uint8_t m)
 {
-	return HasMonth28Days (m, y) ? 28 : (HasMonth30Days (m) ? 30 : 31);
+	return HasMonth28Days (y, m) ? 28 : HasMonth29Days (y, m) ? 29 : HasMonth30Days (m) ? 30 : 31;
 }
 
-int _DayOfWeek (int y, int m, int d)
+uint8_t _DayOfWeek (uint32_t y, uint8_t m, uint8_t d)
 {	// See https://stackoverflow.com/questions/6054016/c-program-to-find-day-of-week-given-date
 	//	and
 	//	https://en.wikipedia.org/wiki/Determination_of_the_day_of_the_week#Implementation-dependent_methods
@@ -962,17 +962,17 @@ int _DayOfWeek (int y, int m, int d)
 	
 	ubf_assert (   0 < m);
 	ubf_assert (  13 > m);
-	ubf_assert (1752 > y);										// In the U.K.
+	ubf_assert (1752 < y);										// In the U.K.
 	ubf_assert (   0 < d);
 	ubf_assert (  32 > d);
 	y -= m < 3;
 	return (y + y/4 - y/100 + y/400 + t[m-1] + d) % 7;
 }
 
-int DayOfWeek (int y, int m, int d)
+uint8_t DayOfWeek (uint32_t y, uint8_t m, uint8_t d)
 {
-	int dow = _DayOfWeek (y, m, d);								// 0 == Sunday.
-	return dow ? ++ dow : 6;									// 0 == Monday, 6 == Sunday.
+	uint8_t dow = _DayOfWeek (y, m, d);							// 0 == Sunday.
+	return dow ? dow - 1 : 6;									// 0 == Monday, 6 == Sunday.
 }
 
 void FILETIME_to_ISO8601 (char *chISO, FILETIME *ft)
@@ -1714,6 +1714,11 @@ uint64_t BuildYear_uint64 (void)
 	return u64year;
 }
 
+uint32_t BuildYear_uint32 (void)
+{
+	return BuildYear_uint64 () & 0xFFFFFFFF;
+}
+
 uint16_t BuildYear_uint16 (void)
 {
 	return BuildYear_uint64 () & 0xFFFF;
@@ -1721,14 +1726,27 @@ uint16_t BuildYear_uint16 (void)
 
 bool is_datetimestampformat_l (const char *str, size_t len)
 {
+	return is_datetimestampformat_l_store_corrected (NULL, str, len);
+}
+
+bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size_t len)
+{
 	size_t		ln	= USE_STRLEN == len ? strlen (str) : len;
 	const char	*sz = str;
+	char		*co = corr;
 
+	if (co)
+		memset (co, 0, SIZ_ISO8601DATETIMESTAMPMS_NO_OFFS);
 	if (4 <= ln)
 	{
 		// We require at least a year ("2025").
 		if (!is_number_str_l (sz, 4))
 			return false;
+		if (co)
+		{
+			memcpy (co, sz, 4);
+			co += 4;
+		}
 		ln -= 4;
 		sz += 4;
 		if (0 == ln)
@@ -1740,6 +1758,8 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 			++ sz;
 			-- ln;
 		}
+		if (co)
+			*co ++ = '-';
 		if (0 == ln)
 			return true;
 		if (2 <= ln)
@@ -1747,6 +1767,11 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 			//	"2025-07" or "202507"
 			if (!is_number_str_l (sz, 2))
 				return false;
+			if (co)
+			{
+				memcpy (co, sz, 2);
+				co += 2;
+			}
 			ln -= 2;
 			sz += 2;
 			if (0 == ln)
@@ -1757,6 +1782,8 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 				++ sz;
 				-- ln;
 			}
+			if (co)
+				*co ++ = '-';
 			if (0 == ln)
 				return true;
 			if (2 <= ln)
@@ -1764,6 +1791,11 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 				//	"2025-07-05" or "20250705"
 				if (!is_number_str_l (sz, 2))
 					return false;
+				if (co)
+				{
+					memcpy (co, sz, 2);
+					co += 2;
+				}
 				ln -= 2;
 				sz += 2;
 				if (0 == ln)
@@ -1775,6 +1807,8 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 					-- ln;
 				} else
 					return false;
+				if (co)
+					*co ++ = ' ';
 				if (0 == ln)
 					return true;
 				if (2 <= ln)
@@ -1782,6 +1816,11 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 					//	"2025-07-05 16" or "2025070516"
 					if (!is_number_str_l (sz, 2))
 						return false;
+					if (co)
+					{
+						memcpy (co, sz, 2);
+						co += 2;
+					}
 					ln -= 2;
 					sz += 2;
 					if (0 == ln)
@@ -1791,6 +1830,8 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 						++ sz;
 						-- ln;
 					}
+					if (co)
+						*co ++ = ':';
 					if (0 == ln)
 						return true;
 					if (2 <= ln)
@@ -1798,6 +1839,11 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 						//	"2025-07-05 16:10" or "202507051610"
 						if (!is_number_str_l (sz, 2))
 							return false;
+						if (co)
+						{
+							memcpy (co, sz, 2);
+							co += 2;
+						}
 						ln -= 2;
 						sz += 2;
 						if (0 == ln)
@@ -1808,6 +1854,8 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 							-- ln;
 						} else
 							return false;
+						if (co)
+							*co ++ = ':';
 						if (0 == ln)
 							return true;
 						if (2 <= ln)
@@ -1815,6 +1863,11 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 							//	"2025-07-05 16:10:56" or "20250705161056"
 							if (!is_number_str_l (sz, 2))
 								return false;
+							if (co)
+							{
+								memcpy (co, sz, 2);
+								co += 2;
+							}
 							ln -= 2;
 							sz += 2;
 							if (0 == ln)
@@ -1825,6 +1878,8 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 								-- ln;
 							} else
 								return false;
+							if (co)
+								*co ++ = '.';
 							if (0 == ln)
 								return true;
 							if (ln)
@@ -1834,6 +1889,11 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 								//	"2025-07-05 16:10:56.123"	or "20250705161056123"
 								if (!is_number_str_l (sz, 1))
 									return false;
+								if (co)
+								{
+									memcpy (co, sz, 1);
+									co += 1;
+								}
 								-- ln;
 								++ sz;
 								if (0 == ln)
@@ -1842,12 +1902,22 @@ bool is_datetimestampformat_l (const char *str, size_t len)
 								{
 									if (!is_number_str_l (sz, 1))
 										return false;
+									if (co)
+									{
+										memcpy (co, sz, 1);
+										co += 1;
+									}
 									-- ln;
 									++ sz;
 									if (ln)
 									{
 										if (!is_number_str_l (sz, 1))
 											return false;
+										if (co)
+										{
+											memcpy (co, sz, 1);
+											co += 1;
+										}
 										-- ln;
 										++ sz;
 									}
@@ -1918,6 +1988,10 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 
 		b = true;
 
+		ubf_expect_bool_AND (b, 2024 < BuildYear_uint64 ());
+		ubf_expect_bool_AND (b, 2024 < BuildYear_uint32 ());
+		ubf_expect_bool_AND (b, 2024 < BuildYear_uint16 ());
+
 		// Some tests for obtaining the leap year.
 		b &=  IsLeapYear (1600);
 		b &= !IsLeapYear (1700);
@@ -1953,9 +2027,156 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		b &= !IsLeapYear (2300);
 		b &=  IsLeapYear (2400);
 
+		ubf_expect_bool_AND (b, HasMonth28Days (1700, 2));
+		ubf_expect_bool_AND (b, HasMonth28Days (2300, 2));
+
+		ubf_expect_bool_AND (b, HasMonth29Days (2104, 2));
+		ubf_expect_bool_AND (b, HasMonth29Days (2400, 2));
+
+		uint8_t ub;
+		ub = DaysInMonth (2000, 2);
+		ubf_expect_bool_AND (b, 29 == ub);
+		ub = DaysInMonth (2001, 2);
+		ubf_expect_bool_AND (b, 28 == ub);
+		ub = DaysInMonth (2002, 2);
+		ubf_expect_bool_AND (b, 28 == ub);
+		ub = DaysInMonth (2003, 2);
+		ubf_expect_bool_AND (b, 28 == ub);
+		ub = DaysInMonth (2004, 2);
+		ubf_expect_bool_AND (b, 29 == ub);
+		ub = DaysInMonth (2004, 3);
+		ubf_expect_bool_AND (b, 31 == ub);
+		ub = DaysInMonth (2004, 11);
+		ubf_expect_bool_AND (b, 30 == ub);
+		ub = DaysInMonth (2004, 12);
+		ubf_expect_bool_AND (b, 31 == ub);
+		ub = DaysInMonth (2005, 1);
+		ubf_expect_bool_AND (b, 31 == ub);
+		ub = DaysInMonth (2025, 6);
+		ubf_expect_bool_AND (b, 30 == ub);
+		ub = DaysInMonth (2025, 7);
+		ubf_expect_bool_AND (b, 31 == ub);
+		ub = DaysInMonth (2025, 8);
+		ubf_expect_bool_AND (b, 31 == ub);
+		ub = DaysInMonth (2400, 2);
+		ubf_expect_bool_AND (b, 29 == ub);
+
+		// 0 == Sunday.
+		ub = _DayOfWeek (1900, 1, 1);
+		ubf_expect_bool_AND (b, 1 == ub);
+		ub = _DayOfWeek (1900, 1, 2);
+		ubf_expect_bool_AND (b, 2 == ub);
+		ub = _DayOfWeek (2000, 1, 1);
+		ubf_expect_bool_AND (b, 6 == ub);
+		ub = _DayOfWeek (2000, 1, 2);
+		ubf_expect_bool_AND (b, 0 == ub);
+		ub = _DayOfWeek (2000, 1, 3);
+		ubf_expect_bool_AND (b, 1 == ub);
+		ub = _DayOfWeek (2005, 7, 15);
+		ubf_expect_bool_AND (b, 5 == ub);
+
+		// 0 == Monday.
+		ub = DayOfWeek (1900, 1, 1);
+		ubf_expect_bool_AND (b, 0 == ub);
+		ub = DayOfWeek (1900, 1, 2);
+		ubf_expect_bool_AND (b, 1 == ub);
+		ub = DayOfWeek (2000, 1, 1);
+		ubf_expect_bool_AND (b, 5 == ub);
+		ub = DayOfWeek (2000, 1, 2);
+		ubf_expect_bool_AND (b, 6 == ub);
+		ub = DayOfWeek (2000, 1, 3);
+		ubf_expect_bool_AND (b, 0 == ub);
+		ub = DayOfWeek (2005, 7, 15);
+		ubf_expect_bool_AND (b, 4 == ub);
+
 		GetSystemTime_UBF_TIMESTAMP (&ut);
 		b &= IsBuildYearOrNewer_UBF_TIMESTAMP (&ut);
 		ubf_assert (b);
+
+		// January.
+		u = GetISO8601DayOfYear (2000, 1, 1);
+		ubf_expect_bool_AND (b, 1 == u);
+		u = GetISO8601DayOfYear (2000, 1, 30);
+		ubf_expect_bool_AND (b, 30 == u);
+		u = GetISO8601DayOfYear (2000, 1, 31);
+		ubf_expect_bool_AND (b, 31 == u);
+		u = GetISO8601DayOfYear (2000, 2, 1);
+		ubf_expect_bool_AND (b, 32 == u);
+
+		// https://www.epochconverter.com/days/2000 has been used as a reference.
+		u = GetISO8601DayOfYear (2000, 2, 5);
+		ubf_expect_bool_AND (b, 36 == u);
+		u = GetISO8601DayOfYear (2000, 2, 15);
+		ubf_expect_bool_AND (b, 46 == u);
+		u = GetISO8601DayOfYear (2000, 2, 29);
+		ubf_expect_bool_AND (b, 60 == u);
+		u = GetISO8601DayOfYear (2000, 3, 1);
+		ubf_expect_bool_AND (b, 61 == u);
+		u = GetISO8601DayOfYear (2000, 4, 1);
+		ubf_expect_bool_AND (b, 92 == u);
+		u = GetISO8601DayOfYear (2000, 4, 30);
+		ubf_expect_bool_AND (b, 121 == u);
+		u = GetISO8601DayOfYear (2000, 5, 1);
+		ubf_expect_bool_AND (b, 122 == u);
+		u = GetISO8601DayOfYear (2000, 5, 31);
+		ubf_expect_bool_AND (b, 152 == u);
+		u = GetISO8601DayOfYear (2000, 6, 1);
+		ubf_expect_bool_AND (b, 153 == u);
+		u = GetISO8601DayOfYear (2000, 6, 30);
+		ubf_expect_bool_AND (b, 182 == u);
+
+		// December.
+		u = GetISO8601DayOfYear (2000, 12, 1);
+		ubf_expect_bool_AND (b, 336 == u);
+		u = GetISO8601DayOfYear (2000, 12, 15);
+		ubf_expect_bool_AND (b, 350 == u);
+		u = GetISO8601DayOfYear (2000, 12, 31);
+		ubf_expect_bool_AND (b, 366 == u);
+
+		u = GetISO8601Jan1WeekDay (2000);
+		ubf_expect_bool_AND (b, 6 == u);
+		u = GetISO8601Jan1WeekDay (2001);
+		ubf_expect_bool_AND (b, 1 == u);
+		u = GetISO8601Jan1WeekDay (2002);
+		ubf_expect_bool_AND (b, 2 == u);
+		u = GetISO8601Jan1WeekDay (2003);
+		ubf_expect_bool_AND (b, 3 == u);
+		u = GetISO8601Jan1WeekDay (2004);
+		ubf_expect_bool_AND (b, 4 == u);
+		u = GetISO8601Jan1WeekDay (2005);
+		ubf_expect_bool_AND (b, 6 == u);
+		u = GetISO8601Jan1WeekDay (2006);
+		ubf_expect_bool_AND (b, 7 == u);
+		u = GetISO8601Jan1WeekDay (2007);
+		ubf_expect_bool_AND (b, 1 == u);
+		u = GetISO8601Jan1WeekDay (2008);
+		ubf_expect_bool_AND (b, 2 == u);
+		u = GetISO8601Jan1WeekDay (2009);
+		ubf_expect_bool_AND (b, 4 == u);
+		u = GetISO8601Jan1WeekDay (2010);
+		ubf_expect_bool_AND (b, 5 == u);
+		u = GetISO8601Jan1WeekDay (2011);
+		ubf_expect_bool_AND (b, 6 == u);
+		u = GetISO8601Jan1WeekDay (2012);
+		ubf_expect_bool_AND (b, 7 == u);
+		u = GetISO8601Jan1WeekDay (2013);
+		ubf_expect_bool_AND (b, 2 == u);
+		u = GetISO8601Jan1WeekDay (2014);
+		ubf_expect_bool_AND (b, 3 == u);
+		u = GetISO8601Jan1WeekDay (2015);
+		ubf_expect_bool_AND (b, 4 == u);
+		u = GetISO8601Jan1WeekDay (2016);
+		ubf_expect_bool_AND (b, 5 == u);
+		u = GetISO8601Jan1WeekDay (2017);
+		ubf_expect_bool_AND (b, 7 == u);
+		u = GetISO8601Jan1WeekDay (2018);
+		ubf_expect_bool_AND (b, 1 == u);
+		u = GetISO8601Jan1WeekDay (2019);
+		ubf_expect_bool_AND (b, 2 == u);
+		u = GetISO8601Jan1WeekDay (2020);
+		ubf_expect_bool_AND (b, 3 == u);
+		u = GetISO8601Jan1WeekDay (2021);
+		ubf_expect_bool_AND (b, 5 == u);
 
 		u = 1000;
 		while (u --)
@@ -2332,6 +2553,96 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16 00 00 123", USE_STRLEN));
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16.00.00.123", USE_STRLEN));
 
+		// Too long.
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16.00.00.1234", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16.00.00.12345", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("99991122T16.00.00.1234567890", USE_STRLEN));
+
+		// The result is undefined if is_datetimestampformat_l_store_corrected () returns false.
+		//	Our tests therefore do not check it in these cases.
+		char szd [SIZ_ISO8601DATETIMESTAMPMS_NO_OFFS];
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "", 0));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "1", 1));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "12", 1));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "12", 2));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "123", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "1234", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("1234", szd, 5));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000", szd, 5));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-", szd, 6));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00", szd, 11));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 ", szd, 12));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00T", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 ", szd, 12));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00", szd, 14));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00", szd, 14));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:", szd, 15));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00", szd, 17));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:", szd, 18));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00", szd, 20));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.", szd, 21));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.1", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.1", szd, 22));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.12", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.12", szd, 23));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.123", szd, 24));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.1 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.12 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.123 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00:00:00.123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.123", szd, 24));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00:00:00.123 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00:00:00.1 23 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "9999", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("9999", szd, 5));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "999911", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("9999-11", szd, 8));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "9999111", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("9999-11-", szd, 9));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("9999-11-22", szd, 11));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16", szd, 14));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122x16", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "9999112216", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122 16 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:", szd, 15));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122 16:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00", szd, 17));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:00:", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:", szd, 18));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122 16:00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:00", szd, 20));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:00", szd, 20));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00.123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:00.123", szd, 24));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00x123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T160000123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16 00 00 123", USE_STRLEN));
+		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16.00.00.123", USE_STRLEN));
+
+		
 		// Timings.
 		/*
 			We found that the psx function is twice as fast as the win version.
