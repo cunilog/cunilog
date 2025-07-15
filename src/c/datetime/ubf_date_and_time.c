@@ -394,7 +394,11 @@ void GetISO8601Week_s (char *chISO8601Week)
 
 	time (&t);													// Retrieves the times in UTC on Windows.
 	localtime_r (&t, &tmRes);									// Adjust for local time.
-	week = GetISO8601WeekNumberFromDate (tmRes.tm_year + 1900, tmRes.tm_mon + 1, tmRes.tm_mday, &newYear);
+	week = GetISO8601WeekNumberFromDate	(
+				tmRes.tm_year + 1900,
+				(uint8_t) tmRes.tm_mon + 1,
+				(uint8_t) tmRes.tm_mday, &newYear
+										);
 	snprintf (chISO8601Week, SIZ_ISO8601YEARANDWEEK, "%4.4u-W%2.2u", (unsigned int) newYear, week);
 }
 
@@ -407,7 +411,11 @@ void GetISO8601Week_c (char *chISO8601Week)
 
 	time (&t);													// Retrieves the times in UTC on Windows.
 	localtime_r (&t, &tmRes);									// Adjust for local time.
-	week = GetISO8601WeekNumberFromDate (tmRes.tm_year + 1900, tmRes.tm_mon + 1, tmRes.tm_mday, &newYear);
+	week = GetISO8601WeekNumberFromDate	(
+				tmRes.tm_year + 1900,
+				(uint8_t) tmRes.tm_mon + 1,
+				(uint8_t) tmRes.tm_mday, &newYear
+										);
 	/*
 	snprintf (chISO8601Week, SIZ_ISO8601YEARANDWEEK, "%4.4u-W%2.2u", (unsigned int) newYear, week);
 	*/
@@ -719,18 +727,18 @@ static uint32_t m_Month [12] =
 	0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334
 };
 
-uint32_t GetISO8601DayOfYear (uint32_t Y, uint32_t M, uint32_t D)
+uint32_t GetISO8601DayOfYear (uint32_t y, uint8_t m, uint8_t d)
 {	// Implements (4). See below.
 	uint32_t DayOfYearNumber;
 	
-	ubf_assert (0 < M);
-	ubf_assert (13 > M);
-	DayOfYearNumber = D + m_Month [M - 1];
+	ubf_assert (0 < m);
+	ubf_assert (13 > m);
+	DayOfYearNumber = d + m_Month [m - 1];
 	/*
 	if (IsLeapYear (Y) && M > 2)
 		DayOfYearNumber += 1;
 	*/
-	DayOfYearNumber += IsLeapYear (Y) && M > 2 ? 1 : 0;
+	DayOfYearNumber += IsLeapYear (y) && m > 2 ? 1 : 0;
 	return DayOfYearNumber;
 }
 
@@ -744,15 +752,15 @@ uint32_t GetISO8601Jan1WeekDay (uint32_t Y)
 	return (1 + (((((C / 100) % 4) * 5) + G) % 7));
 }
 
-uint32_t GetISO8601WeekDay (uint32_t Y, uint32_t M, uint32_t D)
+uint32_t GetISO8601WeekDay (uint32_t y, uint8_t m, uint8_t d)
 {	// Implements (6). See below. This function is not used.
 	uint32_t	H;
 	
-	H = GetISO8601DayOfYear (Y, M, D) + (GetISO8601Jan1WeekDay (Y) - 1);
+	H = GetISO8601DayOfYear (y, m, d) + (GetISO8601Jan1WeekDay (y) - 1);
 	return (1 + ((H -1) % 7));
 }
 
-uint32_t GetISO8601WeekNumberFromDate (uint32_t Y, uint32_t M, uint32_t D, uint32_t *aY)
+uint8_t GetISO8601WeekNumberFromDate (uint32_t y, uint8_t m, uint8_t d, uint32_t *aY)
 {
 /*
 	Implementation of http://personal.ecu.edu/mccartyr/ISOwdALG.txt:
@@ -847,23 +855,23 @@ Algorithm Conventions:
 	uint32_t	DayOfYearNumber;								// The number of the day of the year.
 	uint32_t	Jan1Weekday;									// Which day is Jan 1?
 	uint32_t	Weekday;										// The day of the week (Y, M, D).
-	uint32_t	WeekNumber;										// The calendar week number.
+	uint8_t		WeekNumber;										// The calendar week number.
 	uint32_t	YearNumber;										// Y for calculations.
 	long	I;													// How many days a year has.
 
 	// (1) comes in as parameters Y, M, and D.
 
 	// (2):
-	bLeapYear = IsLeapYear (Y);
+	bLeapYear = IsLeapYear (y);
 
 	// (3).
-	bPLeapYear = IsLeapYear (Y - 1);
+	bPLeapYear = IsLeapYear (y - 1);
 	
 	// (4).
-	DayOfYearNumber = GetISO8601DayOfYear (Y, M, D);
+	DayOfYearNumber = GetISO8601DayOfYear (y, m, d);
 
 	// (5).
-	Jan1Weekday = GetISO8601Jan1WeekDay (Y);
+	Jan1Weekday = GetISO8601Jan1WeekDay (y);
 
 	// (6).
 	Weekday = 1 + ((DayOfYearNumber + (Jan1Weekday - 1) - 1) % 7);
@@ -874,16 +882,16 @@ Algorithm Conventions:
 	// (7).
 	if (DayOfYearNumber <= (8 - Jan1Weekday) && Jan1Weekday > 4)
 	{
-		YearNumber = Y - 1;
+		YearNumber = y - 1;
 		if (Jan1Weekday == 5 || (Jan1Weekday == 6 && bPLeapYear))
 			WeekNumber = 53;
 		else 
 			WeekNumber = 52;
 	} else 
-		YearNumber = Y;
+		YearNumber = y;
 
 	// (8).
-	if (YearNumber == Y)
+	if (YearNumber == y)
 	{
 		if (bLeapYear)
 			I = 366;
@@ -891,7 +899,7 @@ Algorithm Conventions:
 			I = 365;
 		if (((int32_t) I - (int32_t) DayOfYearNumber) < ((int32_t) 4 - (int32_t) Weekday))
 		{
-			YearNumber = Y + 1;
+			YearNumber = y + 1;
 			WeekNumber = 1;
 		}
 	}
@@ -901,9 +909,12 @@ Algorithm Conventions:
 	//  number. It can be Y - 1.
 
 	// (9).
-	if (YearNumber == Y)
+	if (YearNumber == y)
 	{
-		WeekNumber = (DayOfYearNumber + (7 - Weekday) + (Jan1Weekday - 1)) / 7;
+		uint32_t wn = (DayOfYearNumber + (7 - Weekday) + (Jan1Weekday - 1)) / 7;
+		ubf_assert (wn < UINT8_MAX);
+		ubf_assert (wn < INT8_MAX);
+		WeekNumber = (uint8_t) wn;
 		if (Jan1Weekday > 4)
 			WeekNumber -= 1;
 	}
@@ -2249,7 +2260,11 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ut |= UBF_TIMESTAMP_MICROSECOND_BITS (&ts);
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		uint32_t uYear;
-		uint32_t uWeek = GetISO8601WeekNumberFromDate (ts.uYear, ts.uMonth, ts.uDay, &uYear);
+		uint32_t uWeek = GetISO8601WeekNumberFromDate	(
+							ts.uYear,
+							(uint8_t) ts.uMonth,
+							(uint8_t) ts.uDay, &uYear
+														);
 		UNUSED_PARAMETER (uWeek);
 		b &= 44 == uWeek;
 		b &= 2022 == uYear;
@@ -2259,6 +2274,50 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ISO8601YearAndWeek_from_UBF_TIMESTAMP (cOut, ut);
 		b &= !memcmp (cOut, "2022-W44", SIZ_ISO8601YEARANDWEEK);
 		ubf_assert (b);
+
+		// See https://www.epochconverter.com/weeks/2000 .
+		ub = GetISO8601WeekNumberFromDate (1999, 12, 26, &uYear);
+		ubf_expect_bool_AND (b, 51 == ub);
+		ubf_expect_bool_AND (b, 1999 == uYear);
+		ub = GetISO8601WeekNumberFromDate (1999, 12, 27, &uYear);
+		ubf_expect_bool_AND (b, 52 == ub);
+		ubf_expect_bool_AND (b, 1999 == uYear);
+		ub = GetISO8601WeekNumberFromDate (1999, 12, 31, &uYear);
+		ubf_expect_bool_AND (b, 52 == ub);
+		ubf_expect_bool_AND (b, 1999 == uYear);
+		ub = GetISO8601WeekNumberFromDate (2000, 1, 1, &uYear);
+		ubf_expect_bool_AND (b, 52 == ub);
+		ubf_expect_bool_AND (b, 1999 == uYear);
+		ub = GetISO8601WeekNumberFromDate (2000, 4, 23, &uYear);
+		ubf_expect_bool_AND (b, 16 == ub);
+		ubf_expect_bool_AND (b, 2000 == uYear);
+		ub = GetISO8601WeekNumberFromDate (2000, 4, 24, &uYear);
+		ubf_expect_bool_AND (b, 17 == ub);
+		ubf_expect_bool_AND (b, 2000 == uYear);
+		ub = GetISO8601WeekNumberFromDate (2000, 12, 24, &uYear);
+		ubf_expect_bool_AND (b, 51 == ub);
+		ubf_expect_bool_AND (b, 2000 == uYear);
+		ub = GetISO8601WeekNumberFromDate (2000, 12, 25, &uYear);
+		ubf_expect_bool_AND (b, 52 == ub);
+		ubf_expect_bool_AND (b, 2000 == uYear);
+		ub = GetISO8601WeekNumberFromDate (2000, 12, 31, &uYear);
+		ubf_expect_bool_AND (b, 52 == ub);
+		ubf_expect_bool_AND (b, 2000 == uYear);
+		ub = GetISO8601WeekNumberFromDate (2001, 1, 1, &uYear);
+		ubf_expect_bool_AND (b, 1 == ub);
+		ubf_expect_bool_AND (b, 2001 == uYear);
+		ub = GetISO8601WeekNumberFromDate (2001, 12, 24, &uYear);
+		ubf_expect_bool_AND (b, 52 == ub);
+		ubf_expect_bool_AND (b, 2001 == uYear);
+		ub = GetISO8601WeekNumberFromDate (2001, 12, 30, &uYear);
+		ubf_expect_bool_AND (b, 52 == ub);
+		ubf_expect_bool_AND (b, 2001 == uYear);
+		ub = GetISO8601WeekNumberFromDate (2001, 12, 31, &uYear);
+		ubf_expect_bool_AND (b, 1 == ub);
+		ubf_expect_bool_AND (b, 2002 == uYear);
+		ub = GetISO8601WeekNumberFromDate (2002, 1, 7, &uYear);
+		ubf_expect_bool_AND (b, 2 == ub);
+		ubf_expect_bool_AND (b, 2002 == uYear);
 
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601Year_from_UBF_TIMESTAMPs (cOut, ut);

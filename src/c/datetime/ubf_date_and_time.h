@@ -693,9 +693,9 @@ bool IsLeapYear (uint32_t uiYear);
 /*
 	GetISO8601DayOfYear
 
-	Returns the day number of the day of year Y, month M, and day of month D.
+	Returns the day number of the day of year y, month m, and day of month d.
 */
-uint32_t GetISO8601DayOfYear (uint32_t Y, uint32_t M, uint32_t D);
+uint32_t GetISO8601DayOfYear (uint32_t y, uint8_t m, uint8_t d);
 
 /*
 	GetISO8601Jan1WeekDay
@@ -705,17 +705,17 @@ uint32_t GetISO8601Jan1WeekDay (uint32_t Y);
 /*
 	GetISO8601WeekDay
 */
-uint32_t GetISO8601WeekDay (uint32_t Y, uint32_t M, uint32_t D);
+uint32_t GetISO8601WeekDay (uint32_t y, uint8_t m, uint8_t d);
 
 /*
 	GetISO8601WeekNumberFromDate
 	
 	Returns the ISO 8601 week number for the given date. The parameter
-	aY points to a long variable in which the function stores the year
-	number which may have been adjusted to Y + 1. The caller is advised
+	aY points to a uint32_t variable in which the function stores the year
+	number which may have been adjusted to y + 1. The caller is advised
 	to always work with this returned year.
 */
-uint32_t GetISO8601WeekNumberFromDate (uint32_t Y, uint32_t M, uint32_t D, uint32_t *aY);
+uint8_t GetISO8601WeekNumberFromDate (uint32_t y, uint8_t m, uint8_t d, uint32_t *aY);
 
 /*
 	HasMonth28Days
