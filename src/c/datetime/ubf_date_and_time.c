@@ -742,7 +742,7 @@ uint32_t GetISO8601DayOfYear (uint32_t y, uint8_t m, uint8_t d)
 	return DayOfYearNumber;
 }
 
-uint32_t GetISO8601Jan1WeekDay (uint32_t Y)
+uint8_t GetISO8601Jan1WeekDay (uint32_t Y)
 {	// Implements (5). See below.
 	uint32_t YY, C, G;
 	
@@ -1760,6 +1760,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 		}
 		ln -= 4;
 		sz += 4;
+		ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 		if (0 == ln)
 			return true;
 
@@ -1771,6 +1772,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 		}
 		if (co)
 			*co ++ = '-';
+		ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 		if (0 == ln)
 			return true;
 		if (2 <= ln)
@@ -1785,6 +1787,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 			}
 			ln -= 2;
 			sz += 2;
+			ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 			if (0 == ln)
 				return true;
 			// "2025-07-"
@@ -1795,6 +1798,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 			}
 			if (co)
 				*co ++ = '-';
+			ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 			if (0 == ln)
 				return true;
 			if (2 <= ln)
@@ -1809,6 +1813,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 				}
 				ln -= 2;
 				sz += 2;
+				ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 				if (0 == ln)
 					return true;
 				// Separator between date and time or 'T' required.
@@ -1820,6 +1825,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 					return false;
 				if (co)
 					*co ++ = ' ';
+				ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 				if (0 == ln)
 					return true;
 				if (2 <= ln)
@@ -1834,6 +1840,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 					}
 					ln -= 2;
 					sz += 2;
+					ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 					if (0 == ln)
 						return true;
 					if (':' == sz [0])
@@ -1843,6 +1850,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 					}
 					if (co)
 						*co ++ = ':';
+					ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 					if (0 == ln)
 						return true;
 					if (2 <= ln)
@@ -1857,6 +1865,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 						}
 						ln -= 2;
 						sz += 2;
+						ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 						if (0 == ln)
 							return true;
 						if (':' == sz [0])
@@ -1867,6 +1876,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 							return false;
 						if (co)
 							*co ++ = ':';
+						ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 						if (0 == ln)
 							return true;
 						if (2 <= ln)
@@ -1881,6 +1891,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 							}
 							ln -= 2;
 							sz += 2;
+							ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 							if (0 == ln)
 								return true;
 							if ('.' == sz [0])
@@ -1891,6 +1902,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 								return false;
 							if (co)
 								*co ++ = '.';
+							ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 							if (0 == ln)
 								return true;
 							if (ln)
@@ -1907,6 +1919,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 								}
 								-- ln;
 								++ sz;
+								ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 								if (0 == ln)
 									return true;
 								if (ln)
@@ -1933,6 +1946,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 										++ sz;
 									}
 								}
+								ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 								if (0 == ln)
 									return true;
 							}
@@ -2570,6 +2584,7 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-0", USE_STRLEN));
 		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00", USE_STRLEN));
 		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-0000 ", USE_STRLEN));
 		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00T", USE_STRLEN));
 		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00T00", USE_STRLEN));
 		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00", USE_STRLEN));
@@ -2621,85 +2636,139 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		//	Our tests therefore do not check it in these cases.
 		char szd [SIZ_ISO8601DATETIMESTAMPMS_NO_OFFS];
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "", 0));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "1", 1));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "12", 1));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "12", 2));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "1234", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("1234", szd, 5));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000", szd, 5));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-", szd, 6));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-0", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00", szd, 11));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-0000", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00", szd, 11));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 ", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 ", szd, 12));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00T", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 ", szd, 12));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00", szd, 14));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00", szd, 14));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:", szd, 15));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00", szd, 17));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:", szd, 18));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00", szd, 20));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.", szd, 21));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.1", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.1", szd, 22));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.12", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.12", szd, 23));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.123", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.123", szd, 24));
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.1 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.12 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.123 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00:00:00.123", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.123", szd, 24));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00:00:00.123 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00:00:00.1 23 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "9999", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999", szd, 5));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "999911", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11", szd, 8));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "9999111", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-", szd, 9));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22", szd, 11));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16", szd, 14));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122x16", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "9999112216", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122 16 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:", szd, 15));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122 16:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00", szd, 17));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:00:", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:", szd, 18));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122 16:00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:00:00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:00", szd, 20));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:00", szd, 20));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00.123", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:00.123", szd, 24));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00x123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T160000123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16 00 00 123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16.00.00.123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 
 		
 		// Timings.

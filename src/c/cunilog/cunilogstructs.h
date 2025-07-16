@@ -1295,6 +1295,7 @@ enum cunilogeventseverity
 	,	cunilogEvtSeverityDetail								// 17
 	,	cunilogEvtSeverityVerbose								// 18
 	,	cunilogEvtSeverityIllegal								// 19
+	,	cunilogEvtSeveritySyntax								// 20
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.

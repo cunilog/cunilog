@@ -2443,42 +2443,57 @@ enum cunilogeventseverity
 {
 		cunilogEvtSeverityNone									//  0
 	,	cunilogEvtSeverityNonePass								//  1
-	,	cunilogEvtSeveriiyNoneFail								//  2
-	,	cunilogEvtSeverityBlanks								//  3
-	,	cunilogEvtSeverityEmergency								//	4
-	,	cunilogEvtSeverityNotice								//	5
-	,	cunilogEvtSeverityInfo									//  6
-	,	cunilogEvtSeverityMessage								//  7
-	,	cunilogEvtSeverityWarning								//  8
-	,	cunilogEvtSeverityError									//  9
-	,	cunilogEvtSeverityPass									// 10
-	,	cunilogEvtSeverityFail									// 11
-	,	cunilogEvtSeverityCritical								// 12
-	,	cunilogEvtSeverityFatal									// 13
-	,	cunilogEvtSeverityDebug									// 14
-	,	cunilogEvtSeverityTrace									// 15
-	,	cunilogEvtSeverityDetail								// 16
-	,	cunilogEvtSeverityVerbose								// 17
-	,	cunilogEvtSeverityIllegal								// 18
+	,	cunilogEvtSeverityNoneFail								//  2
+	,	cunilogEvtSeverityNoneWarn								//  3
+	,	cunilogEvtSeverityBlanks								//  4
+	,	cunilogEvtSeverityEmergency								//	5
+	,	cunilogEvtSeverityNotice								//	6
+	,	cunilogEvtSeverityInfo									//  7
+	,	cunilogEvtSeverityMessage								//  8
+	,	cunilogEvtSeverityWarning								//  9
+	,	cunilogEvtSeverityError									// 10
+	,	cunilogEvtSeverityPass									// 11
+	,	cunilogEvtSeverityFail									// 12
+	,	cunilogEvtSeverityCritical								// 13
+	,	cunilogEvtSeverityFatal									// 14
+	,	cunilogEvtSeverityDebug									// 15
+	,	cunilogEvtSeverityTrace									// 16
+	,	cunilogEvtSeverityDetail								// 17
+	,	cunilogEvtSeverityVerbose								// 18
+	,	cunilogEvtSeverityIllegal								// 19
+	,	cunilogEvtSeveritySyntax								// 20
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
 };
 */
+
+/*
+	Not used yet. Will be used to control the severity text indexes better in the future.
+*/
+typedef struct sevtSevTexts
+{
+	char	*sevtSevTexts3;									// "123".
+	char	*sevtSevTexts5;									// "12345".
+	char	*sevtSevTexts5tgt;								// 5 characters tight.
+	char	*sevtSevTexts9;									// "123456789".
+	char	*sevtSevTexts9tgt;								// 9 characters tight.
+} SEVTSEVTEXTS;
+
 static const char *EventSeverityTexts3 [] =
 {
-		""				// cunilogEvtSeverityNone		 0
-	,	""				// cunilogEvtSeverityNonePass	 1
-	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	""				// cunilogEvtSevertiyNoneWarn	 3
-	,	"   "			// cunilogEvtSeverityBlanks		 4
-	,	"EMG"			// cunilogEvtSeverityEmergency	 5
-	,	"NOT"			// cunilogEvtSeverityNotice		 6
+		""				// cunilogEvtSeverityNone			0
+	,	""				// cunilogEvtSeverityNonePass		1
+	,	""				// cunilogEvtSevertiyNoneFail		2
+	,	""				// cunilogEvtSevertiyNoneWarn		3
+	,	"   "			// cunilogEvtSeverityBlanks			4
+	,	"EMG"			// cunilogEvtSeverityEmergency		5
+	,	"NOT"			// cunilogEvtSeverityNotice			6
 	,	"INF"
 	,	"MSG"
 	,	"WRN"
 	,	"ERR"
-	,	"PAS"			// cunilogEvtSeverityPass		11
+	,	"PAS"			// cunilogEvtSeverityPass			11
 	,	"FAI"
 	,	"CRI"
 	,	"FTL"
@@ -2486,22 +2501,23 @@ static const char *EventSeverityTexts3 [] =
 	,	"TRC"
 	,	"DET"
 	,	"VBS"
-	,	"ILG"			// cunilogEvtSeverityIllegal	18
+	,	"ILG"			// cunilogEvtSeverityIllegal		19
+	,	"SYN"			// cunilogEvtSeveritySyntax			20
 };
 static const char *EventSeverityTexts5 [] =
 {
-		""				// cunilogEvtSeverityNone		 0
-	,	""				// cunilogEvtSeverityNonePass	 1
-	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	""				// cunilogEvtSevertiyNoneWarn	 3
-	,	"     "			// cunilogEvtSeverityBlanks		 4
-	,	"EMRGY"			// cunilogEvtSeverityEmergency	 5
-	,	"NOTE "			// cunilogEvtSeverityNotice		 6
+		""				// cunilogEvtSeverityNone			0
+	,	""				// cunilogEvtSeverityNonePass		1
+	,	""				// cunilogEvtSevertiyNoneFail		2
+	,	""				// cunilogEvtSevertiyNoneWarn		3
+	,	"     "			// cunilogEvtSeverityBlanks			4
+	,	"EMRGY"			// cunilogEvtSeverityEmergency		5
+	,	"NOTE "			// cunilogEvtSeverityNotice			6
 	,	"INFO "
 	,	"MESSG"
 	,	"WARN "
 	,	"ERROR"
-	,	"PASS "			//cunilogEvtSeverityPass		11
+	,	"PASS "			//cunilogEvtSeverityPass			11
 	,	"FAIL "
 	,	"CRIT "
 	,	"FATAL"
@@ -2509,22 +2525,23 @@ static const char *EventSeverityTexts5 [] =
 	,	"TRACE"
 	,	"DETAI"
 	,	"VERBO"
-	,	"ILLEG"			// cunilogEvtSeverityIllegal	18
+	,	"ILLEG"			// cunilogEvtSeverityIllegal		19
+	,	"SYNTX"			// cunilogEvtSeveritySyntax			20
 };
 static const char *EventSeverityTexts5tgt [] =
 {
-		""				// cunilogEvtSeverityNone		 0
-	,	""				// cunilogEvtSeverityNonePass	 1
-	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	""				// cunilogEvtSevertiyNoneWarn	 3
-	,	""				// cunilogEvtSeverityBlanks		 4
-	,	"EMRGY"			// cunilogEvtSeverityEmergency	 5
-	,	"NOTE"			// cunilogEvtSeverityNotice		 6
+		""				// cunilogEvtSeverityNone			0
+	,	""				// cunilogEvtSeverityNonePass		1
+	,	""				// cunilogEvtSevertiyNoneFail		2
+	,	""				// cunilogEvtSevertiyNoneWarn		3
+	,	""				// cunilogEvtSeverityBlanks			4
+	,	"EMRGY"			// cunilogEvtSeverityEmergency		5
+	,	"NOTE"			// cunilogEvtSeverityNotice			6
 	,	"INFO"
 	,	"MESSG"
 	,	"WARN"
 	,	"ERROR"
-	,	"PASS"			//cunilogEvtSeverityPass		11
+	,	"PASS"			//cunilogEvtSeverityPass			11
 	,	"FAIL"
 	,	"CRIT"
 	,	"FATAL"
@@ -2532,22 +2549,23 @@ static const char *EventSeverityTexts5tgt [] =
 	,	"TRACE"
 	,	"DETAI"
 	,	"VERBO"
-	,	"ILLEG"			// cunilogEvtSeverityIllegal	18
+	,	"ILLEG"			// cunilogEvtSeverityIllegal		19
+	,	"SYNTX"			// cunilogEvtSeveritySyntax			20
 };
 static const char *EventSeverityTexts9 [] =
 {
-		""				// cunilogEvtSeverityNone		 0
-	,	""				// cunilogEvtSeverityNonePass	 1
-	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	""				// cunilogEvtSevertiyNoneWarn	 3
-	,	"         "		// cunilogEvtSeverityBlanks		 4
-	,	"EMERGENCY"		// cunilogEvtSeverityEmergency	 5
-	,	"NOTICE   "		// cunilogEvtSeverityNotice		 6
+		""				// cunilogEvtSeverityNone			0
+	,	""				// cunilogEvtSeverityNonePass		1
+	,	""				// cunilogEvtSevertiyNoneFail		2
+	,	""				// cunilogEvtSevertiyNoneWarn		3
+	,	"         "		// cunilogEvtSeverityBlanks			4
+	,	"EMERGENCY"		// cunilogEvtSeverityEmergency		5
+	,	"NOTICE   "		// cunilogEvtSeverityNotice			6
 	,	"INFO     "
 	,	"MESSAGE  "
 	,	"WARNING  "
 	,	"ERROR    "
-	,	"PASS     "		// cunilogEvtSeverityPass		11
+	,	"PASS     "		// cunilogEvtSeverityPass			11
 	,	"FAIL     "
 	,	"CRITICAL "
 	,	"FATAL    "
@@ -2555,21 +2573,23 @@ static const char *EventSeverityTexts9 [] =
 	,	"TRACE    "
 	,	"DETAIL   "
 	,	"VERBOSE  "
-	,	"ILLEGAL  "		// cunilogEvtSeverityIllegal	18
+	,	"ILLEGAL  "		// cunilogEvtSeverityIllegal		19
+	,	"SYNTAX   "		// cunilogEvtSeveritySyntax			20
 };
 static const char *EventSeverityTexts9tgt [] =
 {
-		""				// cunilogEvtSeverityNone		 0
-	,	""				// cunilogEvtSeverityNonePass	 1
-	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	""				// cunilogEvtSeverityBlanks		 3
-	,	"EMERGENCY"		// cunilogEvtSeverityEmergency	 4
-	,	"NOTICE"		// cunilogEvtSeverityNotice		 5
+		""				// cunilogEvtSeverityNone			0
+	,	""				// cunilogEvtSeverityNonePass		1
+	,	""				// cunilogEvtSevertiyNoneFail		2
+	,	""				// cunilogEvtSevertiyNoneWarn		3
+	,	""				// cunilogEvtSeverityBlanks			4
+	,	"EMERGENCY"		// cunilogEvtSeverityEmergency		5
+	,	"NOTICE"		// cunilogEvtSeverityNotice			6
 	,	"INFO"
 	,	"MESSAGE"
 	,	"WARNING"
 	,	"ERROR"
-	,	"PASS"			// cunilogEvtSeverityPass		10
+	,	"PASS"			// cunilogEvtSeverityPass			11
 	,	"FAIL"
 	,	"CRITICAL"
 	,	"FATAL"
@@ -2577,7 +2597,8 @@ static const char *EventSeverityTexts9tgt [] =
 	,	"TRACE"
 	,	"DETAIL"
 	,	"VERBOSE"
-	,	"ILLEGAL"		// cunilogEvtSeverityIllegal	17
+	,	"ILLEGAL"		// cunilogEvtSeverityIllegal		19
+	,	"SYNTAX"		// cunilogEvtSeveritySyntax			20
 };
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
@@ -2603,6 +2624,7 @@ STRANSICOLOURSEQUENCE evtSeverityColours [cunilogEvtSeverityXAmountEnumValues] =
 	,	{"",	0}														// cunilogEvtSeverityDetail		17
 	,	{"",	0}														// cunilogEvtSeverityVerbose	18
 	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityIllegal	19
+	,	{STR_ANSI_FGCOL_BRIGHT_MAGENTA,	LEN_ANSI_FGCOL_BRIGHT_MAGENTA}	// cunilogEvtSeveritySyntax		20
 																		// cunilogEvtSeverityXAmountEnumValues
 };
 #endif
@@ -7326,7 +7348,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 17 == cunilogEvtSeverityDetail);
 		ubf_expect_bool_AND (bRet, 18 == cunilogEvtSeverityVerbose);
 		ubf_expect_bool_AND (bRet, 19 == cunilogEvtSeverityIllegal);
-		ubf_expect_bool_AND (bRet, 20 == cunilogEvtSeverityXAmountEnumValues);
+		ubf_expect_bool_AND (bRet, 20 == cunilogEvtSeveritySyntax);
+		ubf_expect_bool_AND (bRet, 21 == cunilogEvtSeverityXAmountEnumValues);
 
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNone]));
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNonePass]));
@@ -7348,6 +7371,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityDetail]));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityVerbose]));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityIllegal]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeveritySyntax]));
 
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNone]));
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNonePass]));
@@ -7369,6 +7393,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityDetail]));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityVerbose]));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityIllegal]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeveritySyntax]));
 
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNone]));
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNonePass]));
@@ -7390,6 +7415,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityDetail]));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityVerbose]));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityIllegal]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeveritySyntax]));
 
 		#ifdef OS_IS_LINUX
 			bool bTrash = MoveFileToTrashPOSIX ("/home/thomas/FS/OAN/Thomas/cunilog/logs/testcunilog_2024-11-05 20_14.log");

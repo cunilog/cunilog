@@ -11017,7 +11017,7 @@ uint32_t GetISO8601DayOfYear (uint32_t y, uint8_t m, uint8_t d)
 	return DayOfYearNumber;
 }
 
-uint32_t GetISO8601Jan1WeekDay (uint32_t Y)
+uint8_t GetISO8601Jan1WeekDay (uint32_t Y)
 {	// Implements (5). See below.
 	uint32_t YY, C, G;
 	
@@ -12035,6 +12035,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 		}
 		ln -= 4;
 		sz += 4;
+		ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 		if (0 == ln)
 			return true;
 
@@ -12046,6 +12047,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 		}
 		if (co)
 			*co ++ = '-';
+		ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 		if (0 == ln)
 			return true;
 		if (2 <= ln)
@@ -12060,6 +12062,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 			}
 			ln -= 2;
 			sz += 2;
+			ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 			if (0 == ln)
 				return true;
 			// "2025-07-"
@@ -12070,6 +12073,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 			}
 			if (co)
 				*co ++ = '-';
+			ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 			if (0 == ln)
 				return true;
 			if (2 <= ln)
@@ -12084,6 +12088,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 				}
 				ln -= 2;
 				sz += 2;
+				ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 				if (0 == ln)
 					return true;
 				// Separator between date and time or 'T' required.
@@ -12095,6 +12100,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 					return false;
 				if (co)
 					*co ++ = ' ';
+				ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 				if (0 == ln)
 					return true;
 				if (2 <= ln)
@@ -12109,6 +12115,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 					}
 					ln -= 2;
 					sz += 2;
+					ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 					if (0 == ln)
 						return true;
 					if (':' == sz [0])
@@ -12118,6 +12125,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 					}
 					if (co)
 						*co ++ = ':';
+					ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 					if (0 == ln)
 						return true;
 					if (2 <= ln)
@@ -12132,6 +12140,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 						}
 						ln -= 2;
 						sz += 2;
+						ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 						if (0 == ln)
 							return true;
 						if (':' == sz [0])
@@ -12142,6 +12151,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 							return false;
 						if (co)
 							*co ++ = ':';
+						ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 						if (0 == ln)
 							return true;
 						if (2 <= ln)
@@ -12156,6 +12166,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 							}
 							ln -= 2;
 							sz += 2;
+							ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 							if (0 == ln)
 								return true;
 							if ('.' == sz [0])
@@ -12166,6 +12177,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 								return false;
 							if (co)
 								*co ++ = '.';
+							ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 							if (0 == ln)
 								return true;
 							if (ln)
@@ -12182,6 +12194,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 								}
 								-- ln;
 								++ sz;
+								ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 								if (0 == ln)
 									return true;
 								if (ln)
@@ -12208,6 +12221,7 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 										++ sz;
 									}
 								}
+								ubf_assert (NULL == co || LEN_ISO8601DATETIMESTAMPMS_NO_OFFS >= strlen (co));
 								if (0 == ln)
 									return true;
 							}
@@ -12845,6 +12859,7 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l ("0000-0", USE_STRLEN));
 		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00", USE_STRLEN));
 		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-0000 ", USE_STRLEN));
 		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00T", USE_STRLEN));
 		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00T00", USE_STRLEN));
 		ubf_expect_bool_AND (b, is_datetimestampformat_l ("0000-00-00 00", USE_STRLEN));
@@ -12896,85 +12911,139 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		//	Our tests therefore do not check it in these cases.
 		char szd [SIZ_ISO8601DATETIMESTAMPMS_NO_OFFS];
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "", 0));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "1", 1));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "12", 1));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "12", 2));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "1234", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("1234", szd, 5));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000", szd, 5));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-", szd, 6));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-0", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00", szd, 11));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
+		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-0000", USE_STRLEN));
+		ubf_expect_bool_AND (b, !memcmp ("0000-00-00", szd, 11));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 ", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 ", szd, 12));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00T", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 ", szd, 12));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00", szd, 14));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00", szd, 14));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:", szd, 15));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00", szd, 17));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:", szd, 18));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00", szd, 20));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.", szd, 21));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.1", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.1", szd, 22));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.12", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.12", szd, 23));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.123", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.123", szd, 24));
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.1 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.12 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00 00:00:00.123 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00:00:00.123", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("0000-00-00 00:00:00.123", szd, 24));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00:00:00.123 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "0000-00-00T00:00:00.1 23 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "9999", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999", szd, 5));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "999911", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11", szd, 8));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "9999111", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-", szd, 9));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22", szd, 11));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16", szd, 14));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122x16", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "9999112216", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122 16 ", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:", szd, 15));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122 16:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00", szd, 17));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:00:", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:", szd, 18));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122 16:00:0", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122 16:00:00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:00", szd, 20));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:00", szd, 20));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00.123", USE_STRLEN));
 		ubf_expect_bool_AND (b, !memcmp ("9999-11-22 16:00:00.123", szd, 24));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00x123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16:00:00123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T160000123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16 00 00 123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16.00.00.123", USE_STRLEN));
+		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 
 		
 		// Timings.
@@ -23655,23 +23724,25 @@ enum cunilogeventseverity
 {
 		cunilogEvtSeverityNone									//  0
 	,	cunilogEvtSeverityNonePass								//  1
-	,	cunilogEvtSeveriiyNoneFail								//  2
-	,	cunilogEvtSeverityBlanks								//  3
-	,	cunilogEvtSeverityEmergency								//	4
-	,	cunilogEvtSeverityNotice								//	5
-	,	cunilogEvtSeverityInfo									//  6
-	,	cunilogEvtSeverityMessage								//  7
-	,	cunilogEvtSeverityWarning								//  8
-	,	cunilogEvtSeverityError									//  9
-	,	cunilogEvtSeverityPass									// 10
-	,	cunilogEvtSeverityFail									// 11
-	,	cunilogEvtSeverityCritical								// 12
-	,	cunilogEvtSeverityFatal									// 13
-	,	cunilogEvtSeverityDebug									// 14
-	,	cunilogEvtSeverityTrace									// 15
-	,	cunilogEvtSeverityDetail								// 16
-	,	cunilogEvtSeverityVerbose								// 17
-	,	cunilogEvtSeverityIllegal								// 18
+	,	cunilogEvtSeverityNoneFail								//  2
+	,	cunilogEvtSeverityNoneWarn								//  3
+	,	cunilogEvtSeverityBlanks								//  4
+	,	cunilogEvtSeverityEmergency								//	5
+	,	cunilogEvtSeverityNotice								//	6
+	,	cunilogEvtSeverityInfo									//  7
+	,	cunilogEvtSeverityMessage								//  8
+	,	cunilogEvtSeverityWarning								//  9
+	,	cunilogEvtSeverityError									// 10
+	,	cunilogEvtSeverityPass									// 11
+	,	cunilogEvtSeverityFail									// 12
+	,	cunilogEvtSeverityCritical								// 13
+	,	cunilogEvtSeverityFatal									// 14
+	,	cunilogEvtSeverityDebug									// 15
+	,	cunilogEvtSeverityTrace									// 16
+	,	cunilogEvtSeverityDetail								// 17
+	,	cunilogEvtSeverityVerbose								// 18
+	,	cunilogEvtSeverityIllegal								// 19
+	,	cunilogEvtSeveritySyntax								// 20
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
@@ -23679,18 +23750,18 @@ enum cunilogeventseverity
 */
 static const char *EventSeverityTexts3 [] =
 {
-		""				// cunilogEvtSeverityNone		 0
-	,	""				// cunilogEvtSeverityNonePass	 1
-	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	""				// cunilogEvtSevertiyNoneWarn	 3
-	,	"   "			// cunilogEvtSeverityBlanks		 4
-	,	"EMG"			// cunilogEvtSeverityEmergency	 5
-	,	"NOT"			// cunilogEvtSeverityNotice		 6
+		""				// cunilogEvtSeverityNone			0
+	,	""				// cunilogEvtSeverityNonePass		1
+	,	""				// cunilogEvtSevertiyNoneFail		2
+	,	""				// cunilogEvtSevertiyNoneWarn		3
+	,	"   "			// cunilogEvtSeverityBlanks			4
+	,	"EMG"			// cunilogEvtSeverityEmergency		5
+	,	"NOT"			// cunilogEvtSeverityNotice			6
 	,	"INF"
 	,	"MSG"
 	,	"WRN"
 	,	"ERR"
-	,	"PAS"			// cunilogEvtSeverityPass		11
+	,	"PAS"			// cunilogEvtSeverityPass			11
 	,	"FAI"
 	,	"CRI"
 	,	"FTL"
@@ -23698,22 +23769,23 @@ static const char *EventSeverityTexts3 [] =
 	,	"TRC"
 	,	"DET"
 	,	"VBS"
-	,	"ILG"			// cunilogEvtSeverityIllegal	18
+	,	"ILG"			// cunilogEvtSeverityIllegal		19
+	,	"SYN"			// cunilogEvtSeveritySyntax			20
 };
 static const char *EventSeverityTexts5 [] =
 {
-		""				// cunilogEvtSeverityNone		 0
-	,	""				// cunilogEvtSeverityNonePass	 1
-	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	""				// cunilogEvtSevertiyNoneWarn	 3
-	,	"     "			// cunilogEvtSeverityBlanks		 4
-	,	"EMRGY"			// cunilogEvtSeverityEmergency	 5
-	,	"NOTE "			// cunilogEvtSeverityNotice		 6
+		""				// cunilogEvtSeverityNone			0
+	,	""				// cunilogEvtSeverityNonePass		1
+	,	""				// cunilogEvtSevertiyNoneFail		2
+	,	""				// cunilogEvtSevertiyNoneWarn		3
+	,	"     "			// cunilogEvtSeverityBlanks			4
+	,	"EMRGY"			// cunilogEvtSeverityEmergency		5
+	,	"NOTE "			// cunilogEvtSeverityNotice			6
 	,	"INFO "
 	,	"MESSG"
 	,	"WARN "
 	,	"ERROR"
-	,	"PASS "			//cunilogEvtSeverityPass		11
+	,	"PASS "			//cunilogEvtSeverityPass			11
 	,	"FAIL "
 	,	"CRIT "
 	,	"FATAL"
@@ -23721,22 +23793,23 @@ static const char *EventSeverityTexts5 [] =
 	,	"TRACE"
 	,	"DETAI"
 	,	"VERBO"
-	,	"ILLEG"			// cunilogEvtSeverityIllegal	18
+	,	"ILLEG"			// cunilogEvtSeverityIllegal		19
+	,	"SYNTX"			// cunilogEvtSeveritySyntax			20
 };
 static const char *EventSeverityTexts5tgt [] =
 {
-		""				// cunilogEvtSeverityNone		 0
-	,	""				// cunilogEvtSeverityNonePass	 1
-	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	""				// cunilogEvtSevertiyNoneWarn	 3
-	,	""				// cunilogEvtSeverityBlanks		 4
-	,	"EMRGY"			// cunilogEvtSeverityEmergency	 5
-	,	"NOTE"			// cunilogEvtSeverityNotice		 6
+		""				// cunilogEvtSeverityNone			0
+	,	""				// cunilogEvtSeverityNonePass		1
+	,	""				// cunilogEvtSevertiyNoneFail		2
+	,	""				// cunilogEvtSevertiyNoneWarn		3
+	,	""				// cunilogEvtSeverityBlanks			4
+	,	"EMRGY"			// cunilogEvtSeverityEmergency		5
+	,	"NOTE"			// cunilogEvtSeverityNotice			6
 	,	"INFO"
 	,	"MESSG"
 	,	"WARN"
 	,	"ERROR"
-	,	"PASS"			//cunilogEvtSeverityPass		11
+	,	"PASS"			//cunilogEvtSeverityPass			11
 	,	"FAIL"
 	,	"CRIT"
 	,	"FATAL"
@@ -23744,22 +23817,23 @@ static const char *EventSeverityTexts5tgt [] =
 	,	"TRACE"
 	,	"DETAI"
 	,	"VERBO"
-	,	"ILLEG"			// cunilogEvtSeverityIllegal	18
+	,	"ILLEG"			// cunilogEvtSeverityIllegal		19
+	,	"SYNTX"			// cunilogEvtSeveritySyntax			20
 };
 static const char *EventSeverityTexts9 [] =
 {
-		""				// cunilogEvtSeverityNone		 0
-	,	""				// cunilogEvtSeverityNonePass	 1
-	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	""				// cunilogEvtSevertiyNoneWarn	 3
-	,	"         "		// cunilogEvtSeverityBlanks		 4
-	,	"EMERGENCY"		// cunilogEvtSeverityEmergency	 5
-	,	"NOTICE   "		// cunilogEvtSeverityNotice		 6
+		""				// cunilogEvtSeverityNone			0
+	,	""				// cunilogEvtSeverityNonePass		1
+	,	""				// cunilogEvtSevertiyNoneFail		2
+	,	""				// cunilogEvtSevertiyNoneWarn		3
+	,	"         "		// cunilogEvtSeverityBlanks			4
+	,	"EMERGENCY"		// cunilogEvtSeverityEmergency		5
+	,	"NOTICE   "		// cunilogEvtSeverityNotice			6
 	,	"INFO     "
 	,	"MESSAGE  "
 	,	"WARNING  "
 	,	"ERROR    "
-	,	"PASS     "		// cunilogEvtSeverityPass		11
+	,	"PASS     "		// cunilogEvtSeverityPass			11
 	,	"FAIL     "
 	,	"CRITICAL "
 	,	"FATAL    "
@@ -23767,21 +23841,23 @@ static const char *EventSeverityTexts9 [] =
 	,	"TRACE    "
 	,	"DETAIL   "
 	,	"VERBOSE  "
-	,	"ILLEGAL  "		// cunilogEvtSeverityIllegal	18
+	,	"ILLEGAL  "		// cunilogEvtSeverityIllegal		19
+	,	"SYNTAX   "		// cunilogEvtSeveritySyntax			20
 };
 static const char *EventSeverityTexts9tgt [] =
 {
-		""				// cunilogEvtSeverityNone		 0
-	,	""				// cunilogEvtSeverityNonePass	 1
-	,	""				// cunilogEvtSevertiyNoneFail	 2
-	,	""				// cunilogEvtSeverityBlanks		 3
-	,	"EMERGENCY"		// cunilogEvtSeverityEmergency	 4
-	,	"NOTICE"		// cunilogEvtSeverityNotice		 5
+		""				// cunilogEvtSeverityNone			0
+	,	""				// cunilogEvtSeverityNonePass		1
+	,	""				// cunilogEvtSevertiyNoneFail		2
+	,	""				// cunilogEvtSevertiyNoneWarn		3
+	,	""				// cunilogEvtSeverityBlanks			4
+	,	"EMERGENCY"		// cunilogEvtSeverityEmergency		5
+	,	"NOTICE"		// cunilogEvtSeverityNotice			6
 	,	"INFO"
 	,	"MESSAGE"
 	,	"WARNING"
 	,	"ERROR"
-	,	"PASS"			// cunilogEvtSeverityPass		10
+	,	"PASS"			// cunilogEvtSeverityPass			11
 	,	"FAIL"
 	,	"CRITICAL"
 	,	"FATAL"
@@ -23789,7 +23865,8 @@ static const char *EventSeverityTexts9tgt [] =
 	,	"TRACE"
 	,	"DETAIL"
 	,	"VERBOSE"
-	,	"ILLEGAL"		// cunilogEvtSeverityIllegal	17
+	,	"ILLEGAL"		// cunilogEvtSeverityIllegal		19
+	,	"SYNTAX"		// cunilogEvtSeveritySyntax			20
 };
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
@@ -23815,6 +23892,7 @@ STRANSICOLOURSEQUENCE evtSeverityColours [cunilogEvtSeverityXAmountEnumValues] =
 	,	{"",	0}														// cunilogEvtSeverityDetail		17
 	,	{"",	0}														// cunilogEvtSeverityVerbose	18
 	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityIllegal	19
+	,	{STR_ANSI_FGCOL_BRIGHT_MAGENTA,	LEN_ANSI_FGCOL_BRIGHT_MAGENTA}	// cunilogEvtSeveritySyntax		20
 																		// cunilogEvtSeverityXAmountEnumValues
 };
 #endif
@@ -28538,7 +28616,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 17 == cunilogEvtSeverityDetail);
 		ubf_expect_bool_AND (bRet, 18 == cunilogEvtSeverityVerbose);
 		ubf_expect_bool_AND (bRet, 19 == cunilogEvtSeverityIllegal);
-		ubf_expect_bool_AND (bRet, 20 == cunilogEvtSeverityXAmountEnumValues);
+		ubf_expect_bool_AND (bRet, 20 == cunilogEvtSeveritySyntax);
+		ubf_expect_bool_AND (bRet, 21 == cunilogEvtSeverityXAmountEnumValues);
 
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNone]));
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts3 [cunilogEvtSeverityNonePass]));
@@ -28560,6 +28639,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityDetail]));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityVerbose]));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeverityIllegal]));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EventSeverityTexts3 [cunilogEvtSeveritySyntax]));
 
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNone]));
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts5 [cunilogEvtSeverityNonePass]));
@@ -28581,6 +28661,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityDetail]));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityVerbose]));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeverityIllegal]));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EventSeverityTexts5 [cunilogEvtSeveritySyntax]));
 
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNone]));
 		ubf_expect_bool_AND (bRet, 0 == strlen (EventSeverityTexts9 [cunilogEvtSeverityNonePass]));
@@ -28602,6 +28683,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityDetail]));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityVerbose]));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeverityIllegal]));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EventSeverityTexts9 [cunilogEvtSeveritySyntax]));
 
 		#ifdef OS_IS_LINUX
 			bool bTrash = MoveFileToTrashPOSIX ("/home/thomas/FS/OAN/Thomas/cunilog/logs/testcunilog_2024-11-05 20_14.log");

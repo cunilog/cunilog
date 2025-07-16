@@ -700,7 +700,7 @@ uint32_t GetISO8601DayOfYear (uint32_t y, uint8_t m, uint8_t d);
 /*
 	GetISO8601Jan1WeekDay
 */
-uint32_t GetISO8601Jan1WeekDay (uint32_t Y);
+uint8_t GetISO8601Jan1WeekDay (uint32_t Y);
 
 /*
 	GetISO8601WeekDay
@@ -766,7 +766,8 @@ uint8_t DaysInMonth (uint32_t y, uint8_t m);
 	https://en.wikipedia.org/wiki/Determination_of_the_day_of_the_week#Implementation-dependent_methods
 	(Tomohiko Sakamoto).
 	
-	The year must be > 1752, at least in the UK.
+	The year must be > 1752, at least in the UK. See
+	https://en.wikipedia.org/wiki/Old_Style_and_New_Style_dates for more details.
 	
 	Use the function DayOfWeek () to obtain the weekday according to ISO 8601
 	where 0 == Monday, 1 == Tuesday, ..., 6 == Sunday.
@@ -1435,8 +1436,8 @@ bool is_datetimestampformat_l (const char *str, size_t len);
 	The buffer corr points to can either be NULL, in which case the function is identical
 	to is_datetimestampformat_l (), or it must point to a buffer of at least
 	SIZ_ISO8601DATETIMESTAMPMS_NO_OFFS octets/bytes to store the result of the correction
-	in the format "YYYY-MM-DD hh:mm:ss.xxx". Note that the corrected version is always
-	written, independent of whether it is identical to str or not.
+	in the format "YYYY-MM-DD hh:mm:ss.xxx", or shorter if not all the information is
+	provided in str.
 
 	Note that the ISO 'T' date/time separator is replaced by a space charcter in corr.
 	The caller can only rely on something useful being in corr when the function returns
