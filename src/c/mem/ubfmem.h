@@ -310,10 +310,20 @@ void *ubf_memdup (const void *mem, size_t len);
 	Like strdup () but with length to copy and size to allocate.
 	In other words, a copy of mem with a size of siz is created and the first len octets
 	copied from mem to the new buffer.
-	
-	Debug versions abort if siz <= len.
+
+	Debug versions assert that siz >= len.
 */
 void *ubf_memdup_siz (const void *mem, size_t len, size_t siz);
+
+/*
+	strdup_l
+
+	Since MSVC doesn't provide strndup () yet, we roll our own.
+
+	Copies len bytes/octets from str to a newly allocated buffer. The new buffer is always
+	NUL-terminated.
+*/
+char *strdup_l (const char *str, size_t len);
 
 /*
 	ZeroMemory

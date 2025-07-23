@@ -51,9 +51,15 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./ubfdebug.h"
 		#include "./ArrayMacros.h"
+		#ifdef STRLINEEXTRACT_BUILD_TEST_FNCT
+			#include "./strmembuf.h"
+		#endif
 	#else
 		#include "./../dbg/ubfdebug.h"
 		#include "./../pre/ArrayMacros.h"
+		#ifdef STRLINEEXTRACT_BUILD_TEST_FNCT
+			#include "./../string/strmembuf.h"
+		#endif
 	#endif
 
 #endif
@@ -125,7 +131,7 @@ bool SanityCheckMultiComments (STRLINECONF *pc)
 		{	// Each start of a multi-line comment needs an end of a multi-line comment.
 			ubf_assert_non_NULL (pc->pchStartMultiCommentStr [n]);
 			ubf_assert_non_NULL (pc->pchEndMultiCommentStr [n]);
-			if (NULL == pc->pchStartMultiCommentStr [n] && NULL == pc->pchEndMultiCommentStr [n])
+			if (NULL == pc->pchStartMultiCommentStr [n] || NULL == pc->pchEndMultiCommentStr [n])
 				return false;
 		}
 		return true;
@@ -205,12 +211,12 @@ void nextLine (char **pb, size_t *pl, STRLINEINF *pi)
 	ubf_assert_non_NULL (pl);
 	ubf_assert_non_NULL (pi);
 
-	char			*ch	= *pb;
-	unsigned int	nls	= 0;
-	size_t			jmp	= 0;
-	size_t			l	= *pl;
+	char		*ch	= *pb;
+	size_t		nls	= 0;
+	size_t		jmp	= 0;
+	size_t		l	= *pl;
 
-	while (l && 0 == (nls = strIsNewLine (ch, l, &jmp)))
+	while (l && 0 == (nls = strIsLineEndings (ch, l, &jmp)))
 	{
 		-- l;
 		++ ch;
@@ -268,7 +274,7 @@ bool swallowMultiComment (char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi
 
 	unsigned int	idx;
 	size_t			l;
-	unsigned int	nls;
+	size_t			nls;
 	size_t			jmp;
 
 	if (0 < (idx = isStartMultiLineComment (*pb, *pl, pc)))
@@ -288,7 +294,7 @@ bool swallowMultiComment (char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi
 				return true;
 			} else
 			{
-				nls = strIsNewLine (*pb, *pl, &jmp);
+				nls = strIsLineEndings (*pb, *pl, &jmp);
 				if (nls)
 				{
 					pi->lineNumber	+= nls;
@@ -319,9 +325,9 @@ bool swallowEmptyAndWhiteSpaceLines (char **pb, size_t *pl, STRLINEINF *pi)
 	ubf_assert_non_NULL (pl);
 	ubf_assert_non_NULL (pi);
 	
-	unsigned int		nls;
-	size_t				jmp;
-	bool				bRet	= false;
+	size_t	nls;
+	size_t	jmp;
+	bool	bRet	= false;
 	
 	if (pb && *pb && pl && pi)
 	{
@@ -340,7 +346,7 @@ bool swallowEmptyAndWhiteSpaceLines (char **pb, size_t *pl, STRLINEINF *pi)
 			} else
 				break;
 		}
-		nls = strIsNewLine (*pb, *pl, &jmp);
+		nls = strIsLineEndings (*pb, *pl, &jmp);
 		if (nls)
 		{
 			pi->lineNumber	+= nls;
@@ -375,12 +381,12 @@ size_t getLineLength (char *pb, size_t lb) //, STRLINECONF *pc)
 {
 	ubf_assert_non_NULL (pb);
 
-	unsigned int	nls		= 0;
-	size_t			jmp;
-	char			*p		= pb;
-	size_t			r		= 0;
+	size_t	nls		= 0;
+	size_t	jmp;
+	char	*p		= pb;
+	size_t	r		= 0;
 
-	while (*p && lb && 0 == (nls = strIsNewLine (p, lb, &jmp)))
+	while (*p && lb && 0 == (nls = strIsLineEndings (p, lb, &jmp)))
 	{
 		++ p;
 		-- lb;
@@ -389,6 +395,7 @@ size_t getLineLength (char *pb, size_t lb) //, STRLINECONF *pc)
 	{
 		r = p - pb;
 		// Comment out the following line if trailing white space should not be removed.
+		//	This should probably be configurable in the future.
 		r = getLengthTrailingWhiteSpaceRemoved (pb, r);
 	}
 	return r;
@@ -410,41 +417,46 @@ unsigned int StrLineExtractU8	(
 															//	called.
 
 	ubf_assert_non_NULL (pConf);
+
+	lenBuf = USE_STRLEN == lenBuf ? strlen (pBuf) : lenBuf;
+
+	// This is the only character set we support at the moment.
 	ubf_assert (EN_STRLINEEXTRACT_UTF8 == pConf->CharacterSet);
 
-	if (SanityCheckMultiComments (pConf))
-	{
-		STRLINEINF			sLineInfo;
-		bool				cbRet;
-		bool				b;
+	if (!SanityCheckMultiComments (pConf))
+		return UINT_MAX;
 
-		if (pBuf)
+	STRLINEINF			sLineInfo;
+	bool				cbRet;
+	bool				b;
+
+	if (pBuf)
+	{
+		InitSTRLINEINF (&sLineInfo, pCustom);
+		sLineInfo.lineNumber = 1;						// Line 1 unless buffer empty.
+		while (lenBuf)
 		{
-			InitSTRLINEINF (&sLineInfo, pCustom);
-			sLineInfo.lineNumber = 1;						// Line 1 unless buffer empty.
-			while (lenBuf)
+			do
 			{
-				do	{
-						b = swallowLineComment (&pBuf, &lenBuf, pConf, &sLineInfo);
-						b |= swallowMultiComment (&pBuf, &lenBuf, pConf, &sLineInfo);
-						b |= swallowEmptyAndWhiteSpaceLines (&pBuf, &lenBuf, &sLineInfo);
-					} while (b);
-				if (lenBuf)
+				b = swallowLineComment (&pBuf, &lenBuf, pConf, &sLineInfo);
+				b |= swallowMultiComment (&pBuf, &lenBuf, pConf, &sLineInfo);
+				b |= swallowEmptyAndWhiteSpaceLines (&pBuf, &lenBuf, &sLineInfo);
+			} while (b);
+			if (lenBuf)
+			{
+				// We now got a single line.
+				sLineInfo.lnLength		= getLineLength (pBuf, lenBuf); //, pConf);
+				sLineInfo.pStart		= pBuf;
+				sLineInfo.charNumber	= 0;			// Currently not supported.
+				if (cb)
 				{
-					// We now got a single line.
-					sLineInfo.lnLength		= getLineLength (pBuf, lenBuf); //, pConf);
-					sLineInfo.pStart		= pBuf;
-					sLineInfo.charNumber	= 0;			// Currently not supported.
-					if (cb)
-					{
-						cbRet = (*cb) (&sLineInfo);
-						++ uiRet;
-						if (!cbRet)
-							break;
-					}
-					pBuf += sLineInfo.lnLength;
-					lenBuf -= sLineInfo.lnLength;
+					cbRet = (*cb) (&sLineInfo);
+					++ uiRet;
+					if (!cbRet)
+						break;
 				}
+				pBuf += sLineInfo.lnLength;
+				lenBuf -= sLineInfo.lnLength;
 			}
 		}
 	}
@@ -476,3 +488,110 @@ unsigned int StrLineExtract	(
 	}
 	return 0;
 }
+
+#ifdef STRLINEEXTRACT_BUILD_TEST_FNCT
+	#define STRLINEEXTRACT_TEST_STRING_NUM		(10)
+
+	typedef struct strlinextcstm
+	{
+		size_t	n;
+		char	*strs	[STRLINEEXTRACT_TEST_STRING_NUM];	// To test the extracted strings.
+		size_t	sts		[STRLINEEXTRACT_TEST_STRING_NUM];	// Lengths of extracted strings.
+	} STRLINEXTCSTM;
+
+	bool ourLinextractCB (STRLINEINF *psli)
+	{
+		ubf_assert_non_NULL (psli);
+
+		STRLINEXTCSTM	*plex	= psli->pCustom;
+		char			*szLine	= psli->pStart;
+		size_t			lnLine	= psli->lnLength;
+
+
+		ubf_assert (plex->n < STRLINEEXTRACT_TEST_STRING_NUM);
+		plex->strs [plex->n] = strdup_l (szLine, lnLine);
+		++ plex->n;
+
+		return true;
+	}
+
+	bool test_strlineextract (void)
+	{
+		bool b = true;
+
+		STRLINECONF		conf;
+		InitSTRLINECONFforUBFL (&conf);
+		ubf_expect_bool_AND (b, SanityCheckMultiComments (&conf));
+		InitSTRLINECONFforC (&conf);
+		ubf_expect_bool_AND (b, SanityCheckMultiComments (&conf));
+
+		char sz [1024];
+		char *ch;
+		strcpy (sz, "This is a string.");
+		ubf_expect_bool_AND (b, false == cmpBufStartsWith (sz, 0, ""));
+		ubf_expect_bool_AND (b, false == cmpBufStartsWith (sz, strlen (sz), ""));
+		ubf_expect_bool_AND (b, true == cmpBufStartsWith (sz, strlen (sz), "This"));
+		ubf_expect_bool_AND (b, true == cmpBufStartsWith (sz, strlen (sz), "This is"));
+		ubf_expect_bool_AND (b, true == cmpBufStartsWith (sz, strlen (sz), "This is a string."));
+		ubf_expect_bool_AND (b, true == cmpBufStartsWith (sz, 5, "This "));
+
+		unsigned int ui;
+		strcpy (sz, "/*");
+		ui = isStartMultiLineComment (sz, 2, &conf);
+		ubf_expect_bool_AND (b, 1 == ui);
+		sz [0] = '.';
+		ui = isStartMultiLineComment (sz, 2, &conf);
+		ubf_expect_bool_AND (b, 0 == ui);
+		strcpy (sz, "/* Text between */");
+		ui = isStartMultiLineComment (sz, strlen (sz), &conf);
+		ubf_expect_bool_AND (b, 1 == ui);
+		bool br = isEndMultiLineComment (sz, 2, &conf, ui);
+		ch = sz + 2;
+		while (*ch != '*')
+			++ ch;
+		br = isEndMultiLineComment (sz, strlen (sz), &conf, ui);
+		ubf_expect_bool_AND (b, false == br);
+		br = isEndMultiLineComment (ch, 2, &conf, ui);
+		ubf_expect_bool_AND (b, true == br);
+
+		STRLINEINF	inf;
+		InitSTRLINEINF (&inf, (void *) 73);
+		ubf_expect_bool_AND (b, (void *) 73 == inf.pCustom);
+
+		STRLINEXTCSTM	cust;
+		cust.n = 0;
+		for (size_t ux = 0; ux < STRLINEEXTRACT_TEST_STRING_NUM; ++ ux)
+		{
+			cust.strs	[ux] = NULL;
+			cust.sts	[ux]	= 0;
+		}
+
+		char *szTst =	"; 12345\n"
+						"First line\n"
+						"/*\n"
+						"A text.\n"
+						"*/\n"
+						"ABCDEFG\n"
+						"/*\n"
+						"A text.\n"
+						"*/\n"
+						;
+		InitSTRLINECONFforUBFL (&conf);
+		inf.pCustom = &cust;
+		size_t n = 0;
+		StrLineExtract (szTst, USE_STRLEN, &conf, ourLinextractCB, &cust);
+		ubf_expect_bool_AND (b, 2 == cust.n);
+		ubf_expect_bool_AND (b, !memcmp ("First line", cust.strs [n ++], 10));
+		ubf_expect_bool_AND (b, !memcmp ("ABCDEFG", cust.strs [n ++], 7));
+
+		for (size_t ux = 0; ux < STRLINEEXTRACT_TEST_STRING_NUM; ++ ux)
+		{
+			if (cust.strs [ux])
+				ubf_free (cust.strs [ux]);
+			cust.strs	[ux] = NULL;
+			cust.sts	[ux]	= 0;
+		}
+
+		return b;
+	}
+#endif

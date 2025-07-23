@@ -59,6 +59,7 @@ DEFINES += BUILD_BULKMALLOC_TEST_FUNCTIONS
 DEFINES += U_CHECK_UTF8_BUILD_TEST_FNCT
 DEFINES += BUILD_TEST_WINAPI_U8_FNCT
 DEFINES += PROCESS_HELPERS_BUILD_TEST_FNCT
+DEFINES += STRLINEEXTRACT_BUILD_TEST_FNCT
 
 # If this -ldl is missing, the linker on Linux complains with
 #	"sqlite3.o: undefined reference to symbol 'dlclose@@GLIBC_2.2.5'".

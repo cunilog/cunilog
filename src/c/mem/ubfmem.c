@@ -56,9 +56,16 @@ When		Who				What
 
 	#include "./ubfmem.h"
 
-	#ifdef UBF_MEM_DEBUG_USE_OUR_DEBUG_FUNCS
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ubfdebug.h"
+		#ifdef UBF_MEM_DEBUG_USE_OUR_DEBUG_FUNCS
+			#include "./ubfmemdebug.h"
+		#endif
+	#else
 		#include "./../dbg/ubfdebug.h"
-		#include "./../mem/ubfmemdebug.h"
+		#ifdef UBF_MEM_DEBUG_USE_OUR_DEBUG_FUNCS
+			#include "./../mem/ubfmemdebug.h"
+		#endif
 	#endif
 
 #endif
@@ -286,7 +293,7 @@ void *ubf_memdup_siz (const void *mem, size_t len, size_t siz)
 {
 	void	*dup;
 	
-	//ubf_assert (siz >= len);
+	ubf_assert (siz >= len);
 	
 	dup = ubf_malloc (siz);
 	if (dup)
@@ -295,4 +302,17 @@ void *ubf_memdup_siz (const void *mem, size_t len, size_t siz)
 			memcpy (dup, mem, len);
 	}
 	return dup;
+}
+
+char *strdup_l (const char *str, size_t len)
+{
+	ubf_assert_non_NULL (str);
+
+	char *szNew = ubf_malloc (len + 1);
+	if (szNew)
+	{
+		memcpy (szNew, str, len);
+		szNew [len] = ASCII_NUL;
+	}
+	return szNew;
 }

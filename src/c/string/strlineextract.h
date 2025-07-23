@@ -70,6 +70,14 @@ enum enStrlineExtractCharSet
 	,	EN_STRLINEEXTRACT_UTF16								// Not supported yet.
 };
 
+/*
+	The members pchStartMultiCommentStr and pchEndMultiCommentStr point to string arrays that
+	define the start and end of a block comment (multi-line comment). The member
+	nMultiCommentStr holds the amount of array elements. Both arrays need to have the same
+	amount of elements, and nMultiCommentStr must be precisely this value. Both arrays
+	can be set to NULL if nMultiCommentStr is 0. No multi-line (block) comments are accepted
+	in this case.
+*/
 typedef struct strlineconf
 {
 	enum enStrlineExtractCharSet	CharacterSet;			// Specifies the used character set.
@@ -121,14 +129,27 @@ typedef struct strlineinf
 	#endif
 } STRLINEINF;
 
+/*
+	User callback function.
+
+	Should return true for every line processed. When this function returns false,
+	the functions StrLineExtract () or StrLineExtractU8 () return too, and return the amount
+	of times the callback function has been invoked.
+*/
 typedef bool (*StrLineExtractCallback) (STRLINEINF *psli);
 
 /*
 	InitSTRLINECONFforUBFL
 
-	Initialises the STRLINECONF structure pc points to for UBFL language file lines
-	and multi-line comments and a tab size of 4. Character set is UTF-8
+	Initialises the STRLINECONF structure pc points to for UBFL language translation
+	file single and multi-line (block) comments and a tab size of 4. Character set is UTF-8
 	(EN_STRLINEEXTRACT_UTF8).
+	
+	In addition to C/C++ multi (block) and single line comments, UBFL language translation
+	files also accept the following characters as the start of a line comment:
+	"#", ";", "+", "-", "!".
+	Their multi (block) and single line comment characters are therefore suitable for some
+	scripting languages.
 */
 void InitSTRLINECONFforUBFL (STRLINECONF *pc)
 ;
@@ -140,6 +161,19 @@ void InitSTRLINECONFforUBFL (STRLINECONF *pc)
 	comments and a tab size of 4. Character set is UTF-8 (EN_STRLINEEXTRACT_UTF8).
 */
 void InitSTRLINECONFforC (STRLINECONF *pc);
+
+/*
+	SanityCheckMultiComments
+
+	Performs a simple sanity check on the string arrays that define the multi/block comments.
+	This function is NOT a replacement for the caller to ensure the comments and their amounts
+	are correct! It is the responsibility of the caller to ensure the members
+	pchStartMultiCommentStr, pchEndMultiCommentStr, and nMultiCommentStr are initialised
+	correctly.
+
+	The function returns true if the sanity check is passed, false if not.
+*/
+bool SanityCheckMultiComments (STRLINECONF *pc);
 
 /*
 	StrLineExtractU8
@@ -179,23 +213,36 @@ unsigned int StrLineExtractU8	(
 	example to roll your own.
 
 	pBuf			A pointer to the buffer that contains the data of which lines are
-					to be extracted.
-	lenBuf			The length of the buffer, in characters.
+					to be extracted. This buffer does not have to be NUL-terminated
+					unless lenBuf is set to USE_STRLEN.
+
+	lenBuf			The length of the buffer, in characters. This can be USE_STRLEN,
+					in which case the function obtains the length of pBuf by calling
+					strlen () on it. For any other value, the buffer does not need to
+					be NUL-terminated.
+
 	pConf			A pointer to an initialised STRLINECONF structure. The caller fills
 					this structure to control the function. If this parameter is NULL,
 					the function uses its own STRLINECONF structure and calls
-					InitSTRLINECONFforC () for it before it is used.
+					InitSTRLINECONFforUBFL () for it before it is used.
+
 	cb				A pointer to a StrLineExtractCallback () callback function. This
 					function is called for each extracted line. The function is passed
 					an STRLINEINF structure with some information. The callback function
-					returns TRUE for each line processed. When the function returns
-					FALSE StrLineExtract returns too, returning the amount of times
+					returns true for each line processed. When the function returns
+					false StrLineExtract returns too, returning the amount of times
 					the callback function has been called so far.
+
 	pCustom			An arbitrary pointer passed on to the callback function through
 					the pCustom member of the STRLINEINF structure.
 
-	The function returns how many times the callback function has been invoked,
-	which can be 0.
+	When the function succeeds, it returns how many times the callback function has been
+	invoked, which can be 0.
+	
+	If the function fails, the return value is UINT_MAX. The function can only fail if
+	the number of start and end block comment characters are not identical. You can
+	call SanityCheckMultiComments () beforehand to ensure the function is not going to
+	fail.
 */
 unsigned int StrLineExtract	(
 				void					*pBuf,
@@ -205,6 +252,18 @@ unsigned int StrLineExtract	(
 				void					*pCustom
 							)
 ;
+
+/*
+	test_strlineextract
+
+	Function that tests the module. Returns true if all tests have been completed
+	successfully, false otherwise.
+*/
+#ifdef STRLINEEXTRACT_BUILD_TEST_FNCT
+	bool test_strlineextract (void);
+#else
+	#define test_strlineextract()	(true)
+#endif
 
 EXTERN_C_END
 

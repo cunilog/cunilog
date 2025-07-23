@@ -57,8 +57,9 @@ When		Who				What
 		#include "./stransi.h"
 		#include "./strcustomfmt.h"
 		#include "./strfilesys.h"
-		#include "./strwildcards.h"
 		#include "./strhex.h"
+		#include "./strlineextract.h"
+		#include "./strwildcards.h"
 		#include "./check_utf8.h"
 		#include "./ProcessHelpers.h"
 
@@ -83,6 +84,7 @@ When		Who				What
 		#include "./../string/strcustomfmt.h"
 		#include "./../string/strfilesys.h"
 		#include "./../string/strhex.h"
+		#include "./../string/strlineextract.h"
 		#include "./../string/strwildcards.h"
 		#include "./../string/check_utf8.h"
 		#include "./../OS/ProcessHelpers.h"
@@ -452,6 +454,17 @@ bool CunilogTestFunction	(
 		b &= stransi_test_fnct ();
 		CunilogTestFnctResultToConsole (b);
 		CunilogTestFnctStartTestToConsole ("Only macros tested. Internal test of module stransi...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Internal test of module strlineextract...");
+	#ifdef STRLINEEXTRACT_BUILD_TEST_FNCT
+		b &= test_strlineextract ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		b &= test_strlineextract ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macros tested. Internal test of module strlineextract...");
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 

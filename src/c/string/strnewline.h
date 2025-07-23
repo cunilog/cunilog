@@ -273,7 +273,7 @@ const char *szLineEnding (newline_t nl, size_t *pln);
 	strIsNewLine
 
 	Since 2024-11-29 this function is considered deprecated. Use strIsLineEndings () instead.
-	The function might be made obsolete in the future.
+	Note that strIsLineEndings () returns a size_t instead of an unsigned int.
 
 	Since 2025-06-25 this function is not built anymore by default. It is instead a wrapper
 	macro for strIsLineEndings (). Define STRNEWLINE_FORCE_ORG_STRISNEWLINE to build and use
