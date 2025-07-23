@@ -316,7 +316,7 @@ char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE)
 			l = lnLineEnding (e);
 			if (len >= l && !memcmp (ch, ccLineEnding (e), l))
 			{
-				if (*plLE)
+				if (plLE)
 					*plLE = l;
 				return (char *) ch;
 			}
@@ -438,6 +438,12 @@ size_t strRemoveLineEndingsFromEnd (const char *sz, size_t len)
 			ubf_expect_bool_AND (b, !memcmp (sr, "\r\n", 3));
 
 			strcpy (sz, "ABC\r\n");
+			st = 0;
+			sr = strFirstLineEnding_l (sz, USE_STRLEN, &st);
+			ubf_expect_bool_AND (b, !memcmp (sr, "\r\n", 3));
+			ubf_expect_bool_AND (b, 2 == st);
+
+			st = 3;
 			sr = strFirstLineEnding_l (sz, USE_STRLEN, &st);
 			ubf_expect_bool_AND (b, !memcmp (sr, "\r\n", 3));
 			ubf_expect_bool_AND (b, 2 == st);
