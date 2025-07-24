@@ -15944,19 +15944,43 @@ size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 	or returns NULL if no line ending could be found.
 
 	The function reads up to len octets/bytes from ch. If len is USE_STRLEN, the function
-	calls strlen (ch) to obtain it.
+	calls strlen (ch) to obtain it. The parameter ch can be NULL if len is 0.
 */
 char *strFirstLineEnding (const char *ch, size_t len);
 
 /*
 	strFirstLineEnding_l
 
-	The function is identical to strFirstLineEnding but additionally returns the length
+	The function is identical to strFirstLineEnding () but additionally returns the length
 	of the line ending encountered. The parameter plLE can be NULL, in which case the
 	length of the line ending is not returned. if no line ending is found, the size_t
 	plLE points to is not touched.
+
+	If len is USE_STRLEN, the function calls strlen (ch) to obtain it.
+	The parameter ch can be NULL if len is 0.
+
+	If no line ending is found, the function returns NULL.
 */
 char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE);
+
+/*
+	strPrevLineEnding_l
+
+	The function is identical to strFirstLineEnding_l () but searches for the first line
+	ending before ch + strtIdx, i.e. the previous line ending. The length of the found line
+	ending is returned at the address plLE points to, unless plLE is NULL.
+
+	If len is USE_STRLEN, the function calls strlen (ch) to obtain it.
+	The parameter len or, if USE_STRLEN, the obtained length, must be greater or equal to
+	strtIdx. The function searches backwards (towards the first character in ch) from
+	ch + strtIdx down to ch for the line ending.
+
+	The parameter ch can be NULL if len is 0.
+
+	If no line ending is found, the function returns NULL. If strtIdx >= len, the function
+	returns NULL.
+*/
+char *strPrevLineEnding_l (const char *ch, size_t len, size_t strtIdx, size_t *plLE);
 
 /*
 	strRemoveLineEndingsFromEnd

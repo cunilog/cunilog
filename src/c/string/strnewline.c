@@ -328,6 +328,37 @@ char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE)
 	return NULL;
 }
 
+char *strPrevLineEnding_l (const char *ch, size_t len, size_t strtIdx, size_t *plLE)
+{
+	int		e;
+	size_t	l;
+
+	len = USE_STRLEN == len ? strlen (ch) : len;
+	if (strtIdx >= len || !len)
+		return NULL;
+
+	char *szStart = (char *) ch + strtIdx;
+
+	while (szStart >= ch)
+	{
+		e = 0;
+		while (cunilogNewLineAmountEnumValues > e)
+		{
+			l = lnLineEnding (e);
+			if (strtIdx >= l && !memcmp (szStart - l, ccLineEnding (e), l))
+			{
+				if (plLE)
+					*plLE = l;
+				return szStart - l;
+			}
+			++ e;
+		}
+		-- szStart;
+		-- strtIdx;
+	}
+	return NULL;
+}
+
 size_t strRemoveLineEndingsFromEnd (const char *sz, size_t len)
 {
 	ubf_assert_non_NULL (sz);
@@ -447,6 +478,38 @@ size_t strRemoveLineEndingsFromEnd (const char *sz, size_t len)
 			sr = strFirstLineEnding_l (sz, USE_STRLEN, &st);
 			ubf_expect_bool_AND (b, !memcmp (sr, "\r\n", 3));
 			ubf_expect_bool_AND (b, 2 == st);
+
+			strcpy (sz, "ABC\r\n1234\r\nLine3\n");
+			// Nothing to be found.
+			sr = strPrevLineEnding_l (sz, USE_STRLEN, 400, NULL);
+			ubf_expect_bool_AND (b, NULL == sr);
+			sr = strPrevLineEnding_l (sz, USE_STRLEN, 2, NULL);
+			ubf_expect_bool_AND (b, NULL == sr);
+			sr = strPrevLineEnding_l (sz, USE_STRLEN, strlen (sz), &st);
+			ubf_expect_bool_AND (b, NULL == sr);
+			st = 4711;										// The function shouldn't change this.
+			sr = strPrevLineEnding_l (sz, USE_STRLEN, 2, &st);
+			ubf_expect_bool_AND (b, NULL == sr);
+			ubf_expect_bool_AND (b, 4711 == st);			// Still unchanged?
+			sr = strPrevLineEnding_l (sz, USE_STRLEN, 6, &st);
+			ubf_expect_bool_AND (b, sz + 3 == sr);
+			ubf_expect_bool_AND (b, !memcmp (sz + 3, sr, 15));
+			ubf_expect_bool_AND (b, 2 == st);
+			sr = strPrevLineEnding_l (sz, USE_STRLEN, strlen (sz) - 1, &st);
+			ubf_expect_bool_AND (b, sz + 9 == sr);
+			ubf_expect_bool_AND (b, !memcmp (sz + 9, sr, 9));
+			ubf_expect_bool_AND (b, 2 == st);
+			st = 0;
+			sr = strPrevLineEnding_l (sz, USE_STRLEN, 9, &st);
+			ubf_expect_bool_AND (b, sz + 3 == sr);
+			ubf_expect_bool_AND (b, !memcmp (sz + 3, sr, 15));
+			ubf_expect_bool_AND (b, 2 == st);
+			st = 0;
+			sr = strPrevLineEnding_l (sz, USE_STRLEN, 5, &st);
+			ubf_expect_bool_AND (b, sz + 3 == sr);
+			ubf_expect_bool_AND (b, 2 == st);
+			sr = strPrevLineEnding_l (sz, USE_STRLEN, 4, &st);
+			ubf_expect_bool_AND (b, NULL == sr);
 
 			strcpy (sz, "ABC\r\r\n");
 			sr = strFirstLineEnding (sz, USE_STRLEN);

@@ -470,8 +470,6 @@ void DoneArgsList (char *szArgsList)
 							void				*pCustom
 											)
 	{
-		UNUSED (cbHow);
-
 		if (sb->bEOF && enRunCmdHow_All == cbHow && sb->lenSmb)
 		{
 			ubf_assert (sb->lenSmb <= sb->smb.size - 2);

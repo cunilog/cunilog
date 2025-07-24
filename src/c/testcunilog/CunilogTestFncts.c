@@ -437,13 +437,18 @@ bool CunilogTestFunction	(
 	CUNILOG_PROCESSOR	*cup;
 
 	cunilog_puts ("Starting Cunilog tests...");
-
 	/*
 		Was used for debugging.
 
 	uint64_t uiBSN = 230;
 	uint64_t uiBSNprev	= 244;
 	cunilog_printf_sev (cunilogEvtSeverityFail, "Wrong BSN: %4.4" PRId64 " (expected: %4.4" PRId64 ")\n", uiBSN, uiBSNprev);
+	*/
+
+	/*
+	cunilog_printf ("What?\n");
+	cunilog_printf ("\nDone. %zu line(s) processed, %zu line(s) total.\n", 1, 5);
+	cunilog_puts ("And again.");
 	*/
 
 	CunilogTestFnctStartTestToConsole ("Internal test of module stransi...");
@@ -502,36 +507,13 @@ bool CunilogTestFunction	(
 		CunilogTestFnctNotRequiredToConsole ();
 	#endif
 
-	CunilogTestFnctStartTestToConsole ("Internal test of module ProcessHelpers...");
-	#ifdef PROCESS_HELPERS_BUILD_TEST_FNCT
-		CunilogTestFnctResultToConsole (ProcessHelpersTestFnct ());
-	#else
-		CunilogTestFnctDisabledToConsole (ProcessHelpersTestFnct ());
-	#endif
-
-	CunilogTestFnctStartTestToConsole ("Testing directory reader...");
-	#ifdef PLATFORM_IS_WINDOWS
-		b &= ForEachDirectoryEntryMaskU8TestFnct ();
-		#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
-			CunilogTestFnctResultToConsole (b);
-		#else
-			CunilogTestFnctDisabledToConsole (b);
-		#endif
-	#else
-		b = true;
-		#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
-			CunilogTestFnctDisabledToConsole (b);
-		#else
-			CunilogTestFnctDisabledToConsole (b);
-		#endif
-	#endif
-
 	CunilogTestFnctStartTestToConsole ("Internal test of module strnewline...");
 	#ifdef STRNEWLINE_BUILD_TEST
 		CunilogTestFnctResultToConsole (test_strnewline ());
 	#else
 		CunilogTestFnctDisabledToConsole (test_strnewline ());
 	#endif
+
 	CunilogTestFnctStartTestToConsole ("Internal test of module bulkmalloc...");
 	#ifdef BUILD_BULKMALLOC_TEST_FUNCTIONS
 		CunilogTestFnctResultToConsole (bulkmalloc_test_fnct ());
@@ -624,6 +606,30 @@ bool CunilogTestFunction	(
 		CunilogTestFnctResultToConsole (b);
 		CunilogTestFnctStartTestToConsole ("Only macro tested. self-test module strfilesys...");
 		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Testing directory reader...");
+	#ifdef PLATFORM_IS_WINDOWS
+		b &= ForEachDirectoryEntryMaskU8TestFnct ();
+		#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
+			CunilogTestFnctResultToConsole (b);
+		#else
+			CunilogTestFnctDisabledToConsole (b);
+		#endif
+	#else
+		b = true;
+		#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
+			CunilogTestFnctDisabledToConsole (b);
+		#else
+			CunilogTestFnctDisabledToConsole (b);
+		#endif
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Internal test of module ProcessHelpers...");
+	#ifdef PROCESS_HELPERS_BUILD_TEST_FNCT
+		CunilogTestFnctResultToConsole (ProcessHelpersTestFnct ());
+	#else
+		CunilogTestFnctDisabledToConsole (ProcessHelpersTestFnct ());
 	#endif
 
 	CunilogTestFnctStartTestToConsole ("Init static target with cunilogPostfixDotNumberYearly...");
