@@ -455,8 +455,8 @@ unsigned int StrLineExtractU8	(
 					if (!cbRet)
 						break;
 				}
-				pBuf += sLineInfo.lnLength;
-				lenBuf -= sLineInfo.lnLength;
+				pBuf	+= sLineInfo.lnLength;
+				lenBuf	-= sLineInfo.lnLength;
 			}
 		}
 	}

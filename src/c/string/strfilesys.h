@@ -236,7 +236,7 @@ size_t str_remove_last_dir_separator (const char *str, size_t len)
 #ifdef BUILD_DEBUG_UBF_STRFILESYS_TESTS
 	bool ubf_test_ubf_strfilesys (void);
 #else
-	#define ubf_test_ubf_strfilesys()
+	#define ubf_test_ubf_strfilesys() (true)
 #endif
 
 EXTERN_C_END

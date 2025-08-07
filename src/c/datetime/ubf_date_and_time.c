@@ -1746,6 +1746,18 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 	const char	*sz = str;
 	char		*co = corr;
 
+	for (size_t i = 0; i < ln; ++ i)
+	{
+		if	(
+					'-' != str [i]
+				&&	!isdigit (str [i])
+				&&	' ' != str [i]
+				&&	'T' != str [i]
+				&&	':' != str [i]
+				&&	'.' != str [i]
+			)
+			return false;
+	}
 	if (co)
 		memset (co, 0, SIZ_ISO8601DATETIMESTAMPMS_NO_OFFS);
 	if (4 <= ln)

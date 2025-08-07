@@ -180,6 +180,9 @@
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8_Test.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\c\testcunilog\testProcesHelper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogstructs.h">
@@ -378,6 +381,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8_Test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\c\testcunilog\testProcesHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

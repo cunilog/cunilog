@@ -412,8 +412,8 @@ bool ubf_uint64_from_str (uint64_t *ui, const char *chStr);
 	
 	The function is similar to ubf_uint64_from_str () but only processes chStr
 	up to nLen bytes/characters and returns the amount of characters consumed
-	and used up for the value stored in ui by the function. The returned value
-	includes an optional preceeding '+' if the parameter s is enUintFromStrAllowPlus.
+	and used up for the value stored in ui by the function. The string can start
+	with an optional '+' if the parameter s is enUintFromStrAllowPlus.
 	
 	If nLen should not be used, pass (size_t) -1 to the function. The function
 	then stops when the NUL terminator is encountered.

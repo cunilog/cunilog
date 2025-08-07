@@ -62,6 +62,7 @@ When		Who				What
 		#include "./strwildcards.h"
 		#include "./check_utf8.h"
 		#include "./ProcessHelpers.h"
+		#include "./testProcesHelper.h"
 
 		// Required for the tests.
 		#include "./ubfdebug.h"
@@ -88,6 +89,7 @@ When		Who				What
 		#include "./../string/strwildcards.h"
 		#include "./../string/check_utf8.h"
 		#include "./../OS/ProcessHelpers.h"
+		#include "./../testcunilog/testProcesHelper.h"
 
 		// Required for the tests.
 		#include "./../dbg/ubfdebug.h"
@@ -480,12 +482,11 @@ bool CunilogTestFunction	(
 	ubf_expect_bool_AND (b, LEN_ISO8601DATETIMESTAMP_NO_OFFS == strlen (szBld));
 	CunilogTestFnctResultToConsole (b);
 
+	CunilogTestFnctStartTestToConsole ("Self-test module ubf_date_and_time and ubf_times...");
 	#ifdef UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION
-		CunilogTestFnctStartTestToConsole ("Self-test module ubf_date_and_time and ubf_times...");
 		b &= Test_ubf_times_functions ();
 		CunilogTestFnctResultToConsole (b);
 	#else
-		CunilogTestFnctStartTestToConsole ("Self-test module ubf_date_and_time and ubf_times...");
 		b &= Test_ubf_times_functions ();
 		CunilogTestFnctResultToConsole (b);
 		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module ubf_date_and_time and ubf_times...");
@@ -548,63 +549,80 @@ bool CunilogTestFunction	(
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 
+	CunilogTestFnctStartTestToConsole ("Self-test module strcustomfmt...");
 	#ifdef STRCUSTOMFMT_BUILD_TEST_FNCTS
-		CunilogTestFnctStartTestToConsole ("Self-test module strcustomfmt...");
 		b &= TestStrCustomFmt ();
 		CunilogTestFnctResultToConsole (b);
 	#else
-		CunilogTestFnctStartTestToConsole ("Self-test module strcustomfmt...");
 		b &= TestStrCustomFmt ();
 		CunilogTestFnctResultToConsole (b);
-		CunilogTestFnctStartTestToConsole ("Only macro tested. self-test module strcustomfmt...");
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module strcustomfmt...");
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 
+	CunilogTestFnctStartTestToConsole ("Self-test module strwildcards...");
 	#if STRWILDCARDS_BUILD_TEST_FNCT
-		CunilogTestFnctStartTestToConsole ("Self-test module strwildcards...");
 		b &= strwildcards_test_function ();
 		CunilogTestFnctResultToConsole (b);
 	#else
-		CunilogTestFnctStartTestToConsole ("Self-test module strwildcards...");
 		b &= strwildcards_test_function ();
 		CunilogTestFnctResultToConsole (b);
-		CunilogTestFnctStartTestToConsole ("Only macro tested. self-test module strwildcards...");
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module strwildcards...");
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 
+	CunilogTestFnctStartTestToConsole ("Self-test module check_utf8...");
 	#ifdef U_CHECK_UTF8_BUILD_TEST_FNCT
-		CunilogTestFnctStartTestToConsole ("Self-test module check_utf8...");
 		b &= Check_utf8_test_function ();
 		CunilogTestFnctResultToConsole (b);
 	#else
-		CunilogTestFnctStartTestToConsole ("Self-test module check_utf8...");
 		b &= Check_utf8_test_function ();
 		CunilogTestFnctResultToConsole (b);
 		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module check_utf8...");
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 
+	CunilogTestFnctStartTestToConsole ("Self-test module ISO__DATE__...");
 	#ifdef ISO_DATE_BUILD_TEST_FNCT
-		CunilogTestFnctStartTestToConsole ("Self-test module ISO__DATE__...");
 		b &= ISO_DATE_Test_function ();
 		CunilogTestFnctResultToConsole (b);
 	#else
-		CunilogTestFnctStartTestToConsole ("Self-test module ISO__DATE__...");
 		b &= ISO_DATE_Test_function ();
 		CunilogTestFnctResultToConsole (b);
 		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module ISO__DATE__...");
-		CunilogTestFnctDisabledToConsole (b);
+	CunilogTestFnctDisabledToConsole (b);
 	#endif
 
+	CunilogTestFnctStartTestToConsole ("Self-test module strfilesys...");
 	#if BUILD_DEBUG_UBF_STRFILESYS_TESTS
-		CunilogTestFnctStartTestToConsole ("Self-test module strfilesys...");
 		b &= ubf_test_ubf_strfilesys ();
 		CunilogTestFnctResultToConsole (b);
 	#else
-		CunilogTestFnctStartTestToConsole ("Self-test module strfilesys...");
 		b &= ubf_test_ubf_strfilesys ();
 		CunilogTestFnctResultToConsole (b);
-		CunilogTestFnctStartTestToConsole ("Only macro tested. self-test module strfilesys...");
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module strfilesys...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Self-test module testProcesHelper...");
+	#if TEST_PROCESS_HELPER_BUILD_TEST_FNCT
+		b &= TestProcessHelperTestFnct ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		b &= TestProcessHelperTestFnct ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module testProcesHelper...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Self-test of module ProcessHelpers...");
+	#ifdef PROCESS_HELPERS_BUILD_TEST_FNCT
+		b &= ProcessHelpersTestFnct ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		b &= ProcessHelpersTestFnct ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module ProcessHelpers...");
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 
@@ -623,13 +641,6 @@ bool CunilogTestFunction	(
 		#else
 			CunilogTestFnctDisabledToConsole (b);
 		#endif
-	#endif
-
-	CunilogTestFnctStartTestToConsole ("Internal test of module ProcessHelpers...");
-	#ifdef PROCESS_HELPERS_BUILD_TEST_FNCT
-		CunilogTestFnctResultToConsole (ProcessHelpersTestFnct ());
-	#else
-		CunilogTestFnctDisabledToConsole (ProcessHelpersTestFnct ());
 	#endif
 
 	CunilogTestFnctStartTestToConsole ("Init static target with cunilogPostfixDotNumberYearly...");

@@ -60,6 +60,7 @@ DEFINES += U_CHECK_UTF8_BUILD_TEST_FNCT
 DEFINES += BUILD_TEST_WINAPI_U8_FNCT
 DEFINES += PROCESS_HELPERS_BUILD_TEST_FNCT
 DEFINES += STRLINEEXTRACT_BUILD_TEST_FNCT
+DEFINES += TEST_PROCESS_HELPER_BUILD_TEST_FNCT
 
 # If this -ldl is missing, the linker on Linux complains with
 #	"sqlite3.o: undefined reference to symbol 'dlclose@@GLIBC_2.2.5'".
@@ -127,12 +128,14 @@ HEADERS += \
     ../../src/c/string/strintuint.h \
     ../../src/c/string/strisabsolutepath.h \
     ../../src/c/string/strisdotordotdot.h \
+    ../../src/c/string/strlineextract.h \
     ../../src/c/string/strmembuf.h \
     ../../src/c/string/strnewline.h \
     ../../src/c/string/struri.h \
     ../../src/c/string/strwildcards.h \
     ../../src/c/string/ubfcharscountsandchecks.h \
     ../../src/c/testcunilog/CunilogTestFncts.h \
+    ../../src/c/testcunilog/testProcesHelper.h \
     ../../src/c/testcunilog/testcunilog.h
 
 SOURCES += \
@@ -181,10 +184,12 @@ SOURCES += \
     ../../src/c/string/strintuint.c \
     ../../src/c/string/strisabsolutepath.c \
     ../../src/c/string/strisdotordotdot.c \
+    ../../src/c/string/strlineextract.c \
     ../../src/c/string/strmembuf.c \
     ../../src/c/string/strnewline.c \
     ../../src/c/string/struri.c \
     ../../src/c/string/strwildcards.c \
     ../../src/c/string/ubfcharscountsandchecks.c \
     ../../src/c/testcunilog/CunilogTestFncts.c \
+    ../../src/c/testcunilog/testProcesHelper.c \
     ../../src/c/testcunilog/testcunilog.c

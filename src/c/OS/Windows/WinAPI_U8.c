@@ -1901,6 +1901,25 @@ enum en_wapi_fs_type GetFileSystemType (const char *chDriveRoot)
 	}
 #endif
 
+DWORD GetNumberOfProcessesAttachedToConsole (void)
+{
+	DWORD dwLst [1];
+
+	DWORD dwRet = GetConsoleProcessList (dwLst, 1);
+	if (0 == dwRet)
+	{	// Fail. See https://learn.microsoft.com/en-us/windows/console/getconsoleprocesslist .
+		DWORD dwErr = GetLastError ();
+		ASSERT (false);
+		UNREFERENCED_PARAMETER (dwErr);
+	}
+	return dwRet;
+}
+
+bool IsOnlyProcessAttachedToConsole (void)
+{
+	return 1 == GetNumberOfProcessesAttachedToConsole ();
+}
+
 DWORD GetFullPathNameU8(
   LPCSTR lpFileName,
   DWORD  nBufferLength,

@@ -11,7 +11,7 @@ When		Who				What
 2014-03-10	Thomas			This history added.
 2019-10-13	Thomas			Include files moved to the header.
 
-	The original version of this function has been taken from
+	The original version of memstrstr () has been taken from
 	http://www.koders.com/c/fid2330745E0E8C0A0F5E2CF94799642712318471D0.aspx?s=getopt#L459
 	which needed fixing first. The page has disappeared in the meantime (2018). The
 	Wayback Machine also holds no copy of it.
@@ -84,6 +84,9 @@ extern "C" {
 	http://www.koders.com/c/fid2330745E0E8C0A0F5E2CF94799642712318471D0.aspx?s=getopt#L459
 	which needed fixing first. The page has disappeared in the meantime (2018). The
 	Wayback Machine also holds no copy of it.
+
+	For Linux systems, this function could be replaced by memmem (). See
+	https://man7.org/linux/man-pages/man3/memmem.3.html .
 */
 char *memstrstr (const char *s1, size_t size1, const char *s2, size_t size2)
 ;

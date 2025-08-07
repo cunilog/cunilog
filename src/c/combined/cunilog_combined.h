@@ -7666,13 +7666,22 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 	pCBs				A pointer to an SRCMDCBS structure that contains pointers to the
 						callback functions.
 
-	cbHow				Specifies how and when the callback functions are to be invoked by the
-						function. See the enum enRunCmdHowToCallCB for a list of possible
+	cbHow				Specifies how and when the callback functions are to be invoked by
+						the function. See the enum enRunCmdHowToCallCB for a list of possible
 						options.
 
 	uiRCflags			Option flags.
 
-	pCustom				An arbitrary pointer or value that is passed on to the callback functions.
+	pCustom				An arbitrary pointer or value that is passed on to the callback
+						functions.
+
+	pExitCode			A pointer to an integer that receives the exit code of the child
+						process. If the exit code is not required, this parameter can be
+						NULL. If pExitCode is not NULL, the function sets the value to
+						EXIT_FAILURE before it starts doing any work, and updates it later
+						to the real exit code of the child process. On most platforms,
+						EXIT_FAILURE has a value of 1.
+
 */
 	bool CreateAndRunCmdProcessCaptureStdout	(
 			const char				*szExecutable,
@@ -7682,8 +7691,9 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 			enRCmdCBhow				cbHow,					// How to call the callback functions.
 			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
 															//	flags.
-			void					*pCustom				// Passed on unchanged to callback
+			void					*pCustom,				// Passed on unchanged to callback
 															//	functions.
+			int						*pExitCode				// Exit code of process.
 												)
 ;
 
@@ -9927,7 +9937,7 @@ When		Who				What
 2014-03-10	Thomas			This history added.
 2019-10-13	Thomas			Include files moved to the header.
 
-	The original version of this function has been taken from
+	The original version of memstrstr () has been taken from
 	http://www.koders.com/c/fid2330745E0E8C0A0F5E2CF94799642712318471D0.aspx?s=getopt#L459
 	which needed fixing first. The page has disappeared in the meantime (2018). The
 	Wayback Machine also holds no copy of it.
@@ -10000,6 +10010,9 @@ extern "C" {
 	http://www.koders.com/c/fid2330745E0E8C0A0F5E2CF94799642712318471D0.aspx?s=getopt#L459
 	which needed fixing first. The page has disappeared in the meantime (2018). The
 	Wayback Machine also holds no copy of it.
+
+	For Linux systems, this function could be replaced by memmem (). See
+	https://man7.org/linux/man-pages/man3/memmem.3.html .
 */
 char *memstrstr (const char *s1, size_t size1, const char *s2, size_t size2)
 ;
@@ -14575,7 +14588,7 @@ size_t str_remove_last_dir_separator (const char *str, size_t len)
 #ifdef BUILD_DEBUG_UBF_STRFILESYS_TESTS
 	bool ubf_test_ubf_strfilesys (void);
 #else
-	#define ubf_test_ubf_strfilesys()
+	#define ubf_test_ubf_strfilesys() (true)
 #endif
 
 EXTERN_C_END
@@ -15731,6 +15744,16 @@ When		Who				What
 
 #ifndef USE_STRLEN
 #define USE_STRLEN						((size_t) -1)
+#endif
+
+/*
+	The maximum length of a line ending in this module, and its size including NUL.
+*/
+#ifndef MAX_LEN_LINE_ENDING
+#define MAX_LEN_LINE_ENDING				(3)
+#endif
+#ifndef MAX_SIZ_LINE_ENDING
+#define MAX_SIZ_LINE_ENDING				(1 + MAX_LEN_LINE_ENDING)
 #endif
 
 EXTERN_C_BEGIN
@@ -16992,8 +17015,8 @@ bool ubf_uint64_from_str (uint64_t *ui, const char *chStr);
 	
 	The function is similar to ubf_uint64_from_str () but only processes chStr
 	up to nLen bytes/characters and returns the amount of characters consumed
-	and used up for the value stored in ui by the function. The returned value
-	includes an optional preceeding '+' if the parameter s is enUintFromStrAllowPlus.
+	and used up for the value stored in ui by the function. The string can start
+	with an optional '+' if the parameter s is enUintFromStrAllowPlus.
 	
 	If nLen should not be used, pass (size_t) -1 to the function. The function
 	then stops when the NUL terminator is encountered.
@@ -18125,6 +18148,83 @@ TYPEDEF_FNCT_PTR (size_t, ubf_count_char) (const char *cc, char c);
 EXTERN_C_END
 
 #endif															// Of UBFCHARSCOUNTSANDCHECKS.
+/****************************************************************************************
+
+	File		testProcesHelper.h
+	Why:		Test for module ProcesHelper.
+	OS:			C99
+	Created:	2025-07-25
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-07-25	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS
+
+#ifndef U_TEST_PROCESS_HELPER_H
+#define U_TEST_PROCESS_HELPER_H
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		//#include "./restrict.h"
+	#else
+		#include "./../pre/externC.h"
+		//#include "./../pre/restrict.h"
+	#endif
+
+#endif
+
+EXTERN_C_BEGIN
+
+/*
+	Internal test function for this module.
+*/
+#ifdef TEST_PROCESS_HELPER_BUILD_TEST_FNCT
+	bool TestProcessHelperTestFnct (void);
+#else
+	#define TestProcessHelperTestFnct()	(true)
+#endif
+
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_TEST_PROCESS_HELPER_H.
+
+#endif														// Of #ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS.
 /****************************************************************************************
 
 	File		cunilogerrors.h

@@ -156,6 +156,16 @@ When		Who				What
 #define USE_STRLEN						((size_t) -1)
 #endif
 
+/*
+	The maximum length of a line ending in this module, and its size including NUL.
+*/
+#ifndef MAX_LEN_LINE_ENDING
+#define MAX_LEN_LINE_ENDING				(3)
+#endif
+#ifndef MAX_SIZ_LINE_ENDING
+#define MAX_SIZ_LINE_ENDING				(1 + MAX_LEN_LINE_ENDING)
+#endif
+
 EXTERN_C_BEGIN
 
 /*
@@ -401,7 +411,7 @@ char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE);
 	The parameter ch can be NULL if len is 0.
 
 	If no line ending is found, the function returns NULL. If strtIdx >= len, the function
-	returns NULL.
+	returns NULL. When the function returns NULL, the address plLE points to is set to 0.
 */
 char *strPrevLineEnding_l (const char *ch, size_t len, size_t strtIdx, size_t *plLE);
 

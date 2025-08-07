@@ -169,6 +169,13 @@ When		Who				What
 		b &= GetWinErrorTextU8 (sz, 1024, 457);
 		ubf_assert_true (b);
 
+		// Since we don't know how we're called, there's not much to test here.
+		//	Let's see if the function crashes.
+		DWORD dw = GetNumberOfProcessesAttachedToConsole ();
+		UNREFERENCED_PARAMETER (dw);
+		printf (" Processes attached to current console: %u ", dw);
+		bool bOnlyConsole = IsOnlyProcessAttachedToConsole ();
+		UNREFERENCED_PARAMETER (bOnlyConsole);
 
 		return b;
 	}

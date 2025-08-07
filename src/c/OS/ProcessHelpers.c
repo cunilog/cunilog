@@ -764,7 +764,7 @@ void DoneArgsList (char *szArgsList)
 
 #if defined (PLATFORM_IS_WINDOWS)
 
-	bool CreateAndRunCmdProcessCaptureStdout	(
+	bool CreateAndRunCmdProcessCapture	(
 			const char				*szExecutable,
 			const char				*szCmdLine,
 			const char				*szWorkingDir,
@@ -772,10 +772,13 @@ void DoneArgsList (char *szArgsList)
 			enRCmdCBhow				cbHow,					// How to call the callback functions.
 			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
 															//	flags.
-			void					*pCustom				// Passed on unchanged to callback
+			void					*pCustom,				// Passed on unchanged to callback
 															//	functions.
-												)
+			int						*pExitCode				// Exit code of process.
+										)
 	{
+		if (pExitCode)
+			*pExitCode = EXIT_FAILURE;
 		if (NULL == szExecutable)
 			return false;
 
@@ -818,6 +821,13 @@ void DoneArgsList (char *szArgsList)
 
 				// This function returns false if a callback funciton returned enRunCmdRet_TerminateFail.
 				b &= HandleCommunication (pi.hProcess, &ph, pCBs, cbHow, uiRCflags, pCustom);
+
+				if (pExitCode)
+				{
+					DWORD dwExitCode;
+					GetExitCodeProcess (pi.hProcess, &dwExitCode);
+					*pExitCode = dwExitCode;
+				}
 			}
 		}
 
@@ -932,7 +942,7 @@ void DoneArgsList (char *szArgsList)
 		UNUSED (pCustom);
 
 		printf ("Data: %p, Length: %zu\n", szData, lnData);
-		puts (szData);
+		//puts (szData);
 		printf ("Data: %p, Length: %zu\n", szData, lnData);
 		return enRunCmdRet_Continue;
 	}
@@ -948,10 +958,12 @@ void DoneArgsList (char *szArgsList)
 			puts ("");
 		
 		++ uiLn;
+		/*
 		if (lnData)
 			printf ("%5.5d %s\n", uiLn, szData);
 		else
 			printf ("%5.5d\n", uiLn);
+		*/
 		//return enRunCmdRet_TerminateFail;
 		return enRunCmdRet_Continue;
 	}
@@ -1047,80 +1059,81 @@ void DoneArgsList (char *szArgsList)
 			
 			snprintf (szCmd, 2048, "%s%s", szSystemFolder, "cmd.exe");
 
-			b &= CreateAndRunCmdProcessCaptureStdout	(
+			int iExitCode;
+			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					szArgs, NULL,
-					&cbs, enRunCmdHow_All, cbflgs, NULL
+					&cbs, enRunCmdHow_All, cbflgs, NULL, &iExitCode
 														);
 
 			cbs.cbOut = cbOutOneLine;
 			snprintf (szArgs, 1024, "/C type ..\\..\\..\\..\\src\\def\\libcunilog.def");
-			b &= CreateAndRunCmdProcessCaptureStdout	(
+			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					szArgs, NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
 														);
 
 			uiLn = 0;
 			snprintf (szArgs, 1024, "/C type ..\\..\\..\\..\\src\\c\\combined\\cunilog_combined.c");
-			b &= CreateAndRunCmdProcessCaptureStdout	(
+			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					szArgs, NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
 														);
 
 
-			b &= CreateAndRunCmdProcessCaptureStdout	(
+			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_All, cbflgs, NULL
+					&cbs, enRunCmdHow_All, cbflgs, NULL, &iExitCode
 														);
 
-			b &= CreateAndRunCmdProcessCaptureStdout	(
+			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
 														);
 
 			cbs.cbOut = cbOutWhoAmI;
 			cbs.cbErr = cbErrWhoAmI;
-			b &= CreateAndRunCmdProcessCaptureStdout	(
+			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1
+					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1, &iExitCode
 														);
-			b &= CreateAndRunCmdProcessCaptureStdout	(
+			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"some argument that fails whoami", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1
+					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1, &iExitCode
 														);
 
 			cbs.cbOut = cbOut;
 
-			b &= CreateAndRunCmdProcessCaptureStdout	(
+			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
 														);
 
-			b &= CreateAndRunCmdProcessCaptureStdout	(
+			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"", NULL,
-					&cbs, enRunCmdHow_AsIs, cbflgs, NULL
+					&cbs, enRunCmdHow_AsIs, cbflgs, NULL, &iExitCode
 														);
 
 			cbs.cbOut = cbOut;
 
-			b &= CreateAndRunCmdProcessCaptureStdout	(
+			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
 														);
 
-			b &= CreateAndRunCmdProcessCaptureStdout	(
+			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_All, cbflgs, NULL
+					&cbs, enRunCmdHow_All, cbflgs, NULL, &iExitCode
 														);
 
 		#elif defined (PLATFORM_IS_POSIX)
@@ -1128,7 +1141,7 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunProcessCaptureStdout	(
 					"whoami",
 					1, argv, NULL,
-					&cbs, enRunCmdHow_AsIs, cbflgs, NULL
+					&cbs, enRunCmdHow_AsIs, cbflgs, NULL, &iExitCode
 													);
 
 		#elif

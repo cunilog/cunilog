@@ -1962,6 +1962,28 @@ TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemType) (const char *chDriveR
 #endif
 
 /*
+	GetNumberOfProcessesAttachedToConsole
+
+	Returns the amount of processes attached to the current console.
+*/
+DWORD GetNumberOfProcessesAttachedToConsole (void);
+
+/*
+	IsOnlyProcessAttachedToConsole
+
+	Returns true if the current process is the only process attached to the current
+	console.
+	
+	In other words, the function returns true if for instance the process has been
+	started by double-clicking on its icon from Windows Explorer, but returns false
+	if it was started from the command-line.
+
+	See https://devblogs.microsoft.com/oldnewthing/20160125-00/?p=92922 for more
+	information.
+*/
+bool IsOnlyProcessAttachedToConsole (void);
+
+/*
 	GetFullPathNameU8
 	
 	UTF-8 version of GetFullPathNameW (). See

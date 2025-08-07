@@ -63,6 +63,7 @@ head
 /string/strmembuf
 /string/strwildcards
 /string/ubfcharscountsandchecks
+/testcunilog/testProcesHelper
 /cunilog/cunilogerrors
 /cunilog/cunilogstructs
 /cunilog/cunilogevtcmdsstructs
@@ -119,6 +120,7 @@ head
 /string/strmembuf
 /string/strwildcards
 /string/ubfcharscountsandchecks
+/testcunilog/testProcesHelper
 /cunilog/cunilogerrors
 /cunilog/cunilogstructs
 /cunilog/cunilogevtcmdsstructs

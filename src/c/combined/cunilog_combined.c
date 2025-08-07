@@ -7648,10 +7648,13 @@ void DoneArgsList (char *szArgsList)
 			enRCmdCBhow				cbHow,					// How to call the callback functions.
 			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
 															//	flags.
-			void					*pCustom				// Passed on unchanged to callback
+			void					*pCustom,				// Passed on unchanged to callback
 															//	functions.
+			int						*pExitCode				// Exit code of process.
 												)
 	{
+		if (pExitCode)
+			*pExitCode = EXIT_FAILURE;
 		if (NULL == szExecutable)
 			return false;
 
@@ -7694,6 +7697,13 @@ void DoneArgsList (char *szArgsList)
 
 				// This function returns false if a callback funciton returned enRunCmdRet_TerminateFail.
 				b &= HandleCommunication (pi.hProcess, &ph, pCBs, cbHow, uiRCflags, pCustom);
+
+				if (pExitCode)
+				{
+					DWORD dwExitCode;
+					GetExitCodeProcess (pi.hProcess, &dwExitCode);
+					*pExitCode = dwExitCode;
+				}
 			}
 		}
 
@@ -7923,10 +7933,11 @@ void DoneArgsList (char *szArgsList)
 			
 			snprintf (szCmd, 2048, "%s%s", szSystemFolder, "cmd.exe");
 
+			int iExitCode;
 			b &= CreateAndRunCmdProcessCaptureStdout	(
 					"C:\\Windows\\System32\\cmd.exe",
 					szArgs, NULL,
-					&cbs, enRunCmdHow_All, cbflgs, NULL
+					&cbs, enRunCmdHow_All, cbflgs, NULL, &iExitCode
 														);
 
 			cbs.cbOut = cbOutOneLine;
@@ -7934,7 +7945,7 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunCmdProcessCaptureStdout	(
 					"C:\\Windows\\System32\\cmd.exe",
 					szArgs, NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
 														);
 
 			uiLn = 0;
@@ -7942,20 +7953,20 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunCmdProcessCaptureStdout	(
 					"C:\\Windows\\System32\\cmd.exe",
 					szArgs, NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
 														);
 
 
 			b &= CreateAndRunCmdProcessCaptureStdout	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_All, cbflgs, NULL
+					&cbs, enRunCmdHow_All, cbflgs, NULL, &iExitCode
 														);
 
 			b &= CreateAndRunCmdProcessCaptureStdout	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
 														);
 
 			cbs.cbOut = cbOutWhoAmI;
@@ -7963,12 +7974,12 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunCmdProcessCaptureStdout	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1
+					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1, &iExitCode
 														);
 			b &= CreateAndRunCmdProcessCaptureStdout	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"some argument that fails whoami", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1
+					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1, &iExitCode
 														);
 
 			cbs.cbOut = cbOut;
@@ -7976,13 +7987,13 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunCmdProcessCaptureStdout	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
 														);
 
 			b &= CreateAndRunCmdProcessCaptureStdout	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"", NULL,
-					&cbs, enRunCmdHow_AsIs, cbflgs, NULL
+					&cbs, enRunCmdHow_AsIs, cbflgs, NULL, &iExitCode
 														);
 
 			cbs.cbOut = cbOut;
@@ -7990,13 +8001,13 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunCmdProcessCaptureStdout	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
 														);
 
 			b &= CreateAndRunCmdProcessCaptureStdout	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_All, cbflgs, NULL
+					&cbs, enRunCmdHow_All, cbflgs, NULL, &iExitCode
 														);
 
 		#elif defined (PLATFORM_IS_POSIX)
@@ -8004,7 +8015,7 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunProcessCaptureStdout	(
 					"whoami",
 					1, argv, NULL,
-					&cbs, enRunCmdHow_AsIs, cbflgs, NULL
+					&cbs, enRunCmdHow_AsIs, cbflgs, NULL, &iExitCode
 													);
 
 		#elif
@@ -9402,7 +9413,7 @@ When		Who				What
 2019-10-13	Thomas			Include files moved to the header.
 2024-05-21	Thomas			Function memstrrchr () fixed.
 
-	The original version of this function has been taken from
+	The original version of memstrstr () has been taken from
 	http://www.koders.com/c/fid2330745E0E8C0A0F5E2CF94799642712318471D0.aspx?s=getopt#L459
 	which is buggy and doesn't work under certain circumstances.
 
@@ -12039,6 +12050,11 @@ bool is_datetimestampformat_l_store_corrected (char *corr, const char *str, size
 	const char	*sz = str;
 	char		*co = corr;
 
+	for (size_t i = 0; i < ln; ++ i)
+	{
+		if ('-' != str [i] && !isdigit (str [i]))
+			return false;
+	}
 	if (co)
 		memset (co, 0, SIZ_ISO8601DATETIMESTAMPMS_NO_OFFS);
 	if (4 <= ln)
@@ -17662,6 +17678,8 @@ char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE)
 		++ ch;
 		-- len;
 	}
+	if (plLE)
+		*plLE = 0;
 	return NULL;
 }
 
@@ -17671,7 +17689,7 @@ char *strPrevLineEnding_l (const char *ch, size_t len, size_t strtIdx, size_t *p
 	size_t	l;
 
 	len = USE_STRLEN == len ? strlen (ch) : len;
-	if (strtIdx >= len || !len)
+	if (strtIdx >= len || 0 == len)
 		return NULL;
 
 	char *szStart = (char *) ch + strtIdx;
@@ -17693,6 +17711,8 @@ char *strPrevLineEnding_l (const char *ch, size_t len, size_t strtIdx, size_t *p
 		-- szStart;
 		-- strtIdx;
 	}
+	if (plLE)
+		*plLE = 0;
 	return NULL;
 }
 
@@ -20972,6 +20992,305 @@ size_t ubf_count_char (const char *cc, char c)
 		return sz ? (USE_STRLEN == providedLength ? strlen (sz) : providedLength) : 0;
 	}
 #endif
+/****************************************************************************************
+
+	File		testProcesHelper.c
+	Why:		Test for module ProcesHelper.
+	OS:			C99
+	Created:	2025-07-25
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-07-25	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ubfdebug.h"
+		#include "./membuf.h"
+		#include "./strnewline.h"
+	#else
+		#include "./../dbg/ubfdebug.h"
+		#include "./../mem/membuf.h"
+		#include "./../string/strnewline.h"
+	#endif
+
+#endif
+
+/*
+	The following code has been taken, without intentional modifications, from
+	https://en.wikipedia.org/wiki/Mersenne_Twister .
+
+	It is used to generate the test pattern for the module ProcessHelper.
+	Do NOT use this code for anything else! It is not cryptographically secure.
+	The reason why I copied this code from Wikipedia is because the ProcessHelper
+	test needs to seed a random number generator (RNG). If rand () and srand ()
+	were used for this purpose, it might be possible that the test could interfere with
+	an application that uses the standard RNG functions.
+*/
+#include <stdint.h>
+
+#define n 624
+#define m 397
+#define w 32
+#define r 31
+#define UMASK (0xffffffffUL << r)
+#define LMASK (0xffffffffUL >> (w-r))
+#define a 0x9908b0dfUL
+#define u 11
+#define s 7
+#define t 15
+#define l 18
+#define b 0x9d2c5680UL
+#define c 0xefc60000UL
+#define f 1812433253UL
+
+typedef struct
+{
+	uint32_t state_array[n];         // the array for the state vector 
+	int state_index;                 // index into state vector array, 0 <= state_index <= n-1   always
+} mt_state;
+
+
+void initialize_state(mt_state* state, uint32_t seed) 
+{
+	uint32_t* state_array = &(state->state_array[0]);
+	
+	state_array[0] = seed;                          // suggested initial seed = 19650218UL
+	
+	for (int i=1; i<n; i++)
+	{
+		seed = f * (seed ^ (seed >> (w-2))) + i;    // Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier.
+		state_array[i] = seed; 
+	}
+	
+	state->state_index = 0;
+}
+
+
+uint32_t random_uint32(mt_state* state)
+{
+	uint32_t* state_array = &(state->state_array[0]);
+	
+	int k = state->state_index;      // point to current state location
+									 // 0 <= state_index <= n-1   always
+	
+//  int k = k - n;                   // point to state n iterations before
+//  if (k < 0) k += n;               // modulo n circular indexing
+									 // the previous 2 lines actually do nothing
+									 //  for illustration only
+	
+	int j = k - (n-1);               // point to state n-1 iterations before
+	if (j < 0) j += n;               // modulo n circular indexing
+
+	uint32_t x = (state_array[k] & UMASK) | (state_array[j] & LMASK);
+	
+	uint32_t xA = x >> 1;
+	if (x & 0x00000001UL) xA ^= a;
+	
+	j = k - (n-m);                   // point to state n-m iterations before
+	if (j < 0) j += n;               // modulo n circular indexing
+	
+	x = state_array[j] ^ xA;         // compute next value in the state
+	state_array[k++] = x;            // update new state value
+	
+	if (k >= n) k = 0;               // modulo n circular indexing
+	state->state_index = k;
+	
+	uint32_t y = x ^ (x >> u);       // tempering 
+			 y = y ^ ((y << s) & b);
+			 y = y ^ ((y << t) & c);
+	uint32_t z = y ^ (y >> l);
+	
+	return z; 
+}
+/*
+	End of code taken from https://en.wikipedia.org/wiki/Mersenne_Twister .
+*/
+#undef n
+#undef m
+#undef w
+#undef r
+#undef UMASK
+#undef LMASK
+#undef a
+#undef u
+#undef s
+#undef t
+#undef l
+#undef b
+#undef c
+#undef f
+
+static uint8_t testProcessHelperGetRndmOctet (mt_state *state)
+{
+	uint32_t n = random_uint32 (state);
+	uint8_t u = n & 0xFF;
+	return u;
+}
+
+static uint16_t testProcessHelperGetRndmWord (mt_state *state)
+{
+	uint32_t n = random_uint32 (state);
+	uint16_t u = n & 0xFFFF;
+	return u;
+}
+
+/*
+	Only vertical tab, digits, letters, punctuation marks, number operators, brackets, etc.
+	This means ASCII characters 9 (tab), or between 32 (space) and 126 (tilde ~).
+*/
+static char testProcessHelperGetRndmChar (mt_state *state)
+{
+	unsigned char c = 0;
+
+	while	(
+					c != '\t'
+				&&	(
+						c < ' ' || c > 126
+					)
+			)
+	{
+		c = testProcessHelperGetRndmOctet (state);
+	}
+	return c;
+}
+
+static const char *testProcessHelperGetLine	(
+						size_t		*pLen,
+						mt_state	*state,
+						uint32_t	uiMaxLen,
+						SMEMBUF		*psmb,
+						bool		bAddLN
+											)
+{
+	uint32_t ln = random_uint32 (state);
+	while (ln > uiMaxLen)
+		ln -= uiMaxLen >> 1;
+	growToSizeSMEMBUF (psmb, ln + MAX_SIZ_LINE_ENDING);
+	if (isUsableSMEMBUF (psmb))
+	{	// Note that ln could also be 0.
+		uint32_t o = 0;
+		while (o < ln)
+		{
+			psmb->buf.pch [o ++] = testProcessHelperGetRndmChar (state);
+		}
+		if (bAddLN)
+			memcpy (psmb->buf.pch + o, ccLineEnding (cunilogNewLineDefault), lnLineEnding (cunilogNewLineDefault) + 1);
+		else
+			psmb->buf.pch [o] = ASCII_NUL;
+		if (pLen)
+			*pLen = ln;
+		return psmb->buf.pcc;
+	}
+	return NULL;
+}
+
+#ifdef TEST_PROCESS_HELPER_BUILD_TEST_FNCT
+	bool TestProcessHelperTestFnct (void)
+	{
+		bool	b = true;
+
+		uint32_t n1, n2;
+		mt_state state;
+		initialize_state (&state, 19650218UL);
+		n1 = random_uint32 (&state);
+		initialize_state (&state, 19650218UL);
+		n2 = random_uint32 (&state);
+		ubf_expect_bool_AND (b, n1 == n2);
+
+		SMEMBUF smb = SMEMBUF_INITIALISER;
+		size_t	st;
+		initialize_state (&state, 19650218UL);
+		const char	*cc = testProcessHelperGetLine (&st, &state, 32, &smb, false);
+		ubf_expect_bool_AND (b, 32 >= st);
+		ubf_expect_bool_AND (b, NULL != cc);
+		SMEMBUF smb2 = SMEMBUF_INITIALISER;
+		size_t	st2;
+		initialize_state (&state, 19650218UL);
+		const char	*cc2 = testProcessHelperGetLine (&st2, &state, 32, &smb2, false);
+		ubf_expect_bool_AND (b, 32 >= st2);
+		ubf_expect_bool_AND (b, NULL != cc2);
+		ubf_expect_bool_AND (b, !memcmp (cc, cc2, st2 + 1));
+
+		// Different seed.
+		initialize_state (&state, 7438535);
+		st = 0;
+		cc = testProcessHelperGetLine (&st, &state, 64, &smb, false);
+		ubf_expect_bool_AND (b, 0 != st);
+		ubf_expect_bool_AND (b, 64 >= st);
+		ubf_expect_bool_AND (b, NULL != cc);
+		initialize_state (&state, 7438535);
+		st2 = 0;
+		cc2 = testProcessHelperGetLine (&st2, &state, 64, &smb2, false);
+		ubf_expect_bool_AND (b, 0 != st2);
+		ubf_expect_bool_AND (b, 64 >= st2);
+		ubf_expect_bool_AND (b, NULL != cc2);
+		ubf_expect_bool_AND (b, !memcmp (cc, cc2, st2 + 1));
+
+		initialize_state (&state, 1444444444);
+		st = 0;
+		cc = testProcessHelperGetLine (&st, &state, 256, &smb, false);
+		ubf_expect_bool_AND (b, 0 != st);
+		ubf_expect_bool_AND (b, 256 >= st);
+		ubf_expect_bool_AND (b, NULL != cc);
+		initialize_state (&state, 1444444444);
+		st2 = 0;
+		cc2 = testProcessHelperGetLine (&st2, &state, 256, &smb2, false);
+		ubf_expect_bool_AND (b, 0 != st2);
+		ubf_expect_bool_AND (b, 256 >= st2);
+		ubf_expect_bool_AND (b, NULL != cc2);
+		ubf_expect_bool_AND (b, !memcmp (cc, cc2, st2 + 1));
+
+		// Ok, if we're this far, the RNG and seeding it works.
+
+		return b;
+	}
+#endif
+
+#ifdef U_TEST_PROCESS_HELPER_BUILD_MAIN
+	int main (int argc, char *argv [])
+	{
+		SMEMBUF smbOneLine;
+
+	}
+#endif
+
+#endif														// Of #ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS.
 /****************************************************************************************
 
 	File		cunilogerrors.c

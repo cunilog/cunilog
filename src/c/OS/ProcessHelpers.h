@@ -215,7 +215,7 @@ enum enRunCmdHowToCallCB
 typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 
 /*
-	CreateAndRunProcessCaptureStdout
+	CreateAndRunCmdProcessCapture
 
 	Creates and runs a command-line process.
 	
@@ -234,15 +234,24 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 	pCBs				A pointer to an SRCMDCBS structure that contains pointers to the
 						callback functions.
 
-	cbHow				Specifies how and when the callback functions are to be invoked by the
-						function. See the enum enRunCmdHowToCallCB for a list of possible
+	cbHow				Specifies how and when the callback functions are to be invoked by
+						the function. See the enum enRunCmdHowToCallCB for a list of possible
 						options.
 
 	uiRCflags			Option flags.
 
-	pCustom				An arbitrary pointer or value that is passed on to the callback functions.
+	pCustom				An arbitrary pointer or value that is passed on to the callback
+						functions.
+
+	pExitCode			A pointer to an integer that receives the exit code of the child
+						process. If the exit code is not required, this parameter can be
+						NULL. If pExitCode is not NULL, the function sets the value to
+						EXIT_FAILURE before it starts doing any work, and updates it later
+						to the real exit code of the child process. On most platforms,
+						EXIT_FAILURE has a value of 1.
+
 */
-	bool CreateAndRunCmdProcessCaptureStdout	(
+	bool CreateAndRunCmdProcessCapture	(
 			const char				*szExecutable,
 			const char				*szCmdLine,
 			const char				*szWorkingDir,
@@ -250,9 +259,10 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 			enRCmdCBhow				cbHow,					// How to call the callback functions.
 			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
 															//	flags.
-			void					*pCustom				// Passed on unchanged to callback
+			void					*pCustom,				// Passed on unchanged to callback
 															//	functions.
-												)
+			int						*pExitCode				// Exit code of process.
+										)
 ;
 
 

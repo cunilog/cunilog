@@ -325,6 +325,8 @@ char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE)
 		++ ch;
 		-- len;
 	}
+	if (plLE)
+		*plLE = 0;
 	return NULL;
 }
 
@@ -334,7 +336,7 @@ char *strPrevLineEnding_l (const char *ch, size_t len, size_t strtIdx, size_t *p
 	size_t	l;
 
 	len = USE_STRLEN == len ? strlen (ch) : len;
-	if (strtIdx >= len || !len)
+	if (strtIdx >= len || 0 == len)
 		return NULL;
 
 	char *szStart = (char *) ch + strtIdx;
@@ -356,6 +358,8 @@ char *strPrevLineEnding_l (const char *ch, size_t len, size_t strtIdx, size_t *p
 		-- szStart;
 		-- strtIdx;
 	}
+	if (plLE)
+		*plLE = 0;
 	return NULL;
 }
 
@@ -487,10 +491,10 @@ size_t strRemoveLineEndingsFromEnd (const char *sz, size_t len)
 			ubf_expect_bool_AND (b, NULL == sr);
 			sr = strPrevLineEnding_l (sz, USE_STRLEN, strlen (sz), &st);
 			ubf_expect_bool_AND (b, NULL == sr);
-			st = 4711;										// The function shouldn't change this.
+			st = 4711;										// Should be overwritten.
 			sr = strPrevLineEnding_l (sz, USE_STRLEN, 2, &st);
 			ubf_expect_bool_AND (b, NULL == sr);
-			ubf_expect_bool_AND (b, 4711 == st);			// Still unchanged?
+			ubf_expect_bool_AND (b, 0 == st);				// No line ending -> 0 length.
 			sr = strPrevLineEnding_l (sz, USE_STRLEN, 6, &st);
 			ubf_expect_bool_AND (b, sz + 3 == sr);
 			ubf_expect_bool_AND (b, !memcmp (sz + 3, sr, 15));

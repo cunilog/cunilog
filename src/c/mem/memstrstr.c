@@ -13,7 +13,7 @@ When		Who				What
 2019-10-13	Thomas			Include files moved to the header.
 2024-05-21	Thomas			Function memstrrchr () fixed.
 
-	The original version of this function has been taken from
+	The original version of memstrstr () has been taken from
 	http://www.koders.com/c/fid2330745E0E8C0A0F5E2CF94799642712318471D0.aspx?s=getopt#L459
 	which is buggy and doesn't work under certain circumstances.
 
