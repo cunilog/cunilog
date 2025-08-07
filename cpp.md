@@ -12,13 +12,11 @@ included from C++:
 				}
 #endif
 ```
-and
 ```C
 #ifdef __cplusplus
 				}
 #endif
 ```
-sections.
 
 Do not try to compile any of the code files as C++ code. While it might compile,
 some modules (compilation units) may contain code that is perfectly valid in C
@@ -56,13 +54,16 @@ C++ due to C++'s *active member* rule. See the C/C++ paragraph at https://en.wik
 
 ## Copy & Paste
 
-For the above reasons copying any of the C code from any of the Cunilog modules
+For the above reasons, copying any of the C code from any of the Cunilog modules,
 and pasting it into a C++ unit is discouraged, unless you know what you're doing and
 you're 100 % certain the copied passage won't introduce undefined behaviour in your C++ code.
 
 A C++ compiler might pick up some, most, or all incompatibility issues. For
 instance, returned pointers from calls to malloc () are compatible with any
 pointer type in C. In C++, however, a cast is required.
+
+It is recommended to always switch on all compiler warnings and treat them as
+errors.
 
 The modules Cunilog consists of can usually be utilised separately. You can build
 them as C code and include their headers from your C++ modules/units.
