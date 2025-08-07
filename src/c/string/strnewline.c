@@ -400,6 +400,20 @@ size_t strRemoveLineEndingsFromEnd (const char *sz, size_t len)
 		char			sz [1024];
 		char			*sr;
 
+		// Check lengths.
+		for (int i = 0; i < cunilogNewLineAmountEnumValues; ++ i)
+		{
+			b &= strlen (aszLineEndings [i])	<=	MAX_LEN_LINE_ENDING;
+			b &= strlen (ccLineEnding (i))		<=	MAX_LEN_LINE_ENDING;
+			b &= lnLineEnding (i)				<=	MAX_LEN_LINE_ENDING;
+			b &= lenLineEndings [i]				<=	MAX_LEN_LINE_ENDING;
+			b &= strlen (aszLineEndings [i])	<	MAX_SIZ_LINE_ENDING;
+			b &= strlen (ccLineEnding (i))		<	MAX_SIZ_LINE_ENDING;
+			b &= lnLineEnding (i)				<	MAX_SIZ_LINE_ENDING;
+			b &= lenLineEndings [i]				<	MAX_SIZ_LINE_ENDING;
+			ubf_assert_true (b);
+		}
+
 		#ifdef CUNILOG_NEWLINE_POSIX_ONLY
 
 			strcpy (sz, "\r\n\r");
