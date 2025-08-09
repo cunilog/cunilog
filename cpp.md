@@ -9,7 +9,6 @@ included from C++:
 ```C
 #ifdef __cplusplus
 	extern "C"	{
-				}
 #endif
 ```
 ```C
