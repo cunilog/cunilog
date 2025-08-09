@@ -144,4 +144,4 @@ size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, siz
 
 EXTERN_C_END
 
-#endif // STRMEMBUF_H
+#endif														// Of #ifdef STRMEMBUF_H.
