@@ -571,7 +571,7 @@ unsigned int StrLineExtract	(
 						"/*\n"
 						"A text.\n"
 						"*/\n"
-						"ABCDEFG\n"
+						"   \t   ABCDEFG\n"
 						"/*\n"
 						"A text.\n"
 						"*/\n"
