@@ -225,27 +225,34 @@ When		Who				What
 #ifndef ASCII_EOT
 #define ASCII_EOT			'\4'
 #endif
+#ifndef ASCII_BS
+#define ASCII_BS			'\0x08'							// '\b'
+#endif
+
 // TAB (tabulator).
 #ifndef ASCII_TAB
-#define ASCII_TAB			'\x09'
+#define ASCII_TAB			'\x09'							// '\t'
 #endif
 #ifndef ASCII_VT
-#define ASCII_VT			'\x0B'
+#define ASCII_VT			'\x0B'							// '\v'
+#endif
+#ifndef ASCII_FF
+#define ASCII_FF			'\x0C'							// '\f'
 #endif
 #ifndef ASCII_CR
-#define ASCII_CR			'\x0D'
+#define ASCII_CR			'\x0D'							// '\r'
 #endif
 #ifndef ASCII_CR_STR
 #define ASCII_CR_STR		"\x0D"
 #endif
 #ifndef ASCII_LF
-#define ASCII_LF			'\x0A'
+#define ASCII_LF			'\x0A'							// '\n'
 #endif
 #ifndef ASCII_LF_STR
 #define ASCII_LF_STR		"\x0A"
 #endif
 #ifndef ASCII_CRLF_STR
-#define ASCII_CRLF_STR		"\x0D\x0A"
+#define ASCII_CRLF_STR		"\x0D\x0A"						// "\r\n"
 #endif
 #ifndef ASCII_CR_VAL
 #define ASCII_CR_VAL		(0x0D)

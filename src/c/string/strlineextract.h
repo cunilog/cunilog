@@ -254,6 +254,56 @@ unsigned int StrLineExtract	(
 ;
 
 /*
+	strlineextractKeyValue
+
+	Extracts a key and value from szLine with length lnLine. If lnLine is USE_STRLEN,
+	the function calls strlen (szLine) to obtain it.
+
+	Parameters
+
+	szKey			A pointer that receives the start address of the key. This parameter
+					cannot be NULL.
+
+	plnKey			A pointer to a size_t that receives the length of the key. This parameter
+					must not be NULL.
+
+	szVal			A pointer that receives the start address of the value. This
+					parameter cannot be NULL.
+
+	lnVal			A pointer to a size_t that receives the length of the value. This
+					parameter cannot be NULL.
+
+	pszOpenQuotes	A pointer to an array of NUL-terminated strings recognised as opening
+					quotation marks/strings. The parameter nQuotes specifies the number
+					of elements in this array.
+
+	pszClosQuotes	A pointer to an array of NUL-terminated strings recognised as closing
+					quotation marks/strings. The parameter nQuotes specifies the number
+					of elements in this array.
+
+	nQuotes			The amount of quote strings. See parameters szOpenQuotes and
+					szClosQuotes above. If this value is 0, no quotes are recognised.
+
+	pszEquals		A pointer to an array of NUL-terminated strings recognised as equality
+					characters/strings. The parameter nEquals specifies the number of
+					stings/elements in this array.
+
+	The function returns true if a key and a value could be extracted from the line,
+	which includes an empty string for the value but not for the key. The function
+	returns false if szLine is NULL or lnLine is 0.
+*/
+bool strlineextractKeyValue	(
+		const char		*szKey,				size_t			*plnKey,
+		const char		*szVal,				size_t			*plnVal,
+		const char		*szLine,			size_t			lnLine,
+		unsigned int	nQuotes,
+		const char		**pszOpenQuotes,
+		const char		**pszClosQuotes,
+		const char		**pszEquals,		unsigned int	nEquals
+							)
+;
+
+/*
 	test_strlineextract
 
 	Function that tests the module. Returns true if all tests have been completed

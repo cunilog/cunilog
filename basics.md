@@ -24,7 +24,8 @@ To distinguish between functions and macros, in the documentation and comments, 
 
 ### Debugging
 
-When compiled for release versions Cunilog carries out only the most imporant parameters and bounds checks.
+When compiled for release versions Cunilog carries out only the most important
+parameters and bounds checks.
 
 It neither checks upper nor lower bounds of enumeration types. Function parameters that are not documented to be allowed to be NULL are not checked against being NULL. String parameters complemented by a length argument do not have their buffers examined to see if they're eventually NUL-terminated.
 
@@ -88,8 +89,8 @@ The characteristics of a Cunilog target are specified when it is initialised. So
 characteristics can be changed afterwards but need to be applied before the first logging
 function that uses this target is called. Some characteristics can still be changed even after
 logging functions have been called. If the application only has a single thread and the target
-has been initialised for a single thread only, all of its characterisitcs can be changed if
-enough care is taken.
+has been initialised for a single thread only, all of its characteristics can be
+changed if enough care is taken.
 
 ### Log path and application name
 
@@ -100,8 +101,9 @@ If the path is relative, the enumeration __enCunilogRelLogPath__ decides on an a
 
 ### Threading
 
-The type of a Cunilog target is probably its most important characteristic. This type cannot be changed
-later unless the application and the target are both single-threaded.
+The type of a Cunilog target is probably its most important characteristic.
+This type cannot be changed later unless the application and the target are
+both single-threaded only.
 
 The __enum cunilogtype__ denotes the type of a target.
 

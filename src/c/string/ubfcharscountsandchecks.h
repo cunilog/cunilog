@@ -150,16 +150,18 @@ TYPEDEF_FNCT_PTR (char *, ubf_is_letter_until) (char *ch, char c);
 /*
 	isWhiteSpace
 
-	Returns true if c is white space. CR, LF, and FF do not count as white space.
+	Returns true if c is white space. CR and LF do not count as white space.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool isWhiteSpace (char c);
 	TYPEDEF_FNCT_PTR (bool, isWhiteSpace) (char c);
 #else
 	#define isWhiteSpace(c)								\
-		(			ASCII_SPC		== (c)				\
-				||	ASCII_TAB		== (c)				\
-				||	ASCII_VT		== (c)				\
+		(			ASCII_SPC	== (c)					\
+				||	ASCII_BS	== (c)					\
+				||	ASCII_TAB	== (c)					\
+				||	ASCII_VT	== (c)					\
+				||	ASCII_FF	== (c)					\
 		)
 #endif
 

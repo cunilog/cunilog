@@ -76,8 +76,8 @@ bool str_has_only_printable_ASCII (const char *sz, size_t len)
 	bool ubf_is_letter (char c)
 	{
 		return	(
-				((unsigned char) c > 'A' - 1 && (unsigned char) c < 'Z' + 1)
-			||	((unsigned char) c > 'a' - 1 && (unsigned char) c < 'z' + 1)
+						((unsigned char) c > 'A' - 1 && (unsigned char) c < 'Z' + 1)
+					||	((unsigned char) c > 'a' - 1 && (unsigned char) c < 'z' + 1)
 				);
 	}
 #endif
@@ -106,9 +106,11 @@ char *ubf_is_letter_until (char *ch, char c)
 	bool isWhiteSpace (char c)
 	{
 		return	(
-						ASCII_SPC			== c
-					||	ASCII_TAB			== c
-					||	ASCII_VT			== c
+						ASCII_SPC	== c
+					||	ASCII_BS	== c
+					||	ASCII_TAB	== c
+					||	ASCII_VT	== c
+					||	ASCII_FF	== c
 				);
 	}
 #endif
