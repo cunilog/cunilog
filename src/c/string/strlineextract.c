@@ -153,6 +153,7 @@ bool cmpBufStartsWith (const char *p, size_t l, const char *sz)
 {
 	ubf_assert (NULL != p);
 	ubf_assert (NULL != sz);
+	ubf_assert (USE_STRLEN != l);
 
 	size_t	lc	= sz ? strlen (sz) : 0;
 	if (p && lc && l && l >= lc)
@@ -491,78 +492,89 @@ unsigned int StrLineExtract	(
 	return 0;
 }
 
+const char *strlineextractRemoveLeadingWhiteSpace (size_t *pLen, const char *szLine, size_t lnLine)
+{
+	lnLine = USE_STRLEN == lnLine ? strlen (szLine) : lnLine;
+	while (lnLine && isWhiteSpace (szLine [0]))
+	{
+		++ szLine;
+		-- lnLine;
+	}
+	if (pLen)
+		*pLen = lnLine;
+	return szLine;
+}
+
 char *ccSdOpenQuotes []	= {"\"", "'", "[", "{"};
 char *ccSdClosQuotes []	= {"\"", "'", "]", "}"};
 char *ccSdEqualSigns [] = {":=", "=", ":", "->", "<-"};
 
-/*
-	strlineextractIsOpenQuote
-
-	Returns the index of an open quote or 0 if szLine doesn't start with an open
-	quote.
-*/
 unsigned int strlineextractIsOpenQuote	(
 		const char		*szLine,			size_t			lnLine,
 		unsigned int	nQuotes,
 		const char		**pszOpenQuotes
 										)
 {
+	lnLine = USE_STRLEN == lnLine ? strlen (szLine) : lnLine;
+
 	for (unsigned int q = 0; q < nQuotes; ++ q)
 	{
 		if (cmpBufStartsWith (szLine, lnLine, pszOpenQuotes [q]))
-			return q;
+			return q + 1;
 	}
 	return 0;
 }
 
-static unsigned int strlineextractIsCloseQuote	(
+bool strlineextractIsCloseQuote	(
 		const char		*szLine,			size_t			lnLine,
 		const char		**pszCloseQuotes,
-		unsigned int	idxCloseQuote
-												)
+		unsigned int	idxCloseQuote1based
+								)
 {
-	return cmpBufStartsWith (szLine, lnLine, pszCloseQuotes [idxCloseQuote]);
+	ubf_assert_non_0 (idxCloseQuote1based);
+
+	-- idxCloseQuote1based;
+	return cmpBufStartsWith (szLine, lnLine, pszCloseQuotes [idxCloseQuote1based]);
 }
 
-bool strlineextractIsEqual	(
+unsigned int strlineextractIsEqual	(
 		const char		*szLine,			size_t			lnLine,
 		const char		**pszEquals,		unsigned int	nEquals
-							)
+									)
 {
 	for (unsigned int q = 0; q < nEquals; ++ q)
 	{
 		if (cmpBufStartsWith (szLine, lnLine, pszEquals [q]))
-			return true;
+			return q + 1;
 	}
-	return false;
+	return 0;
 }
 
-/*
-	Extracts a key or a value by taking quotations, if any, into consideration.
-	The key or value is extracted without quotes. If no quotes are encountered,
-	the key or value is extracted up to the last character before white space
-	before an equality sign, or, if no equality sign is found, up to the last
-	character before white space.
-	
-	If the key or value is quoted, the key or value inside the quotes is extracted.
-	The function fails (returns false) if no closing quote is found.
-*/
 bool strlineextractKeyOrValue	(
-		const char		**pszKeyOrVal,		size_t			*plnKeyOrVal,
-		const char		*szLine,			size_t			lnLine,
-		unsigned int	nQuotes,
-		const char		**pszOpenQuotes,
-		const char		**pszClosQuotes,
-		const char		**pszEquals,		unsigned int	nEquals
+		const char		**pszKeyOrVal,		size_t			*plnKeyOrVal,	// Out.
+		const char		**pszEqual,			size_t			*plnEqual,		// Out.
+		unsigned int	*pidxEqual1based,									// Out.
+		const char		*szLine,			size_t			lnLine,			// In.
+		unsigned int	nQuotes,											// In.
+		const char		**pszOpenQuotes,									// In.
+		const char		**pszClosQuotes,									// In.
+		const char		**pszEquals,		unsigned int	nEquals			// In.
 								)
 {
 	ubf_assert_non_NULL	(pszKeyOrVal);
 	ubf_assert_non_NULL	(plnKeyOrVal);
 	ubf_assert_non_NULL	(szLine);
 	ubf_assert_non_0	(lnLine);
-	ubf_assert			(!isWhiteSpace (szLine [0]));
 
-	lnLine = USE_STRLEN ? strlen (szLine) : lnLine;
+	lnLine = USE_STRLEN == lnLine ? strlen (szLine) : lnLine;
+	if (pszEqual)			*pszEqual			= NULL;
+	if (plnEqual)			*plnEqual			= 0;
+	if (pidxEqual1based)	*pidxEqual1based	= 0;
+
+	size_t	newLnLine;
+	szLine = strlineextractRemoveLeadingWhiteSpace (&newLnLine, szLine, lnLine);
+	lnLine = newLnLine;
+
 	const char *szRet;
 	const char *szEnd;
 	unsigned int uQuote = strlineextractIsOpenQuote (szLine, lnLine, nQuotes, pszOpenQuotes);
@@ -601,8 +613,17 @@ bool strlineextractKeyOrValue	(
 			}
 			++ szLine;
 			-- lnLine;
-			if (strlineextractIsEqual (szLine, lnLine, pszEquals, nEquals))
+			unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, pszEquals, nEquals);
+			if (ui1)
+			{	// Return the position of the equality sign found and the remaining length
+				//	of the line and its 1-based index. This way the caller doesn't need to
+				//	parse white space up until after the equality sign again, since its
+				//	length can be obtained via the 1-based index - 1.
+				if (pszEqual)			*pszEqual			= szLine;
+				if (plnEqual)			*plnEqual			= lnLine;
+				if (pidxEqual1based)	*pidxEqual1based	= ui1;
 				break;
+			}
 		}
 		if (szEnd)
 			szLine = szEnd + 1;
@@ -612,13 +633,13 @@ bool strlineextractKeyOrValue	(
 	}
 }
 
-bool strlineextractKeyValue	(
-		const char		*szKey,				size_t			*plnKey,
-		const char		*szVal,				size_t			*plnVal,
+bool strlineextractKeyAndValue	(
+		const char		**pszKey,			size_t			*plnKey,
+		const char		**pszVal,			size_t			*plnVal,
 		const char		*szLine,			size_t			lnLine,
 		unsigned int	nQuotes,
 		const char		**pszOpenQuotes,
-		const char		**pzClosQuotes,
+		const char		**pszClosQuotes,
 		const char		**pszEquals,		unsigned int	nEquals
 							)
 {
@@ -628,17 +649,9 @@ bool strlineextractKeyValue	(
 	if (0 == lnLine)
 		return false;
 
-	#ifdef DEBUG
-		UNUSED (nQuotes);
-		UNUSED (pszOpenQuotes);
-		UNUSED (pzClosQuotes);
-		UNUSED (pszEquals);
-		UNUSED (nEquals);
-	#endif
-
-	ubf_assert_non_NULL (szKey);
+	ubf_assert_non_NULL (pszKey);
 	ubf_assert_non_NULL (plnKey);
-	ubf_assert_non_NULL (szVal);
+	ubf_assert_non_NULL (pszVal);
 	ubf_assert_non_NULL (plnVal);
 
 	// No white space is allowed at the start of szLine. White space must be
@@ -650,9 +663,41 @@ bool strlineextractKeyValue	(
 	ubf_assert ('\f'	!= szLine [0]);
 	ubf_assert (!isWhiteSpace (szLine [0]));
 
-	szKey = szLine;
+	const char		*szEqual;
+	size_t			lnEqual;
+	unsigned int	idxEqual1;
+	bool b = strlineextractKeyOrValue	(
+				pszKey,		plnKey,
+				&szEqual,	&lnEqual, &idxEqual1,
+				szLine,		lnLine,
+				nQuotes,	pszOpenQuotes, pszClosQuotes,
+				pszEquals,	nEquals
+										);
+	if (!b)
+		return false;
 
-	return false;
+	// We're expecting a key/value pair like "key = value". That's not possible without
+	//	an equality sign.
+	if (0 == idxEqual1)
+		return false;
+
+	// From now on we don't care about equality strings. We accept
+	//	"key = value = value = value", with the value being "value = value = value".
+	b = strlineextractKeyOrValue		(
+				pszVal,		plnVal,
+				&szEqual,	&lnEqual, &idxEqual1,
+				szLine,		lnLine,
+				nQuotes,	pszOpenQuotes, pszClosQuotes,
+				NULL,		0
+										);
+	if (!b)
+		return false;
+
+	// With no equality strings passed on to strlineextractKeyOrValue () above,
+	//	receiving an index would be a bug.
+	ubf_assert_0 (idxEqual1);
+
+	return true;
 }
 
 #ifdef STRLINEEXTRACT_BUILD_TEST_FNCT
@@ -703,6 +748,9 @@ bool strlineextractKeyValue	(
 		ubf_expect_bool_AND (b, true == cmpBufStartsWith (sz, 5, "This "));
 
 		unsigned int ui;
+		ui = strlineextractIsOpenQuote ("\"abc", USE_STRLEN, GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes);
+		ubf_expect_bool_AND (b, 0 < ui);
+
 		strcpy (sz, "/*");
 		ui = isStartMultiLineComment (sz, 2, &conf);
 		ubf_expect_bool_AND (b, 1 == ui);
@@ -759,10 +807,36 @@ bool strlineextractKeyValue	(
 			cust.sts	[ux]	= 0;
 		}
 
+		size_t		lnResult = 9;
+		const char *szResult = strlineextractRemoveLeadingWhiteSpace (&lnResult, "ABC", 3);
+		ubf_expect_bool_AND (b, 9 != lnResult);
+		ubf_expect_bool_AND (b, 3 == lnResult);
+		ubf_expect_bool_AND (b, !memcmp ("ABC", szResult, 4));
+		lnResult = 9;
+		szResult = strlineextractRemoveLeadingWhiteSpace (&lnResult, " ABC", 4);
+		ubf_expect_bool_AND (b, 9 != lnResult);
+		ubf_expect_bool_AND (b, 3 == lnResult);
+		ubf_expect_bool_AND (b, !memcmp ("ABC", szResult, 4));
+		lnResult = 9;
+		szResult = strlineextractRemoveLeadingWhiteSpace (&lnResult, " \tABC ", 6);
+		ubf_expect_bool_AND (b, 9 != lnResult);
+		ubf_expect_bool_AND (b, 4 == lnResult);
+		ubf_expect_bool_AND (b, !memcmp ("ABC ", szResult, 5));
+		szResult = strlineextractRemoveLeadingWhiteSpace (&lnResult, NULL, 0);
+		ubf_expect_bool_AND (b, 9 != lnResult);
+		ubf_expect_bool_AND (b, 0 == lnResult);
+		ubf_expect_bool_AND (b, NULL == szResult);
+		// Must not crash.
+		lnResult = 9;
+		szResult = strlineextractRemoveLeadingWhiteSpace (NULL, NULL, 0);
+		ubf_expect_bool_AND (b, 9 == lnResult);
+		ubf_expect_bool_AND (b, NULL == szResult);
+
 		const char	*szKey	= NULL;
 		size_t		lnKey	= 0;
 		b &= strlineextractKeyOrValue	(
-				&szKey, &lnKey, "Key=Val", 7, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"Key=Val", 7, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
 		ubf_expect_bool_AND (b, 0 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -772,7 +846,20 @@ bool strlineextractKeyValue	(
 		szKey = NULL;
 		lnKey = 7;
 		b &= strlineextractKeyOrValue	(
-				&szKey, &lnKey, "Key=Val", 7, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"Key=Val", 7, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+										);
+		ubf_expect_bool_AND (b, 7 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 3 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("Key", szKey, 3));
+
+		// Same again with leading white space.
+		szKey = NULL;
+		lnKey = 7;
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"  \tKey=Val", 10, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
 		ubf_expect_bool_AND (b, 7 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -782,7 +869,8 @@ bool strlineextractKeyValue	(
 		szKey = NULL;
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
-				&szKey, &lnKey, "Key", 3, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"Key", 3, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -792,7 +880,8 @@ bool strlineextractKeyValue	(
 		szKey = NULL;
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
-				&szKey, &lnKey, "Key ", 3, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"Key ", 3, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -802,7 +891,8 @@ bool strlineextractKeyValue	(
 		szKey = NULL;
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
-				&szKey, &lnKey, "Key ", 4, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"Key ", 4, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -812,7 +902,8 @@ bool strlineextractKeyValue	(
 		szKey = NULL;
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
-				&szKey, &lnKey, "Key  ", 3, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"Key  ", 3, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -822,7 +913,8 @@ bool strlineextractKeyValue	(
 		szKey = NULL;
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
-				&szKey, &lnKey, "Key  ", 5, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"Key  ", 5, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -832,7 +924,8 @@ bool strlineextractKeyValue	(
 		szKey = NULL;
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
-				&szKey, &lnKey, "Key\t\t\t\t     ", USE_STRLEN, 0, NULL, NULL,
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"Key\t\t\t\t     ", USE_STRLEN, 0, NULL, NULL,
 				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
@@ -843,7 +936,8 @@ bool strlineextractKeyValue	(
 		szKey = NULL;
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
-				&szKey, &lnKey, "Key\t\t\t\t     =  jjjj", USE_STRLEN, 0, NULL, NULL,
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"Key\t\t\t\t     =  jjjj", USE_STRLEN, 0, NULL, NULL,
 				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
@@ -854,7 +948,8 @@ bool strlineextractKeyValue	(
 		szKey = NULL;
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
-				&szKey, &lnKey, "Key number 1\t\t\t\t     =  jjjj", USE_STRLEN, 0, NULL, NULL,
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"Key number 1\t\t\t\t     =  jjjj", USE_STRLEN, 0, NULL, NULL,
 				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
@@ -865,7 +960,8 @@ bool strlineextractKeyValue	(
 		szKey = NULL;
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
-				&szKey, &lnKey, "[Key number 1]\t\t\t\t     =  jjjj", USE_STRLEN,
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"[Key number 1]\t\t\t\t     =  jjjj", USE_STRLEN,
 				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
 				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
@@ -879,12 +975,117 @@ bool strlineextractKeyValue	(
 		// Should fail because missing closing quote.
 		//	The parameters szKey and lnKey should not change.
 		b &= !strlineextractKeyOrValue	(
-				&szKey, &lnKey, "[Key number 1\t\t\t\t     =  jjjj", USE_STRLEN,
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"[Key number 1\t\t\t\t     =  jjjj", USE_STRLEN,
 				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
 				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
 										);
 		ubf_expect_bool_AND (b, 4000 == lnKey);
 		ubf_expect_bool_AND (b, NULL == szKey);
+
+		/*
+			"If the key or value is quoted, the key or value inside the quotes is extracted.
+			The function fails (returns false) if no closing quote is found."
+
+			"If a key or value doesn't start with an opening quote but contains quotes,
+			the quotes are treated as normal characters."
+
+			"The extracted key is not NUL-terminated, since it is only a pointer to a buffer,
+			and its length, inside the original buffer szLine points to."
+		*/
+		szKey = NULL;
+		lnKey = 5555;
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"'Key number 1\t\t\t\t'     =  jjjj", USE_STRLEN,
+				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
+				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+										);
+		ubf_expect_bool_AND (b, 5555 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 16 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("Key number 1\t\t\t\t", szKey, 16));
+		szKey = NULL;
+		lnKey = 5555;
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"'Key {number 1\t\t\t\t'     =  jjjj", USE_STRLEN,
+				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
+				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+										);
+		ubf_expect_bool_AND (b, 5555 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 17 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("Key {number 1\t\t\t\t'", szKey, 18));
+		szKey = NULL;
+		lnKey = 5555;
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"'Key {number} 1\t\t\t\t'     =  jjjj", USE_STRLEN,
+				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
+				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+										);
+		ubf_expect_bool_AND (b, 5555 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 18 == lnKey);
+		// The closing single quote must not have been overwritten.
+		ubf_expect_bool_AND (b, !memcmp ("Key {number} 1\t\t\t\t'", szKey, 19));
+
+		// Same again with leading white space.
+		szKey = NULL;
+		lnKey = 5555;
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"\t\t\t   'Key {number} 1\t\t\t\t'     =  jjjj", USE_STRLEN,
+				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
+				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+										);
+		ubf_expect_bool_AND (b, 5555 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 18 == lnKey);
+		// The closing single quote must not have been overwritten.
+		ubf_expect_bool_AND (b, !memcmp ("Key {number} 1\t\t\t\t'", szKey, 19));
+
+		// No equality strings. We should get the entire line excluding leading
+		//	and trailing white space.
+		szKey = NULL;
+		lnKey = 5555;
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"  value = value = value  ", USE_STRLEN,
+				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
+				NULL, 0
+										);
+		ubf_expect_bool_AND (b, 5555 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 21 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("value = value = value", szKey, 21));
+		szKey = NULL;
+		lnKey = 5555;
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"\t\t\t\t  \t \t   \t\t\t  value = value = value\t\t  ", USE_STRLEN,
+				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
+				NULL, 0
+										);
+		ubf_expect_bool_AND (b, 5555 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 21 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("value = value = value", szKey, 21));
+		szKey = NULL;
+		lnKey = 5555;
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"value = value = value", USE_STRLEN,
+				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
+				NULL, 0
+										);
+		ubf_expect_bool_AND (b, 5555 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 21 == lnKey);
+		// The closing single quote must not have been overwritten.
+		ubf_expect_bool_AND (b, !memcmp ("value = value = value", szKey, 21));
+
 
 		return b;
 	}

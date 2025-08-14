@@ -254,20 +254,107 @@ unsigned int StrLineExtract	(
 ;
 
 /*
-	strlineextractKeyValue
+	strlineextractRemoveLeadingWhiteSpace
+
+	Returns a pointer inside szLine with leading white space removed. The parameter pLen
+	points to contains the new length without the white space.
+*/
+const char *strlineextractRemoveLeadingWhiteSpace (size_t *pLen, const char *szLine, size_t lnLine)
+;
+
+/*
+	strlineextractIsOpenQuote
+
+	Returns the 1-based index of an open quote or 0 if szLine doesn't start with an open
+	quote. The returned 1-based index can be passed to the function
+	strlineextractIsCloseQuote () as the parameter idxCloseQuote1based if it is greater
+	than 0.
+*/
+unsigned int strlineextractIsOpenQuote	(
+		const char		*szLine,			size_t			lnLine,
+		unsigned int	nQuotes,
+		const char		**pszOpenQuotes
+										)
+;
+
+/*
+	strlineextractIsCloseQuote
+
+	Returns true if szLine starts with the closing quote that has the 1-based index
+	idxCloseQuote1based. The parameter idxCloseQuote1based is the return value of the
+	function strlineextractIsOpenQuote (), but not 0. Do not call this function if
+	strlineextractIsOpenQuote () returned 0.
+*/
+bool strlineextractIsCloseQuote	(
+		const char		*szLine,			size_t			lnLine,
+		const char		**pszCloseQuotes,
+		unsigned int	idxCloseQuote1based
+								)
+;
+
+/*
+	strlineextractIsEqual
+
+	Returns the 1-based index of the string pointer in pszEquals,
+	if szLine starts with any of the equality characters specified
+	in pszEquals.
+
+	The function returns 0 if szLine does not start with any of the equality
+	character strings in pszEquals.
+*/
+unsigned int strlineextractIsEqual	(
+		const char		*szLine,			size_t			lnLine,
+		const char		**pszEquals,		unsigned int	nEquals
+									)
+;
+
+/*
+	strlineextractKeyOrValue
+
+	Extracts a key or a value by taking quotations, if any, into consideration.
+	The key or value is extracted without quotes. If no quotes are encountered,
+	the key or value is extracted up to the last character before white space
+	before an equality sign, or, if no equality sign is found, up to the last
+	character before white space.
+	
+	If the key or value is quoted, the key or value inside the quotes is extracted.
+	The function fails (returns false) if no closing quote is found.
+
+	If a key or value doesn't start with an opening quote but contains quotes,
+	the quotes are treated as normal characters.
+
+	The extracted key is not NUL-terminated, since it is only a pointer to a buffer,
+	and its length, inside the original buffer szLine points to.
+
+	Leading white space, if any, is ignored.
+*/
+bool strlineextractKeyOrValue	(
+		const char		**pszKeyOrVal,		size_t			*plnKeyOrVal,	// Out.
+		const char		**pszEqual,			size_t			*plnEqual,		// Out.
+		unsigned int	*pidxEqual1based,									// Out.
+		const char		*szLine,			size_t			lnLine,			// In.
+		unsigned int	nQuotes,											// In.
+		const char		**pszOpenQuotes,									// In.
+		const char		**pszClosQuotes,									// In.
+		const char		**pszEquals,		unsigned int	nEquals			// In.
+								)
+;
+
+/*
+	strlineextractKeyAndValue
 
 	Extracts a key and value from szLine with length lnLine. If lnLine is USE_STRLEN,
 	the function calls strlen (szLine) to obtain it.
 
 	Parameters
 
-	szKey			A pointer that receives the start address of the key. This parameter
+	pszKey			A pointer that receives the start address of the key. This parameter
 					cannot be NULL.
 
 	plnKey			A pointer to a size_t that receives the length of the key. This parameter
 					must not be NULL.
 
-	szVal			A pointer that receives the start address of the value. This
+	pszVal			A pointer that receives the start address of the value. This
 					parameter cannot be NULL.
 
 	lnVal			A pointer to a size_t that receives the length of the value. This
@@ -292,15 +379,15 @@ unsigned int StrLineExtract	(
 	which includes an empty string for the value but not for the key. The function
 	returns false if szLine is NULL or lnLine is 0.
 */
-bool strlineextractKeyValue	(
-		const char		*szKey,				size_t			*plnKey,
-		const char		*szVal,				size_t			*plnVal,
+bool strlineextractKeyAndValue	(
+		const char		**pszKey,			size_t			*plnKey,
+		const char		**pszVal,			size_t			*plnVal,
 		const char		*szLine,			size_t			lnLine,
 		unsigned int	nQuotes,
 		const char		**pszOpenQuotes,
 		const char		**pszClosQuotes,
 		const char		**pszEquals,		unsigned int	nEquals
-							)
+								)
 ;
 
 /*
