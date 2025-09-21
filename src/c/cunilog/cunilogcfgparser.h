@@ -303,7 +303,7 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 					If this parameter is NULL, the function does not provide the length
 					of the returned string. Note that the string value the function
 					returns is not NUL-terminated, hence it is not recommended to set this
-					parameter NULL.
+					parameter to NULL.
 
 	szSection		The name of the section the key belongs to. Keys do not necessarily
 					belong to a section. To obtain a key that is not part of a section,

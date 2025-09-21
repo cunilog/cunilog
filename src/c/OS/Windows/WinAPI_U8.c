@@ -275,7 +275,7 @@ char *AllocU8_from_WinU16l (const WCHAR *wc16, size_t ln16)
 		{
 			UTF8_from_WinU16l (pc, iRequiredSize, wc16, (int) ln16);
 			//pc [iRequiredSize] = ASCII_NUL;		//Intellisense doesn't like this.
-			* (pc + iRequiredSize) = ASCII_NUL;
+			*(pc + iRequiredSize) = ASCII_NUL;
 		}
 	} else
 	{

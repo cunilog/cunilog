@@ -3549,15 +3549,16 @@ TYPEDEF_FNCT_PTR (DWORD, SetFileAttributesU8long)
 	The parameter waitTime specifies the time in milliseconds the function waits after
 	each attempt for the process to exit.
 
-	The caller can control which of the above attempts is made but they cannot change
-	the order of these attempts. The caller can further control if the function should
+	The caller can control which of the above attempts is made but the order of these
+	attempts is currently fixed. The caller can further control if the function should
 	wait after each of these attempts. For instance, to only attempt to terminate the
 	process by sending it a CTRL-Break event, set uiFlags to
-	TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK | TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK.
+	TERMCHILDPROCCONTROLLED_CTRL_BREAK | TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK.
 	This instructs the function to attempt a CTRL-Break and then wait waitTime
-	milliseconds for the process to exit. Specify all flags for the attempts that should
-	be made, and specify the additional TERMCHILDPROCCONTROLLED_WAIT_ flags to wait
-	for the process to exit after the attempt in question.
+	milliseconds for the process to exit. Specify all TERMCHILDPROCCONTROLLED_ flags
+	for the attempts that should be made, and specify the additional
+	TERMCHILDPROCCONTROLLED_WAIT_ flags to wait for the process to exit after the attempt
+	in question.
 
 	The function returns true if the process has exited within waitTime ms after each
 	termination attempt. It returns false if the process has not exited within waitTime.
@@ -3589,7 +3590,7 @@ TYPEDEF_FNCT_PTR (BOOL, IsFirstArgumentExeArgumentW) (int *pargc, WCHAR **pargv 
 	SwallowExeArgumentW
 	
 	Examines the first element of the command-line argument list pargv points to
-	and disposes of it if is an executable argument.
+	and disposes of it if it is an executable argument.
 
 	Applications for POSIX systems require the first command-line argument (index 0)
 	to be the path to the executable called. In Windows, this is optional. This
