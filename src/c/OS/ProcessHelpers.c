@@ -813,7 +813,7 @@ void DoneArgsList (char *szArgsList)
 			const char				*szExecutable,
 			const char				*szCmdLine,
 			const char				*szWorkingDir,
-			SRCMDCBS				*pCBs,					// CB functions and heartbeat interval.
+			SRCMDCBS				*pCBsHB,				// CB functions and heartbeat interval.
 			enRCmdCBhow				cbHow,					// How to call the callback functions.
 			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
 															//	flags.
@@ -880,7 +880,7 @@ void DoneArgsList (char *szArgsList)
 				inf.childProcessId	= pi.dwProcessId;
 
 				// This function returns false if a callback funciton returned enRunCmdRet_TerminateFail.
-				b &= b ? HandleCommunication (&inf, &pi, &ph, pCBs, cbHow, uiRCflags, pCustom) : false;
+				b &= b ? HandleCommunication (&inf, &pi, &ph, pCBsHB, cbHow, uiRCflags, pCustom) : false;
 
 				if (pExitCode)
 				{

@@ -278,7 +278,7 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 
 	szWorkingDir		The working directory/current directory of the command-line process.
 
-	pCBs				A pointer to an SRCMDCBS structure that contains pointers to the
+	pCBsHB				A pointer to an SRCMDCBS structure that contains pointers to the
 						callback functions and the heartbeat time interval.
 
 	cbHow				Specifies how and when the callback functions are to be invoked by
@@ -304,7 +304,7 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 			const char				*szExecutable,
 			const char				*szCmdLine,
 			const char				*szWorkingDir,
-			SRCMDCBS				*pCBs,					// CB functions and heartbeat interval.
+			SRCMDCBS				*pCBsHB,				// CB functions and heartbeat interval.
 			enRCmdCBhow				cbHow,					// How to call the callback functions.
 			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
 															//	flags.
