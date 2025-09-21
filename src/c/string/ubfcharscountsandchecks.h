@@ -150,7 +150,7 @@ TYPEDEF_FNCT_PTR (char *, ubf_is_letter_until) (char *ch, char c);
 /*
 	isWhiteSpace
 
-	Returns true if c is white space. CR and LF do not count as white space.
+	Returns true if c is white space. Line endings like CR and LF do not count as white space.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool isWhiteSpace (char c);

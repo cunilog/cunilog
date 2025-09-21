@@ -504,7 +504,11 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 ;
 
 // This seems to be useful.
-#define requiresCUNILOG_TARGETseparateLoggingThread(p) HAS_CUNILOG_TARGET_A_QUEUE (p)
+#define requiresCUNILOG_TARGETseparateLoggingThread(p)	\
+(														\
+		cunilogSingleThreadedSeparateLoggingThread	== (p)->culogType\
+	||	cunilogMultiThreadedSeparateLoggingThread	== (p)->culogType\
+)
 
 /*
 	InitCUNILOG_TARGETex
@@ -559,8 +563,6 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
-						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
-						ignored and implicitely set to unilogSingleThreaded.
 
 	postfix				The postfix used for the SUNILOGTARGET's logfile. See cunilogstructs.h
 						for more details.
@@ -716,8 +718,6 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
-						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
-						ignored and implicitely set to unilogSingleThreaded.
 
 	postfix				The postfix used for the SUNILOGTARGET's logfile. See cunilogstructs.h
 						for more details.
@@ -877,20 +877,18 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitOrCreateCUNILOG_TARGET)
 						as (size_t) -1.
 						If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+	relLogPath			One of the values in the enCunilogRelPath enumeration that specify
 						the base path if szLogPath is either relative or NULL. If szLogPath is
 						relative, the path is relative to
-						cunilogLogPath_relativeToExecutable (the executable file),
-						cunilogLogPath_relativeToCurrentDir (the current directory), or
-						cunilogLogPath_relativeToHomeDir (the user's home directory).
+						cunilogPath_relativeToExecutable (the executable file),
+						cunilogPath_relativeToCurrentDir (the current directory), or
+						cunilogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
 						The value of this parameter is ignored if szLogPath is an absolute
-						path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
+						path. If this value is cunilogPath_isAbsolute and szLogPath is a
 						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
-						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
-						ignored and implicitely set to unilogSingleThreaded.
 
 	postfix				The postfix used for the SUNILOGTARGET's logfile. See cunilogstructs.h
 						for more details.
@@ -985,20 +983,18 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstaticEx)
 						as (size_t) -1.
 						If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+	relLogPath			One of the values in the enCunilogRelPath enumeration that specify
 						the base path if szLogPath is either relative or NULL. If szLogPath is
 						relative, the path is relative to
-						cunilogLogPath_relativeToExecutable (the executable file),
-						cunilogLogPath_relativeToCurrentDir (the current directory), or
-						cunilogLogPath_relativeToHomeDir (the user's home directory).
+						cunilogPath_relativeToExecutable (the executable file),
+						cunilogPath_relativeToCurrentDir (the current directory), or
+						cunilogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
 						The value of this parameter is ignored if szLogPath is an absolute
-						path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
+						path. If this value is cunilogPath_isAbsolute and szLogPath is a
 						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
-						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
-						ignored and implicitely set to cunilogSingleThreaded.
 
 	The function returns a pointer to the internal CUNILOG_TARGET cunilognewlinestructure
 	upon success, NULL otherwise.
@@ -1027,6 +1023,26 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 ;
 
 /*
+	MoveCUNILOG_TARGETqueueToFrom
+
+	Moves the queue of the target putFrom to target putTo.
+	The function requires that both targets have a queue. It fails if this is not
+	the case.
+
+	The function returns true on success, false otherwise.
+*/
+bool MoveCUNILOG_TARGETqueueToFrom	(
+		CUNILOG_TARGET *cunilog_restrict putTo,
+		CUNILOG_TARGET *cunilog_restrict putFrom
+									)
+;
+TYPEDEF_FNCT_PTR (bool, MoveCUNILOG_TARGETqueueToFrom)
+(
+		CUNILOG_TARGET *cunilog_restrict putTo,
+		CUNILOG_TARGET *cunilog_restrict putFrom
+);
+
+/*
 	HAS_CUNILOG_TARGET_A_QUEUE
 
 	Macro to check if a CUNILOG_TARGET structure has an event quueue.
@@ -1035,6 +1051,8 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 (														\
 		cunilogSingleThreadedSeparateLoggingThread	== put->culogType\
 	||	cunilogMultiThreadedSeparateLoggingThread	== put->culogType\
+	||	cunilogSingleThreadedQueueOnly				== put->culogType\
+	||	cunilogMultiThreadedQueueOnly				== put->culogType\
 )
 
 /*
@@ -1417,8 +1435,8 @@ TYPEDEF_FNCT_PTR (bool, ShutdownCUNILOG_TARGET) (CUNILOG_TARGET *put);
 /*
 	ShutdownCUNILOG_TARGETstatic
 
-	Calls ShutdownCUNILOG_TARGET () on the internal static SUNILOGSTRUCT structure.
-	This function should be called just before DoneSUNILOGTARGETstatic ();
+	Calls ShutdownCUNILOG_TARGET () on the internal static CUNILOG_TARGET structure.
+	This function should be called just before DoneCUNILOG_TARGETstatic ();
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
@@ -1764,7 +1782,9 @@ bool logTextU8sevlqts		(CUNILOG_TARGET *put, cueventseverity sev, const char *cc
 bool logTextU8sev			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText);
 bool logTextU8sevq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText);
 bool logTextU8l				(CUNILOG_TARGET *put, const char *ccText, size_t len);
+bool logTextU8lts			(CUNILOG_TARGET *put, const char *ccText, size_t len, UBF_TIMESTAMP ts);
 bool logTextU8lq			(CUNILOG_TARGET *put, const char *ccText, size_t len);
+bool logTextU8lqts			(CUNILOG_TARGET *put, const char *ccText, size_t len, UBF_TIMESTAMP ts);
 bool logTextU8				(CUNILOG_TARGET *put, const char *ccText);
 bool logTextU8q				(CUNILOG_TARGET *put, const char *ccText);
 bool logTextU8vfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap);
@@ -1810,11 +1830,15 @@ bool logTextU8csvfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *
 bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, ...);
 
 #define logTextU8sevl_static(v, t, l)	logTextU8sevl		(pCUNILOG_TARGETstatic, (v), (t), (l))
+#define logTextU8sevlts_static(v, t, l, ts)				\
+										logTextU8sevlts		(pCUNILOG_TARGETstatic, (v), (t), (l), (ts))
 #define logTextU8sevlq_static(v, t, l)	logTextU8sevlq		(pCUNILOG_TARGETstatic, (v), (t), (l))
 #define logTextU8sev_static(v, t)		logTextU8sevl		(pCUNILOG_TARGETstatic, (v), (t), USE_STRLEN)
 #define logTextU8sevq_static(v, t)		logTextU8sevq		(pCUNILOG_TARGETstatic, (v), (t), USE_STRLEN)
 #define logTextU8l_static(t, l)			logTextU8l			(pCUNILOG_TARGETstatic, (t), (l))
+#define logTextU8lts_static(t, l, ts)	logTextU8lts		(pCUNILOG_TARGETstatic, (t), (l), (ts))
 #define logTextU8lq_static(t, l)		logTextU8lq			(pCUNILOG_TARGETstatic, (t), (l))
+#define logTextU8lqts_static(t, l, ts)	logTextU8lqts		(pCUNILOG_TARGETstatic, (t), (l), (ts))
 #define logTextU8_static(t)				logTextU8l			(pCUNILOG_TARGETstatic, (t), USE_STRLEN)
 #define logTextU8q_static(t)			logTextU8lq			(pCUNILOG_TARGETstatic, (t), USE_STRLEN)
 #define logTextU8fmt_static(...)		logTextU8fmt		(pCUNILOG_TARGETstatic, __VA_ARGS__)
@@ -1857,8 +1881,7 @@ bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 #define logTextU8csfmtsev_static(s, ...)				\
 										logTextU8csfmtsev	(pCUNILOG_TARGETstatic, (s), __VA_ARGS__);
 
-/*
-	ChangeCUNILOG_TARGETuseColourForEcho
+/*	ChangeCUNILOG_TARGETuseColourForEcho
 	ChangeCUNILOG_TARGETuseColorForEcho
 	ChangeCUNILOG_TARGETuseColourForEcho_static
 	ChangeCUNILOG_TARGETuseColorForEcho_static

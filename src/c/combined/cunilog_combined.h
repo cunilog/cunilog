@@ -697,27 +697,34 @@ When		Who				What
 #ifndef ASCII_EOT
 #define ASCII_EOT			'\4'
 #endif
+#ifndef ASCII_BS
+#define ASCII_BS			'\0x08'							// '\b'
+#endif
+
 // TAB (tabulator).
 #ifndef ASCII_TAB
-#define ASCII_TAB			'\x09'
+#define ASCII_TAB			'\x09'							// '\t'
 #endif
 #ifndef ASCII_VT
-#define ASCII_VT			'\x0B'
+#define ASCII_VT			'\x0B'							// '\v'
+#endif
+#ifndef ASCII_FF
+#define ASCII_FF			'\x0C'							// '\f'
 #endif
 #ifndef ASCII_CR
-#define ASCII_CR			'\x0D'
+#define ASCII_CR			'\x0D'							// '\r'
 #endif
 #ifndef ASCII_CR_STR
 #define ASCII_CR_STR		"\x0D"
 #endif
 #ifndef ASCII_LF
-#define ASCII_LF			'\x0A'
+#define ASCII_LF			'\x0A'							// '\n'
 #endif
 #ifndef ASCII_LF_STR
 #define ASCII_LF_STR		"\x0A"
 #endif
 #ifndef ASCII_CRLF_STR
-#define ASCII_CRLF_STR		"\x0D\x0A"
+#define ASCII_CRLF_STR		"\x0D\x0A"						// "\r\n"
 #endif
 #ifndef ASCII_CR_VAL
 #define ASCII_CR_VAL		(0x0D)
@@ -1661,7 +1668,9 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	initialise it again with initSMEMBUF(). To re-use the structure, a call to
 	initSMEMBUF() is required.
 
-	Not to be called on structures that do not have any buffer allocated.
+	Not to be called on structures that do not have any buffer allocated. The
+	function or macro aborts in debug versions if no buffer has been allocated.
+	Use freeSMEMBUFuncond () if this check is not desirable.
 
 	This function/macro is probably a few CPU cycles faster than doneSMEMBUF ()
 	for structures that won't be re-used.
@@ -1672,6 +1681,28 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 #else
 	#define freeSMEMBUF(pb)								\
 		ubf_free ((pb)->buf.pvoid)
+#endif
+
+/*
+	freeSMEMBUFuncond
+
+	Deallocates the memory used by the SMEMBUF structure's buffer but does not
+	initialise it again with initSMEMBUF(). To re-use the structure, a call to
+	initSMEMBUF() is required.
+
+	This function or macro does not abort in debug versions if the SMEMBUF structure
+	doesn't have an allocated buffer.
+
+	This function/macro is probably a few CPU cycles faster than doneSMEMBUF ()
+	for structures that won't be re-used.
+*/
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	void freeSMEMBUFuncond (SMEMBUF *pb);
+	TYPEDEF_FNCT_PTR (void, freeSMEMBUFuncond) (SMEMBUF *pb);
+#else
+	#define freeSMEMBUFuncond(pb)						\
+		if ((pb)->buf.pvoid)							\
+			ubf_free ((pb)->buf.pvoid)
 #endif
 
 /*
@@ -1697,7 +1728,9 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	Deallocates the memory used by the SMEMBUF structure's buffer and initialises it
 	with initSMEMBUF() so that it can/could be re-used.
 
-	Not to be called on structures that do not have any buffer allocated.
+	Not to be called on structures that do not have any buffer allocated. The
+	function or macro aborts in debug versions if no buffer has been allocated.
+	Use doneSMEMBUFuncond () if this check is not desirable.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#define DONESMEMBUF(s) doneSMEMBUF (&(s))
@@ -1705,6 +1738,24 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	#define DONESMEMBUF(s)								\
 		freeSMEMBUF (&(s));								\
 		INITSMEMBUF (s)
+#endif
+
+/*
+	doneSMEMBUFuncond
+
+	Deallocates the memory used by the SMEMBUF structure's buffer and initialises it
+	with initSMEMBUF() so that it can/could be re-used.
+
+	This function or macro does not abort in debug versions if the SMEMBUF structure
+	doesn't have an allocated buffer.
+*/
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	void doneSMEMBUFuncond (SMEMBUF *pb);
+	TYPEDEF_FNCT_PTR (void, doneSMEMBUFuncond) (SMEMBUF *pb);
+#else
+	#define doneSMEMBUFuncond(p)						\
+		freeSMEMBUFuncond (p);							\
+		initSMEMBUF (p)
 #endif
 
 /*
@@ -2312,11 +2363,30 @@ TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16_from_UTF8_FileName) (const char *ccU8File
 #endif
 
 /*
+	AllocU8_from_WinU16l
+
+	Allocates memory for the UTF-8 representation of wc16 and performs the conversion,
+	returning a pointer to the Windows UTF-16 string converted to UTF-8. The function
+	never reads more than ln16 characters from wc16. It calls wcslen (wc16) if
+	ln16 is USE_STRLEN. The maximum value for ln16 is INT_MAX - 1.
+
+	The caller is responsible for calling DoneU8 () on the returned pointer when it
+	is not needed anymore to deallocate the memory associated with it.
+
+	The return value is a newly allocated buffer containing the string in wc16
+	converted to UTF-8. The returned string is NUL-terminated. The function returns
+	NULL if the heap allocation fails.
+*/
+char *AllocU8_from_WinU16l (const WCHAR *wc16, size_t ln16);
+TYPEDEF_FNCT_PTR_ARGS (char *, AllocU8_from_WinU16l, const WCHAR *wc16, size_t ln16);
+
+/*
 	AllocU8_from_WinU16
 
 	Allocates memory for the UTF-8 representation of wc16 and performs the conversion,
 	returning a pointer to the Windows UTF-16 string converted to UTF-8, or NULL if
-	either wc16 is NULL or the heap allocation fails.
+	either wc16 is NULL or the heap allocation fails. The returned buffer and string
+	is NUL-terminated because this is also the requirement for the UTF-16 string wc16.
 	
 	The caller is responsible for calling DoneU8 () on the returned pointer when it
 	is not needed anymore to deallocate the memory associated with it.
@@ -2414,7 +2484,7 @@ TYPEDEF_FNCT_PTR_ARGS (char *, AllocU8_from_WinU16, const WCHAR *wc16);
 	Converts the UTF-8 string pchU8 points to to its Windows UTF-16 representation.
 	Returns a pointer to pwcStackVar if the required length of the Windows UTF-16
 	representation of pchU8 fits in a UTF-16 string with WINAPI_U8_HEAP_THRESHOLD
-	characters, including a terminating NUL character. It returs a newly allocated
+	characters, including a terminating NUL character. It returns a newly allocated
 	WCHAR * if the UTF-16 string does not fit in the buffer pointed to by
 	pwcStackVar.
 	
@@ -2422,7 +2492,7 @@ TYPEDEF_FNCT_PTR_ARGS (char *, AllocU8_from_WinU16, const WCHAR *wc16);
 	representation of pchU8. The returned pointer is either pwcStackVar or a newly
 	allocated memory block. The function returns NULL if pchU8 is NULL.
 	
-	Call DoneWinU16fromU8orUseThreshold with the returned pointer and the same
+	Call DoneWinU16fromU8orUseThreshold () with the returned pointer and the same
 	pwcStackVar variable to conditionally deallocate the buffer again.
 	
 	The function AllocWinU16fromU8orUseThreshold_00 () is identical to
@@ -2483,6 +2553,55 @@ TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16fromU8orUseThresholdLongFileName) (WCHAR *
 */
 void DoneWinU16fromU8orUseThreshold (WCHAR *pwcHeapVar, WCHAR *pwcStackVar);
 TYPEDEF_FNCT_PTR (void, DoneWinU16fromU8orUseThreshold) (WCHAR *pwcHeapVar, WCHAR *pwcStackVar);
+
+/*
+	AllocU8fromWinU16orUseThresholdl
+
+*/
+char *AllocU8fromWinU16orUseThresholdl (char *pszStackVar, const WCHAR *pwcU16, size_t lnU16);
+TYPEDEF_FNCT_PTR (char *, AllocU8fromWinU16orUseThresholdl)
+	(char *pszStackVar, const WCHAR *pwcU16, size_t lnU16);
+
+/*
+	AllocU8fromWinU16orUseThreshold
+
+	Converts the Windows UTF-16 string pwcU16 points to to its UTF-8 representation.
+	Returns a pointer to pszStackVar if the required length of the UTF-8
+	representation of pwcU16 fits in a UTF-8 string with WINAPI_U8_HEAP_THRESHOLD
+	characters, including a terminating NUL character. It returns a newly allocated
+	char * if the final UTF-8 string does not fit in the buffer pointed to by
+	pszStackVar.
+	
+	The function returns a pointer to a UTF-8 string that contains the UTF-8
+	representation of pwcU16. The returned pointer is either pszStackVar or a newly
+	allocated memory block. The function returns NULL if pwcU16 is NULL.
+	
+	Call DoneU8fromWinU16orUseThreshold () with the returned pointer and the same
+	pwcStackVar variable to conditionally deallocate the buffer again.
+	
+	Parameters:
+	pwcStackVar		Pointer to a char array (char [WINAPI_U8_HEAP_THRESHOLD]).
+	pwcU16			The UTF-16 string to be converted to UTF-8.
+	
+*/
+char *AllocU8fromWinU16orUseThreshold (char *pszStackVar, const WCHAR *pwcU16);
+TYPEDEF_FNCT_PTR (char *, AllocU8fromWinU16orUseThreshold)
+	(char *pszStackVar, const WCHAR *pwcU16);
+
+/*
+	DoneU8fromWinU16orUseThreshold
+
+	Conditionally deallocates the memory allocated by
+	AllocU8fromWinU16orUseThreshold ().
+	
+	Does nothing if pwcHeapVar is NULL. Does nothing if pwcHeapVar points to
+	pwcStackVar. In all other cases ubf_free () is called with pwcHeapVar as its
+	parameter.
+
+	Debug versions abort if one of the parameters is NULL. This would indicate
+	a bug somewhere.
+*/
+void DoneU8fromWinU16orUseThreshold (char *pszHeapVar, char *pszStackVar);
 
 /*
 	AllocU8ArgsFromWinU16
@@ -3751,6 +3870,28 @@ TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemType) (const char *chDriveR
 	#define IsFileSystemNTFS(drv)						\
 		(FS_TYPE_NTFS == GetFileSystemType (drv))
 #endif
+
+/*
+	GetNumberOfProcessesAttachedToConsole
+
+	Returns the amount of processes attached to the current console.
+*/
+DWORD GetNumberOfProcessesAttachedToConsole (void);
+
+/*
+	IsOnlyProcessAttachedToConsole
+
+	Returns true if the current process is the only process attached to the current
+	console.
+	
+	In other words, the function returns true if for instance the process has been
+	started by double-clicking on its icon from Windows Explorer, but returns false
+	if it was started from the command-line.
+
+	See https://devblogs.microsoft.com/oldnewthing/20160125-00/?p=92922 for more
+	information.
+*/
+bool IsOnlyProcessAttachedToConsole (void);
 
 /*
 	GetFullPathNameU8
@@ -5219,15 +5360,59 @@ TYPEDEF_FNCT_PTR (DWORD, SetFileAttributesU8long)
 #endif
 
 /*
-	TerminateChildProcess
-
-	Terminates the given child process.
-
-	The function first tries to terminate the child process in a peaceful way.
-	If this fails, TerminateProcess () is called on the child process.
+	Action flags for TerminateProcessControlled ().
 */
-bool TerminateChildProcess (HANDLE hProcess);
-TYPEDEF_FNCT_PTR (bool, TerminateChildProcess) (HANDLE hProcess);
+#define TERMCHILDPROCCONTROLLED_CTRL_C			(0x0001)
+#define TERMCHILDPROCCONTROLLED_CTRL_BREAK		(0x0002)
+#define TERMCHILDPROCCONTROLLED_WM_CLOSE		(0x0004)
+#define TERMCHILDPROCCONTROLLED_WM_QUIT			(0x0008)
+#define TERMCHILDPROCCONTROLLED_TERMINATE		(0x0010)
+
+/*
+	Wait flags for TerminateProcessControlled ().
+*/
+#define TERMCHILDPROCCONTROLLED_WAIT_CTRL_C		(0x0100)
+#define TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK	(0x0200)
+#define TERMCHILDPROCCONTROLLED_WAIT_WM_CLOSE	(0x0400)
+#define TERMCHILDPROCCONTROLLED_WAIT_WM_QUIT	(0x0800)
+#define TERMCHILDPROCCONTROLLED_WAIT_TERMINATE	(0x1000)
+
+/*
+	TerminateProcessControlled
+
+	Terminates the given process hProcess in a controlled manner. The function attempts
+	to terminate the process in the following order:
+
+	- Send CTRL-C to the process.
+	- Send CTRL-Break to the process.
+	- Post a WM_CLOSE message to all windows of the process.
+	- Post a WM_QUITE message to all windows of the process.
+
+	The parameter waitTime specifies the time in milliseconds the function waits after
+	each attempt for the process to exit.
+
+	The caller can control which of the above attempts is made but they cannot change
+	the order of these attempts. The caller can further control if the function should
+	wait after each of these attempts. For instance, to only attempt to terminate the
+	process by sending it a CTRL-Break event, set uiFlags to
+	TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK | TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK.
+	This instructs the function to attempt a CTRL-Break and then wait waitTime
+	milliseconds for the process to exit. Specify all flags for the attempts that should
+	be made, and specify the additional TERMCHILDPROCCONTROLLED_WAIT_ flags to wait
+	for the process to exit after the attempt in question.
+
+	The function returns true if the process has exited within waitTime ms after each
+	termination attempt. It returns false if the process has not exited within waitTime.
+
+	Note that waitTime is waited for after each separate attempt to terminate the process.
+	For instance, if you specify the flags TERMCHILDPROCCONTROLLED_CTRL_C to attempt
+	sending CTRL-C and TERMCHILDPROCCONTROLLED_WAIT_CTRL_C to wait for its success, plus
+	TERMCHILDPROCCONTROLLED_CTRL_BREAK and TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK to
+	send CTRL-Break and wait for it to succeed, the function waits up to twice waitTime
+	in case the first attempt (CTRL-C) is unsuccessful.
+*/
+bool TerminateProcessControlled (HANDLE hProcess, uint16_t uiFlags, DWORD waitTime);
+TYPEDEF_FNCT_PTR (bool, TerminateProcessControlled) (HANDLE hProcess, uint16_t uiFlags, DWORD waitTime);
 
 /*
 	IsFirstArgumentExeArgumentW
@@ -7427,9 +7612,130 @@ EXTERN_C_BEGIN
 		PsxObtainPathFromExecutableModule (mb)
 #endif
 
+/*
+	TestExeFileNameFnct
+
+	Tests this module. Returns true if successful.
+*/
+#ifdef CUNILOG_BUILD_EXEFILENAME_TEST_FNCT
+	bool TestExeFileNameFnct (void);
+#else
+	#define TestExeFileNameFnct()	(true)
+#endif
+
 EXTERN_C_END
 
 #endif														// Of #ifndef EXEFILENAME_H.
+/****************************************************************************************
+
+	File:		FileMembuf.h
+	Why:		File functions for SMEMBUF structures.
+	OS:			C99
+	Author:		Thomas
+	Created:	2025-09-18
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-09-18	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef U_FILEMEMBUF_H
+#define U_FILEMEMBUF_H
+
+#include <stdbool.h>
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./membuf.h"
+		#include "./functionptrtpydef.h"
+	#else
+		#include "./../mem/membuf.h"
+		#include "./../pre/functionptrtpydef.h"
+	#endif
+
+#endif
+
+// Some functions accept string lengths of (size_t) -1 to obtain a length via a call
+//	to strlen ().
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
+// This value is returned in case of an error.
+#ifndef READFILESMEMBUF_ERROR
+#define READFILESMEMBUF_ERROR			((size_t) -1)
+#endif
+
+// The maximum filesize that can be read from disk to memory with this module.
+#ifndef READFILESMEMBUF_MAX_FSIZE
+#define READFILESMEMBUF_MAX_FSIZE		(20 * 1024 * 1024)	// 20 MiB.
+#endif
+
+EXTERN_C_BEGIN
+
+/*
+	ReadFileSMEMBUF
+
+	Reads the file named szFileName into the buffer of the SMEMBUF structure pmb points
+	to. The SMEMBUF structure must have been initialised properly before this function
+	is called.
+
+	The buffer of the SMEMBUF structure pmb points to is NUL-terminated. In fact, the
+	function writes two NUL octets to ensure it can also be used to read UTF-16 files.
+
+	The function returns the amount of octets/bytes written to the buffer, not including
+	the terminating NUL character.
+*/
+size_t ReadFileSMEMBUF (SMEMBUF *pmb, const char *szFileName)
+;
+
+/*
+	test_FileMembuf
+
+	Test function for the module.
+	returns true on success, false otherwise.
+*/
+#ifdef FILEMEMBUF_BUILD_TEST_FNCT
+	bool test_FileMembuf (void);
+#else
+	#define test_FileMembuf()	(true)
+#endif
+
+EXTERN_C_END
+
+#endif														// Of #ifdef U_FILEMEMBUF_H.
 /****************************************************************************************
 
 	File:		ProcessHelpers.h
@@ -7500,8 +7806,16 @@ When		Who				What
 EXTERN_C_BEGIN
 
 #ifdef PLATFORM_IS_WINDOWS
-	//typedef cunilog_process_t
+
+	#include <Windows.h>
+
+	typedef DWORD	cunilog_pid_t;
+
 #else
+
+	#include <unistd.h>
+
+	typedef pid_t	cunilog_pid_t;
 
 #endif
 
@@ -7530,22 +7844,36 @@ size_t ProcessHelpersSetBufferSize (size_t bufsize);
 char *CreateArgsList (const char *szExecutable, int argc, const char *argv [], bool bNoExeArg)
 ;
 
+typedef struct sruncmdcbinf
+{
+	const char			*szExecutable;						// As provided by the caller.
+	size_t				lnExecutable;						// Its length.
+	const char			*szArgsList;						// Arguments string.
+	size_t				lnArgsList;							// Its length.
+	const char			*szWorkingDir;
+	size_t				lnWorkingDir;
+	cunilog_pid_t		childProcessId;						// PID of the child.
+	enum enRCmdCBval	rvHtb;								// Return value of heartbeat CB.
+	uint64_t			uiChildExitTimeout;					// Time in ms to wait for the
+															//	child to exit.
+} SRUNCMDCBINF;
+
 /*
 	Callback function return values.
 
 	enRunCmdRet_Continue			This is the default. The calling function carries
 									on until the child process exits.
-									CreateAndRunCmdProcessCaptureStdout () returns true.
+									CreateAndRunCmdProcessCapture () returns true.
 
 	enRunCmdRet_Ignore				The callback function is not called again but the
 									child process keeps running until it exits itself.
-									CreateAndRunCmdProcessCaptureStdout () returns true.
+									CreateAndRunCmdProcessCapture () returns true.
 
 	enRunCmdRet_Terminate			Terminate the child process.
-									CreateAndRunCmdProcessCaptureStdout () returns true.
+									CreateAndRunCmdProcessCapture () returns true.
 
 	enRunCmdRet_TerminateFail		Terminate the child process.
-									CreateAndRunCmdProcessCaptureStdout () returns true.
+									CreateAndRunCmdProcessCapture () returns true.
 */
 enum enRunCmdCallbackRetValue
 {
@@ -7556,12 +7884,20 @@ enum enRunCmdCallbackRetValue
 															//	function for this stream.
 	enRunCmdRet_TerminateFail
 };
-typedef enum enRunCmdRet enRCmdCBval;
+typedef enum enRunCmdCallbackRetValue enRCmdCBval;
 
 /*
-	Callback function for stdout andstderr.
+	Callback function for stdout and stderr.
+
+	The argument szOutput contains a pointer to the data the child process sent to
+	either stdout or stderr, depending on which callback function is called.
+
+	The argument lnOutput contains the length of the data. If enRunCmdHow_AsIs is
+	passed to CreateAndRunCmdProcessCapture () via the enum enRunCmdHowToCallCB,
+	the data/text may not be NUL-terminated. Do not read beyond lnOutput in this case.
 */
-typedef enRCmdCBval rcmdOutCB (const char *szOutput, size_t lnOutput, void *pCustom);
+typedef enRCmdCBval rcmdOutCB (SRUNCMDCBINF *pinf, char *szOutput, size_t lnOutput, void *pCustom);
+
 /*
 	Callback function for stdin.
 
@@ -7569,9 +7905,14 @@ typedef enRCmdCBval rcmdOutCB (const char *szOutput, size_t lnOutput, void *pCus
 	The buffer of this structure can be populated with data by the callback function.
 	This data is forwarded/sent to the child process's input stream stdin.
 
-	The address plnData points to must be set to the length of the data that should
-	be sent to the child's stdin stream. If nothing needs to be sent to the child process's
-	input stream, *plenData must be set to 0 by the callback function.
+	The address plnData points to must be set to the length of the data that will
+	be sent to the child's stdin stream, excluding a terminating NUL character. If
+	the value plnData points to is USE_STRLEN, the buffer of the SMEMBUF structure
+	psmb points to must be NUL-terminated, and CreateAndRunCmdProcessCapture () calls
+	strlen () on it to obtain its length.
+
+	If nothing should be sent to the child process's input stream, *plenData must be set
+	to 0 by the callback function.
 
 	For example, a callback function of type rcmdInpCB could send the command "exit\n"
 	(note the "\n" to simulate the enter key) to the child process:
@@ -7585,13 +7926,24 @@ typedef enRCmdCBval rcmdOutCB (const char *szOutput, size_t lnOutput, void *pCus
 	}
 
 */
-typedef enRCmdCBval rcmdInpCB (SMEMBUF *psmb, size_t *plnData, void *pCustom);
+typedef enRCmdCBval rcmdInpCB (SRUNCMDCBINF *pinf, SMEMBUF *psmb, size_t *plnData, void *pCustom);
 
+typedef enRCmdCBval rcmdHtbCB (SRUNCMDCBINF *pinf, void *pCustom);
+
+/*
+	SRCMDCBS
+
+	This structure contains pointers to the callback functions as well as the heartbeat
+	interval in milliseconds (ms).
+*/
 typedef struct srcmdCBs
 {
-	rcmdInpCB	*cbInp;
-	rcmdOutCB	*cbOut;
-	rcmdOutCB	*cbErr;
+	rcmdInpCB	*cbInp;										// CB to provide stdin for child.
+	rcmdOutCB	*cbOut;										// CB to receive stdout from child.
+	rcmdOutCB	*cbErr;										// CB to receive stderr from child.
+	rcmdHtbCB	*cbHtb;										// CB for heartbeat.
+	uint64_t	uiHtbMS;									// Time interval in ms to call the
+															//	heartbeat CB cbHtb.
 } SRCMDCBS;
 
 /*
@@ -7600,7 +7952,8 @@ typedef struct srcmdCBs
 #define RUNCMDPROC_CALLB_STDINP		(0x0001)				// Invoke callback for stdin.
 #define RUNCMDPROC_CALLB_STDOUT		(0x0002)				// Invoke callback for stdout.
 #define RUNCMDPROC_CALLB_STDERR		(0x0004)				// Invoke callback for stderr.
-#define RUNCMDPROC_EXEARG_NOEXE		(0x0008)				// No exe argument in parameter
+#define RUNCMDPROC_CALLB_HEARTB		(0x0008)				// Invoke callback for heartbeat.
+#define RUNCMDPROC_EXEARG_NOEXE		(0x0010)				// No exe argument in parameter
 															//	list. See comments for function
 															//	CreateArgsList () for details.
 															//	This flag sets the parameter
@@ -7647,7 +8000,7 @@ enum enRunCmdHowToCallCB
 typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 
 /*
-	CreateAndRunProcessCaptureStdout
+	CreateAndRunCmdProcessCapture
 
 	Creates and runs a command-line process.
 	
@@ -7664,7 +8017,7 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 	szWorkingDir		The working directory/current directory of the command-line process.
 
 	pCBs				A pointer to an SRCMDCBS structure that contains pointers to the
-						callback functions.
+						callback functions and the heartbeat time interval.
 
 	cbHow				Specifies how and when the callback functions are to be invoked by
 						the function. See the enum enRunCmdHowToCallCB for a list of possible
@@ -7683,19 +8036,33 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 						EXIT_FAILURE has a value of 1.
 
 */
-	bool CreateAndRunCmdProcessCaptureStdout	(
+#if defined (PLATFORM_IS_WINDOWS)
+
+	bool CreateAndRunCmdProcessCapture	(
 			const char				*szExecutable,
 			const char				*szCmdLine,
 			const char				*szWorkingDir,
-			SRCMDCBS				*pCBs,
+			SRCMDCBS				*pCBs,					// CB functions and heartbeat interval.
 			enRCmdCBhow				cbHow,					// How to call the callback functions.
 			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
 															//	flags.
 			void					*pCustom,				// Passed on unchanged to callback
 															//	functions.
+			uint64_t				uiChildExitTimeout,		// Time in ms to wait for the child to
+															//	exit/terminate.
 			int						*pExitCode				// Exit code of process.
-												)
+										)
 ;
+
+#elif defined (PLATFORM_IS_POSIX)
+
+
+#elif
+
+	// Neither Windows nor POSIX.
+	#error Not supported
+
+#endif
 
 
 /*
@@ -8577,6 +8944,7 @@ EXTERN_C_BEGIN
 
 /*
 	ubf_expect_bool_AND
+	ubf_assert_bool_AND
 
 	Macro to binary AND an expectation. Useful in test functons.
 
@@ -8591,8 +8959,20 @@ EXTERN_C_BEGIN
 #define ubf_expect_bool_AND(b, expectation)				\
 			(b) &= (expectation);						\
 			ubf_assert (true == (b))
+#define ubf_assert_bool_AND(b, expectation)				\
+			(b) &= (expectation);						\
+			ubf_assert (true == (b))
 
+/*
+	ubf_expect_bool_AND_0
+	ubf_assert_bool_AND_0
+
+	Macro to binary AND an expectation to be 0.
+*/
 #define ubf_expect_bool_AND_0(b, expectation)			\
+			(b) &= (0 == (expectation));				\
+			ubf_assert (0 == (expectation))
+#define ubf_assert_bool_AND_0(b, expectation)			\
 			(b) &= (0 == (expectation));				\
 			ubf_assert (0 == (expectation))
 
@@ -8679,6 +9059,17 @@ EXTERN_C_BEGIN
 #define ubf_expect_non_zero(v)							\
 			ubf_assert (0 != (v))
 
+/*
+	ONLY_IN_DEBUG
+
+	Emits the given code only in debug versions.
+*/
+#ifdef DEBUG
+	#define ONLY_IN_DEBUG(code)							\
+				code;
+#else
+	#define ONLY_IN_DEBUG(code)
+#endif
 
 EXTERN_C_END
 
@@ -13684,6 +14075,7 @@ EXTERN_C_BEGIN
 
 /*
 	ubf_expect_bool_AND
+	ubf_assert_bool_AND
 
 	Macro to binary AND an expectation. Useful in test functons.
 
@@ -13698,8 +14090,20 @@ EXTERN_C_BEGIN
 #define ubf_expect_bool_AND(b, expectation)				\
 			(b) &= (expectation);						\
 			ubf_assert (true == (b))
+#define ubf_assert_bool_AND(b, expectation)				\
+			(b) &= (expectation);						\
+			ubf_assert (true == (b))
 
+/*
+	ubf_expect_bool_AND_0
+	ubf_assert_bool_AND_0
+
+	Macro to binary AND an expectation to be 0.
+*/
 #define ubf_expect_bool_AND_0(b, expectation)			\
+			(b) &= (0 == (expectation));				\
+			ubf_assert (0 == (expectation))
+#define ubf_assert_bool_AND_0(b, expectation)			\
 			(b) &= (0 == (expectation));				\
 			ubf_assert (0 == (expectation))
 
@@ -13786,6 +14190,17 @@ EXTERN_C_BEGIN
 #define ubf_expect_non_zero(v)							\
 			ubf_assert (0 != (v))
 
+/*
+	ONLY_IN_DEBUG
+
+	Emits the given code only in debug versions.
+*/
+#ifdef DEBUG
+	#define ONLY_IN_DEBUG(code)							\
+				code;
+#else
+	#define ONLY_IN_DEBUG(code)
+#endif
 
 EXTERN_C_END
 
@@ -15340,6 +15755,10 @@ When		Who				What
 */
 
 /*
+	The module provides a simple line extractor for various purposes.
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -15391,6 +15810,55 @@ enum enStrlineExtractCharSet
 };
 
 /*
+	Our default string parameters for single and multi-line comments, open
+	and closing quotes, equality signs, and section start and end strings.
+*/
+extern const char	*ccCulStdLineCComment	[];
+extern unsigned int	nCulStdLineCComment;
+
+extern const char	*ccCulStdLineUComment	[];
+extern unsigned int	nCulStdLineUComment;
+
+extern const char	*ccCulStdBegMultComment	[];
+extern const char	*ccCulStdEndMultComment	[];
+extern unsigned int	nccCulStdMultComment;
+
+extern const char	*ccCulStdOpenQuotes		[];
+extern const char	*ccCulStdClosQuotes		[];
+extern unsigned int	nCulStdQuotes;
+
+extern const char	*ccCulStdEqualSigns		[];
+extern unsigned int	nCulStdEquals;
+
+extern char			*ccCulStdStrtSection	[];
+extern char			*ccCulStdExitSection	[];
+extern unsigned int	nCulStdSections;
+
+/*
+	
+*/
+typedef struct sculmltstrings
+{
+	const char		**ccLineComments;
+	unsigned int	nLineComments;
+
+	const char		**ccBegMultiComments;
+	const char		**ccEndMultiComments;
+	unsigned int	nMultiComments;
+
+	const char		**ccOpenQuotes;
+	const char		**ccClosQuotes;
+	unsigned int	nQuotes;
+
+	const char		**ccEquals;
+	unsigned int	nEquals;
+
+	char			**ccStrtSections;
+	char			**ccExitSections;
+	unsigned int	nSections;
+} SCULMLTSTRINGS;
+
+/*
 	The members pchStartMultiCommentStr and pchEndMultiCommentStr point to string arrays that
 	define the start and end of a block comment (multi-line comment). The member
 	nMultiCommentStr holds the amount of array elements. Both arrays need to have the same
@@ -15406,7 +15874,7 @@ typedef struct strlineconf
 															//	supported.
 	size_t							tabSize;				// The width of a TAB character.
 															//	Currently not used/supported.
-	char							**pchLineCommentStr;	// Pointer to an array of strings, in
+	const char						**pchLineCommentStr;	// Pointer to an array of strings, in
 															//	UTF-8, containing line comment
 															//	characters. If this is NULL, no
 															//	line comments are accepted.
@@ -15416,8 +15884,8 @@ typedef struct strlineconf
 															//	is NULL. If this is 0, no line
 															//	comments are accepted.
 	// Start and end multi-line comments characters.
-	char							**pchStartMultiCommentStr;
-	char							**pchEndMultiCommentStr;
+	const char						**pchStartMultiCommentStr;
+	const char						**pchEndMultiCommentStr;
 	size_t							nMultiCommentStr;
 	#ifdef DEBUG
 		bool						bInitialised;
@@ -15431,7 +15899,7 @@ typedef struct strlineconf
 */
 typedef struct strlineinf
 {
-	void				*pStart;							// Pointer to the first character
+	const char			*szStart;							// Pointer to the first character
 															//	of a line that is not a white
 															//	space character.
 	size_t				lnLength;							// Length of a line, not counting
@@ -15441,7 +15909,7 @@ typedef struct strlineinf
 															//	First line is 1.
 	size_t				charNumber;							// The position of pStart within
 															//	a line. 1 = first column/character.
-	size_t				absPosition;						// Position within the entrie buffer.
+	size_t				absPosition;						// Position within the entire buffer.
 															//	1 = first position/character.
 	void				*pCustom;							// Can be used by the caller.
 	#ifdef DEBUG
@@ -15483,6 +15951,16 @@ void InitSTRLINECONFforUBFL (STRLINECONF *pc)
 void InitSTRLINECONFforC (STRLINECONF *pc);
 
 /*
+	InitSCULMLTSTRINGSforUBFL
+	InitSCULMLTSTRINGSforC
+
+	Initialisation functions for a SCULMLTSTRINGS structure, either for C or for UBFL
+	language translation file single and block comments.
+*/
+void InitSCULMLTSTRINGSforUBFL (SCULMLTSTRINGS *psmls);
+void InitSCULMLTSTRINGSforC (SCULMLTSTRINGS *psmls);
+
+/*
 	SanityCheckMultiComments
 
 	Performs a simple sanity check on the string arrays that define the multi/block comments.
@@ -15508,7 +15986,7 @@ bool SanityCheckMultiComments (STRLINECONF *pc);
 	which can be 0.
 */
 unsigned int StrLineExtractU8	(
-				char					*pBuf,
+				const char				*pBuf,
 				size_t					lenBuf,
 				STRLINECONF				*pConf,
 				StrLineExtractCallback	cb,
@@ -15523,9 +16001,14 @@ unsigned int StrLineExtractU8	(
 	extracted line. The STRLINECONF structure pConf points to controls how lines are
 	extracted while line and block (multi-line) comments are ignored. Each extracted
 	line is stripped of leading and trailing white space before it is passed on to the
-	callback function cb points to. The callback function receives a pointer to a STRLINEINF
-	structure that contains a pointer to the line buffer, its length, and a few other
-	parameters, like for instance the line number.
+	callback function cb points to. Lines only consisting of comments (single and multi)
+	are stripped. Multi-line comments that start and end on a single line are stripped
+	only when they appear before any significant character. They are not removed anywhere
+	else, since the function does not know the syntax the caller deems valid.
+
+	The callback function receives a pointer to a STRLINEINF structure that contains a
+	pointer to the line buffer, its length, and a few other parameters, like for
+	instance the line number.
 
 	Call InitSTRLINECONFforC () to configure the STRLINECONF structure for C-style
 	line and block comments, call InitSTRLINECONFforUBFL () to initialise the structure
@@ -15550,26 +16033,296 @@ unsigned int StrLineExtractU8	(
 					function is called for each extracted line. The function is passed
 					an STRLINEINF structure with some information. The callback function
 					returns true for each line processed. When the function returns
-					false StrLineExtract returns too, returning the amount of times
+					false, StrLineExtract returns too, returning the amount of times
 					the callback function has been called so far.
 
 	pCustom			An arbitrary pointer passed on to the callback function through
 					the pCustom member of the STRLINEINF structure.
 
 	When the function succeeds, it returns how many times the callback function has been
-	invoked, which can be 0.
-	
-	If the function fails, the return value is UINT_MAX. The function can only fail if
-	the number of start and end block comment characters are not identical. You can
-	call SanityCheckMultiComments () beforehand to ensure the function is not going to
-	fail.
+	invoked, which can be 0. If the function fails, the return value is UINT_MAX.
 */
 unsigned int StrLineExtract	(
-				void					*pBuf,
+				const void				*pBuf,
 				size_t					lenBuf,
 				STRLINECONF				*pConf,
 				StrLineExtractCallback	cb,
 				void					*pCustom
+							)
+;
+
+/*
+	strlineextractRemoveLeadingWhiteSpace
+
+	Returns a pointer inside szLine with leading white space removed. The parameter pLen
+	points to contains the new length without the white space.
+*/
+const char *strlineextractRemoveLeadingWhiteSpace (size_t *pLen, const char *szLine, size_t lnLine)
+;
+
+/*
+	strlineextractIsOpenString
+
+	Returns the 1-based index of an opening string if szLine starts with it,
+	or 0 if szLine doesn't start with an opening string.
+	The returned 1-based index can be passed to the function
+	strlineextractIsCloseString () as the parameter idxCloseString1based if it is greater
+	than 0.
+*/
+unsigned int strlineextractIsOpenString	(
+		const char		*szLine,			size_t			lnLine,
+		unsigned int	nOpenStrings,		const char		**pszOpenStrings
+										)
+;
+
+/*
+	strlineextractIsCloseString
+
+	Returns true if szLine starts with the closing string that has the 1-based index
+	idxCloseString1based. The parameter idxCloseString1based is the return value of the
+	function strlineextractIsOpenString (), but not 0. Do not call this function if
+	strlineextractIsOpenString () returned 0.
+*/
+bool strlineextractIsCloseString	(
+		const char		*szLine,			size_t			lnLine,
+		const char		**pszCloseStrings,
+		unsigned int	idxCloseString1based
+								)
+;
+
+/*
+	strlineextractIsEqual
+
+	Wrapper for strlineextractIsOpenString (), because the function name looks
+	odd when we check for an equality sign.
+*/
+#define strlineextractIsEqual(lne, len, nO, pS)			\
+	strlineextractIsOpenString (lne, len, nO, pS)
+
+/*
+	strlineextractKeyOrValue
+
+	Extracts a key or a value by taking quotations, if any, into consideration.
+	The key or value is extracted without quotes. If no quotes are encountered,
+	the key or value is extracted up to the last character before white space
+	before an equality sign, or, if no equality sign is found, up to the last
+	character before white space.
+	
+	If the key or value is quoted, the key or value inside the quotes is extracted.
+	The function fails (returns false) if no closing quote is found.
+
+	If a key or value doesn't start with an opening quote but contains quotes,
+	these quotes are treated as normal characters.
+
+	The extracted key is not NUL-terminated, since it is only a pointer to a buffer,
+	and its length, inside the original buffer szLine points to.
+
+	Leading and trailing white space, if any, is ignored.
+
+	Parameters
+	----------
+
+	pszKeyOrVal		A pointer that receives the start address of the key or value, depending
+					on whether an equality string is encountered. If an equality string is
+					enountered towards the right side of the line, the returned pointer is
+					a key, otherwise it's a value. This parameter cannot be NULL. This
+					returned string is not NUL-terminated, because it is just a pointer
+					within the buffer szLine.
+
+	plnKeyOrVal		A pointer to a size_t that receives the length of the key or value
+					returned in the parameter pszKeyOrVal. This parameter must not be NULL.
+
+	pszEqual		If an equality string is encountered, this is a pointer to it. Otherwise
+					it receives NULL. If a non-NULL address is returned, the paramter
+					pszKeyOrVal points to a key. If it receives NULL, pszKeyOrVal points
+					to a value.
+
+	pidxEqual1based	A pointer to a size_t that receives the 1-based index of the equality
+					string found. If pszKeyOrVal points to a key, the function sets this
+					value to 0.
+
+	szLine			A pointer to the buffer that contains the "key = value" string.
+
+	lnLine			The length of szLine. If this parameter is USE_STRLEN, the function
+					obtains it with strlen (szLine).
+
+
+	The following parameters have been replaced with the SCULMLTSTRINGS structure psmlt:
+
+	nQuotes			The amount of quote strings. See parameters szOpenQuotes and
+					szClosQuotes below. If this value is 0, no quotes are recognised.
+
+	pszOpenQuotes	A pointer to an array of NUL-terminated strings recognised as opening
+					quotation marks/strings. The parameter nQuotes specifies the number
+					of elements in this array.
+
+	pszClosQuotes	A pointer to an array of NUL-terminated strings recognised as closing
+					quotation marks/strings. The parameter nQuotes specifies the number
+					of elements in this array.
+
+	pszEquals		A pointer to an array of NUL-terminated strings recognised as equality
+					characters/strings. The parameter nEquals specifies the number of
+					stings/elements in this array. If this parameter is NULL, the function
+					fails and returns false.
+
+	nEquals			The number of strings that are recognised as equality signs pointed
+					to by the parameter pszEquals. If this parameter is 0, the function is
+					bound to fail and return false, as a key/value pair cannot be identified
+					without at least one accepted equality sign character or string that
+					separates key and value.
+
+*/
+bool strlineextractKeyOrValue	(
+		const char		**cunilog_restrict pszKeyOrVal,	size_t	*plnKeyOrVal,	// Out.
+		const char		**cunilog_restrict pszEqual,	size_t	*plnEqual,		// Out.
+		unsigned int	*pidxEqual1based,										// Out.
+		const char		*szLine,						size_t	lnLine,			// In.
+		SCULMLTSTRINGS	*psmlt													// In.
+								)
+;
+
+/*
+	strlineextractKeyAndValue
+
+	Extracts a key and value from szLine with length lnLine. If lnLine is USE_STRLEN,
+	the function calls strlen (szLine) to obtain it.
+
+	Parameters
+	----------
+
+	pszKey			A pointer that receives the start address of the key. This parameter
+					cannot be NULL. This returned string is not NUL-terminated, because it
+					is just a pointer within the buffer szLine.
+
+	plnKey			A pointer to a size_t that receives the length of the key. This parameter
+					must not be NULL.
+
+	pszVal			A pointer that receives the start address of the value. This
+					parameter cannot be NULL. The string is not NUL-terminated, as it is
+					only a pointer within the buffer of szLine.
+
+	lnVal			A pointer to a size_t that receives the length of the value string.
+					This parameter cannot be NULL.
+
+	szLine			A pointer to the buffer that contains the "key = value" string.
+
+	lnLine			The length of szLine. If this parameter is USE_STRLEN, the function
+					obtains it with strlen (szLine).
+
+	The following parameters have been replaced with the SCULMLTSTRINGS structure psmlt:
+
+	nQuotes			The amount of quote strings. See parameters szOpenQuotes and
+					szClosQuotes below. If this value is 0, no quotes are recognised.
+
+	pszOpenQuotes	A pointer to an array of NUL-terminated strings recognised as opening
+					quotation marks/strings. The parameter nQuotes specifies the number
+					of elements in this array.
+
+	pszClosQuotes	A pointer to an array of NUL-terminated strings recognised as closing
+					quotation marks/strings. The parameter nQuotes specifies the number
+					of elements in this array.
+
+	pszEquals		A pointer to an array of NUL-terminated strings recognised as equality
+					characters/strings. The parameter nEquals specifies the number of
+					stings/elements in this array. If this parameter is NULL, the function
+					fails and returns false.
+
+	nEquals			The number of strings that are recognised as equality signs pointed
+					to by the parameter pszEquals. If this parameter is 0, the function is
+					bound to fail and return false, as a key/value pair cannot be identified
+					without at least one accepted equality sign character or string that
+					separates key and value.
+
+	The function returns true if a key and a value could be extracted from the line,
+	which includes an empty string for the value but not for the key. The function
+	returns false if szLine is NULL or lnLine is 0.
+*/
+bool strlineextractKeyAndValue	(
+		const char		**cunilog_restrict pszKey,	size_t	*plnKey,		// Out.
+		const char		**cunilog_restrict pszVal,	size_t	*plnVal,		// Out.
+		const char		*cunilog_restrict szLine,	size_t	lnLine,			// In.
+		SCULMLTSTRINGS	*psmlt												// In.
+								)
+;
+
+enum en_strlineextract_white_space
+{
+	strlineextract_accept_white_space_and_comments,
+	strlineextract_accept_leading_and_trailing_white_space,
+	strlineextract_accept_leading_white_space,
+	strlineextract_accept_trailing_white_space,
+	strlineextract_reject_white_space
+};
+typedef enum en_strlineextract_white_space en_strlineextract_ws;
+
+/*
+	strlineextractSection
+
+	Extracts the name of a section from the line szLine with length lnLine.
+	If lnLine is USE_STRLEN, the function calls strlen (szLine) to obtain it.
+
+	Parameters
+	----------
+
+	pszSec			A pointer that receives the start address of the section name. This
+					parameter cannot be NULL. This returned string is not NUL-terminated,
+					because it is just a pointer within the buffer szLine.
+
+	plnSec			A pointer to a size_t that receives the length of the section name.
+					This parameter must not be NULL.
+
+	szLine			A pointer to the buffer that contains the "[section]" string.
+
+	lnLine			The length of szLine. If this parameter is USE_STRLEN, the function
+					obtains it with strlen (szLine).
+
+	psmlt			A pointer to an SCULMLTSTRINGS structure. The following members are
+					expected and used by the function:
+
+					nSections			The amount of opening/starting and closing/exiting
+										section strings. This value cannot be 0, as it
+										wouldn't make sense to call the function without
+										any declarations for section starts and exits.
+
+					ccStrtSections		An array of strings that specify accepted section
+										starts. The amount of strings in this array is
+										specified by the member nSections.
+
+					ccExitSections		An array of strings that secify accepted section
+										ends/exits. The amount of elements in this array is
+										given by the member nSections.
+
+					Additionally, if ws is strlineextract_accept_white_space_and_comments,
+					the following members are expected and used by the function:
+
+					ccLineComments		An array of strings that serve as the start of a line
+										comment.
+
+					nLineComments		The size of the ccLineComments array.
+
+					ccBegMultiComments	An array of strings that contain the starts of
+										block comments.
+
+					ccEndMultiComments	An array of strings the contain the ends of block
+										comments.
+
+					nMultiComments		The amounts of opening/starting and closing/ending
+										block comment strings.
+
+	ws				One of the values of the enum en_strlineextract_white_space to
+					determine if and what kind of white space is accepted/permitted or
+					rejected. If white space is encountered that doesn't fit this value,
+					the function fails and returns false.
+
+	The function returns true if a section name could be extracted from the line. It
+	returns false, if for example a closing/exiting section string is missing.
+	The function also returns false if szLine is NULL or lnLine is 0.
+*/
+bool strlineextractSection	(
+		const char				**cunilog_restrict pszSec,	size_t	*plnSec,
+		const char				*cunilog_restrict szLine,	size_t	lnLine,
+		SCULMLTSTRINGS			*psmlt,
+		en_strlineextract_ws	ws
 							)
 ;
 
@@ -16001,7 +16754,7 @@ char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE);
 	The parameter ch can be NULL if len is 0.
 
 	If no line ending is found, the function returns NULL. If strtIdx >= len, the function
-	returns NULL.
+	returns NULL. When the function returns NULL, the address plLE points to is set to 0.
 */
 char *strPrevLineEnding_l (const char *ch, size_t len, size_t strtIdx, size_t *plLE);
 
@@ -17624,12 +18377,39 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrReserveBytes) (SMEMBUF *pmb, const char 
 	If len is USE_STRLEN the function calls strlen () to obtain the string's length.
 	A NUL terminator is written at the end of the buffer.
 
+	If str is NULL, len must be 0. If len is 0, the function writes out a NUL-terminator
+	only
+
 	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
 	structure, not counting the NUL terminator the function writes, which is len on success,
 	or 0 when the heap allocation fails.
 */
 size_t SMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len);
 TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStr) (SMEMBUF *pmb, const char *str, size_t len);
+
+/*
+	SMEMBUFfromStrFmt_va
+
+	Variadic version of SMEMBUFfromStr () that expects a va_list argument.
+
+	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
+	structure, not counting the NUL terminator the function writes. It returns 0 when the
+	heap allocation fails.
+*/
+size_t SMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
+;
+
+/*
+	SMEMBUFfromStrFmt
+
+	Variadic version of SMEMBUFfromStr ().
+
+	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
+	structure, not counting the NUL terminator the function writes. It returns 0 when the
+	heap allocation fails.
+*/
+size_t SMEMBUFfromStrFmt (SMEMBUF *pmb, const char *fmt, ...)
+;
 
 /*
 	SMEMBUFstrFromUINT64
@@ -17646,7 +18426,7 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrFromUINT64) (SMEMBUF *pmb, uint64_t ui)
 ;
 
 /*
-	SMEMBUFstrconcat
+	SMEMBUFstrconcatReserve
 
 	Concatenates the string with a length of len in the buffer of the SMEMBUF structrue pmb
 	points to and the string str with a length of lenstr, storing the result in the SMEMBUF
@@ -17654,7 +18434,8 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrFromUINT64) (SMEMBUF *pmb, uint64_t ui)
 	lengths are given, the strings do not need to be NUL-terminated.
 	
 	If str is NULL, the parameter lenstr is ignored and the buffer of the SMEMBUF structure
-	is not changed.
+	is not changed, i.e. if str is NULL or lenstr is 0, the function returns len without
+	touching the buffer.
 
 	The resulting string in the buffer of pmb is NUL-terminated.
 
@@ -17663,18 +18444,135 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrFromUINT64) (SMEMBUF *pmb, uint64_t ui)
 	If the buffer of pmb is already big enough to hold the original string plus str plus
 	a NUL terminator, its size is not changed and the parameter reserve ignored.
 
-	The function returns the new length of the string in the buffer of pmb. If str is NULL
-	or lenstr is 0, the function returns len without touching the buffer.
+	The function returns the new length of the string in the buffer of pmb. The length
+	is without a terminating NUL character.
 
 	Do not use the return value to determine whether the function succeeded or failed. Use the
 	macro isUsableSMEMBUF() instead.
 */
-size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve)
+size_t SMEMBUFstrconcatReserve (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve)
 ;
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatReserve) (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve);
+
+/*
+	SMEMBUFstrconcat
+
+	Concatenates the string with a length of len in the buffer of the SMEMBUF structrue pmb
+	points to and the string str with a length of lenstr, storing the result in the SMEMBUF
+	structure's buffer. Both length parameters, len and lenstr, can be USE_STRLEN. If precise
+	lengths are given, the strings do not need to be NUL-terminated.
+	
+	If str is NULL, the parameter lenstr is ignored and the buffer of the SMEMBUF structure
+	is not changed, i.e. if str is NULL or lenstr is 0, the function returns len without
+	touching the buffer.
+
+	The resulting string in the buffer of pmb is NUL-terminated.
+
+	The function returns the new length of the string in the buffer of pmb. The length
+	is without a terminating NUL character.
+
+	Do not use the return value to determine whether the function succeeded or failed. Use the
+	macro isUsableSMEMBUF() instead.
+*/
+size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr)
+;
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcat) (SMEMBUF *pmb, size_t len, char *str, size_t lenstr);
+
+/*
+	SMEMBUFstrconcatW
+
+	This function is only available on Windows.
+
+	Concatenates the string with a length of len in the buffer of the SMEMBUF structrue pmb
+	points to and the Windows UTF-16 string wstr with a length of lenwstr, storing the result
+	in the SMEMBUF structure's buffer. Before the concatenation, wstr is converted to UTF-8.
+	Both length parameters, len and lenwstr, can be USE_STRLEN. If precise lengths are given,
+	the strings do not need to be NUL-terminated. The length parameter lenwstr is the length
+	of wstr in 16-bit words, not octets/bytes.
+
+	The resulting string in the buffer of pmb is NUL-terminated.
+
+	The function returns the new length of the string in the buffer of pmb. The length
+	is without a terminating NUL character.
+
+	Do not use the return value to determine whether the function succeeded or failed. Use the
+	macro isUsableSMEMBUF() instead.
+*/
+#ifdef PLATFORM_IS_WINDOWS
+	size_t SMEMBUFstrconcatW (SMEMBUF *pmb, size_t len, wchar_t *wstr, size_t lenwstr);
+	TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatW)
+		(SMEMBUF *pmb, size_t len, wchar_t *wstr, size_t lenwstr);
+#endif
+
+/*
+	SMEMBUFstrconcatpaths
+
+	Concatenates the string with a length of len in the buffer of the SMEMBUF structrue pmb
+	points to and the string strPath with a length of lenPath, storing the result in the SMEMBUF
+	structure's buffer. Both length parameters, len and lenPath, can be USE_STRLEN. If precise
+	lengths are given, the strings do not need to be NUL-terminated.
+	
+	The function is identical to SMEMBUFstrconcat (), but assumes that both strings are either
+	directories/paths or that the buffer of the SMEMBUF structure contains a path/directory
+	and strPath is a filename. It concatenates the paths or path and filename correctly by
+	removing/ignoring excess forward or backward slashes (path separators) at the end of
+	the structure's buffer and from the start of strPath. Only single separators are removed.
+
+	The function does not distinguish between POSIX and Windows path separators. Forward and
+	backward slashes are treated identically, but if a directory separator is added by the
+	function, it will be the correct directory separator for the current platform.
+
+	The buffer of the SMEMBUF structure takes precedence over strPath, meaning that if the
+	buffer does not end with a directory separator, one is appended. If strPath starts with
+	a directory separator, it is removed. This may lead to a different separator being
+	inserted than the one strPath originally contained, as the function always inserts the
+	correct separator for the current platform, which is a forward slash ("/") on POSIX and a
+	backslash ("\") on Windows.
+
+	If the buffer of pmb is empty, strPath is copied unchanged, ignoring any slash/backslash
+	it may contain. If lenPath is 0, or is deduced to be 0 via a call to strlen (), len is
+	returned and the buffer not changed.
+
+	The function returns the new length of the string in the buffer of pmb. The length
+	is without a terminating NUL character.
+
+	Do not use the return value to determine whether the function succeeded or failed. Use the
+	macro isUsableSMEMBUF() instead.
+*/
+size_t SMEMBUFstrconcatpaths (SMEMBUF *pmb, size_t len, char *strPath, size_t lenPath)
+;
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatpaths) (SMEMBUF *pmb, size_t len, char *strPath, size_t lenPath);
+
+/*
+	SMEMBUFstrStartsWithStr
+	SMEMBUFstrEndsWithStr
+
+	The functions return true if the buffer of the SMEMBUF structure pmb points to starts
+	with the string str of length lenStr. If len or lenStr is USE_STRLEN, the functions call
+	strlen () to obtain the value in question.
+*/
+bool SMEMBUFstrStartsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t lenStr);
+bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t lenStr);
+TYPEDEF_FNCT_PTR (bool, SMEMBUFstrStartsWithStr)
+	(SMEMBUF *pmb, size_t len, const char *str, size_t lenStr);
+TYPEDEF_FNCT_PTR (bool, SMEMBUFstrEndsWithStr)
+	(SMEMBUF *pmb, size_t len, const char *str, size_t lenStr);
+
+/*
+	test_strmembuf
+
+	Test function for the module.
+	returns true on success, false otherwise.
+*/
+#ifdef STRMEMBUF_BUILD_TEST_FNCT
+	bool test_strmembuf (void);
+#else
+	#define test_strmembuf()	(true)
+#endif
 
 EXTERN_C_END
 
-#endif // STRMEMBUF_H
+#endif														// Of #ifdef STRMEMBUF_H.
 /****************************************************************************************
 
 	File:		strwildcards.h
@@ -18042,16 +18940,18 @@ TYPEDEF_FNCT_PTR (char *, ubf_is_letter_until) (char *ch, char c);
 /*
 	isWhiteSpace
 
-	Returns true if c is white space. CR, LF, and FF do not count as white space.
+	Returns true if c is white space. Line endings like CR and LF do not count as white space.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	bool isWhiteSpace (char c);
 	TYPEDEF_FNCT_PTR (bool, isWhiteSpace) (char c);
 #else
 	#define isWhiteSpace(c)								\
-		(			ASCII_SPC		== (c)				\
-				||	ASCII_TAB		== (c)				\
-				||	ASCII_VT		== (c)				\
+		(			ASCII_SPC	== (c)					\
+				||	ASCII_BS	== (c)					\
+				||	ASCII_TAB	== (c)					\
+				||	ASCII_VT	== (c)					\
+				||	ASCII_FF	== (c)					\
 		)
 #endif
 
@@ -18169,6 +19069,11 @@ When		Who				What
 */
 
 /*
+	The purpose of this module is to provide a playground for testing the function
+	CreateAndRunCmdProcessCapture () in module ProcessHelper.
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -18211,6 +19116,20 @@ When		Who				What
 EXTERN_C_BEGIN
 
 /*
+	Arguments and commands.
+*/
+extern const char *szTstPrsHlpsExitcode;					// Argument is an int.
+extern const char *szTstPrsHlpsInput;						// Argument is an int,
+															//	which specifies the amount
+															//	of lines to read from stdin.
+															//	Each line is echoed back to
+															//	stdout.
+extern const char *szTstPrsHlpsOutput;						// Argument is three ints:
+															//	Seed, amount lines, and max
+															//	line length.
+															//	Random output goes to stdout.
+
+/*
 	Internal test function for this module.
 */
 #ifdef TEST_PROCESS_HELPER_BUILD_TEST_FNCT
@@ -18225,6 +19144,363 @@ EXTERN_C_END
 #endif														// Of #ifndef U_TEST_PROCESS_HELPER_H.
 
 #endif														// Of #ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS.
+/****************************************************************************************
+
+	File:		cunilogcfgparser.h
+	Why:		Simple configuration parser.
+	OS:			C99
+	Author:		Thomas
+	Created:	2024-11-28
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2024-11-28	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	Implements a simple config parser. The Windows ini file format
+	(https://en.wikipedia.org/wiki/INI_file) served as its base. Notable differences
+	include support for C++-style multi-line comments, C-style comments, arbitrary
+	quotes, and white space.
+	
+	Section names and key names are case-sensitive by default.
+
+
+	Not implemented yet:
+
+	In the future, an implementation similar to a config file reader/parser for Libucl
+	(https://github.com/vstakhov/libucl) is planned too.
+
+	The library couldn't be used for several reasons:
+	- Too big and too feature-rich.
+	- Doesn't support C++ style line comments (//).
+	- Lots of error handling.
+
+	Compared to libucl, this module is very simple.
+
+	Example from https://github.com/vstakhov/libucl:
+
+	param = value;
+	section {
+		param = value;
+		param1 = value1;
+		flag = true;
+		number = 10k;
+		time = 0.2s;
+		string = "something";
+		subsection {
+			host = {
+				host = "hostname";
+				port = 900;
+			}
+			host = {
+				host = "hostname";
+				port = 901;
+			}
+		}
+	}
+
+	Each config entity is treated as a key/value pair, for instance:
+	key = value;
+	The semicolon at the end of a key/value pair is optional.
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef CUNILOGCFGPARSER_H
+#define CUNILOGCFGPARSER_H
+
+#ifdef CUNILOG_BUILD_CFG_PARSER
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./externC.h"
+		#include "./restrict.h"
+		//#include "./platform.h"
+	#else
+		#include "./../pre/externC.h"
+		#include "./../pre/restrict.h"
+		//#include "./../pre/platform.h"
+	#endif
+
+#endif
+
+#include <stdbool.h>
+#include <ctype.h>
+#include <stdint.h>
+
+EXTERN_C_BEGIN
+
+/*
+	The structures for ini files.
+*/
+typedef struct scuniloginikeyvalue
+{
+	const char				*szKeyName;
+	size_t					lnKeyName;
+	const char				*szValue;
+	size_t					lnValue;
+} SCUNILOGINIKEYVALUE;
+
+typedef struct scuniloginisection
+{
+	const char				*szSectionName;
+	size_t					lnSectionName;
+	SCUNILOGINIKEYVALUE		*pKeyValuePairs;
+	unsigned int			nKeyValuePairs;
+} SCUNILOGINISECTION;
+
+typedef struct scunilogini
+{
+	char					*buf;
+	SCUNILOGINISECTION		*pIniSections;
+	unsigned int			nIniSections;
+	SCUNILOGINIKEYVALUE		*pKeyValuePairs;
+	unsigned int			nKeyValuePairs;
+
+	// Parse error.
+	size_t					errLineNumber;					// The line number within the buffer.
+															//	First line is 1.
+	size_t					errCharNumber;					// The position of pStart within
+															//	a line. 1 = first column/character.
+	size_t					errAbsPosition;					// Position within the entire buffer.
+															//	1 = first position/character.
+	bool					bParseFail;
+} SCUNILOGINI;
+/*
+	End of structures for ini files.
+*/
+
+
+typedef uint64_t	cunilogcfgopts;
+
+#ifndef SCUNILOGCFGNODE_LINKED_LIST
+#define SCUNILOGCFGNODE_LINKED_LIST		((size_t) -1)
+#endif
+
+enum scunilogcfgnode_valuetype
+{
+	scunilogval_pstring,
+	scunilogval_pvoid,
+	scunilogval_uint,										// No pointer.
+	scunilogval_size										// No pointer.
+};
+typedef enum scunilogcfgnode_valuetype	scunilogvaltype;
+
+/*
+	A single config node.
+
+	If nChildren is SCUNILOGCFGNODE_LINKED_LIST, pChildren points to a singly-linked list instead
+	of an array.
+
+	String values are stored NUL-terminated and lenValue is set to strlen (szValue), meaning that
+	the size of the value data is lenValue + 1. For all other data lenValue is identical to the
+	allocated size.
+*/
+typedef struct scunilogcfgnode
+{
+	struct scunilogcfgnode	*pParent;						// If NULL, this is the root.
+	char					*szKeyName;
+	size_t					lenKeyName;
+	scunilogvaltype			valtype;
+	union uval
+	{
+		char				*szValue;
+		void				*pvValue;
+		size_t				stValue;
+		uint64_t			uiValue;
+	} val;
+	size_t					lenValue;
+	struct scunilogcfgnode	*pChildren;
+	size_t					nChildren;
+	struct scunilogcfgnode	*pNext;							// NULL if nChildren is
+															//	SCUNILOGCFGNODE_LINKED_LIST.
+} SCUNILOGCFGNODE;
+
+/*
+	Errors that can be returned.
+*/
+enum cunilogcfgerrors
+{
+	cunilogcfgError,
+	cunilogcfgErrorNoIdea
+};
+typedef enum cunilogcfgerrors	cunilogCfgError;
+
+/*
+	Structure to return a parse error.
+*/
+typedef struct cunilogcfgerr
+{
+	size_t					errLine;						// Line number, starts at 1.
+	size_t					errColumn;						// Column, starts at 1.
+	cunilogCfgError			err;							// Error code.
+} CUNILOGCFGERR;
+
+/*
+	The parser status structure.
+*/
+typedef struct cunilogcfgparserstatus
+{
+	// Positions.
+	char					*szCfg;							// Pointer to the next octet.
+	size_t					lnCfg;							// Remaining length in octets.
+	size_t					linNum;							// Line number; starts at 1.
+	size_t					colNum;							// Column number; starts at 1.
+
+	// Current status.
+	char					litChr;							// First and last octet of a literal.
+	size_t					litNum;							// Amount of open literals.
+	size_t					mulCom;							// Amount of open multi-line comments.
+
+	// Error.
+	CUNILOGCFGERR			cfgErr;
+} CUNILOGCFGPARSERSTATUS;
+
+/*
+	ParseCunilogRootConfigData
+
+	Parses the config data szConfigData points to up to a length of lenData and returns a
+	newly allocated SCUNILOGCFGNODE root structure.
+
+	In case of an error the function returns NULL and fills the members of the CUNILOGCFGERR
+	structure pErr points to accordingly to provide some clue about the nature of the error.
+*/
+SCUNILOGCFGNODE *ParseCunilogRootConfigData (char *szConfigData, size_t lenData, CUNILOGCFGERR *pErr)
+;
+
+/*
+	DoneCunilogRootConfigData
+
+	Deallocates the resources used by the SCUNILOGCFGNODE root structure cfg points to.
+*/
+void DoneCunilogRootConfigData (SCUNILOGCFGNODE *cfg)
+;
+
+/*
+	CreateSCUNILOGINI
+
+	Parses the ini buffer szIniBuf points to with length of lnIniBuf. If lnIniBuf is
+	USE_STRLEN, the function uses strlen () to obtain it. Otherwise, the buffer does not
+	need to be NUL-terminated.
+
+	The structure pCunilogIni receives the structure data of the ini buffer. Use one of the
+	CunilogGetIni... () functions to obtain data from it.
+
+	The function returns true on success, false otherwise. When the function returns false,
+	the members errLineNumber, errCharNumber, and errAbsPosition of the SCUNILOGINI structure
+	pCunilogIni point to contain the position at which the buffer couldn't be parsed.
+	Additionally, the boolean bParseFail is set to true.
+
+	The caller does not need to initialise the SCUNILOGINI structure pCunilogIni points
+	to beforehand.
+*/
+bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t lnIniBuf)
+;
+
+/*
+	DoneSCUNILOGINI
+
+	Frees the resources taken by the SCUNILOGINI structure pCunilogIni points to.
+	
+	After this function has been called on the structure, none of the
+	CunilogGetIni... () functions can be used on it anymore until it is initialised again
+	with CreateSCUNILOGINI ().
+*/
+void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
+;
+
+/*
+	CunilogGetIniValueFromKey
+
+	Retrieves the value of a key that belongs to section szSection..
+
+	pLen			A pointer to a size_t that receives the length of the returned string.
+					If this parameter is NULL, the function does not provide the length
+					of the returned string. Note that the string value the function
+					returns is not NUL-terminated, hence it is not recommended to set this
+					parameter NULL.
+
+	szSection		The name of the section the key belongs to. Keys do not necessarily
+					belong to a section. To obtain a key that is not part of a section,
+					set szSection to NULL and lnSection to 0.
+
+	lnSection		The length of the section name szSection. Use USE_STRLEN for the
+					function to call strlen (szSection). Otherwise the name does not
+					need to be NUL-terminated.
+
+	szKey			The name of the key whose value is to be retrieved. This parameter
+					cannot be NULL.
+
+	lnKey			The length of the key name. If USE_STRLEN, the function uses strlen ()
+					to obtain it. Otherwise the name does not need to be NUL-terminated.
+
+	pCunilogIni		A pointer to an SCUNILOGINI structure. The structure must have been
+					initialised with CreateSCUNILOGINI ().
+
+	The function returns a pointer to the value of the key, without quotation markers.
+	This string is not NUL-terminated. If pLen is not NULL, the function provides the length
+	of the returned string at the address it points to.
+
+	The function returns NULL if the key does not exist. When the function returns NULL,
+	the address pLen points to is not changed.
+*/
+const char *CunilogGetIniValueFromKey	(
+				size_t			*pLen,
+				const char		*cunilog_restrict szSection,	size_t	lnSection,
+				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI		*pCunilogIni
+										)
+;
+
+/*
+	TestCunilogCfgParser
+
+	Test function for the module.
+*/
+#ifdef CUNILOG_BUILD_CFG_PARSER_TEST_FNCT
+	bool TestCunilogCfgParser (void);
+#else
+	#define TestCunilogCfgParser()
+#endif
+
+EXTERN_C_END
+
+#else
+	#define TestCunilogCfgParser()
+#endif														// Of #ifdef CUNILOG_BUILD_CFG_PARSER.
+
+#endif														// Of #ifndef CUNILOGCFGPARSER_H.
 /****************************************************************************************
 
 	File		cunilogerrors.h
@@ -18524,6 +19800,9 @@ When		Who				What
 
 #endif
 
+/*
+	For testing only.
+*/
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 //#define CUNILOG_BUILD_SINGLE_THREADED_ONLY
 #endif
@@ -18552,6 +19831,15 @@ When		Who				What
 	#error Only CUNILOG_BUILD_SINGLE_THREADED_ONLY or UNILOG_BUILD_MULTI_PROCESSES can be defined but not both.
 	#endif
 #endif
+
+/*
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, CUNILOG_BUILD_SINGLE_THREADED_QUEUE
+	can be defined additionally to provide a target queue. This enables some queue functions.
+*/
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_QUEUE
+//#define CUNILOG_BUILD_SINGLE_THREADED_QUEUE
+#endif
+
 /*
 	Currently not planned.
 
@@ -18607,7 +19895,7 @@ CUNILOG_DLL_IMPORT extern const size_t	lenCunilogLogFileNameExtension;	// ".log"
 CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log" + NUL
 
 /*
-	enum unilogtype
+	enum cunilogtype
 
 	Specifies the application type of a cunilog target and how processing events is
 	protected. These values are valid for a single target.
@@ -18631,7 +19919,7 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 
 	Identical to cunilogSingleThreaded but the application must be built with multi-threading
 	support. The process of writing out logging information (i.e. executing the list of
-	processors) takes place in a separate thread.
+	logging processors) takes place in a separate thread.
 	Calling logging functions from more than a single thread, another instance of the
 	same application, or from a different application is not supported and results in
 	data corruption and application crashes. In a best case it may only lead to unusable
@@ -18641,6 +19929,22 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	right now because cunilogSingleThreadedSeparateLoggingThread is actually identical to
 	unilogMultiThreadedSeparateLoggingThread. Since this might and most likely will change in
 	future versions of the software, use cunilogMultiThreadedSeparateLoggingThread to be safe.
+
+
+	cunilogSingleThreadedQueueOnly
+
+	This type is also single-threaded and identical to cunilogSingleThreaded with the
+	exception that it doesn't write out anything. No logging processors are created nor
+	executed. Events are accumulated in a singly-linked event list instead.
+
+	This is meant as a replacement target when the real target is not available (yet). For
+	instance, an application might choose to read some parameters of the logging target from
+	a configuration file or obtain these parameters through other means, maybe from
+	command-line arguments. This means the actual logging target can only be created once
+	these parameters are available. You can use a cunilogSingleThreadedQueueOnly or a
+	cunilogMultiThreadedQueueOnly target as a dummy target to log to until the real target
+	can be created with the correct parameters. After the real target has been created,
+	the entire queue can be moved over to the new target, and no event is lost.
 
 
 	cunilogMultiThreaded
@@ -18659,6 +19963,16 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	not block. This is the preferred mode for most multi-threaded applications.
 
 
+	cunilogMultiThreadedQueueOnly
+
+	This is a mix of cunilogSingleThreadedQueueOnly, cunilogMultiThreaded, and
+	cunilogMultiThreadedSeparateLoggingThread. This type doesn't write out anything. No logging
+	processors are executed or even created. Events are instead accumulated in a singly-linked
+	event list. The difference to cunilogSingleThreadedQueueOnly is that a target of type
+	cunilogMultiThreadedQueueOnly can be logged to from several threads because the list is
+	protected by a mutex (POSIX) or critical section object (Windows).
+
+
 	cunilogMultiProcesses
 
 	Logging information is fully protected and can be written from different threads as well
@@ -18669,8 +19983,10 @@ enum cunilogtype
 {
 		cunilogSingleThreaded
 	,	cunilogSingleThreadedSeparateLoggingThread
+	,	cunilogSingleThreadedQueueOnly
 	,	cunilogMultiThreaded
 	,	cunilogMultiThreadedSeparateLoggingThread
+	,	cunilogMultiThreadedQueueOnly
 	,	cunilogMultiProcesses
 	// Do not add anything below this line.
 	,	cunilogTypeAmountEnumValues							// Used for table sizes.
@@ -19416,7 +20732,9 @@ typedef struct CUNILOG_TARGET
 	CUNILOG_PROCESSOR				**cprocessors;
 	unsigned int					nprocessors;
 
-	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#if defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && defined (CUNILOG_BUILD_SINGLE_THREADED_QUEUE)
+		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.
+	#else
 		CUNILOG_LOCKER				cl;						// Locker for events queue.
 		CUNILOG_SEMAPHORE			sm;						// Semaphore for event queue.
 		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.
@@ -20772,7 +22090,11 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 ;
 
 // This seems to be useful.
-#define requiresCUNILOG_TARGETseparateLoggingThread(p) HAS_CUNILOG_TARGET_A_QUEUE (p)
+#define requiresCUNILOG_TARGETseparateLoggingThread(p)	\
+(														\
+		cunilogSingleThreadedSeparateLoggingThread	== (p)->culogType\
+	||	cunilogMultiThreadedSeparateLoggingThread	== (p)->culogType\
+)
 
 /*
 	InitCUNILOG_TARGETex
@@ -20827,8 +22149,6 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
-						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
-						ignored and implicitely set to unilogSingleThreaded.
 
 	postfix				The postfix used for the SUNILOGTARGET's logfile. See cunilogstructs.h
 						for more details.
@@ -20984,8 +22304,6 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
-						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
-						ignored and implicitely set to unilogSingleThreaded.
 
 	postfix				The postfix used for the SUNILOGTARGET's logfile. See cunilogstructs.h
 						for more details.
@@ -21145,20 +22463,18 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitOrCreateCUNILOG_TARGET)
 						as (size_t) -1.
 						If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+	relLogPath			One of the values in the enCunilogRelPath enumeration that specify
 						the base path if szLogPath is either relative or NULL. If szLogPath is
 						relative, the path is relative to
-						cunilogLogPath_relativeToExecutable (the executable file),
-						cunilogLogPath_relativeToCurrentDir (the current directory), or
-						cunilogLogPath_relativeToHomeDir (the user's home directory).
+						cunilogPath_relativeToExecutable (the executable file),
+						cunilogPath_relativeToCurrentDir (the current directory), or
+						cunilogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
 						The value of this parameter is ignored if szLogPath is an absolute
-						path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
+						path. If this value is cunilogPath_isAbsolute and szLogPath is a
 						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
-						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
-						ignored and implicitely set to unilogSingleThreaded.
 
 	postfix				The postfix used for the SUNILOGTARGET's logfile. See cunilogstructs.h
 						for more details.
@@ -21253,20 +22569,18 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstaticEx)
 						as (size_t) -1.
 						If this parameter is 0, the function uses the executable module's name.
 
-	relLogPath			One of the values in the enCunilogRelLogPath enumeration that specify
+	relLogPath			One of the values in the enCunilogRelPath enumeration that specify
 						the base path if szLogPath is either relative or NULL. If szLogPath is
 						relative, the path is relative to
-						cunilogLogPath_relativeToExecutable (the executable file),
-						cunilogLogPath_relativeToCurrentDir (the current directory), or
-						cunilogLogPath_relativeToHomeDir (the user's home directory).
+						cunilogPath_relativeToExecutable (the executable file),
+						cunilogPath_relativeToCurrentDir (the current directory), or
+						cunilogPath_relativeToHomeDir (the user's home directory).
 						See cunilogstructs.h for details.
 						The value of this parameter is ignored if szLogPath is an absolute
-						path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
+						path. If this value is cunilogPath_isAbsolute and szLogPath is a
 						relative path or NULL, the function fails.
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
-						If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this parameter is
-						ignored and implicitely set to cunilogSingleThreaded.
 
 	The function returns a pointer to the internal CUNILOG_TARGET cunilognewlinestructure
 	upon success, NULL otherwise.
@@ -21295,6 +22609,26 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 ;
 
 /*
+	MoveCUNILOG_TARGETqueueToFrom
+
+	Moves the queue of the target putFrom to target putTo.
+	The function requires that both targets have a queue. It fails if this is not
+	the case.
+
+	The function returns true on success, false otherwise.
+*/
+bool MoveCUNILOG_TARGETqueueToFrom	(
+		CUNILOG_TARGET *cunilog_restrict putTo,
+		CUNILOG_TARGET *cunilog_restrict putFrom
+									)
+;
+TYPEDEF_FNCT_PTR (bool, MoveCUNILOG_TARGETqueueToFrom)
+(
+		CUNILOG_TARGET *cunilog_restrict putTo,
+		CUNILOG_TARGET *cunilog_restrict putFrom
+);
+
+/*
 	HAS_CUNILOG_TARGET_A_QUEUE
 
 	Macro to check if a CUNILOG_TARGET structure has an event quueue.
@@ -21303,6 +22637,8 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 (														\
 		cunilogSingleThreadedSeparateLoggingThread	== put->culogType\
 	||	cunilogMultiThreadedSeparateLoggingThread	== put->culogType\
+	||	cunilogSingleThreadedQueueOnly				== put->culogType\
+	||	cunilogMultiThreadedQueueOnly				== put->culogType\
 )
 
 /*
@@ -21685,8 +23021,8 @@ TYPEDEF_FNCT_PTR (bool, ShutdownCUNILOG_TARGET) (CUNILOG_TARGET *put);
 /*
 	ShutdownCUNILOG_TARGETstatic
 
-	Calls ShutdownCUNILOG_TARGET () on the internal static SUNILOGSTRUCT structure.
-	This function should be called just before DoneSUNILOGTARGETstatic ();
+	Calls ShutdownCUNILOG_TARGET () on the internal static CUNILOG_TARGET structure.
+	This function should be called just before DoneCUNILOG_TARGETstatic ();
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, but further logging is blocked. Logging functions called afterwards
 	return false.
@@ -22032,7 +23368,9 @@ bool logTextU8sevlqts		(CUNILOG_TARGET *put, cueventseverity sev, const char *cc
 bool logTextU8sev			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText);
 bool logTextU8sevq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText);
 bool logTextU8l				(CUNILOG_TARGET *put, const char *ccText, size_t len);
+bool logTextU8lts			(CUNILOG_TARGET *put, const char *ccText, size_t len, UBF_TIMESTAMP ts);
 bool logTextU8lq			(CUNILOG_TARGET *put, const char *ccText, size_t len);
+bool logTextU8lqts			(CUNILOG_TARGET *put, const char *ccText, size_t len, UBF_TIMESTAMP ts);
 bool logTextU8				(CUNILOG_TARGET *put, const char *ccText);
 bool logTextU8q				(CUNILOG_TARGET *put, const char *ccText);
 bool logTextU8vfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap);
@@ -22078,11 +23416,15 @@ bool logTextU8csvfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *
 bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, ...);
 
 #define logTextU8sevl_static(v, t, l)	logTextU8sevl		(pCUNILOG_TARGETstatic, (v), (t), (l))
+#define logTextU8sevlts_static(v, t, l, ts)				\
+										logTextU8sevlts		(pCUNILOG_TARGETstatic, (v), (t), (l), (ts))
 #define logTextU8sevlq_static(v, t, l)	logTextU8sevlq		(pCUNILOG_TARGETstatic, (v), (t), (l))
 #define logTextU8sev_static(v, t)		logTextU8sevl		(pCUNILOG_TARGETstatic, (v), (t), USE_STRLEN)
 #define logTextU8sevq_static(v, t)		logTextU8sevq		(pCUNILOG_TARGETstatic, (v), (t), USE_STRLEN)
 #define logTextU8l_static(t, l)			logTextU8l			(pCUNILOG_TARGETstatic, (t), (l))
+#define logTextU8lts_static(t, l, ts)	logTextU8lts		(pCUNILOG_TARGETstatic, (t), (l), (ts))
 #define logTextU8lq_static(t, l)		logTextU8lq			(pCUNILOG_TARGETstatic, (t), (l))
+#define logTextU8lqts_static(t, l, ts)	logTextU8lqts		(pCUNILOG_TARGETstatic, (t), (l), (ts))
 #define logTextU8_static(t)				logTextU8l			(pCUNILOG_TARGETstatic, (t), USE_STRLEN)
 #define logTextU8q_static(t)			logTextU8lq			(pCUNILOG_TARGETstatic, (t), USE_STRLEN)
 #define logTextU8fmt_static(...)		logTextU8fmt		(pCUNILOG_TARGETstatic, __VA_ARGS__)
@@ -22125,8 +23467,7 @@ bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 #define logTextU8csfmtsev_static(s, ...)				\
 										logTextU8csfmtsev	(pCUNILOG_TARGETstatic, (s), __VA_ARGS__);
 
-/*
-	ChangeCUNILOG_TARGETuseColourForEcho
+/*	ChangeCUNILOG_TARGETuseColourForEcho
 	ChangeCUNILOG_TARGETuseColorForEcho
 	ChangeCUNILOG_TARGETuseColourForEcho_static
 	ChangeCUNILOG_TARGETuseColorForEcho_static

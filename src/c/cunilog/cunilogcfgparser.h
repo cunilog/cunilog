@@ -20,8 +20,18 @@ When		Who				What
 */
 
 /*
-	Implements a simple config parser. Libucl (https://github.com/vstakhov/libucl) served as
-	its base idea.
+	Implements a simple config parser. The Windows ini file format
+	(https://en.wikipedia.org/wiki/INI_file) served as its base. Notable differences
+	include support for C++-style multi-line comments, C-style comments, arbitrary
+	quotes, and white space.
+	
+	Section names and key names are case-sensitive by default.
+
+
+	Not implemented yet:
+
+	In the future, an implementation similar to a config file reader/parser for Libucl
+	(https://github.com/vstakhov/libucl) is planned too.
 
 	The library couldn't be used for several reasons:
 	- Too big and too feature-rich.
@@ -89,9 +99,11 @@ When		Who				What
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
+		#include "./restrict.h"
 		//#include "./platform.h"
 	#else
 		#include "./../pre/externC.h"
+		#include "./../pre/restrict.h"
 		//#include "./../pre/platform.h"
 	#endif
 
@@ -102,6 +114,47 @@ When		Who				What
 #include <stdint.h>
 
 EXTERN_C_BEGIN
+
+/*
+	The structures for ini files.
+*/
+typedef struct scuniloginikeyvalue
+{
+	const char				*szKeyName;
+	size_t					lnKeyName;
+	const char				*szValue;
+	size_t					lnValue;
+} SCUNILOGINIKEYVALUE;
+
+typedef struct scuniloginisection
+{
+	const char				*szSectionName;
+	size_t					lnSectionName;
+	SCUNILOGINIKEYVALUE		*pKeyValuePairs;
+	unsigned int			nKeyValuePairs;
+} SCUNILOGINISECTION;
+
+typedef struct scunilogini
+{
+	char					*buf;
+	SCUNILOGINISECTION		*pIniSections;
+	unsigned int			nIniSections;
+	SCUNILOGINIKEYVALUE		*pKeyValuePairs;
+	unsigned int			nKeyValuePairs;
+
+	// Parse error.
+	size_t					errLineNumber;					// The line number within the buffer.
+															//	First line is 1.
+	size_t					errCharNumber;					// The position of pStart within
+															//	a line. 1 = first column/character.
+	size_t					errAbsPosition;					// Position within the entire buffer.
+															//	1 = first position/character.
+	bool					bParseFail;
+} SCUNILOGINI;
+/*
+	End of structures for ini files.
+*/
+
 
 typedef uint64_t	cunilogcfgopts;
 
@@ -206,6 +259,82 @@ SCUNILOGCFGNODE *ParseCunilogRootConfigData (char *szConfigData, size_t lenData,
 	Deallocates the resources used by the SCUNILOGCFGNODE root structure cfg points to.
 */
 void DoneCunilogRootConfigData (SCUNILOGCFGNODE *cfg)
+;
+
+/*
+	CreateSCUNILOGINI
+
+	Parses the ini buffer szIniBuf points to with length of lnIniBuf. If lnIniBuf is
+	USE_STRLEN, the function uses strlen () to obtain it. Otherwise, the buffer does not
+	need to be NUL-terminated.
+
+	The structure pCunilogIni receives the structure data of the ini buffer. Use one of the
+	CunilogGetIni... () functions to obtain data from it.
+
+	The function returns true on success, false otherwise. When the function returns false,
+	the members errLineNumber, errCharNumber, and errAbsPosition of the SCUNILOGINI structure
+	pCunilogIni point to contain the position at which the buffer couldn't be parsed.
+	Additionally, the boolean bParseFail is set to true.
+
+	The caller does not need to initialise the SCUNILOGINI structure pCunilogIni points
+	to beforehand.
+*/
+bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t lnIniBuf)
+;
+
+/*
+	DoneSCUNILOGINI
+
+	Frees the resources taken by the SCUNILOGINI structure pCunilogIni points to.
+	
+	After this function has been called on the structure, none of the
+	CunilogGetIni... () functions can be used on it anymore until it is initialised again
+	with CreateSCUNILOGINI ().
+*/
+void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
+;
+
+/*
+	CunilogGetIniValueFromKey
+
+	Retrieves the value of a key that belongs to section szSection..
+
+	pLen			A pointer to a size_t that receives the length of the returned string.
+					If this parameter is NULL, the function does not provide the length
+					of the returned string. Note that the string value the function
+					returns is not NUL-terminated, hence it is not recommended to set this
+					parameter NULL.
+
+	szSection		The name of the section the key belongs to. Keys do not necessarily
+					belong to a section. To obtain a key that is not part of a section,
+					set szSection to NULL and lnSection to 0.
+
+	lnSection		The length of the section name szSection. Use USE_STRLEN for the
+					function to call strlen (szSection). Otherwise the name does not
+					need to be NUL-terminated.
+
+	szKey			The name of the key whose value is to be retrieved. This parameter
+					cannot be NULL.
+
+	lnKey			The length of the key name. If USE_STRLEN, the function uses strlen ()
+					to obtain it. Otherwise the name does not need to be NUL-terminated.
+
+	pCunilogIni		A pointer to an SCUNILOGINI structure. The structure must have been
+					initialised with CreateSCUNILOGINI ().
+
+	The function returns a pointer to the value of the key, without quotation markers.
+	This string is not NUL-terminated. If pLen is not NULL, the function provides the length
+	of the returned string at the address it points to.
+
+	The function returns NULL if the key does not exist. When the function returns NULL,
+	the address pLen points to is not changed.
+*/
+const char *CunilogGetIniValueFromKey	(
+				size_t			*pLen,
+				const char		*cunilog_restrict szSection,	size_t	lnSection,
+				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI		*pCunilogIni
+										)
 ;
 
 /*

@@ -180,6 +180,16 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz)
 #endif
 
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	void freeSMEMBUFuncond (SMEMBUF *pb)
+	{
+		ubf_assert_non_NULL (pb);
+
+		if (pb->buf.pvoid)
+			freeSMEMBUF (pb);
+	}
+#endif
+
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb)
 	{
 		ubf_assert_non_NULL (pb);
@@ -191,6 +201,16 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz)
 			ubf_free (pb->buf.pvoid);
 			initSMEMBUF (pb);
 		}
+	}
+#endif
+
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	void doneSMEMBUFuncond (SMEMBUF *pb)
+	{
+		ubf_assert_non_NULL (pb);
+
+		freeSMEMBUFuncond (pb);
+		initSMEMBUF (pb);
 	}
 #endif
 

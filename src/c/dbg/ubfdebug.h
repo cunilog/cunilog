@@ -520,6 +520,7 @@ EXTERN_C_BEGIN
 
 /*
 	ubf_expect_bool_AND
+	ubf_assert_bool_AND
 
 	Macro to binary AND an expectation. Useful in test functons.
 
@@ -534,8 +535,20 @@ EXTERN_C_BEGIN
 #define ubf_expect_bool_AND(b, expectation)				\
 			(b) &= (expectation);						\
 			ubf_assert (true == (b))
+#define ubf_assert_bool_AND(b, expectation)				\
+			(b) &= (expectation);						\
+			ubf_assert (true == (b))
 
+/*
+	ubf_expect_bool_AND_0
+	ubf_assert_bool_AND_0
+
+	Macro to binary AND an expectation to be 0.
+*/
 #define ubf_expect_bool_AND_0(b, expectation)			\
+			(b) &= (0 == (expectation));				\
+			ubf_assert (0 == (expectation))
+#define ubf_assert_bool_AND_0(b, expectation)			\
 			(b) &= (0 == (expectation));				\
 			ubf_assert (0 == (expectation))
 
@@ -622,6 +635,17 @@ EXTERN_C_BEGIN
 #define ubf_expect_non_zero(v)							\
 			ubf_assert (0 != (v))
 
+/*
+	ONLY_IN_DEBUG
+
+	Emits the given code only in debug versions.
+*/
+#ifdef DEBUG
+	#define ONLY_IN_DEBUG(code)							\
+				code;
+#else
+	#define ONLY_IN_DEBUG(code)
+#endif
 
 EXTERN_C_END
 

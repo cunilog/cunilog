@@ -59,10 +59,13 @@ When		Who				What
 		#include "./strfilesys.h"
 		#include "./strhex.h"
 		#include "./strlineextract.h"
+		#include "./strmembuf.h"
 		#include "./strwildcards.h"
 		#include "./check_utf8.h"
+		#include "./ExeFileName.h"
 		#include "./ProcessHelpers.h"
 		#include "./testProcesHelper.h"
+		#include "./FileMembuf.h"
 
 		// Required for the tests.
 		#include "./ubfdebug.h"
@@ -86,10 +89,13 @@ When		Who				What
 		#include "./../string/strfilesys.h"
 		#include "./../string/strhex.h"
 		#include "./../string/strlineextract.h"
+		#include "./../string/strmembuf.h"
 		#include "./../string/strwildcards.h"
 		#include "./../string/check_utf8.h"
+		#include "./../OS/ExeFileName.h"
 		#include "./../OS/ProcessHelpers.h"
 		#include "./../testcunilog/testProcesHelper.h"
+		#include "./../OS/FileMembuf.h"
 
 		// Required for the tests.
 		#include "./../dbg/ubfdebug.h"
@@ -601,6 +607,39 @@ bool CunilogTestFunction	(
 		b &= ubf_test_ubf_strfilesys ();
 		CunilogTestFnctResultToConsole (b);
 		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module strfilesys...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Self-test module strmembuf...");
+	#if STRMEMBUF_BUILD_TEST_FNCT
+		b &= test_strmembuf ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		b &= test_strmembuf ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module strmembuf...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Self-test module ExeFileName...");
+	#if CUNILOG_BUILD_EXEFILENAME_TEST_FNCT
+		b &= TestExeFileNameFnct ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		b &= TestExeFileNameFnct ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module ExeFileName...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	CunilogTestFnctStartTestToConsole ("Self-test module FileMembuf...");
+	#if FILEMEMBUF_BUILD_TEST_FNCT
+		b &= test_FileMembuf ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		b &= test_FileMembuf ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module FileMembuf...");
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 

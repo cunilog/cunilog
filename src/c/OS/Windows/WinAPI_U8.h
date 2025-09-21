@@ -521,11 +521,30 @@ TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16_from_UTF8_FileName) (const char *ccU8File
 #endif
 
 /*
+	AllocU8_from_WinU16l
+
+	Allocates memory for the UTF-8 representation of wc16 and performs the conversion,
+	returning a pointer to the Windows UTF-16 string converted to UTF-8. The function
+	never reads more than ln16 characters from wc16. It calls wcslen (wc16) if
+	ln16 is USE_STRLEN. The maximum value for ln16 is INT_MAX - 1.
+
+	The caller is responsible for calling DoneU8 () on the returned pointer when it
+	is not needed anymore to deallocate the memory associated with it.
+
+	The return value is a newly allocated buffer containing the string in wc16
+	converted to UTF-8. The returned string is NUL-terminated. The function returns
+	NULL if the heap allocation fails.
+*/
+char *AllocU8_from_WinU16l (const WCHAR *wc16, size_t ln16);
+TYPEDEF_FNCT_PTR_ARGS (char *, AllocU8_from_WinU16l, const WCHAR *wc16, size_t ln16);
+
+/*
 	AllocU8_from_WinU16
 
 	Allocates memory for the UTF-8 representation of wc16 and performs the conversion,
 	returning a pointer to the Windows UTF-16 string converted to UTF-8, or NULL if
-	either wc16 is NULL or the heap allocation fails.
+	either wc16 is NULL or the heap allocation fails. The returned buffer and string
+	is NUL-terminated because this is also the requirement for the UTF-16 string wc16.
 	
 	The caller is responsible for calling DoneU8 () on the returned pointer when it
 	is not needed anymore to deallocate the memory associated with it.
@@ -623,7 +642,7 @@ TYPEDEF_FNCT_PTR_ARGS (char *, AllocU8_from_WinU16, const WCHAR *wc16);
 	Converts the UTF-8 string pchU8 points to to its Windows UTF-16 representation.
 	Returns a pointer to pwcStackVar if the required length of the Windows UTF-16
 	representation of pchU8 fits in a UTF-16 string with WINAPI_U8_HEAP_THRESHOLD
-	characters, including a terminating NUL character. It returs a newly allocated
+	characters, including a terminating NUL character. It returns a newly allocated
 	WCHAR * if the UTF-16 string does not fit in the buffer pointed to by
 	pwcStackVar.
 	
@@ -631,7 +650,7 @@ TYPEDEF_FNCT_PTR_ARGS (char *, AllocU8_from_WinU16, const WCHAR *wc16);
 	representation of pchU8. The returned pointer is either pwcStackVar or a newly
 	allocated memory block. The function returns NULL if pchU8 is NULL.
 	
-	Call DoneWinU16fromU8orUseThreshold with the returned pointer and the same
+	Call DoneWinU16fromU8orUseThreshold () with the returned pointer and the same
 	pwcStackVar variable to conditionally deallocate the buffer again.
 	
 	The function AllocWinU16fromU8orUseThreshold_00 () is identical to
@@ -692,6 +711,55 @@ TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16fromU8orUseThresholdLongFileName) (WCHAR *
 */
 void DoneWinU16fromU8orUseThreshold (WCHAR *pwcHeapVar, WCHAR *pwcStackVar);
 TYPEDEF_FNCT_PTR (void, DoneWinU16fromU8orUseThreshold) (WCHAR *pwcHeapVar, WCHAR *pwcStackVar);
+
+/*
+	AllocU8fromWinU16orUseThresholdl
+
+*/
+char *AllocU8fromWinU16orUseThresholdl (char *pszStackVar, const WCHAR *pwcU16, size_t lnU16);
+TYPEDEF_FNCT_PTR (char *, AllocU8fromWinU16orUseThresholdl)
+	(char *pszStackVar, const WCHAR *pwcU16, size_t lnU16);
+
+/*
+	AllocU8fromWinU16orUseThreshold
+
+	Converts the Windows UTF-16 string pwcU16 points to to its UTF-8 representation.
+	Returns a pointer to pszStackVar if the required length of the UTF-8
+	representation of pwcU16 fits in a UTF-8 string with WINAPI_U8_HEAP_THRESHOLD
+	characters, including a terminating NUL character. It returns a newly allocated
+	char * if the final UTF-8 string does not fit in the buffer pointed to by
+	pszStackVar.
+	
+	The function returns a pointer to a UTF-8 string that contains the UTF-8
+	representation of pwcU16. The returned pointer is either pszStackVar or a newly
+	allocated memory block. The function returns NULL if pwcU16 is NULL.
+	
+	Call DoneU8fromWinU16orUseThreshold () with the returned pointer and the same
+	pwcStackVar variable to conditionally deallocate the buffer again.
+	
+	Parameters:
+	pwcStackVar		Pointer to a char array (char [WINAPI_U8_HEAP_THRESHOLD]).
+	pwcU16			The UTF-16 string to be converted to UTF-8.
+	
+*/
+char *AllocU8fromWinU16orUseThreshold (char *pszStackVar, const WCHAR *pwcU16);
+TYPEDEF_FNCT_PTR (char *, AllocU8fromWinU16orUseThreshold)
+	(char *pszStackVar, const WCHAR *pwcU16);
+
+/*
+	DoneU8fromWinU16orUseThreshold
+
+	Conditionally deallocates the memory allocated by
+	AllocU8fromWinU16orUseThreshold ().
+	
+	Does nothing if pwcHeapVar is NULL. Does nothing if pwcHeapVar points to
+	pwcStackVar. In all other cases ubf_free () is called with pwcHeapVar as its
+	parameter.
+
+	Debug versions abort if one of the parameters is NULL. This would indicate
+	a bug somewhere.
+*/
+void DoneU8fromWinU16orUseThreshold (char *pszHeapVar, char *pszStackVar);
 
 /*
 	AllocU8ArgsFromWinU16
@@ -3450,15 +3518,59 @@ TYPEDEF_FNCT_PTR (DWORD, SetFileAttributesU8long)
 #endif
 
 /*
-	TerminateChildProcess
-
-	Terminates the given child process.
-
-	The function first tries to terminate the child process in a peaceful way.
-	If this fails, TerminateProcess () is called on the child process.
+	Action flags for TerminateProcessControlled ().
 */
-bool TerminateChildProcess (HANDLE hProcess);
-TYPEDEF_FNCT_PTR (bool, TerminateChildProcess) (HANDLE hProcess);
+#define TERMCHILDPROCCONTROLLED_CTRL_C			(0x0001)
+#define TERMCHILDPROCCONTROLLED_CTRL_BREAK		(0x0002)
+#define TERMCHILDPROCCONTROLLED_WM_CLOSE		(0x0004)
+#define TERMCHILDPROCCONTROLLED_WM_QUIT			(0x0008)
+#define TERMCHILDPROCCONTROLLED_TERMINATE		(0x0010)
+
+/*
+	Wait flags for TerminateProcessControlled ().
+*/
+#define TERMCHILDPROCCONTROLLED_WAIT_CTRL_C		(0x0100)
+#define TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK	(0x0200)
+#define TERMCHILDPROCCONTROLLED_WAIT_WM_CLOSE	(0x0400)
+#define TERMCHILDPROCCONTROLLED_WAIT_WM_QUIT	(0x0800)
+#define TERMCHILDPROCCONTROLLED_WAIT_TERMINATE	(0x1000)
+
+/*
+	TerminateProcessControlled
+
+	Terminates the given process hProcess in a controlled manner. The function attempts
+	to terminate the process in the following order:
+
+	- Send CTRL-C to the process.
+	- Send CTRL-Break to the process.
+	- Post a WM_CLOSE message to all windows of the process.
+	- Post a WM_QUITE message to all windows of the process.
+
+	The parameter waitTime specifies the time in milliseconds the function waits after
+	each attempt for the process to exit.
+
+	The caller can control which of the above attempts is made but they cannot change
+	the order of these attempts. The caller can further control if the function should
+	wait after each of these attempts. For instance, to only attempt to terminate the
+	process by sending it a CTRL-Break event, set uiFlags to
+	TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK | TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK.
+	This instructs the function to attempt a CTRL-Break and then wait waitTime
+	milliseconds for the process to exit. Specify all flags for the attempts that should
+	be made, and specify the additional TERMCHILDPROCCONTROLLED_WAIT_ flags to wait
+	for the process to exit after the attempt in question.
+
+	The function returns true if the process has exited within waitTime ms after each
+	termination attempt. It returns false if the process has not exited within waitTime.
+
+	Note that waitTime is waited for after each separate attempt to terminate the process.
+	For instance, if you specify the flags TERMCHILDPROCCONTROLLED_CTRL_C to attempt
+	sending CTRL-C and TERMCHILDPROCCONTROLLED_WAIT_CTRL_C to wait for its success, plus
+	TERMCHILDPROCCONTROLLED_CTRL_BREAK and TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK to
+	send CTRL-Break and wait for it to succeed, the function waits up to twice waitTime
+	in case the first attempt (CTRL-C) is unsuccessful.
+*/
+bool TerminateProcessControlled (HANDLE hProcess, uint16_t uiFlags, DWORD waitTime);
+TYPEDEF_FNCT_PTR (bool, TerminateProcessControlled) (HANDLE hProcess, uint16_t uiFlags, DWORD waitTime);
 
 /*
 	IsFirstArgumentExeArgumentW

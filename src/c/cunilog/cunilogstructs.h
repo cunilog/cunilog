@@ -84,6 +84,9 @@ When		Who				What
 
 #endif
 
+/*
+	For testing only.
+*/
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 //#define CUNILOG_BUILD_SINGLE_THREADED_ONLY
 #endif
@@ -112,6 +115,15 @@ When		Who				What
 	#error Only CUNILOG_BUILD_SINGLE_THREADED_ONLY or UNILOG_BUILD_MULTI_PROCESSES can be defined but not both.
 	#endif
 #endif
+
+/*
+	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, CUNILOG_BUILD_SINGLE_THREADED_QUEUE
+	can be defined additionally to provide a target queue. This enables some queue functions.
+*/
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_QUEUE
+//#define CUNILOG_BUILD_SINGLE_THREADED_QUEUE
+#endif
+
 /*
 	Currently not planned.
 
@@ -167,7 +179,7 @@ CUNILOG_DLL_IMPORT extern const size_t	lenCunilogLogFileNameExtension;	// ".log"
 CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log" + NUL
 
 /*
-	enum unilogtype
+	enum cunilogtype
 
 	Specifies the application type of a cunilog target and how processing events is
 	protected. These values are valid for a single target.
@@ -191,7 +203,7 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 
 	Identical to cunilogSingleThreaded but the application must be built with multi-threading
 	support. The process of writing out logging information (i.e. executing the list of
-	processors) takes place in a separate thread.
+	logging processors) takes place in a separate thread.
 	Calling logging functions from more than a single thread, another instance of the
 	same application, or from a different application is not supported and results in
 	data corruption and application crashes. In a best case it may only lead to unusable
@@ -201,6 +213,22 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	right now because cunilogSingleThreadedSeparateLoggingThread is actually identical to
 	unilogMultiThreadedSeparateLoggingThread. Since this might and most likely will change in
 	future versions of the software, use cunilogMultiThreadedSeparateLoggingThread to be safe.
+
+
+	cunilogSingleThreadedQueueOnly
+
+	This type is also single-threaded and identical to cunilogSingleThreaded with the
+	exception that it doesn't write out anything. No logging processors are created nor
+	executed. Events are accumulated in a singly-linked event list instead.
+
+	This is meant as a replacement target when the real target is not available (yet). For
+	instance, an application might choose to read some parameters of the logging target from
+	a configuration file or obtain these parameters through other means, maybe from
+	command-line arguments. This means the actual logging target can only be created once
+	these parameters are available. You can use a cunilogSingleThreadedQueueOnly or a
+	cunilogMultiThreadedQueueOnly target as a dummy target to log to until the real target
+	can be created with the correct parameters. After the real target has been created,
+	the entire queue can be moved over to the new target, and no event is lost.
 
 
 	cunilogMultiThreaded
@@ -219,6 +247,16 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	not block. This is the preferred mode for most multi-threaded applications.
 
 
+	cunilogMultiThreadedQueueOnly
+
+	This is a mix of cunilogSingleThreadedQueueOnly, cunilogMultiThreaded, and
+	cunilogMultiThreadedSeparateLoggingThread. This type doesn't write out anything. No logging
+	processors are executed or even created. Events are instead accumulated in a singly-linked
+	event list. The difference to cunilogSingleThreadedQueueOnly is that a target of type
+	cunilogMultiThreadedQueueOnly can be logged to from several threads because the list is
+	protected by a mutex (POSIX) or critical section object (Windows).
+
+
 	cunilogMultiProcesses
 
 	Logging information is fully protected and can be written from different threads as well
@@ -229,8 +267,10 @@ enum cunilogtype
 {
 		cunilogSingleThreaded
 	,	cunilogSingleThreadedSeparateLoggingThread
+	,	cunilogSingleThreadedQueueOnly
 	,	cunilogMultiThreaded
 	,	cunilogMultiThreadedSeparateLoggingThread
+	,	cunilogMultiThreadedQueueOnly
 	,	cunilogMultiProcesses
 	// Do not add anything below this line.
 	,	cunilogTypeAmountEnumValues							// Used for table sizes.
@@ -976,7 +1016,9 @@ typedef struct CUNILOG_TARGET
 	CUNILOG_PROCESSOR				**cprocessors;
 	unsigned int					nprocessors;
 
-	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#if defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && defined (CUNILOG_BUILD_SINGLE_THREADED_QUEUE)
+		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.
+	#else
 		CUNILOG_LOCKER				cl;						// Locker for events queue.
 		CUNILOG_SEMAPHORE			sm;						// Semaphore for event queue.
 		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.

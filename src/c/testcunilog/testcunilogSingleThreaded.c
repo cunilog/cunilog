@@ -20,20 +20,7 @@ When		Who				What
 */
 
 #include "./testcunilogSingleThreaded.h"
-#include "./../cunilog/cunilog.h"
-
-// For testing.
-#include "./../datetime/ISO__DATE__.h"
-#include "./../datetime/ubf_date_and_time.h"
-#include "./../dbg/ubfdebug.h"
-#include "./../string/strfilesys.h"
-#include "./../string/strhexdump.h"
-#include "./../string/strintuint.h"
-#include "./../string/strnewline.h"
-#include "./../string/strwildcards.h"
-#include "./../cunilog/cunilogcfgparser.h"
-#include "./../string/strcustomfmt.h"
-#include "./../OS/POSIX/PsxHome.h"
+#include "./../combined/cunilog_combined.h"
 
 #ifndef _WIN32
 	#include <unistd.h>
@@ -44,14 +31,10 @@ When		Who				What
 	#endif
 #endif
 
-#ifdef PLATFORM_IS_WINDOWS
-	#include "./../OS/Windows/WinAPI_U8.h"
-#endif
-
 const char	ccLogsFolder []	= STR_LOGS_FOLDER;
 size_t		lnLogsFolder	= sizeof (ccLogsFolder) - 1;
 
-bool testV (SCUNILOGTARGET *put, char *sz, ...)
+bool testV (CUNILOG_TARGET *put, char *sz, ...)
 {
 	va_list ap;
 
@@ -96,30 +79,30 @@ int main (int argc, char *argv [])
 	bool			b		= test_cunilog ();
 	ubf_assert_true (b);
 
-	SCUNILOGTARGET	*put;
+	CUNILOG_TARGET	*put;
 
-	put = InitSCUNILOGTARGETstaticEx	(
+	put = InitCUNILOG_TARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogMultiThreadedSeparateLoggingThread,
-				cunilogPostfixDotNumberDescending,
+				cunilogPostfixDotNumberMinutely,
 				NULL, 0,
 				cunilogEvtTS_Default,
 				cunilogNewLineDefault,
 				cunilogRunProcessorsOnStartup
 									);
 
-	logTextU8_static ("cunilogPostfixDotNumberDescending");
+	logTextU8_static ("cunilogPostfixDotNumberMinutely");
 
-	ShutdownSCUNILOGTARGETstatic ();
-	DoneSCUNILOGTARGETstatic ();
+	ShutdownCUNILOG_TARGETstatic ();
+	DoneCUNILOG_TARGETstatic ();
 
 
-	put = InitSCUNILOGTARGETstaticEx	(
+	put = InitCUNILOG_TARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
-				cunilogLogPath_relativeToExecutable,
+				cunilogPath_relativeToExecutable,
 				cunilogMultiThreadedSeparateLoggingThread,
 				cunilogPostfixMinute,
 				NULL, 0,
@@ -153,7 +136,7 @@ int main (int argc, char *argv [])
 	{
 		logTextU8_static ("Another simple line to go in the logfile (first batch).");
 	}
-	PauseLogSCUNILOGTARGETstatic ();
+	PauseLogCUNILOG_TARGETstatic ();
 	cunilog_puts ("Sleeping (1)...");
 	Sleep (2000);
 	n = 1000;
@@ -163,7 +146,7 @@ int main (int argc, char *argv [])
 	}
 	cunilog_puts ("Sleeping (2)...");
 	Sleep (2000);
-	ResumeLogSCUNILOGTARGETstatic ();
+	ResumeLogCUNILOG_TARGETstatic ();
 
 	logTextU8_static ("This one's in UTF-16 (\xC5\x98), which should be an \"R\" with a flipped roof.");
 	testV (put, "Hello %i", 20);
@@ -174,8 +157,8 @@ int main (int argc, char *argv [])
 	*/
 
 	//CancelSCUNILOGTARGETstatic ();
-	ShutdownSCUNILOGTARGETstatic ();
-	DoneSCUNILOGTARGETstatic ();
+	ShutdownCUNILOG_TARGETstatic ();
+	DoneCUNILOG_TARGETstatic ();
 
 	return b ? EXIT_SUCCESS : EXIT_FAILURE;	
 }

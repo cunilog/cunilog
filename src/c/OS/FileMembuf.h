@@ -1,26 +1,22 @@
 /****************************************************************************************
 
-	File:		strabsolutepath.c
-	Why:		String functions for absolute/relative paths.
+	File:		FileMembuf.h
+	Why:		File functions for SMEMBUF structures.
 	OS:			C99
 	Author:		Thomas
-	Created:	2021-07-10
-  
+	Created:	2025-09-18
+
 History
 -------
 
 When		Who				What
 -----------------------------------------------------------------------------------------
-2024-05-21	Thomas			Created.
+2025-09-18	Thomas			Created.
 
 ****************************************************************************************/
 
 /*
 	This file is maintained as part of Cunilog. See https://github.com/cunilog .
-*/
-
-/*
-	The functions in this module do not use any file system functions.
 */
 
 /*
@@ -46,75 +42,69 @@ When		Who				What
 	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#ifndef U_FILEMEMBUF_H
+#define U_FILEMEMBUF_H
+
 #include <stdbool.h>
-#include <string.h>
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
-	#include "./strisabsolutepath.h"
-
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
-		#include "./ubfdebug.h"
+		#include "./membuf.h"
+		#include "./functionptrtpydef.h"
 	#else
-		#include "./../dbg/ubfdebug.h"
+		#include "./../mem/membuf.h"
+		#include "./../pre/functionptrtpydef.h"
 	#endif
 
 #endif
 
-#ifdef DEBUG
-	bool is_absolute_path_unix (const char *chPath)
-	{
-		ubf_assert_non_NULL (chPath);
-
-		return '/' == chPath [0];
-	}
+// Some functions accept string lengths of (size_t) -1 to obtain a length via a call
+//	to strlen ().
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
 #endif
 
-bool is_absolute_path_win (const char *chPath)
-{
-	ubf_assert_non_NULL (chPath);
-
-	if (strlen (chPath) < 3)
-		return false;
-	return is_unc_path (chPath) || is_absolute_drive_path (chPath);
-}
-
-#ifdef DEBUG
-	bool is_absolute_path (const char *chPath)
-	{
-		ubf_assert_non_NULL (chPath);
-		ubf_assert_non_0	(chPath [0]);
-
-		return (is_absolute_path_unix (chPath) || is_absolute_path_win (chPath));
-	}
+// This value is returned in case of an error.
+#ifndef READFILESMEMBUF_ERROR
+#define READFILESMEMBUF_ERROR			((size_t) -1)
 #endif
 
-#ifdef DEBUG
-	bool is_absolute_path_unix_l (const char *chPath, size_t len)
-	{
-		ubf_assert_non_NULL (chPath);
-		ubf_assert ((size_t) -1 != len);
-
-		return len && '/' == chPath [0];
-	}
+// The maximum filesize that can be read from disk to memory with this module.
+#ifndef READFILESMEMBUF_MAX_FSIZE
+#define READFILESMEMBUF_MAX_FSIZE		(20 * 1024 * 1024)	// 20 MiB.
 #endif
 
-#ifdef DEBUG
-	bool is_absolute_path_win_l (const char *chPath, size_t len)
-	{
-		ubf_assert_non_NULL (chPath);
-		ubf_assert ((size_t) -1 != len);
+EXTERN_C_BEGIN
 
-		return (len > 1 && is_unc_path (chPath)) || ((len > 2) && is_absolute_drive_path (chPath));
-	}
+/*
+	ReadFileSMEMBUF
+
+	Reads the file named szFileName into the buffer of the SMEMBUF structure pmb points
+	to. The SMEMBUF structure must have been initialised properly before this function
+	is called.
+
+	The buffer of the SMEMBUF structure pmb points to is NUL-terminated. In fact, the
+	function writes two NUL octets to ensure it can also be used to read UTF-16 files.
+
+	The function returns the amount of octets/bytes written to the buffer, not including
+	the terminating NUL character.
+*/
+size_t ReadFileSMEMBUF (SMEMBUF *pmb, const char *szFileName)
+;
+
+/*
+	test_FileMembuf
+
+	Test function for the module.
+	returns true on success, false otherwise.
+*/
+#ifdef FILEMEMBUF_BUILD_TEST_FNCT
+	bool test_FileMembuf (void);
+#else
+	#define test_FileMembuf()	(true)
 #endif
 
-#ifdef DEBUG
-	bool is_absolute_path_l (const char *chPath, size_t len)
-	{
-		ubf_assert_non_NULL (chPath);
-		ubf_assert ((size_t) -1 != len);
+EXTERN_C_END
 
-		return (is_absolute_path_unix_l (chPath, len) || is_absolute_path_win_l (chPath, len));
-	}
-#endif
+#endif														// Of #ifdef U_FILEMEMBUF_H.

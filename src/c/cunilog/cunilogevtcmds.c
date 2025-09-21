@@ -286,7 +286,9 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 	memcpy (&cmd, szData, sizeof (enum cunilogEvtCmd));
 	szData += sizeof (enum cunilogEvtCmd);
 
-	bool boolVal;
+	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
+		bool boolVal;
+	#endif
 
 	switch (cmd)
 	{

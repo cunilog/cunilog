@@ -334,7 +334,7 @@ void DoneArgsList (char *szArgsList)
 		return (DWORD) s & 0xFFFFFFFF;
 	}
 
-	static enRCmdCBval callOutCB (rcmdOutCB cb, uint16_t flags, char *buf, size_t blen, void *pCustom)
+	static enRCmdCBval callOutCB (SRUNCMDCBINF *pinf, rcmdOutCB cb, uint16_t flags, char *buf, size_t blen, void *pCustom)
 	{
 		enRCmdCBval	rv			= enRunCmdRet_Continue;
 		char		cDummy []	= "";
@@ -345,28 +345,29 @@ void DoneArgsList (char *szArgsList)
 			if (flags & RUNCMDPROC_CALLB_INTOUT)
 			{
 				if (flags & RUNCMDPROC_CALLB_STDOUT)
-					rv = cb (pOut, blen, pCustom);
+					rv = cb (pinf, pOut, blen, pCustom);
 			} else
 			{	// Implied but not checked: (flags & RUNCMDPROC_CALLB_INTERR)
 				if (flags & RUNCMDPROC_CALLB_STDERR)
-					rv = cb (pOut, blen, pCustom);
+					rv = cb (pinf, pOut, blen, pCustom);
 			}
 		}
 		return rv;
 	}
 
-	static enRCmdCBval callInpCB (rcmdInpCB cb, uint16_t flags, SPRCHLPSINOUTBUF *psb, void *pCustom)
+	static enRCmdCBval callInpCB (SRUNCMDCBINF *pinf, rcmdInpCB cb, uint16_t flags, SPRCHLPSINOUTBUF *psb, void *pCustom)
 	{
 		enRCmdCBval	rv = enRunCmdRet_Continue;
 
 		size_t stLen = psb->lenSmb;
 		if (cb && flags & RUNCMDPROC_CALLB_STDINP)
-			rv = cb (&psb->smb, &stLen, pCustom);
+			rv = cb (pinf, &psb->smb, &stLen, pCustom);
 		psb->lenSmb = (DWORD) stLen & 0x00000000FFFFFFFF;
 		return rv;
 	}
 
 	static void handleHow_AsIs		(
+					SRUNCMDCBINF		*pinf,
 					SPRCHLPSINOUTBUF	*sb,
 					rcmdOutCB			cb,
 					uint16_t			flags,
@@ -382,7 +383,7 @@ void DoneArgsList (char *szArgsList)
 			{
 				sb->szWrite [sb->dwTransferred]		= ASCII_NUL;
 				sb->szWrite [sb->dwTransferred + 1]	= ASCII_NUL;
-				sb->cbretval = callOutCB (cb, flags, sb->szWrite, sb->dwTransferred, pCustom);
+				sb->cbretval = callOutCB (pinf, cb, flags, sb->szWrite, sb->dwTransferred, pCustom);
 				sb->dwTransferred					= 0;
 				sb->szWrite	= sb->smb.buf.pch;
 			}
@@ -394,6 +395,7 @@ void DoneArgsList (char *szArgsList)
 	#endif
 
 	static void handleHow_OneLine	(
+					SRUNCMDCBINF		*pinf,
 					SPRCHLPSINOUTBUF	*sb,
 					rcmdOutCB			cb,
 					uint16_t			flags,
@@ -413,7 +415,7 @@ void DoneArgsList (char *szArgsList)
 				{
 					size_t lnLine = szNewLn - sb->smb.buf.pch;
 					szNewLn [0] = ASCII_NUL;
-					sb->cbretval = callOutCB (cb, flags, sb->smb.buf.pch, lnLine, pCustom);
+					sb->cbretval = callOutCB (pinf, cb, flags, sb->smb.buf.pch, lnLine, pCustom);
 					if (lnLine + lnNewLn == sb->lenSmb)
 					{	// Fully consumed.
 						sb->lenSmb = 0;
@@ -463,19 +465,33 @@ void DoneArgsList (char *szArgsList)
 	}
 
 	static void handleHow_Finalise		(
-							SPRCHLPSINOUTBUF	*sb,
-							rcmdOutCB			cb,
-							uint16_t			flags,
-							enRCmdCBhow			cbHow,
-							void				*pCustom
-											)
+					SRUNCMDCBINF		*pinf,
+					SPRCHLPSINOUTBUF	*sb,
+					rcmdOutCB			cb,
+					uint16_t			flags,
+					enRCmdCBhow			cbHow,
+					void				*pCustom
+										)
 	{
 		if (sb->bEOF && enRunCmdHow_All == cbHow && sb->lenSmb)
 		{
 			ubf_assert (sb->lenSmb <= sb->smb.size - 2);
 			sb->smb.buf.pch [sb->lenSmb]		= ASCII_NUL;
 			sb->smb.buf.pch [sb->lenSmb + 1]	= ASCII_NUL;
-			callOutCB (cb, flags, sb->smb.buf.pch, sb->lenSmb, pCustom);
+			callOutCB (pinf, cb, flags, sb->smb.buf.pch, sb->lenSmb, pCustom);
+		}
+	}
+
+	static void handleHeartbeat		(
+					SRUNCMDCBINF		*pinf,
+					SRCMDCBS			*pCBs,
+					uint16_t			flags,
+					void				*pCustom
+									)
+	{
+		if (pCBs->cbHtb && RUNCMDPROC_CALLB_HEARTB & flags && enRunCmdRet_Continue == pinf->rvHtb)
+		{
+			pinf->rvHtb = pCBs->cbHtb (pinf, pCustom);
 		}
 	}
 
@@ -510,7 +526,9 @@ void DoneArgsList (char *szArgsList)
 
 		if (!sb->bNeedsWait)
 		{
-			DWORD dwToTransfer = (DWORD) sb->lenSmb;
+			DWORD dwToTransfer =		USE_STRLEN == sb->lenSmb
+									?	(DWORD) strlen (sb->smb.buf.pcc)
+									:	(DWORD) sb->lenSmb;
 			sb->bIOcomplete = WriteFile (hdl, sb->smb.buf.pcc, dwToTransfer, &sb->dwTransferred, &sb->ovlpd);
 			sb->lenSmb -= sb->dwTransferred;
 			if (!sb->bIOcomplete && ERROR_IO_PENDING == getLastWindowsError (&dwErr))
@@ -535,11 +553,12 @@ void DoneArgsList (char *szArgsList)
 	}
 
 	static void handleReceiveBuffer		(
-					SPRCHLPSINOUTBUF		*sb,
-					rcmdOutCB				cb,
-					uint16_t				flags,
-					enRCmdCBhow				cbHow,
-					void					*pCustom
+					SRUNCMDCBINF		*pinf,
+					SPRCHLPSINOUTBUF	*sb,
+					rcmdOutCB			cb,
+					uint16_t			flags,
+					enRCmdCBhow			cbHow,
+					void				*pCustom
 										)
 	{
 		ubf_assert_non_NULL (sb);
@@ -551,11 +570,11 @@ void DoneArgsList (char *szArgsList)
 				case enRunCmdHow_AsIs:
 				case enRunCmdHow_AsIs0:
 					if (sb->bIOcomplete)
-						handleHow_AsIs (sb, cb, flags, pCustom);
+						handleHow_AsIs (pinf, sb, cb, flags, pCustom);
 					break;
 				case enRunCmdHow_OneLine:
 					if (sb->bIOcomplete)
-						handleHow_OneLine (sb, cb, flags, pCustom);
+						handleHow_OneLine (pinf, sb, cb, flags, pCustom);
 					break;
 				case enRunCmdHow_All:
 					handleHow_All (sb);
@@ -568,7 +587,8 @@ void DoneArgsList (char *szArgsList)
 	#define ERRFLGS		(uiCBflags | RUNCMDPROC_CALLB_INTERR)
 
 	bool HandleCommPipes	(
-			HANDLE				hProcess,
+			SRUNCMDCBINF		*pinf,
+			PROCESS_INFORMATION	*pi,
 			PH_SCHILDHANDLES	*pph,
 			SRCMDCBS			*pCBs,
 			enRCmdCBhow			cbHow,
@@ -576,7 +596,26 @@ void DoneArgsList (char *szArgsList)
 			void				*pCustom
 							)
 	{
-		bool				bRet	= false;
+		ubf_assert_non_NULL (pi);
+		ubf_assert_non_NULL (pi->hProcess);
+		ubf_assert_non_NULL (pph);
+
+		bool		bRet				= false;
+		bool		bChldExited			= false;
+
+		uint64_t	uiHeartbeatTimeout;
+		DWORD		dwHeartbeatTimeOut	= INFINITE;
+		if (RUNCMDPROC_CALLB_HEARTB & uiCBflags)
+		{
+			// Anything above MAXDWORD is currently not supported but planned for future releases.
+			uiHeartbeatTimeout = pCBs->uiHtbMS;
+			ubf_assert (uiHeartbeatTimeout <= MAXDWORD);
+			dwHeartbeatTimeOut = uiHeartbeatTimeout & 0xFFFFFFFF;
+		}
+
+		// Anything above MAXDWORD is currently not supported but planned for future releases.
+		ubf_assert (pinf->uiChildExitTimeout <= MAXDWORD);
+		DWORD		dwChildExitTimeout	= pinf->uiChildExitTimeout & 0xFFFFFFFF;
 
 		// Standard input (stdin) of child process.
 		SPRCHLPSINOUTBUF	sbInp;
@@ -624,8 +663,6 @@ void DoneArgsList (char *szArgsList)
 		sbOut.szWrite = sbOut.smb.buf.pch;
 		sbErr.szWrite = sbErr.smb.buf.pch;
 
-		//DWORD dwErr;
-
 		do
 		{
 			bool bNoWaitRequired;
@@ -634,7 +671,7 @@ void DoneArgsList (char *szArgsList)
 				// We call the write input handler callback function with every iteration,
 				//	provided that the send buffer is empty.
 				if (enRunCmdRet_Continue == sbInp.cbretval && 0 == sbInp.lenSmb)
-					sbInp.cbretval = callInpCB (pCBs->cbInp, uiCBflags, &sbInp, pCustom);
+					sbInp.cbretval = callInpCB (pinf, pCBs->cbInp, uiCBflags, &sbInp, pCustom);
 				if (isUsableSMEMBUF (&sbInp.smb))
 				{
 					writeToHandle		(&sbInp, pph->hChildInpWR);
@@ -644,14 +681,14 @@ void DoneArgsList (char *szArgsList)
 				{
 					readFromHandle		(&sbOut, pph->hChildOutRD);
 					checkOverlapped		(&sbOut, pph->hChildOutRD);
-					handleReceiveBuffer	(&sbOut, pCBs->cbOut, OUTFLGS, cbHow, pCustom);
+					handleReceiveBuffer	(pinf, &sbOut, pCBs->cbOut, OUTFLGS, cbHow, pCustom);
 				} else
 					goto Escape;
 				if (isUsableSMEMBUF (&sbErr.smb))
 				{
 					readFromHandle		(&sbErr, pph->hChildErrRD);
 					checkOverlapped		(&sbErr, pph->hChildErrRD);
-					handleReceiveBuffer	(&sbErr, pCBs->cbErr, ERRFLGS, cbHow, pCustom);
+					handleReceiveBuffer	(pinf, &sbErr, pCBs->cbErr, ERRFLGS, cbHow, pCustom);
 				} else
 					goto Escape;
 				bNoWaitRequired = !(sbOut.bNeedsWait && sbErr.bNeedsWait);
@@ -662,9 +699,13 @@ void DoneArgsList (char *szArgsList)
 			if (sbOut.bNeedsWait) h [0] = sbOut.hEvent; else h [0] = sbOut.hDEvent;
 			if (sbErr.bNeedsWait) h [1] = sbErr.hEvent; else h [1] = sbErr.hDEvent;
 			if (sbInp.bNeedsWait) h [2] = sbInp.hEvent; else h [2] = sbInp.hDEvent;
-			h [3] = hProcess;
-			DWORD dw = WaitForMultipleObjects (PHNHDLS, h, false, INFINITE);
+			h [3] = pi->hProcess;
+			DWORD dw = WaitForMultipleObjects (PHNHDLS, h, false, dwHeartbeatTimeOut);
 			//printf ("Wait complete with %d.\n", dw);
+			if (WAIT_TIMEOUT == dw)
+			{
+				handleHeartbeat (pinf, pCBs, uiCBflags, pCustom);
+			} else
 			if (WAIT_OBJECT_0 <= dw && dw < WAIT_OBJECT_0 + PHNHDLS)
 			{
 				switch (dw - WAIT_OBJECT_0)
@@ -678,10 +719,10 @@ void DoneArgsList (char *szArgsList)
 					// We don't check which operation completed the wait. We just check all
 					//	of them.
 					default:	checkOverlapped		(&sbOut, pph->hChildOutRD);
-								handleReceiveBuffer	(&sbOut, pCBs->cbOut, OUTFLGS, cbHow, pCustom);
+								handleReceiveBuffer	(pinf, &sbOut, pCBs->cbOut, OUTFLGS, cbHow, pCustom);
 
 								checkOverlapped		(&sbErr, pph->hChildErrRD);
-								handleReceiveBuffer	(&sbErr, pCBs->cbErr, ERRFLGS, cbHow, pCustom);
+								handleReceiveBuffer	(pinf, &sbErr, pCBs->cbErr, ERRFLGS, cbHow, pCustom);
 
 								checkOverlapped		(&sbInp, pph->hChildInpWR);
 								writeToHandle		(&sbInp, pph->hChildInpWR);
@@ -696,16 +737,18 @@ void DoneArgsList (char *szArgsList)
 					||	enRunCmdRet_TerminateFail	== sbErr.cbretval
 					||	enRunCmdRet_Terminate		== sbInp.cbretval
 					||	enRunCmdRet_TerminateFail	== sbInp.cbretval
+					||	enRunCmdRet_Terminate		== pinf->rvHtb
+					||	enRunCmdRet_TerminateFail	== pinf->rvHtb
 				)
 			{
-				bool bc = TerminateChildProcess (hProcess);
-				ubf_assert_true (bc);
-				UNUSED (bc);
+				if (!bChldExited)
+					bChldExited = TerminateProcessControlled (pi->hProcess, 0, dwChildExitTimeout);
 
 				if	(
 							enRunCmdRet_TerminateFail	== sbOut.cbretval
 						||	enRunCmdRet_TerminateFail	== sbErr.cbretval
 						||	enRunCmdRet_TerminateFail	== sbInp.cbretval
+						||	enRunCmdRet_TerminateFail	== pinf->rvHtb
 					)
 					goto Escape;
 			}
@@ -713,8 +756,8 @@ void DoneArgsList (char *szArgsList)
 
 		bRet = true;
 
-		handleHow_Finalise (&sbOut, pCBs->cbOut, OUTFLGS, cbHow, pCustom);
-		handleHow_Finalise (&sbErr, pCBs->cbErr, ERRFLGS, cbHow, pCustom);
+		handleHow_Finalise (pinf, &sbOut, pCBs->cbOut, OUTFLGS, cbHow, pCustom);
+		handleHow_Finalise (pinf, &sbErr, pCBs->cbErr, ERRFLGS, cbHow, pCustom);
 
 		Escape:
 		DONESMEMBUF (sbInp.smb);
@@ -738,7 +781,8 @@ void DoneArgsList (char *szArgsList)
 	}
 
 	bool HandleCommunication	(
-			HANDLE					hProcess,
+			SRUNCMDCBINF			*pinf,
+			PROCESS_INFORMATION		*pi,
 			PH_SCHILDHANDLES		*pph,
 			SRCMDCBS				*pCBs,
 			enRCmdCBhow				cbHow,
@@ -746,7 +790,8 @@ void DoneArgsList (char *szArgsList)
 			void					*pCustom
 								)
 	{
-		ubf_assert_non_NULL (hProcess);
+		ubf_assert_non_NULL (pi);
+		ubf_assert_non_NULL (pi->hProcess);
 		ubf_assert_non_NULL (pph);
 
 		SRCMDCBS cbs;
@@ -756,7 +801,7 @@ void DoneArgsList (char *szArgsList)
 			pCBs = &cbs;
 		}
 
-		bool b = HandleCommPipes (hProcess, pph, pCBs, cbHow, uiCBflags, pCustom);
+		bool b = HandleCommPipes (pinf, pi, pph, pCBs, cbHow, uiCBflags, pCustom);
 
 		return b;
 	}
@@ -768,12 +813,14 @@ void DoneArgsList (char *szArgsList)
 			const char				*szExecutable,
 			const char				*szCmdLine,
 			const char				*szWorkingDir,
-			SRCMDCBS				*pCBs,
+			SRCMDCBS				*pCBs,					// CB functions and heartbeat interval.
 			enRCmdCBhow				cbHow,					// How to call the callback functions.
 			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
 															//	flags.
 			void					*pCustom,				// Passed on unchanged to callback
 															//	functions.
+			uint64_t				uiChildExitTimeout,		// Time in ms to wait for the child to
+															//	exit/terminate.
 			int						*pExitCode				// Exit code of process.
 										)
 	{
@@ -805,8 +852,17 @@ void DoneArgsList (char *szArgsList)
 														);
 			if (szArgsList)
 			{
-				DWORD dwCreationFlags	= CREATE_NEW_PROCESS_GROUP;
+				SRUNCMDCBINF inf;
+				inf.szExecutable		= szExecutable;
+				inf.lnExecutable		= strlen (szExecutable);
+				inf.szArgsList			= szArgsList;
+				inf.lnArgsList			= strlen (szArgsList);
+				inf.szWorkingDir		= szWorkingDir;
+				inf.lnWorkingDir		= szWorkingDir ? strlen (szWorkingDir) : 0;
+				inf.rvHtb				= enRunCmdRet_Continue;
+				inf.uiChildExitTimeout	= uiChildExitTimeout;
 
+				DWORD dwCreationFlags	= CREATE_NEW_PROCESS_GROUP;
 				b &= CreateProcessU8	(
 						szExecutable, szArgsList,			// Command line arguments.
 						NULL, NULL, true,					// Inherits our handles.
@@ -817,10 +873,14 @@ void DoneArgsList (char *szArgsList)
 						&pi									// Pointer to PROCESS_INFORMATION.
 										);
 
-				DoneArgsList (szArgsList);
+				#ifdef DEBUG
+					DWORD dwErr = GetLastError ();
+					if (dwErr) {}
+				#endif
+				inf.childProcessId	= pi.dwProcessId;
 
 				// This function returns false if a callback funciton returned enRunCmdRet_TerminateFail.
-				b &= HandleCommunication (pi.hProcess, &ph, pCBs, cbHow, uiRCflags, pCustom);
+				b &= b ? HandleCommunication (&inf, &pi, &ph, pCBs, cbHow, uiRCflags, pCustom) : false;
 
 				if (pExitCode)
 				{
@@ -828,6 +888,8 @@ void DoneArgsList (char *szArgsList)
 					GetExitCodeProcess (pi.hProcess, &dwExitCode);
 					*pExitCode = dwExitCode;
 				}
+
+				DoneArgsList (szArgsList);
 			}
 		}
 
@@ -841,18 +903,18 @@ void DoneArgsList (char *szArgsList)
 #elif defined (PLATFORM_IS_POSIX)
 
 	// Taken from somewhere. Won't build and totally untested.
-	bool CreateAndRunCmdProcessCaptureStdout	(
+	bool CreateAndRunCmdProcessCapture	(
 			const char				*szExecutable,
-			int						argc,
-			const char				*argv [],
+			const char				*szCmdLine,
 			const char				*szWorkingDir,
 			SRCMDCBS				*pCBs,
 			enRCmdCBhow				cbHow,					// How to call the callback functions.
-			uint16_t				uiCBflags,				// One or more of the RUNCMDPROC_CBFLAG_
+			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
 															//	flags.
-			void					*pCusom					// Passed on unchanged to callback
+			void					*pCustom,				// Passed on unchanged to callback
 															//	functions.
-												)
+			int						*pExitCode				// Exit code of process.
+										)
 	{
 		#include <stdio.h>
 		#include <stdlib.h>
@@ -904,25 +966,28 @@ void DoneArgsList (char *szArgsList)
 #ifdef PROCESS_HELPERS_BUILD_TEST_FNCT
 	static unsigned int uiLn = 0;
 
-	enRCmdCBval cbInp (SMEMBUF *psmb, size_t *plnData, void *pCustom)
+	enRCmdCBval cbInp (SRUNCMDCBINF *pinf, SMEMBUF *psmb, size_t *plnData, void *pCustom)
 	{
+		UNUSED (pinf);
 		UNUSED (pCustom);
 
 		*plnData = SMEMBUFfromStr (psmb, "dir\ndir\nexit\n", USE_STRLEN);
 		return enRunCmdRet_Continue;
 	}
-	enRCmdCBval cbOutWhoAmI (const char *szData, size_t lnData, void *pCustom)
+	enRCmdCBval cbOutWhoAmI (SRUNCMDCBINF *pinf, const char *szData, size_t lnData, void *pCustom)
 	{
 		ubf_assert_non_NULL	(szData);
 		ubf_assert			((void *) 1 == pCustom);
+		UNUSED (pinf);
 		UNUSED (pCustom);
 
 		if (szData && lnData)
 			return enRunCmdRet_Continue;
 		return enRunCmdRet_Ignore;
 	}
-	enRCmdCBval cbErrWhoAmI (const char *szData, size_t lnData, void *pCustom)
+	enRCmdCBval cbErrWhoAmI (SRUNCMDCBINF *pinf, const char *szData, size_t lnData, void *pCustom)
 	{
+		UNUSED (pinf);
 		UNUSED (szData);
 		UNUSED (lnData);
 		UNUSED (pCustom);
@@ -935,28 +1000,32 @@ void DoneArgsList (char *szArgsList)
 		return enRunCmdRet_Ignore;
 	}
 
-	enRCmdCBval cbOut (const char *szData, size_t lnData, void *pCustom)
+	enRCmdCBval cbOut (SRUNCMDCBINF *pinf, const char *szData, size_t lnData, void *pCustom)
 	{
+		UNUSED (pinf);
 		UNUSED (szData);
 		UNUSED (lnData);
 		UNUSED (pCustom);
 
-		printf ("Data: %p, Length: %zu\n", szData, lnData);
+		//printf ("Data: %p, Length: %zu\n", szData, lnData);
 		//puts (szData);
-		printf ("Data: %p, Length: %zu\n", szData, lnData);
+		//printf ("Data: %p, Length: %zu\n", szData, lnData);
 		return enRunCmdRet_Continue;
 	}
-	enRCmdCBval cbOutOneLine (const char *szData, size_t lnData, void *pCustom)
+	enRCmdCBval cbOutOneLine (SRUNCMDCBINF *pinf, const char *szData, size_t lnData, void *pCustom)
 	{
+		UNUSED (pinf);
 		UNUSED (szData);
 		UNUSED (lnData);
 		UNUSED (pCustom);
 
 		ubf_assert (strlen (szData) == lnData);
 
+		/*
 		if (0 == uiLn)
 			puts ("");
-		
+		*/
+
 		++ uiLn;
 		/*
 		if (lnData)
@@ -967,14 +1036,31 @@ void DoneArgsList (char *szArgsList)
 		//return enRunCmdRet_TerminateFail;
 		return enRunCmdRet_Continue;
 	}
-	enRCmdCBval cbErr (const char *szData, size_t lnData, void *pCustom)
+	enRCmdCBval cbErr (SRUNCMDCBINF *pinf, const char *szData, size_t lnData, void *pCustom)
 	{
+		UNUSED (pinf);
 		UNUSED (szData);
 		UNUSED (lnData);
 		UNUSED (pCustom);
 
 		ASSERT (false);
 		return enRunCmdRet_Continue;
+	}
+
+	enRCmdCBval cbHtb (SRUNCMDCBINF *pinf, void *pCustom)
+	{
+		UNUSED (pinf);
+		UNUSED (pCustom);
+
+		return enRunCmdRet_Continue;
+	}
+
+	enRCmdCBval cbHtbClose (SRUNCMDCBINF *pinf, void *pCustom)
+	{
+		UNUSED (pinf);
+		UNUSED (pCustom);
+
+		return enRunCmdRet_Terminate;
 	}
 
 	bool ProcessHelpersTestFnct (void)
@@ -1060,10 +1146,26 @@ void DoneArgsList (char *szArgsList)
 			snprintf (szCmd, 2048, "%s%s", szSystemFolder, "cmd.exe");
 
 			int iExitCode;
+
+			/*	This doesn't work anymore, as the Windows accessories now create
+				a new process from the executables in C:\Program files\WindowsApps.
+
+			b &= CreateAndRunCmdProcessCapture	(
+					"C:\\Windows\\System32\\notepad.exe",
+					"", NULL,
+					&cbs, enRunCmdHow_All, cbflgs, NULL, 10000, &iExitCode
+														);
+			b &= CreateAndRunCmdProcessCapture	(
+					"C:\\Windows\\System32\\calc.exe",
+					"", NULL,
+					&cbs, enRunCmdHow_All, cbflgs, NULL, 10000, &iExitCode
+														);
+			*/
+
 			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					szArgs, NULL,
-					&cbs, enRunCmdHow_All, cbflgs, NULL, &iExitCode
+					&cbs, enRunCmdHow_All, cbflgs, NULL, 1000, &iExitCode
 														);
 
 			cbs.cbOut = cbOutOneLine;
@@ -1071,7 +1173,7 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					szArgs, NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, 1000, &iExitCode
 														);
 
 			uiLn = 0;
@@ -1079,20 +1181,20 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					szArgs, NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, 1000, &iExitCode
 														);
 
 
 			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_All, cbflgs, NULL, &iExitCode
+					&cbs, enRunCmdHow_All, cbflgs, NULL, 1000, &iExitCode
 														);
 
 			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, 1000, &iExitCode
 														);
 
 			cbs.cbOut = cbOutWhoAmI;
@@ -1100,12 +1202,12 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1, &iExitCode
+					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1, 1000, &iExitCode
 														);
 			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"some argument that fails whoami", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1, &iExitCode
+					&cbs, enRunCmdHow_OneLine, cbflgs, (void *) 1, 1000, &iExitCode
 														);
 
 			cbs.cbOut = cbOut;
@@ -1113,13 +1215,13 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, 1000, &iExitCode
 														);
 
 			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"", NULL,
-					&cbs, enRunCmdHow_AsIs, cbflgs, NULL, &iExitCode
+					&cbs, enRunCmdHow_AsIs, cbflgs, NULL, 1000, &iExitCode
 														);
 
 			cbs.cbOut = cbOut;
@@ -1127,14 +1229,32 @@ void DoneArgsList (char *szArgsList)
 			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\whoami.exe",
 					"", NULL,
-					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, &iExitCode
+					&cbs, enRunCmdHow_OneLine, cbflgs, NULL, 1000, &iExitCode
 														);
 
 			b &= CreateAndRunCmdProcessCapture	(
 					"C:\\Windows\\System32\\cmd.exe",
 					"/C dir", NULL,
-					&cbs, enRunCmdHow_All, cbflgs, NULL, &iExitCode
+					&cbs, enRunCmdHow_All, cbflgs, NULL, 1000, &iExitCode
 														);
+
+			// Enable heartbeat.
+			cbs.cbHtb	= cbHtb;
+			cbs.cbHtb	= cbHtbClose;
+			cbs.uiHtbMS	= 15000;
+			cbflgs |= RUNCMDPROC_CALLB_HEARTB;
+			cbflgs |= RUNCMDPROC_EXEARG_NOEXE;
+
+
+			// Should stay open for some time.
+			b &= CreateAndRunCmdProcessCapture	(
+					//"C:\\Windows\\System32\\notepad.exe",
+					"C:\\Program Files\\Jellyfin\\Server\\jellyfin.exe",
+					"",
+					"C:\\Program Files\\Jellyfin",
+					&cbs, enRunCmdHow_All, cbflgs, NULL, 10000, &iExitCode
+														);
+
 
 		#elif defined (PLATFORM_IS_POSIX)
 

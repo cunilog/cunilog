@@ -48,4 +48,30 @@ When		Who				What
 
 	#include "./ExeFileName.h"
 
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ubfdebug.h"
+	#else
+		#include "./../dbg/ubfdebug.h"
+	#endif
+
+#endif
+
+#ifdef CUNILOG_BUILD_EXEFILENAME_TEST_FNCT
+	bool TestExeFileNameFnct (void)
+	{
+		bool b = true;
+
+		// Do we get something at all?
+		SMEMBUF smbE = SMEMBUF_INITIALISER;
+		size_t stE = ObtainExecutableModuleName (&smbE);
+		ubf_assert_bool_AND (b, 0 < stE);
+		SMEMBUF smbA = SMEMBUF_INITIALISER;
+		size_t stA = ObtainAppNameFromExecutableModule (&smbA);
+		ubf_assert_bool_AND (b, 0 < stA);
+		SMEMBUF smbP = SMEMBUF_INITIALISER;
+		size_t stP = ObtainPathFromExecutableModule (&smbP);
+		ubf_assert_bool_AND (b, 0 < stP);
+
+		return b;
+	}
 #endif

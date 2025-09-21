@@ -976,6 +976,16 @@ void ubf_strd_from_uint64 (char *chStr, uint64_t u64)
 		ubf_expect_bool_AND (b, is_number_str_l ("1234abc", 4));
 		ubf_expect_bool_AND (b, !is_number_str_l ("1234abc", 5));
 
+		char sz [256];
+		size_t st1 = ubf_str_from_uint64 (sz, 10);
+		ubf_expect_bool_AND (b, 2 == st1);
+		ubf_expect_bool_AND (b, !memcmp ("10", sz, 3));
+		st1 = ubf_str_from_uint64 (sz, 0);
+		ubf_expect_bool_AND (b, 1 == st1);
+		ubf_expect_bool_AND (b, !memcmp ("0", sz, 2));
+		st1 = ubf_str_from_uint64 (sz, 7842);
+		ubf_expect_bool_AND (b, 4 == st1);
+		ubf_expect_bool_AND (b, !memcmp ("7842", sz, 5));
 
 		return b;
 	}

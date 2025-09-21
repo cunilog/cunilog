@@ -66,36 +66,70 @@ When		Who				What
 
 #endif
 
+const char		*ccCulStdLineCComment	[]	= {"//"};
+unsigned int	nCulStdLineCComment			= GET_ARRAY_LEN (ccCulStdLineCComment);
+
+const char		*ccCulStdLineUComment	[]	= {"//", "#", ";", "+", "-", "!"};
+unsigned int	nCulStdLineUComment			= GET_ARRAY_LEN (ccCulStdLineUComment);
+
+// These line comments are meant to be prededed by white space in the future.
+//	Not implemented yet.
+const char		*ccCulStdLineWSComment	[]	= {"#", ";", "!"};
+unsigned int	nCulStdLineWSComment		= GET_ARRAY_LEN (ccCulStdLineWSComment);
+
+const char		*ccCulStdBegMultComment	[]	= {"/*"};
+const char		*ccCulStdEndMultComment	[]	= {"*/"};
+unsigned int	nccCulStdMultComment		= GET_ARRAY_LEN (ccCulStdEndMultComment);
+
+const char		*ccCulStdOpenQuotes		[]	= {"\"", "'", "[", "{"};
+const char		*ccCulStdClosQuotes		[]	= {"\"", "'", "]", "}"};
+unsigned int	nCulStdQuotes				= GET_ARRAY_LEN (ccCulStdOpenQuotes);
+
+const char		*ccCulStdEqualSigns		[]	= {":=", "=", ":", "->", "<-"};
+unsigned int	nCulStdEquals				= GET_ARRAY_LEN (ccCulStdEqualSigns);
+
+char			*ccCulStdStrtSection	[]	= {"[", "{", "** "};
+char			*ccCulStdExitSection	[]	= {"]", "}", " **"};
+unsigned int	nCulStdSections				= GET_ARRAY_LEN (ccCulStdStrtSection);
+
 void InitSTRLINEINF (STRLINEINF *pi, void *pCustom)
 {
 	ubf_assert_non_NULL (pi);
 
+	// No initialisation in debug versions. We expect a slap in the face if we missed
+	//	something.
+	#ifndef DEBUG
+		memset (pi, 0, sizeof (STRLINEINF));
+	#endif
+
 	pi->absPosition				= 1;
 	pi->charNumber				= 0;
-	pi->lineNumber				= 0;
+	pi->lineNumber				= 1;
 	pi->pCustom					= pCustom;
-	pi->pStart					= NULL;
+	pi->szStart					= NULL;
 	pi->lnLength				= 0;
 	#ifdef DEBUG
 		pi->bInitialised		= true;
 	#endif
 }
 
-char *ccCLineComment []	= {"//"};
-char *ccULineComment []	= {"//", "#", ";", "+", "-", "!"};
-char *ccSMultComment [] = {"/*"};
-char *ccEMultComment [] = {"*/"};
-
 void InitSTRLINECONFforUBFL (STRLINECONF *pc)
 {
 	ubf_assert_non_NULL (pc);
+
+	// No initialisation in debug versions. We expect a slap in the face if we missed
+	//	something.
+	#ifndef DEBUG
+		memset (pc, 0, sizeof (STRLINECONF));
+	#endif
+
 	pc->CharacterSet			= EN_STRLINEEXTRACT_UTF8;
 	pc->tabSize					= 4;
-	pc->pchLineCommentStr		= ccULineComment;
-	pc->nLineCommentStr			= GET_ARRAY_LEN (ccULineComment);
-	pc->pchStartMultiCommentStr	= ccSMultComment;
-	pc->pchEndMultiCommentStr	= ccEMultComment;
-	pc->nMultiCommentStr		= GET_ARRAY_LEN (ccSMultComment);
+	pc->pchLineCommentStr		= ccCulStdLineUComment;
+	pc->nLineCommentStr			= GET_ARRAY_LEN (ccCulStdLineUComment);
+	pc->pchStartMultiCommentStr	= ccCulStdBegMultComment;
+	pc->pchEndMultiCommentStr	= ccCulStdEndMultComment;
+	pc->nMultiCommentStr		= GET_ARRAY_LEN (ccCulStdBegMultComment);
 	#ifdef DEBUG
 		pc->bInitialised		= true;
 	#endif
@@ -104,17 +138,75 @@ void InitSTRLINECONFforUBFL (STRLINECONF *pc)
 void InitSTRLINECONFforC (STRLINECONF *pc)
 {
 	ubf_assert_non_NULL (pc);
+
+	// No initialisation in debug versions. We expect a slap in the face if we missed
+	//	something.
+	#ifndef DEBUG
+		memset (pc, 0, sizeof (STRLINECONF));
+	#endif
+
 	pc->CharacterSet			= EN_STRLINEEXTRACT_UTF8;
 	pc->tabSize					= 4;
-	pc->pchLineCommentStr		= ccCLineComment;
-	pc->nLineCommentStr			= GET_ARRAY_LEN (ccCLineComment);
-	pc->pchStartMultiCommentStr	= ccSMultComment;
-	pc->pchEndMultiCommentStr	= ccEMultComment;
-	pc->nMultiCommentStr		= GET_ARRAY_LEN (ccSMultComment);
+	pc->pchLineCommentStr		= ccCulStdLineCComment;
+	pc->nLineCommentStr			= GET_ARRAY_LEN (ccCulStdLineCComment);
+	pc->pchStartMultiCommentStr	= ccCulStdBegMultComment;
+	pc->pchEndMultiCommentStr	= ccCulStdEndMultComment;
+	pc->nMultiCommentStr		= GET_ARRAY_LEN (ccCulStdBegMultComment);
 	#ifdef DEBUG
 		pc->bInitialised		= true;
 	#endif
 }
+
+void InitSCULMLTSTRINGSforUBFL (SCULMLTSTRINGS *psmls)
+{
+	ubf_assert_non_NULL (psmls);
+
+	// No initialisation in debug versions. We expect a slap in the face if we missed
+	//	something.
+	#ifndef DEBUG
+		memset (psmls, 0, sizeof (SCULMLTSTRINGS));
+	#endif
+
+	psmls->ccLineComments		= ccCulStdLineUComment;
+	psmls->nLineComments		= nCulStdLineUComment;
+	psmls->ccBegMultiComments	= ccCulStdBegMultComment;
+	psmls->ccEndMultiComments	= ccCulStdEndMultComment;
+	psmls->nMultiComments		= nccCulStdMultComment;
+	psmls->ccOpenQuotes			= ccCulStdOpenQuotes;
+	psmls->ccClosQuotes			= ccCulStdClosQuotes;
+	psmls->nQuotes				= nCulStdQuotes;
+	psmls->ccEquals				= ccCulStdEqualSigns;
+	psmls->nEquals				= nCulStdEquals;
+	psmls->ccStrtSections		= ccCulStdStrtSection;
+	psmls->ccExitSections		= ccCulStdExitSection;
+	psmls->nSections			= nCulStdSections;
+}
+
+void InitSCULMLTSTRINGSforC (SCULMLTSTRINGS *psmls)
+{
+	ubf_assert_non_NULL (psmls);
+
+	// No initialisation in debug versions. We expect a slap in the face if we missed
+	//	something.
+	#ifndef DEBUG
+		memset (psmls, 0, sizeof (SCULMLTSTRINGS));
+	#endif
+
+	psmls->ccLineComments		= ccCulStdLineCComment;
+	psmls->nLineComments		= nCulStdLineCComment;
+	psmls->ccBegMultiComments	= ccCulStdBegMultComment;
+	psmls->ccEndMultiComments	= ccCulStdEndMultComment;
+	psmls->nMultiComments		= nccCulStdMultComment;
+	psmls->ccOpenQuotes			= ccCulStdOpenQuotes;
+	psmls->ccClosQuotes			= ccCulStdClosQuotes;
+	psmls->nQuotes				= nCulStdQuotes;
+	psmls->ccEquals				= ccCulStdEqualSigns;
+	psmls->nEquals				= nCulStdEquals;
+	psmls->ccStrtSections		= ccCulStdStrtSection;
+	psmls->ccExitSections		= ccCulStdExitSection;
+	psmls->nSections			= nCulStdSections;
+}
+
 /*
 	Checks that every start of a multi-line comment has a partner string
 	in the array that contains the end of multi-line comments.
@@ -131,9 +223,16 @@ bool SanityCheckMultiComments (STRLINECONF *pc)
 
 		for (n = 0; n < pc->nMultiCommentStr; ++ n)
 		{	// Each start of a multi-line comment needs an end of a multi-line comment.
-			ubf_assert_non_NULL (pc->pchStartMultiCommentStr [n]);
+			ubf_assert_non_NULL	(pc->pchStartMultiCommentStr [n]);
+			ubf_assert			(strlen (pc->pchStartMultiCommentStr [n]));
 			ubf_assert_non_NULL (pc->pchEndMultiCommentStr [n]);
-			if (NULL == pc->pchStartMultiCommentStr [n] || NULL == pc->pchEndMultiCommentStr [n])
+			ubf_assert			(strlen (pc->pchEndMultiCommentStr [n]));
+			if	(
+						NULL == pc->pchStartMultiCommentStr [n]
+					||	NULL == pc->pchEndMultiCommentStr [n]
+					||	0 == strlen (pc->pchStartMultiCommentStr [n])
+					||	0 == strlen (pc->pchEndMultiCommentStr [n])
+				)
 				return false;
 		}
 		return true;
@@ -167,7 +266,7 @@ bool cmpBufStartsWith (const char *p, size_t l, const char *sz)
 	Returns the index of the found start of a multi-line comment + 1, or 0 if pb does not
 	start with the start of a multi-line comment.
 */
-unsigned int isStartMultiLineComment (char *pb, size_t lb, STRLINECONF *pc)
+unsigned int isStartMultiLineComment (const char *pb, size_t lb, STRLINECONF *pc)
 {
 	ubf_assert (NULL != pb);
 	ubf_assert (NULL != pc);
@@ -190,7 +289,7 @@ unsigned int isStartMultiLineComment (char *pb, size_t lb, STRLINECONF *pc)
 	refers to. The parameter uMCn is the index of the start of a multi-line comment + 1
 	as returned by isStartMultiLineComment ().
 */
-bool isEndMultiLineComment (char *pb, size_t lb, STRLINECONF *pc, unsigned int uMCn)
+bool isEndMultiLineComment (const char *pb, size_t lb, STRLINECONF *pc, unsigned int uMCn)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (pc);
@@ -207,17 +306,17 @@ bool isEndMultiLineComment (char *pb, size_t lb, STRLINECONF *pc, unsigned int u
 	Steps pb on to the next line and updates the STRLINEINF structure pi points
 	to as it goes along.
 */
-void nextLine (char **pb, size_t *pl, STRLINEINF *pi)
+void nextLine (const char **pb, size_t *pl, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
 	ubf_assert_non_NULL (pl);
 	ubf_assert_non_NULL (pi);
 
-	char		*ch	= *pb;
-	size_t		nls	= 0;
-	size_t		jmp	= 0;
-	size_t		l	= *pl;
+	const char		*ch	= *pb;
+	size_t			nls	= 0;
+	size_t			jmp	= 0;
+	size_t			l	= *pl;
 
 	while (l && 0 == (nls = strIsLineEndings (ch, l, &jmp)))
 	{
@@ -241,7 +340,7 @@ void nextLine (char **pb, size_t *pl, STRLINEINF *pi)
 	Swallows single-line comments up to the next line. Returns true if a line
 	comment was swallowed.
 */
-bool swallowLineComment (char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
+bool swallowLineComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
@@ -250,7 +349,7 @@ bool swallowLineComment (char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
 
 	unsigned int n	= 0;
 
-	if (pc && pc->nLineCommentStr)
+	if (pc->nLineCommentStr)
 	{
 		for (n = 0; n < pc->nLineCommentStr; ++ n)
 		{
@@ -268,10 +367,11 @@ bool swallowLineComment (char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
 /*
 	Swallows a multi-line/block comment. Returns true when a block comment was swallowed.
 */
-bool swallowMultiComment (char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
+bool swallowMultiComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
+	ubf_assert_non_NULL (pl);
 	ubf_assert_non_NULL (pc);
 	ubf_assert_non_NULL (pi);
 
@@ -321,7 +421,7 @@ bool swallowMultiComment (char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi
 /*
 	Returns true when white space or a new line was swallowed.
 */
-bool swallowEmptyAndWhiteSpaceLines (char **pb, size_t *pl, STRLINEINF *pi)
+bool swallowEmptyAndWhiteSpaceLines (const char **pb, size_t *pl, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
@@ -332,32 +432,29 @@ bool swallowEmptyAndWhiteSpaceLines (char **pb, size_t *pl, STRLINEINF *pi)
 	size_t	jmp;
 	bool	bRet	= false;
 	
-	if (pb && *pb && pl && pi)
+	while (*pl)
 	{
-		while (*pb && *pl)
-		{
-			char	c;
+		char	c;
 			
-			c = **pb;
-			if (isWhiteSpace (c))
-			{
-				*pb += 1;
-				*pl -= 1;
-				++ pi->absPosition;
-				++ pi->charNumber;
-				bRet = true;
-			} else
-				break;
-		}
-		nls = strIsLineEndings (*pb, *pl, &jmp);
-		if (nls)
+		c = **pb;
+		if (isWhiteSpace (c))
 		{
-			pi->lineNumber	+= nls;
-			pi->absPosition	+= jmp;
-			*pb += jmp;
-			*pl -= jmp;
+			*pb += 1;
+			*pl -= 1;
+			++ pi->absPosition;
+			++ pi->charNumber;
 			bRet = true;
-		}
+		} else
+			break;
+	}
+	nls = strIsLineEndings (*pb, *pl, &jmp);
+	if (nls)
+	{
+		pi->lineNumber	+= nls;
+		pi->absPosition	+= jmp;
+		*pb += jmp;
+		*pl -= jmp;
+		bRet = true;
 	}
 	return bRet;
 }
@@ -365,10 +462,10 @@ bool swallowEmptyAndWhiteSpaceLines (char **pb, size_t *pl, STRLINEINF *pi)
 /*
 	Returns the new length of pb when trailing white space is removed.
 */
-size_t getLengthTrailingWhiteSpaceRemoved (char *pb, size_t l)
+size_t getLengthTrailingWhiteSpaceRemoved (const char *pb, size_t l)
 {
-	ubf_assert_non_NULL (pb);
-	ubf_assert (0 < l);
+	ubf_assert_non_NULL	(pb);
+	ubf_assert			(0 < l);
 
 	while (l && isWhiteSpace (pb [l - 1]))
 	{
@@ -380,14 +477,14 @@ size_t getLengthTrailingWhiteSpaceRemoved (char *pb, size_t l)
 /*
 	Returns the length of a line.
 */
-size_t getLineLength (char *pb, size_t lb) //, STRLINECONF *pc)
+size_t getLineLength (const char *pb, size_t lb) //, STRLINECONF *pc)
 {
 	ubf_assert_non_NULL (pb);
 
-	size_t	nls		= 0;
-	size_t	jmp;
-	char	*p		= pb;
-	size_t	r		= 0;
+	size_t		nls		= 0;
+	size_t		jmp;
+	const char	*p		= pb;
+	size_t		r		= 0;
 
 	while (*p && lb && 0 == (nls = strIsLineEndings (p, lb, &jmp)))
 	{
@@ -408,7 +505,7 @@ size_t getLineLength (char *pb, size_t lb) //, STRLINECONF *pc)
 	The UTF-8 payload line extractor.
 */
 unsigned int StrLineExtractU8	(
-				char					*pBuf,
+				const char				*pBuf,
 				size_t					lenBuf,
 				STRLINECONF				*pConf,
 				StrLineExtractCallback	cb,
@@ -426,8 +523,10 @@ unsigned int StrLineExtractU8	(
 	// This is the only character set we support at the moment.
 	ubf_assert (EN_STRLINEEXTRACT_UTF8 == pConf->CharacterSet);
 
-	if (!SanityCheckMultiComments (pConf))
-		return UINT_MAX;
+	#ifdef DEBUG
+		if (!SanityCheckMultiComments (pConf))
+			return UINT_MAX;
+	#endif
 
 	STRLINEINF			sLineInfo;
 	bool				cbRet;
@@ -436,7 +535,6 @@ unsigned int StrLineExtractU8	(
 	if (pBuf)
 	{
 		InitSTRLINEINF (&sLineInfo, pCustom);
-		sLineInfo.lineNumber = 1;						// Line 1 unless buffer empty.
 		while (lenBuf)
 		{
 			do
@@ -449,7 +547,7 @@ unsigned int StrLineExtractU8	(
 			{
 				// We now got a single line.
 				sLineInfo.lnLength		= getLineLength (pBuf, lenBuf); //, pConf);
-				sLineInfo.pStart		= pBuf;
+				sLineInfo.szStart		= pBuf;
 				sLineInfo.charNumber	= 0;			// Currently not supported.
 				if (cb)
 				{
@@ -467,7 +565,7 @@ unsigned int StrLineExtractU8	(
 }
 
 unsigned int StrLineExtract	(
-				void					*pBuf,
+				const void				*pBuf,
 				size_t					lenBuf,
 				STRLINECONF				*pConf,
 				StrLineExtractCallback	cb,
@@ -487,7 +585,7 @@ unsigned int StrLineExtract	(
 			return StrLineExtractU8 (pBuf, lenBuf, pC, cb, pCustom);
 		case EN_STRLINEEXTRACT_UTF16:
 			ubf_assert_msg (false, "Not implemented.");
-			return 0;
+			return UINT_MAX;
 	}
 	return 0;
 }
@@ -505,66 +603,111 @@ const char *strlineextractRemoveLeadingWhiteSpace (size_t *pLen, const char *szL
 	return szLine;
 }
 
-char *ccSdOpenQuotes []	= {"\"", "'", "[", "{"};
-char *ccSdClosQuotes []	= {"\"", "'", "]", "}"};
-char *ccSdEqualSigns [] = {":=", "=", ":", "->", "<-"};
+#ifdef _MSC_VER
+#pragma warning (disable: 4706)									// Assignment within conditional expression.
+#endif
 
-unsigned int strlineextractIsOpenQuote	(
+const char *strlineextractRemoveWhiteSpaceAndComments	(
+				size_t *pLen,
+				const char *szLine,			size_t lnLine,
+				SCULMLTSTRINGS				*pslms
+														)
+{
+	ubf_assert_non_NULL	(pslms);
+
+	unsigned int	ui;
+
+	lnLine = USE_STRLEN == lnLine ? strlen (szLine) : lnLine;
+	while (lnLine)
+	{
+		while (lnLine && isWhiteSpace (szLine [0]))
+		{
+			++ szLine;
+			-- lnLine;
+		}
+		if (lnLine)
+		{
+			if (strlineextractIsOpenString (szLine, lnLine, pslms->nLineComments, pslms->ccLineComments))
+			{	// Consume the rest.
+				szLine += lnLine;
+				lnLine = 0;
+			}
+			if (ui = strlineextractIsOpenString (szLine, lnLine, pslms->nMultiComments, pslms->ccBegMultiComments))
+			{
+				size_t lnOpn = strlen (pslms->ccBegMultiComments [ui - 1]);
+				szLine += lnOpn;
+				lnLine -= lnOpn;
+				while (lnLine)
+				{
+					if (strlineextractIsCloseString (szLine, lnLine, pslms->ccEndMultiComments, ui))
+					{
+						size_t lnCls = strlen (pslms->ccEndMultiComments [ui - 1]);
+						szLine += lnCls;
+						lnLine -= lnCls;
+						break;
+					} else
+					{
+						++ szLine;
+						-- lnLine;
+					}
+				}
+			}
+		}
+	}
+	if (pLen)
+		*pLen = lnLine;
+	return szLine;
+}
+
+#ifdef _MSC_VER
+#pragma warning (default: 4706)									// Assignment within conditional expression.
+#endif
+
+unsigned int strlineextractIsOpenString	(
 		const char		*szLine,			size_t			lnLine,
-		unsigned int	nQuotes,
-		const char		**pszOpenQuotes
+		unsigned int	nOpenStrings,		const char		**pszOpenStrings
 										)
 {
 	lnLine = USE_STRLEN == lnLine ? strlen (szLine) : lnLine;
 
-	for (unsigned int q = 0; q < nQuotes; ++ q)
+	for (unsigned int q = 0; q < nOpenStrings; ++ q)
 	{
-		if (cmpBufStartsWith (szLine, lnLine, pszOpenQuotes [q]))
+		ubf_assert (strlen (pszOpenStrings [q]));
+		if (cmpBufStartsWith (szLine, lnLine, pszOpenStrings [q]))
 			return q + 1;
 	}
 	return 0;
 }
 
-bool strlineextractIsCloseQuote	(
+bool strlineextractIsCloseString	(
 		const char		*szLine,			size_t			lnLine,
-		const char		**pszCloseQuotes,
-		unsigned int	idxCloseQuote1based
+		const char		**pszCloseStrings,
+		unsigned int	idxCloseString1based
 								)
 {
-	ubf_assert_non_0 (idxCloseQuote1based);
+	ubf_assert_non_0	(idxCloseString1based);
+	ubf_assert_non_NULL	(pszCloseStrings);
+	ubf_assert_non_NULL	(*pszCloseStrings);
 
-	-- idxCloseQuote1based;
-	return cmpBufStartsWith (szLine, lnLine, pszCloseQuotes [idxCloseQuote1based]);
-}
-
-unsigned int strlineextractIsEqual	(
-		const char		*szLine,			size_t			lnLine,
-		const char		**pszEquals,		unsigned int	nEquals
-									)
-{
-	for (unsigned int q = 0; q < nEquals; ++ q)
-	{
-		if (cmpBufStartsWith (szLine, lnLine, pszEquals [q]))
-			return q + 1;
-	}
-	return 0;
+	-- idxCloseString1based;
+	return cmpBufStartsWith (szLine, lnLine, pszCloseStrings [idxCloseString1based]);
 }
 
 bool strlineextractKeyOrValue	(
-		const char		**pszKeyOrVal,		size_t			*plnKeyOrVal,	// Out.
-		const char		**pszEqual,			size_t			*plnEqual,		// Out.
-		unsigned int	*pidxEqual1based,									// Out.
-		const char		*szLine,			size_t			lnLine,			// In.
-		unsigned int	nQuotes,											// In.
-		const char		**pszOpenQuotes,									// In.
-		const char		**pszClosQuotes,									// In.
-		const char		**pszEquals,		unsigned int	nEquals			// In.
+		const char		**cunilog_restrict pszKeyOrVal,	size_t	*plnKeyOrVal,	// Out.
+		const char		**cunilog_restrict pszEqual,	size_t	*plnEqual,		// Out.
+		unsigned int	*pidxEqual1based,										// Out.
+		const char		*szLine,						size_t	lnLine,			// In.
+		SCULMLTSTRINGS	*psmlt													// In.
 								)
 {
 	ubf_assert_non_NULL	(pszKeyOrVal);
 	ubf_assert_non_NULL	(plnKeyOrVal);
 	ubf_assert_non_NULL	(szLine);
 	ubf_assert_non_0	(lnLine);
+	ubf_assert_non_NULL	(psmlt);
+	ubf_assert_non_NULL	(psmlt->ccOpenQuotes);
+	ubf_assert_non_NULL	(psmlt->ccClosQuotes);
 
 	lnLine = USE_STRLEN == lnLine ? strlen (szLine) : lnLine;
 	if (pszEqual)			*pszEqual			= NULL;
@@ -577,17 +720,16 @@ bool strlineextractKeyOrValue	(
 
 	const char *szRet;
 	const char *szEnd;
-	unsigned int uQuote = strlineextractIsOpenQuote (szLine, lnLine, nQuotes, pszOpenQuotes);
+	unsigned int uQuote = strlineextractIsOpenString (szLine, lnLine, psmlt->nQuotes, psmlt->ccOpenQuotes);
 	if (uQuote)
 	{
-		size_t lnOpenQuote = strlen (pszOpenQuotes [uQuote]);
+		size_t lnOpenQuote = strlen (psmlt->ccOpenQuotes [uQuote - 1]);
 		szLine += lnOpenQuote;
 		lnLine -= lnOpenQuote;
 		szRet = szLine;
 		while (lnLine)
 		{
-			size_t uClose = strlineextractIsCloseQuote (szLine, lnLine, pszClosQuotes, uQuote);
-			if (uClose)
+			if (strlineextractIsCloseString (szLine, lnLine, psmlt->ccClosQuotes, uQuote))
 			{
 				*plnKeyOrVal = szLine - szRet;
 				*pszKeyOrVal = szRet;
@@ -606,14 +748,14 @@ bool strlineextractKeyOrValue	(
 		{
 			if	(
 						!isWhiteSpace (szLine [0])
-					&&	!strlineextractIsEqual (szLine, lnLine, pszEquals, nEquals)
+					&&	!strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals)
 				)
 			{
 				szEnd = szLine;
 			}
 			++ szLine;
 			-- lnLine;
-			unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, pszEquals, nEquals);
+			unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
 			if (ui1)
 			{	// Return the position of the equality sign found and the remaining length
 				//	of the line and its 1-based index. This way the caller doesn't need to
@@ -634,13 +776,10 @@ bool strlineextractKeyOrValue	(
 }
 
 bool strlineextractKeyAndValue	(
-		const char		**pszKey,			size_t			*plnKey,
-		const char		**pszVal,			size_t			*plnVal,
-		const char		*szLine,			size_t			lnLine,
-		unsigned int	nQuotes,
-		const char		**pszOpenQuotes,
-		const char		**pszClosQuotes,
-		const char		**pszEquals,		unsigned int	nEquals
+		const char		**cunilog_restrict pszKey,	size_t	*plnKey,		// Out.
+		const char		**cunilog_restrict pszVal,	size_t	*plnVal,		// Out.
+		const char		*cunilog_restrict szLine,	size_t	lnLine,			// In.
+		SCULMLTSTRINGS	*psmlt												// In.
 							)
 {
 	if (NULL == szLine)
@@ -653,15 +792,12 @@ bool strlineextractKeyAndValue	(
 	ubf_assert_non_NULL (plnKey);
 	ubf_assert_non_NULL (pszVal);
 	ubf_assert_non_NULL (plnVal);
+	ubf_assert_non_NULL (psmlt);
 
-	// No white space is allowed at the start of szLine. White space must be
-	//	removed before the function is called.
-	ubf_assert (' '		!= szLine [0]);
-	ubf_assert ('\b'	!= szLine [0]);
-	ubf_assert ('\t'	!= szLine [0]);
-	ubf_assert ('\v'	!= szLine [0]);
-	ubf_assert ('\f'	!= szLine [0]);
-	ubf_assert (!isWhiteSpace (szLine [0]));
+	/*
+	if (NULL == pszEquals || 0 == nEquals)
+		return false;
+	*/
 
 	const char		*szEqual;
 	size_t			lnEqual;
@@ -670,8 +806,7 @@ bool strlineextractKeyAndValue	(
 				pszKey,		plnKey,
 				&szEqual,	&lnEqual, &idxEqual1,
 				szLine,		lnLine,
-				nQuotes,	pszOpenQuotes, pszClosQuotes,
-				pszEquals,	nEquals
+				psmlt
 										);
 	if (!b)
 		return false;
@@ -681,23 +816,97 @@ bool strlineextractKeyAndValue	(
 	if (0 == idxEqual1)
 		return false;
 
+	size_t lenOurFoundEqual = strlen (psmlt->ccEquals [idxEqual1 - 1]);
+	szEqual += lenOurFoundEqual;
+	ubf_assert (0 < lnEqual);
+	ubf_assert (lnEqual >= lenOurFoundEqual);
+	lnEqual -= lenOurFoundEqual;
+
 	// From now on we don't care about equality strings. We accept
 	//	"key = value = value = value", with the value being "value = value = value".
 	b = strlineextractKeyOrValue		(
 				pszVal,		plnVal,
-				&szEqual,	&lnEqual, &idxEqual1,
-				szLine,		lnLine,
-				nQuotes,	pszOpenQuotes, pszClosQuotes,
-				NULL,		0
+				NULL, NULL, NULL,
+				szEqual,	lnEqual,
+				psmlt
 										);
 	if (!b)
 		return false;
 
-	// With no equality strings passed on to strlineextractKeyOrValue () above,
-	//	receiving an index would be a bug.
-	ubf_assert_0 (idxEqual1);
-
 	return true;
+}
+
+bool strlineextractSection	(
+		const char				**cunilog_restrict pszSec,	size_t	*plnSec,
+		const char				*cunilog_restrict szLine,	size_t	lnLine,
+		SCULMLTSTRINGS			*psmlt,
+		en_strlineextract_ws	ws
+							)
+{
+	ubf_assert_non_NULL	(psmlt);
+	ubf_assert_non_0	(psmlt->nSections);
+	ubf_assert_non_NULL	(psmlt->ccStrtSections);
+	ubf_assert_non_NULL	(psmlt->ccExitSections);
+
+	if (NULL == szLine)
+		return false;
+	lnLine = USE_STRLEN == lnLine ? strlen (szLine) : lnLine;
+	if (0 == lnLine)
+		return false;
+
+	bool bAcceptLeadWS =		strlineextract_accept_white_space_and_comments			== ws
+							||	strlineextract_accept_leading_and_trailing_white_space	== ws
+							||	strlineextract_accept_leading_white_space				== ws;
+
+	bool bAcceptTraiWS =		strlineextract_accept_white_space_and_comments			== ws
+							||	strlineextract_accept_leading_and_trailing_white_space	== ws
+							||	strlineextract_accept_trailing_white_space				== ws;
+
+	if (bAcceptLeadWS)
+	{
+		size_t	newLnLine;
+		szLine = strlineextractRemoveLeadingWhiteSpace (&newLnLine, szLine, lnLine);
+		lnLine = newLnLine;
+	}
+
+	const char *szRet;
+	unsigned int uQuote = strlineextractIsOpenString (szLine, lnLine, psmlt->nSections, psmlt->ccStrtSections);
+	if (uQuote)
+	{
+		size_t lnStartSection = strlen (psmlt->ccStrtSections [uQuote]);
+		szLine += lnStartSection;
+		lnLine -= lnStartSection;
+		szRet = szLine;
+		while (lnLine)
+		{
+			size_t uClose = strlineextractIsCloseString (szLine, lnLine, psmlt->ccExitSections, uQuote);
+			if (uClose)
+			{
+				size_t lnExitSection = strlen (psmlt->ccExitSections [uQuote]);
+				*plnSec = szLine - szRet;
+				*pszSec = szRet;
+				szLine += lnExitSection;
+				lnLine -= lnExitSection;
+				if (strlineextract_accept_white_space_and_comments == ws)
+				{
+					size_t	newLnLine;
+					strlineextractRemoveWhiteSpaceAndComments (&newLnLine, szLine, lnLine, psmlt);
+					lnLine = newLnLine;
+				} else
+				if (bAcceptTraiWS)
+				{
+					size_t	newLnLine;
+					szLine = strlineextractRemoveLeadingWhiteSpace (&newLnLine, szLine, lnLine);
+					lnLine = newLnLine;
+				}
+				return 0 == lnLine;
+			}
+			++ szLine;
+			-- lnLine;
+		}
+		// No exit section string.
+	}
+	return false;
 }
 
 #ifdef STRLINEEXTRACT_BUILD_TEST_FNCT
@@ -715,7 +924,7 @@ bool strlineextractKeyAndValue	(
 		ubf_assert_non_NULL (psli);
 
 		STRLINEXTCSTM	*plex	= psli->pCustom;
-		char			*szLine	= psli->pStart;
+		const char		*szLine	= psli->szStart;
 		size_t			lnLine	= psli->lnLength;
 
 
@@ -748,7 +957,7 @@ bool strlineextractKeyAndValue	(
 		ubf_expect_bool_AND (b, true == cmpBufStartsWith (sz, 5, "This "));
 
 		unsigned int ui;
-		ui = strlineextractIsOpenQuote ("\"abc", USE_STRLEN, GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes);
+		ui = strlineextractIsOpenString ("\"abc", USE_STRLEN, GET_ARRAY_LEN (ccCulStdOpenQuotes), ccCulStdOpenQuotes);
 		ubf_expect_bool_AND (b, 0 < ui);
 
 		strcpy (sz, "/*");
@@ -790,14 +999,16 @@ bool strlineextractKeyAndValue	(
 						"/*\n"
 						"A text.\n"
 						"*/\n"
+						" /* comment */ 1234\n"
 						;
 		InitSTRLINECONFforUBFL (&conf);
 		inf.pCustom = &cust;
 		size_t n = 0;
 		StrLineExtract (szTst, USE_STRLEN, &conf, ourLinextractCB, &cust);
-		ubf_expect_bool_AND (b, 2 == cust.n);
+		ubf_expect_bool_AND (b, 3 == cust.n);
 		ubf_expect_bool_AND (b, !memcmp ("First line", cust.strs [n ++], 10));
 		ubf_expect_bool_AND (b, !memcmp ("ABCDEFG", cust.strs [n ++], 7));
+		ubf_expect_bool_AND (b, !memcmp ("1234", cust.strs [n ++], 4));
 
 		for (size_t ux = 0; ux < STRLINEEXTRACT_TEST_STRING_NUM; ++ ux)
 		{
@@ -832,11 +1043,20 @@ bool strlineextractKeyAndValue	(
 		ubf_expect_bool_AND (b, 9 == lnResult);
 		ubf_expect_bool_AND (b, NULL == szResult);
 
+		// Note that we do not fully initialise the structure here. We only
+		//	prepare what we really need right now.
+		SCULMLTSTRINGS	scmul;
+		scmul.ccOpenQuotes			= ccCulStdOpenQuotes;
+		scmul.ccClosQuotes			= ccCulStdClosQuotes;
+		scmul.nQuotes				= nCulStdQuotes;
+		scmul.ccEquals				= ccCulStdEqualSigns;
+		scmul.nEquals				= nCulStdEquals;
+
 		const char	*szKey	= NULL;
 		size_t		lnKey	= 0;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
-				"Key=Val", 7, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				"Key=Val", 7, &scmul
 										);
 		ubf_expect_bool_AND (b, 0 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -847,7 +1067,7 @@ bool strlineextractKeyAndValue	(
 		lnKey = 7;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
-				"Key=Val", 7, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				"Key=Val", 7, &scmul
 										);
 		ubf_expect_bool_AND (b, 7 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -859,7 +1079,7 @@ bool strlineextractKeyAndValue	(
 		lnKey = 7;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
-				"  \tKey=Val", 10, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				"  \tKey=Val", 10, &scmul
 										);
 		ubf_expect_bool_AND (b, 7 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -870,7 +1090,7 @@ bool strlineextractKeyAndValue	(
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
-				"Key", 3, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				"Key", 3, &scmul
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -881,7 +1101,7 @@ bool strlineextractKeyAndValue	(
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
-				"Key ", 3, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				"Key ", 3, &scmul
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -892,7 +1112,7 @@ bool strlineextractKeyAndValue	(
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
-				"Key ", 4, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				"Key ", 4, &scmul
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -903,7 +1123,7 @@ bool strlineextractKeyAndValue	(
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
-				"Key  ", 3, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				"Key  ", 3, &scmul
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -914,7 +1134,7 @@ bool strlineextractKeyAndValue	(
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
-				"Key  ", 5, 0, NULL, NULL, ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				"Key  ", 5, &scmul
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -925,8 +1145,7 @@ bool strlineextractKeyAndValue	(
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
-				"Key\t\t\t\t     ", USE_STRLEN, 0, NULL, NULL,
-				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				"Key\t\t\t\t     ", USE_STRLEN, &scmul
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -937,8 +1156,7 @@ bool strlineextractKeyAndValue	(
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
-				"Key\t\t\t\t     =  jjjj", USE_STRLEN, 0, NULL, NULL,
-				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				"Key\t\t\t\t     =  jjjj", USE_STRLEN, &scmul
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -949,8 +1167,8 @@ bool strlineextractKeyAndValue	(
 		lnKey = 4000;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
-				"Key number 1\t\t\t\t     =  jjjj", USE_STRLEN, 0, NULL, NULL,
-				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				"Key number 1\t\t\t\t     =  jjjj", USE_STRLEN,
+				&scmul
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -962,8 +1180,7 @@ bool strlineextractKeyAndValue	(
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
 				"[Key number 1]\t\t\t\t     =  jjjj", USE_STRLEN,
-				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
-				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&scmul
 										);
 		ubf_expect_bool_AND (b, 4000 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -977,8 +1194,7 @@ bool strlineextractKeyAndValue	(
 		b &= !strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
 				"[Key number 1\t\t\t\t     =  jjjj", USE_STRLEN,
-				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
-				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&scmul
 										);
 		ubf_expect_bool_AND (b, 4000 == lnKey);
 		ubf_expect_bool_AND (b, NULL == szKey);
@@ -987,8 +1203,8 @@ bool strlineextractKeyAndValue	(
 			"If the key or value is quoted, the key or value inside the quotes is extracted.
 			The function fails (returns false) if no closing quote is found."
 
-			"If a key or value doesn't start with an opening quote but contains quotes,
-			the quotes are treated as normal characters."
+			If a key or value doesn't start with an opening quote but contains quotes,
+			these quotes are treated as normal characters.
 
 			"The extracted key is not NUL-terminated, since it is only a pointer to a buffer,
 			and its length, inside the original buffer szLine points to."
@@ -998,8 +1214,7 @@ bool strlineextractKeyAndValue	(
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
 				"'Key number 1\t\t\t\t'     =  jjjj", USE_STRLEN,
-				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
-				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&scmul
 										);
 		ubf_expect_bool_AND (b, 5555 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -1010,8 +1225,7 @@ bool strlineextractKeyAndValue	(
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
 				"'Key {number 1\t\t\t\t'     =  jjjj", USE_STRLEN,
-				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
-				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&scmul
 										);
 		ubf_expect_bool_AND (b, 5555 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -1022,8 +1236,7 @@ bool strlineextractKeyAndValue	(
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
 				"'Key {number} 1\t\t\t\t'     =  jjjj", USE_STRLEN,
-				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
-				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&scmul
 										);
 		ubf_expect_bool_AND (b, 5555 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -1037,8 +1250,7 @@ bool strlineextractKeyAndValue	(
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
 				"\t\t\t   'Key {number} 1\t\t\t\t'     =  jjjj", USE_STRLEN,
-				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
-				ccSdEqualSigns, GET_ARRAY_LEN (ccSdEqualSigns)
+				&scmul
 										);
 		ubf_expect_bool_AND (b, 5555 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -1048,13 +1260,13 @@ bool strlineextractKeyAndValue	(
 
 		// No equality strings. We should get the entire line excluding leading
 		//	and trailing white space.
+		scmul.nEquals				= 0;
 		szKey = NULL;
 		lnKey = 5555;
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
 				"  value = value = value  ", USE_STRLEN,
-				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
-				NULL, 0
+				&scmul
 										);
 		ubf_expect_bool_AND (b, 5555 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -1065,8 +1277,7 @@ bool strlineextractKeyAndValue	(
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
 				"\t\t\t\t  \t \t   \t\t\t  value = value = value\t\t  ", USE_STRLEN,
-				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
-				NULL, 0
+				&scmul
 										);
 		ubf_expect_bool_AND (b, 5555 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
@@ -1077,14 +1288,278 @@ bool strlineextractKeyAndValue	(
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
 				"value = value = value", USE_STRLEN,
-				GET_ARRAY_LEN (ccSdOpenQuotes), ccSdOpenQuotes, ccSdClosQuotes,
-				NULL, 0
+				&scmul
 										);
 		ubf_expect_bool_AND (b, 5555 != lnKey);
 		ubf_expect_bool_AND (b, NULL != szKey);
 		ubf_expect_bool_AND (b, 21 == lnKey);
-		// The closing single quote must not have been overwritten.
 		ubf_expect_bool_AND (b, !memcmp ("value = value = value", szKey, 21));
+		szKey = NULL;
+		lnKey = 5555;
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"value = value = value'", USE_STRLEN,
+				&scmul
+										);
+		ubf_expect_bool_AND (b, 5555 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 22 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("value = value = value'", szKey, 22));
+
+		scmul.nEquals = nCulStdEquals;
+		char cBuf [1024];
+		strcpy	(
+			cBuf,
+			"\t\t\t\t      key          =      value    \t"
+				);
+		const char	*szVal;
+		size_t		lnVal;
+		b &= strlineextractKeyAndValue	(
+				&szKey, &lnKey,
+				&szVal, &lnVal,
+				cBuf, USE_STRLEN,
+				&scmul
+										);
+		ubf_assert_true (b);
+		ubf_expect_bool_AND (b, 3 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 5 == lnVal);
+		ubf_expect_bool_AND (b, !memcmp ("value", szVal, 5));
+
+		strcpy	(
+			cBuf,
+			"\t\t\t\t      key          :=      value    \t"
+				);
+		b &= strlineextractKeyAndValue	(
+				&szKey, &lnKey,
+				&szVal, &lnVal,
+				cBuf, USE_STRLEN,
+				&scmul
+										);
+		ubf_assert_true (b);
+		ubf_expect_bool_AND (b, 3 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 5 == lnVal);
+		ubf_expect_bool_AND (b, !memcmp ("value", szVal, 5));
+
+		strcpy	(
+			cBuf,
+			"\t\t\t\t      key          ->      value    \t"
+				);
+		b &= strlineextractKeyAndValue	(
+				&szKey, &lnKey,
+				&szVal, &lnVal,
+				cBuf, USE_STRLEN,
+				&scmul
+										);
+		ubf_assert_true (b);
+		ubf_expect_bool_AND (b, 3 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 5 == lnVal);
+		ubf_expect_bool_AND (b, !memcmp ("value", szVal, 5));
+
+		// A second equality string belongs to the value.
+		strcpy	(
+			cBuf,
+			"\t\t\t\t      key          ->->value    \t"
+				);
+		b &= strlineextractKeyAndValue	(
+				&szKey, &lnKey,
+				&szVal, &lnVal,
+				cBuf, USE_STRLEN,
+				&scmul
+										);
+		ubf_assert_true (b);
+		ubf_expect_bool_AND (b, 3 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 7 == lnVal);
+		ubf_expect_bool_AND (b, !memcmp ("->value", szVal, 5));
+
+		// Without equality signs the function fails.
+		strcpy	(
+			cBuf,
+			"\t\t\t\t      key          =      value    \t"
+				);
+		scmul.nEquals = 0;
+		b &= !strlineextractKeyAndValue	(
+				&szKey, &lnKey,
+				&szVal, &lnVal,
+				cBuf, USE_STRLEN,
+				&scmul
+										);
+		ubf_assert_true (b);
+
+		strcpy	(
+			cBuf,
+			"\t\t\t\t      key          .      value    \t"
+				);
+		b &= !strlineextractKeyAndValue	(
+				&szKey, &lnKey,
+				&szVal, &lnVal,
+				cBuf, USE_STRLEN,
+				&scmul
+										);
+		ubf_assert_true (b);
+
+		const char *szSect;
+		size_t		lnSect;
+
+		// Sections.
+		InitSCULMLTSTRINGSforUBFL (&scmul);
+		strcpy (cBuf, "   \t\t\t /* comment */   ");
+		szSect = strlineextractRemoveWhiteSpaceAndComments (&lnSect, cBuf, USE_STRLEN, &scmul);
+		ubf_expect_bool_AND (b, 0 == lnSect);
+
+		strcpy	(
+			cBuf,
+			"[Section]"
+				);
+		szSect = NULL;
+		lnSect = 55;
+		b &= strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_reject_white_space
+									);
+		ubf_expect_bool_AND (b, 7 == lnSect);
+		ubf_expect_bool_AND (b, !memcmp ("Section]", szSect, 8));
+		szSect = NULL;
+		lnSect = 55;
+		b &= strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_accept_leading_and_trailing_white_space
+									);
+		ubf_expect_bool_AND (b, 7 == lnSect);
+		ubf_expect_bool_AND (b, !memcmp ("Section]", szSect, 8));
+		szSect = NULL;
+		lnSect = 55;
+		strcpy	(
+			cBuf,
+			" [Section]"
+				);
+		b &= !strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_reject_white_space
+									);
+		szSect = NULL;
+		lnSect = 55;
+		strcpy	(
+			cBuf,
+			"[Section]   "
+				);
+		b &= !strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_reject_white_space
+									);
+		szSect = NULL;
+		lnSect = 55;
+		strcpy	(
+			cBuf,
+			"\t\t\t     [Section]    \t\t\t        "
+				);
+		b &= strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_accept_leading_and_trailing_white_space
+									);
+		ubf_expect_bool_AND (b, 7 == lnSect);
+		ubf_expect_bool_AND (b, !memcmp ("Section]", szSect, 8));
+		strcpy	(
+			cBuf,
+			"\t\t\t     [Section]    =\t\t\t        "
+				);
+		b &= !strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_accept_leading_and_trailing_white_space
+									);
+		strcpy	(
+			cBuf,
+			"\t\t\t     [Section]    \t\t\t    =    "
+				);
+		b &= !strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_accept_leading_and_trailing_white_space
+									);
+		strcpy	(
+			cBuf,
+			"\t\t\t     [Section]    \t\t\t    ="
+				);
+		b &= !strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_accept_leading_and_trailing_white_space
+									);
+		ubf_expect_true (b);
+
+		// Invalid equality sign.
+		strcpy	(
+			cBuf,
+			"  =     [Section]    \t\t\t    // Line comment"
+				);
+		b &= !strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_accept_white_space_and_comments
+									);
+
+		strcpy	(
+			cBuf,
+			"  \t\t     [Section]    \t\t\t    // Line comment"
+				);
+		lnSect = 5555;
+		b &= strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_accept_white_space_and_comments
+									);
+		ubf_expect_bool_AND (b, 5555 != lnSect);
+		ubf_expect_bool_AND (b, 7 == lnSect);
+		ubf_expect_bool_AND (b, !memcmp ("Section]", szSect, 8));
+
+		strcpy	(
+			cBuf,
+			"   [Section]  /* c */  // Line comment"
+				);
+		lnSect = 5555;
+		b &= strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_accept_white_space_and_comments
+									);
+		ubf_expect_bool_AND (b, 5555 != lnSect);
+		ubf_expect_bool_AND (b, 7 == lnSect);
+		ubf_expect_bool_AND (b, !memcmp ("Section]", szSect, 8));
+
+		strcpy	(
+			cBuf,
+			"   \t\t\t\t[Section]/**/\t\t\t/**/\t\t  /**/  // Line comment"
+				);
+		lnSect = 5555;
+		b &= strlineextractSection	(
+				&szSect, &lnSect,
+				cBuf, USE_STRLEN,
+				&scmul,
+				strlineextract_accept_white_space_and_comments
+									);
+		ubf_expect_bool_AND (b, 5555 != lnSect);
+		ubf_expect_bool_AND (b, 7 == lnSect);
+		ubf_expect_bool_AND (b, !memcmp ("Section]", szSect, 8));
 
 
 		return b;

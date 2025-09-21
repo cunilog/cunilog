@@ -43,6 +43,8 @@ win32:DEFINES += _CRT_SECURE_NO_WARNINGS
 win32:DEFINES += HAVE_ADVAPI32
 win32:DEFINES += HAVE_SHELLAPI
 win32:DEFINES += HAVE_USERENV
+win32:DEFINES += HAVE_WINUSER
+win32:LIBS += User32.lib
 #win32:LIBS += Shell32.lib
 
 # The tests
@@ -61,6 +63,9 @@ DEFINES += BUILD_TEST_WINAPI_U8_FNCT
 DEFINES += PROCESS_HELPERS_BUILD_TEST_FNCT
 DEFINES += STRLINEEXTRACT_BUILD_TEST_FNCT
 DEFINES += TEST_PROCESS_HELPER_BUILD_TEST_FNCT
+DEFINES += STRMEMBUF_BUILD_TEST_FNCT
+DEFINES += CUNILOG_BUILD_EXEFILENAME_TEST_FNCT
+DEFINES += FILEMEMBUF_BUILD_TEST_FNCT
 
 # If this -ldl is missing, the linker on Linux complains with
 #	"sqlite3.o: undefined reference to symbol 'dlclose@@GLIBC_2.2.5'".
@@ -79,6 +84,7 @@ HEADERS += \
 	../../src/c/OS/Apple/TrashCan.h \
     ../../src/c/OS/CompressFile.h \
     ../../src/c/OS/ExeFileName.h \
+    ../../src/c/OS/FileMembuf.h \
     ../../src/c/OS/POSIX/PsxCompressFile.h \
     ../../src/c/OS/POSIX/PsxExeFileName.h \
     ../../src/c/OS/POSIX/PsxHome.h \
@@ -142,6 +148,7 @@ SOURCES += \
 	../../src/c/OS/Apple/TrashCan.c \
     ../../src/c/OS/CompressFile.c \
     ../../src/c/OS/ExeFileName.c \
+    ../../src/c/OS/FileMembuf.c \
     ../../src/c/OS/POSIX/PsxCompressFile.c \
     ../../src/c/OS/POSIX/PsxExeFileName.c \
     ../../src/c/OS/POSIX/PsxHome.c \

@@ -68,8 +68,16 @@ When		Who				What
 EXTERN_C_BEGIN
 
 #ifdef PLATFORM_IS_WINDOWS
-	//typedef cunilog_process_t
+
+	#include <Windows.h>
+
+	typedef DWORD	cunilog_pid_t;
+
 #else
+
+	#include <unistd.h>
+
+	typedef pid_t	cunilog_pid_t;
 
 #endif
 
@@ -98,22 +106,36 @@ size_t ProcessHelpersSetBufferSize (size_t bufsize);
 char *CreateArgsList (const char *szExecutable, int argc, const char *argv [], bool bNoExeArg)
 ;
 
+typedef struct sruncmdcbinf
+{
+	const char			*szExecutable;						// As provided by the caller.
+	size_t				lnExecutable;						// Its length.
+	const char			*szArgsList;						// Arguments string.
+	size_t				lnArgsList;							// Its length.
+	const char			*szWorkingDir;
+	size_t				lnWorkingDir;
+	cunilog_pid_t		childProcessId;						// PID of the child.
+	enum enRCmdCBval	rvHtb;								// Return value of heartbeat CB.
+	uint64_t			uiChildExitTimeout;					// Time in ms to wait for the
+															//	child to exit.
+} SRUNCMDCBINF;
+
 /*
 	Callback function return values.
 
 	enRunCmdRet_Continue			This is the default. The calling function carries
 									on until the child process exits.
-									CreateAndRunCmdProcessCaptureStdout () returns true.
+									CreateAndRunCmdProcessCapture () returns true.
 
 	enRunCmdRet_Ignore				The callback function is not called again but the
 									child process keeps running until it exits itself.
-									CreateAndRunCmdProcessCaptureStdout () returns true.
+									CreateAndRunCmdProcessCapture () returns true.
 
 	enRunCmdRet_Terminate			Terminate the child process.
-									CreateAndRunCmdProcessCaptureStdout () returns true.
+									CreateAndRunCmdProcessCapture () returns true.
 
 	enRunCmdRet_TerminateFail		Terminate the child process.
-									CreateAndRunCmdProcessCaptureStdout () returns true.
+									CreateAndRunCmdProcessCapture () returns true.
 */
 enum enRunCmdCallbackRetValue
 {
@@ -124,12 +146,20 @@ enum enRunCmdCallbackRetValue
 															//	function for this stream.
 	enRunCmdRet_TerminateFail
 };
-typedef enum enRunCmdRet enRCmdCBval;
+typedef enum enRunCmdCallbackRetValue enRCmdCBval;
 
 /*
-	Callback function for stdout andstderr.
+	Callback function for stdout and stderr.
+
+	The argument szOutput contains a pointer to the data the child process sent to
+	either stdout or stderr, depending on which callback function is called.
+
+	The argument lnOutput contains the length of the data. If enRunCmdHow_AsIs is
+	passed to CreateAndRunCmdProcessCapture () via the enum enRunCmdHowToCallCB,
+	the data/text may not be NUL-terminated. Do not read beyond lnOutput in this case.
 */
-typedef enRCmdCBval rcmdOutCB (const char *szOutput, size_t lnOutput, void *pCustom);
+typedef enRCmdCBval rcmdOutCB (SRUNCMDCBINF *pinf, char *szOutput, size_t lnOutput, void *pCustom);
+
 /*
 	Callback function for stdin.
 
@@ -137,9 +167,14 @@ typedef enRCmdCBval rcmdOutCB (const char *szOutput, size_t lnOutput, void *pCus
 	The buffer of this structure can be populated with data by the callback function.
 	This data is forwarded/sent to the child process's input stream stdin.
 
-	The address plnData points to must be set to the length of the data that should
-	be sent to the child's stdin stream. If nothing needs to be sent to the child process's
-	input stream, *plenData must be set to 0 by the callback function.
+	The address plnData points to must be set to the length of the data that will
+	be sent to the child's stdin stream, excluding a terminating NUL character. If
+	the value plnData points to is USE_STRLEN, the buffer of the SMEMBUF structure
+	psmb points to must be NUL-terminated, and CreateAndRunCmdProcessCapture () calls
+	strlen () on it to obtain its length.
+
+	If nothing should be sent to the child process's input stream, *plenData must be set
+	to 0 by the callback function.
 
 	For example, a callback function of type rcmdInpCB could send the command "exit\n"
 	(note the "\n" to simulate the enter key) to the child process:
@@ -153,13 +188,24 @@ typedef enRCmdCBval rcmdOutCB (const char *szOutput, size_t lnOutput, void *pCus
 	}
 
 */
-typedef enRCmdCBval rcmdInpCB (SMEMBUF *psmb, size_t *plnData, void *pCustom);
+typedef enRCmdCBval rcmdInpCB (SRUNCMDCBINF *pinf, SMEMBUF *psmb, size_t *plnData, void *pCustom);
 
+typedef enRCmdCBval rcmdHtbCB (SRUNCMDCBINF *pinf, void *pCustom);
+
+/*
+	SRCMDCBS
+
+	This structure contains pointers to the callback functions as well as the heartbeat
+	interval in milliseconds (ms).
+*/
 typedef struct srcmdCBs
 {
-	rcmdInpCB	*cbInp;
-	rcmdOutCB	*cbOut;
-	rcmdOutCB	*cbErr;
+	rcmdInpCB	*cbInp;										// CB to provide stdin for child.
+	rcmdOutCB	*cbOut;										// CB to receive stdout from child.
+	rcmdOutCB	*cbErr;										// CB to receive stderr from child.
+	rcmdHtbCB	*cbHtb;										// CB for heartbeat.
+	uint64_t	uiHtbMS;									// Time interval in ms to call the
+															//	heartbeat CB cbHtb.
 } SRCMDCBS;
 
 /*
@@ -168,7 +214,8 @@ typedef struct srcmdCBs
 #define RUNCMDPROC_CALLB_STDINP		(0x0001)				// Invoke callback for stdin.
 #define RUNCMDPROC_CALLB_STDOUT		(0x0002)				// Invoke callback for stdout.
 #define RUNCMDPROC_CALLB_STDERR		(0x0004)				// Invoke callback for stderr.
-#define RUNCMDPROC_EXEARG_NOEXE		(0x0008)				// No exe argument in parameter
+#define RUNCMDPROC_CALLB_HEARTB		(0x0008)				// Invoke callback for heartbeat.
+#define RUNCMDPROC_EXEARG_NOEXE		(0x0010)				// No exe argument in parameter
 															//	list. See comments for function
 															//	CreateArgsList () for details.
 															//	This flag sets the parameter
@@ -232,7 +279,7 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 	szWorkingDir		The working directory/current directory of the command-line process.
 
 	pCBs				A pointer to an SRCMDCBS structure that contains pointers to the
-						callback functions.
+						callback functions and the heartbeat time interval.
 
 	cbHow				Specifies how and when the callback functions are to be invoked by
 						the function. See the enum enRunCmdHowToCallCB for a list of possible
@@ -251,19 +298,33 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 						EXIT_FAILURE has a value of 1.
 
 */
+#if defined (PLATFORM_IS_WINDOWS)
+
 	bool CreateAndRunCmdProcessCapture	(
 			const char				*szExecutable,
 			const char				*szCmdLine,
 			const char				*szWorkingDir,
-			SRCMDCBS				*pCBs,
+			SRCMDCBS				*pCBs,					// CB functions and heartbeat interval.
 			enRCmdCBhow				cbHow,					// How to call the callback functions.
 			uint16_t				uiRCflags,				// One or more of the RUNCMDPROC_
 															//	flags.
 			void					*pCustom,				// Passed on unchanged to callback
 															//	functions.
+			uint64_t				uiChildExitTimeout,		// Time in ms to wait for the child to
+															//	exit/terminate.
 			int						*pExitCode				// Exit code of process.
 										)
 ;
+
+#elif defined (PLATFORM_IS_POSIX)
+
+
+#elif
+
+	// Neither Windows nor POSIX.
+	#error Not supported
+
+#endif
 
 
 /*

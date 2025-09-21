@@ -128,6 +128,17 @@ EXTERN_C_BEGIN
 		PsxObtainPathFromExecutableModule (mb)
 #endif
 
+/*
+	TestExeFileNameFnct
+
+	Tests this module. Returns true if successful.
+*/
+#ifdef CUNILOG_BUILD_EXEFILENAME_TEST_FNCT
+	bool TestExeFileNameFnct (void);
+#else
+	#define TestExeFileNameFnct()	(true)
+#endif
+
 EXTERN_C_END
 
 #endif														// Of #ifndef EXEFILENAME_H.

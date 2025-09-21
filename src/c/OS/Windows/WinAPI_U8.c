@@ -259,6 +259,35 @@ WCHAR *AllocWinU16_from_UTF8_FileName (const char *ccU8FileName)
 	}
 #endif
 
+char *AllocU8_from_WinU16l (const WCHAR *wc16, size_t ln16)
+{
+	ASSERT (ln16 < INT_MAX);
+
+	char	*pc	= NULL;
+	ln16 = USE_STRLEN == ln16 ? wcslen (wc16) : ln16;
+	
+	if (wc16)
+	{
+		int	iRequiredSize = reqUTF8sizel (wc16, (int) ln16);
+		ASSERT (iRequiredSize < INT_MAX);
+		pc = ubf_malloc (iRequiredSize + 1);
+		if (pc)
+		{
+			UTF8_from_WinU16l (pc, iRequiredSize, wc16, (int) ln16);
+			//pc [iRequiredSize] = ASCII_NUL;		//Intellisense doesn't like this.
+			* (pc + iRequiredSize) = ASCII_NUL;
+		}
+	} else
+	{
+		ASSERT (0 == ln16);
+		pc = ubf_malloc (1);
+		if (pc)
+			*pc = ASCII_NUL;
+			//pc [0] = ASCII_NUL;					//Intellisense doesn't like this.
+	}
+	return pc;
+}
+
 char *AllocU8_from_WinU16 (const WCHAR *wc16)
 {
 	char	*pc	= NULL;
@@ -472,6 +501,44 @@ void DoneWinU16fromU8orUseThreshold (WCHAR *pwcHeapVar, WCHAR *pwcStackVar)
 	ASSERT (NULL != pwcStackVar);
 	if (pwcHeapVar && pwcHeapVar != pwcStackVar)
 		DoneWinU16 (pwcHeapVar);
+}
+
+char *AllocU8fromWinU16orUseThresholdl (char *pszStackVar, const WCHAR *pwcU16, size_t lnU16)
+{
+	char	*szRet	= NULL;
+	
+	lnU16 = USE_STRLEN == lnU16 ? wcslen (pwcU16) : lnU16;
+	ASSERT (lnU16 < INT_MAX);
+
+	if (pwcU16)
+	{
+		int		iLen;
+		
+		iLen = reqUTF8sizel (pwcU16, (int) lnU16);
+		if (iLen < WINAPI_U8_HEAP_THRESHOLD)
+		{
+			UTF8_from_WinU16l (pszStackVar, iLen, pwcU16, (int) lnU16);
+			szRet = pszStackVar;
+		} else
+		{
+			szRet = AllocU8_from_WinU16 (pwcU16);
+		}
+		if (iLen)
+			szRet [iLen] = ASCII_NUL;
+	}
+	return szRet;
+}
+
+char *AllocU8fromWinU16orUseThreshold (char *pszStackVar, const WCHAR *pwcU16)
+{
+	return AllocU8fromWinU16orUseThresholdl (pszStackVar, pwcU16, USE_STRLEN);
+}
+
+void DoneU8fromWinU16orUseThreshold (char *pszHeapVar, char *pszStackVar)
+{
+	ASSERT (NULL != pszStackVar);
+	if (pszHeapVar && pszHeapVar != pszStackVar)
+		DoneU8 (pszHeapVar);
 }
 
 char **AllocU8ArgsFromWinU16 (int argc, WCHAR *argvw [])
@@ -3699,27 +3766,101 @@ BOOL SetFileSecurityU8(
 }
 #endif
 
-/*
-	ToDo!!!
-	Doesn't seem to work!!!
-*/
-bool TerminateChildProcess (HANDLE hProcess)
+typedef struct spostmsgtoprocwnds
 {
-	bool b = true;
+	DWORD	dwProcessId;
+	UINT	msg;
+} SPOSTMSGTOPROCWNDS;
 
-	b &= GenerateConsoleCtrlEvent (CTRL_C_EVENT, GetProcessId (hProcess));
-	b &= GenerateConsoleCtrlEvent (CTRL_BREAK_EVENT, GetProcessId (hProcess));
+BOOL CALLBACK postMessageToProcessWindows (HWND hwnd, LPARAM lParam)
+{
+	ASSERT (NULL != (void *) lParam);
+	if (NULL == (void *) lParam)
+		return FALSE;
 
-	DWORD dwWait = WaitForSingleObject (hProcess, 500);
-	if (WAIT_OBJECT_0 == dwWait)
-		return true;
+	SPOSTMSGTOPROCWNDS *ppst = (SPOSTMSGTOPROCWNDS *) lParam;
+	ASSERT (NULL != ppst);
 
-	// Child still running.
-	b &= TerminateProcess (hProcess, ERROR_PROCESS_ABORTED);
-	dwWait = WaitForSingleObject (hProcess, 500);
-	if (WAIT_OBJECT_0 == dwWait)
-		return true;
+	DWORD	dwWinProcessID;
+	GetWindowThreadProcessId (hwnd, &dwWinProcessID);
+	//printf ("Close: Child: %d; Window: %d\n", dwChildProcessId, dwWinProcessID);
+	if (ppst->dwProcessId == dwWinProcessID)
+	{
+		PostMessageW (hwnd, ppst->msg, (WPARAM) NULL, (LPARAM) NULL);
+	}
+	return TRUE;
+}
 
+static DWORD waitForProcessToExit (HANDLE hProcess, uint16_t uiFlags, uint16_t flgCheck, DWORD waitTime)
+{
+	if (flgCheck & uiFlags)
+		return WaitForSingleObject (hProcess, waitTime);
+	else
+		return WaitForSingleObject (hProcess, 0);
+}
+
+bool TerminateProcessControlled (HANDLE hProcess, uint16_t uiFlags, DWORD waitTime)
+{
+	bool	b			= true;
+	DWORD	dwWait;
+
+	if (NULL == hProcess)
+		return false;
+
+	// If no flags are set, we set all of them.
+	if (0 == uiFlags)
+		uiFlags = UINT16_MAX;
+
+	DWORD	dwChildProcessId = GetProcessId (hProcess);
+	// See
+	//	https://learn.microsoft.com/en-us/windows/console/generateconsolectrlevent .
+	if (TERMCHILDPROCCONTROLLED_CTRL_C & uiFlags)
+	{
+		b &= GenerateConsoleCtrlEvent (CTRL_C_EVENT, dwChildProcessId);
+		dwWait = waitForProcessToExit (hProcess, uiFlags, TERMCHILDPROCCONTROLLED_WAIT_CTRL_C, waitTime);
+		if (WAIT_OBJECT_0 == dwWait)
+			goto cleanUp;
+	}
+	if (TERMCHILDPROCCONTROLLED_CTRL_BREAK & uiFlags)
+	{
+		b &= GenerateConsoleCtrlEvent (CTRL_BREAK_EVENT,	dwChildProcessId);
+		dwWait = waitForProcessToExit (hProcess, uiFlags, TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK, waitTime);
+		if (WAIT_OBJECT_0 == dwWait)
+			goto cleanUp;
+	}
+
+	if (TERMCHILDPROCCONTROLLED_WM_CLOSE & uiFlags)
+	{
+		SPOSTMSGTOPROCWNDS pst;
+		pst.dwProcessId	= dwChildProcessId;
+		pst.msg			= WM_CLOSE;
+		EnumWindows ((WNDENUMPROC) postMessageToProcessWindows, (LPARAM) &pst);
+		dwWait = waitForProcessToExit (hProcess, uiFlags, TERMCHILDPROCCONTROLLED_WAIT_WM_CLOSE, waitTime);
+		if (WAIT_OBJECT_0 == dwWait)
+			goto cleanUp;
+	}
+
+	if (TERMCHILDPROCCONTROLLED_WM_QUIT & uiFlags)
+	{
+		SPOSTMSGTOPROCWNDS pst;
+		pst.dwProcessId	= dwChildProcessId;
+		pst.msg			= WM_QUIT;
+		EnumWindows ((WNDENUMPROC) postMessageToProcessWindows, (LPARAM) &pst);
+		dwWait = waitForProcessToExit (hProcess, uiFlags, TERMCHILDPROCCONTROLLED_WAIT_WM_QUIT, waitTime);
+		if (WAIT_OBJECT_0 == dwWait)
+			goto cleanUp;
+	}
+
+	if (TERMCHILDPROCCONTROLLED_TERMINATE & uiFlags)
+	{
+		b &= TerminateProcess (hProcess, ERROR_PROCESS_ABORTED);
+		dwWait = waitForProcessToExit (hProcess, uiFlags, TERMCHILDPROCCONTROLLED_WAIT_TERMINATE, waitTime);
+		if (WAIT_OBJECT_0 == dwWait)
+			goto cleanUp;
+	}
+	b = false;
+
+	cleanUp:
 	return b;
 }
 

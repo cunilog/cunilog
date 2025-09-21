@@ -42,58 +42,58 @@ When		Who				What
 		char		*chU8Path;
 		
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\Fil*", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:*", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\*", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\*?", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\?", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\??????????", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:\\Test\\?????????*", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:\\Test\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:?", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:*?", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("D:????????????", L"File.txt");
 		ubf_expect_bool_AND (b, !memcmp (chU8Path, "D:File.txt", strlen (chU8Path)));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server\\share", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\share\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\share\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server\\share*", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server\\share?", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server\\share*?", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server\\?????????", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 		chU8Path = AllocU8path_from_U8path_and_WinU16FileName ("\\\\Server", L"File.txt");
-		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path)));
+		ubf_expect_bool_AND (b, !memcmp (chU8Path, "\\\\Server\\File.txt", strlen (chU8Path) + 1));
 		DoneU8 (chU8Path);
 
 		return b;
@@ -110,6 +110,39 @@ When		Who				What
 		ubf_expect_bool_AND (b, !isDotOrDotDotW (L"A"));
 		ubf_expect_bool_AND (b, isDotOrDotDotW (L"."));
 		ubf_expect_bool_AND (b, isDotOrDotDotW (L".."));
+
+		wchar_t	wc	[2 * WINAPI_U8_HEAP_THRESHOLD];
+		char	str [WINAPI_U8_HEAP_THRESHOLD];
+		char	*pstr;
+		
+		wcscpy (wc, L"This is a test.");
+		pstr = AllocU8_from_WinU16l (wc, 0);
+		ubf_expect_bool_AND (b, NULL != pstr);
+		ubf_expect_bool_AND (b, ASCII_NUL == pstr [0]);
+		DoneU8 (pstr);
+		pstr = AllocU8_from_WinU16l (NULL, 0);
+		ubf_expect_bool_AND (b, NULL != pstr);
+		ubf_expect_bool_AND (b, ASCII_NUL == pstr [0]);
+		DoneU8 (pstr);
+		pstr = AllocU8_from_WinU16l (wc, 1);
+		ubf_expect_bool_AND (b, NULL != pstr);
+		ubf_expect_bool_AND (b, !memcmp ("T", pstr, 2));
+		DoneU8 (pstr);
+		pstr = AllocU8_from_WinU16l (wc, wcslen (wc) + 1);
+		ubf_expect_bool_AND (b, NULL != pstr);
+		ubf_expect_bool_AND (b, !memcmp ("This is a test.", pstr, wcslen (wc) + 1));
+		DoneU8 (pstr);
+		pstr = AllocU8_from_WinU16l (wc, wcslen (wc));
+		ubf_expect_bool_AND (b, NULL != pstr);
+		ubf_expect_bool_AND (b, !memcmp ("This is a test.", pstr, wcslen (wc) + 1));
+		DoneU8 (pstr);
+
+		wcscpy (wc, L"This is a test.");
+		pstr = AllocU8fromWinU16orUseThresholdl (str, wc, wcslen (wc));
+		// We expect the output to be NUL-terminated.
+		ubf_expect_bool_AND (b, !memcmp ("This is a test.", str, wcslen (wc) + 1));
+
+		DoneU8fromWinU16orUseThreshold (pstr, str);
 
 		char			sz [1024];
 		unsigned int	ui, u2, u3;
@@ -164,10 +197,15 @@ When		Who				What
 
 		b &= GetWinErrorTextU8 (sz, 1024, 455);
 		ubf_assert_true (b);
+		// Since we don't know in which language the text appears we just assume it's
+		//	longer than 10 octets/bytes.
+		ubf_expect_bool_AND (b, 10 < strlen (sz));
 		b &= GetWinErrorTextU8 (sz, 1024, 456);
 		ubf_assert_true (b);
+		ubf_assert_bool_AND (b, 10 < strlen (sz));
 		b &= GetWinErrorTextU8 (sz, 1024, 457);
 		ubf_assert_true (b);
+		ubf_assert_bool_AND (b, 10 < strlen (sz));
 
 		// Since we don't know how we're called, there's not much to test here.
 		//	Let's see if the function crashes.

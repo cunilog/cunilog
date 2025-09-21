@@ -20,6 +20,10 @@ When		Who				What
 */
 
 /*
+	The module provides a simple line extractor for various purposes.
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -71,6 +75,55 @@ enum enStrlineExtractCharSet
 };
 
 /*
+	Our default string parameters for single and multi-line comments, open
+	and closing quotes, equality signs, and section start and end strings.
+*/
+extern const char	*ccCulStdLineCComment	[];
+extern unsigned int	nCulStdLineCComment;
+
+extern const char	*ccCulStdLineUComment	[];
+extern unsigned int	nCulStdLineUComment;
+
+extern const char	*ccCulStdBegMultComment	[];
+extern const char	*ccCulStdEndMultComment	[];
+extern unsigned int	nccCulStdMultComment;
+
+extern const char	*ccCulStdOpenQuotes		[];
+extern const char	*ccCulStdClosQuotes		[];
+extern unsigned int	nCulStdQuotes;
+
+extern const char	*ccCulStdEqualSigns		[];
+extern unsigned int	nCulStdEquals;
+
+extern char			*ccCulStdStrtSection	[];
+extern char			*ccCulStdExitSection	[];
+extern unsigned int	nCulStdSections;
+
+/*
+	
+*/
+typedef struct sculmltstrings
+{
+	const char		**ccLineComments;
+	unsigned int	nLineComments;
+
+	const char		**ccBegMultiComments;
+	const char		**ccEndMultiComments;
+	unsigned int	nMultiComments;
+
+	const char		**ccOpenQuotes;
+	const char		**ccClosQuotes;
+	unsigned int	nQuotes;
+
+	const char		**ccEquals;
+	unsigned int	nEquals;
+
+	char			**ccStrtSections;
+	char			**ccExitSections;
+	unsigned int	nSections;
+} SCULMLTSTRINGS;
+
+/*
 	The members pchStartMultiCommentStr and pchEndMultiCommentStr point to string arrays that
 	define the start and end of a block comment (multi-line comment). The member
 	nMultiCommentStr holds the amount of array elements. Both arrays need to have the same
@@ -86,7 +139,7 @@ typedef struct strlineconf
 															//	supported.
 	size_t							tabSize;				// The width of a TAB character.
 															//	Currently not used/supported.
-	char							**pchLineCommentStr;	// Pointer to an array of strings, in
+	const char						**pchLineCommentStr;	// Pointer to an array of strings, in
 															//	UTF-8, containing line comment
 															//	characters. If this is NULL, no
 															//	line comments are accepted.
@@ -96,8 +149,8 @@ typedef struct strlineconf
 															//	is NULL. If this is 0, no line
 															//	comments are accepted.
 	// Start and end multi-line comments characters.
-	char							**pchStartMultiCommentStr;
-	char							**pchEndMultiCommentStr;
+	const char						**pchStartMultiCommentStr;
+	const char						**pchEndMultiCommentStr;
 	size_t							nMultiCommentStr;
 	#ifdef DEBUG
 		bool						bInitialised;
@@ -111,7 +164,7 @@ typedef struct strlineconf
 */
 typedef struct strlineinf
 {
-	void				*pStart;							// Pointer to the first character
+	const char			*szStart;							// Pointer to the first character
 															//	of a line that is not a white
 															//	space character.
 	size_t				lnLength;							// Length of a line, not counting
@@ -121,7 +174,7 @@ typedef struct strlineinf
 															//	First line is 1.
 	size_t				charNumber;							// The position of pStart within
 															//	a line. 1 = first column/character.
-	size_t				absPosition;						// Position within the entrie buffer.
+	size_t				absPosition;						// Position within the entire buffer.
 															//	1 = first position/character.
 	void				*pCustom;							// Can be used by the caller.
 	#ifdef DEBUG
@@ -163,6 +216,16 @@ void InitSTRLINECONFforUBFL (STRLINECONF *pc)
 void InitSTRLINECONFforC (STRLINECONF *pc);
 
 /*
+	InitSCULMLTSTRINGSforUBFL
+	InitSCULMLTSTRINGSforC
+
+	Initialisation functions for a SCULMLTSTRINGS structure, either for C or for UBFL
+	language translation file single and block comments.
+*/
+void InitSCULMLTSTRINGSforUBFL (SCULMLTSTRINGS *psmls);
+void InitSCULMLTSTRINGSforC (SCULMLTSTRINGS *psmls);
+
+/*
 	SanityCheckMultiComments
 
 	Performs a simple sanity check on the string arrays that define the multi/block comments.
@@ -188,7 +251,7 @@ bool SanityCheckMultiComments (STRLINECONF *pc);
 	which can be 0.
 */
 unsigned int StrLineExtractU8	(
-				char					*pBuf,
+				const char				*pBuf,
 				size_t					lenBuf,
 				STRLINECONF				*pConf,
 				StrLineExtractCallback	cb,
@@ -203,9 +266,14 @@ unsigned int StrLineExtractU8	(
 	extracted line. The STRLINECONF structure pConf points to controls how lines are
 	extracted while line and block (multi-line) comments are ignored. Each extracted
 	line is stripped of leading and trailing white space before it is passed on to the
-	callback function cb points to. The callback function receives a pointer to a STRLINEINF
-	structure that contains a pointer to the line buffer, its length, and a few other
-	parameters, like for instance the line number.
+	callback function cb points to. Lines only consisting of comments (single and multi)
+	are stripped. Multi-line comments that start and end on a single line are stripped
+	only when they appear before any significant character. They are not removed anywhere
+	else, since the function does not know the syntax the caller deems valid.
+
+	The callback function receives a pointer to a STRLINEINF structure that contains a
+	pointer to the line buffer, its length, and a few other parameters, like for
+	instance the line number.
 
 	Call InitSTRLINECONFforC () to configure the STRLINECONF structure for C-style
 	line and block comments, call InitSTRLINECONFforUBFL () to initialise the structure
@@ -230,22 +298,17 @@ unsigned int StrLineExtractU8	(
 					function is called for each extracted line. The function is passed
 					an STRLINEINF structure with some information. The callback function
 					returns true for each line processed. When the function returns
-					false StrLineExtract returns too, returning the amount of times
+					false, StrLineExtract returns too, returning the amount of times
 					the callback function has been called so far.
 
 	pCustom			An arbitrary pointer passed on to the callback function through
 					the pCustom member of the STRLINEINF structure.
 
 	When the function succeeds, it returns how many times the callback function has been
-	invoked, which can be 0.
-	
-	If the function fails, the return value is UINT_MAX. The function can only fail if
-	the number of start and end block comment characters are not identical. You can
-	call SanityCheckMultiComments () beforehand to ensure the function is not going to
-	fail.
+	invoked, which can be 0. If the function fails, the return value is UINT_MAX.
 */
 unsigned int StrLineExtract	(
-				void					*pBuf,
+				const void				*pBuf,
 				size_t					lenBuf,
 				STRLINECONF				*pConf,
 				StrLineExtractCallback	cb,
@@ -263,50 +326,43 @@ const char *strlineextractRemoveLeadingWhiteSpace (size_t *pLen, const char *szL
 ;
 
 /*
-	strlineextractIsOpenQuote
+	strlineextractIsOpenString
 
-	Returns the 1-based index of an open quote or 0 if szLine doesn't start with an open
-	quote. The returned 1-based index can be passed to the function
-	strlineextractIsCloseQuote () as the parameter idxCloseQuote1based if it is greater
+	Returns the 1-based index of an opening string if szLine starts with it,
+	or 0 if szLine doesn't start with an opening string.
+	The returned 1-based index can be passed to the function
+	strlineextractIsCloseString () as the parameter idxCloseString1based if it is greater
 	than 0.
 */
-unsigned int strlineextractIsOpenQuote	(
+unsigned int strlineextractIsOpenString	(
 		const char		*szLine,			size_t			lnLine,
-		unsigned int	nQuotes,
-		const char		**pszOpenQuotes
+		unsigned int	nOpenStrings,		const char		**pszOpenStrings
 										)
 ;
 
 /*
-	strlineextractIsCloseQuote
+	strlineextractIsCloseString
 
-	Returns true if szLine starts with the closing quote that has the 1-based index
-	idxCloseQuote1based. The parameter idxCloseQuote1based is the return value of the
-	function strlineextractIsOpenQuote (), but not 0. Do not call this function if
-	strlineextractIsOpenQuote () returned 0.
+	Returns true if szLine starts with the closing string that has the 1-based index
+	idxCloseString1based. The parameter idxCloseString1based is the return value of the
+	function strlineextractIsOpenString (), but not 0. Do not call this function if
+	strlineextractIsOpenString () returned 0.
 */
-bool strlineextractIsCloseQuote	(
+bool strlineextractIsCloseString	(
 		const char		*szLine,			size_t			lnLine,
-		const char		**pszCloseQuotes,
-		unsigned int	idxCloseQuote1based
+		const char		**pszCloseStrings,
+		unsigned int	idxCloseString1based
 								)
 ;
 
 /*
 	strlineextractIsEqual
 
-	Returns the 1-based index of the string pointer in pszEquals,
-	if szLine starts with any of the equality characters specified
-	in pszEquals.
-
-	The function returns 0 if szLine does not start with any of the equality
-	character strings in pszEquals.
+	Wrapper for strlineextractIsOpenString (), because the function name looks
+	odd when we check for an equality sign.
 */
-unsigned int strlineextractIsEqual	(
-		const char		*szLine,			size_t			lnLine,
-		const char		**pszEquals,		unsigned int	nEquals
-									)
-;
+#define strlineextractIsEqual(lne, len, nO, pS)			\
+	strlineextractIsOpenString (lne, len, nO, pS)
 
 /*
 	strlineextractKeyOrValue
@@ -321,22 +377,72 @@ unsigned int strlineextractIsEqual	(
 	The function fails (returns false) if no closing quote is found.
 
 	If a key or value doesn't start with an opening quote but contains quotes,
-	the quotes are treated as normal characters.
+	these quotes are treated as normal characters.
 
 	The extracted key is not NUL-terminated, since it is only a pointer to a buffer,
 	and its length, inside the original buffer szLine points to.
 
-	Leading white space, if any, is ignored.
+	Leading and trailing white space, if any, is ignored.
+
+	Parameters
+	----------
+
+	pszKeyOrVal		A pointer that receives the start address of the key or value, depending
+					on whether an equality string is encountered. If an equality string is
+					enountered towards the right side of the line, the returned pointer is
+					a key, otherwise it's a value. This parameter cannot be NULL. This
+					returned string is not NUL-terminated, because it is just a pointer
+					within the buffer szLine.
+
+	plnKeyOrVal		A pointer to a size_t that receives the length of the key or value
+					returned in the parameter pszKeyOrVal. This parameter must not be NULL.
+
+	pszEqual		If an equality string is encountered, this is a pointer to it. Otherwise
+					it receives NULL. If a non-NULL address is returned, the paramter
+					pszKeyOrVal points to a key. If it receives NULL, pszKeyOrVal points
+					to a value.
+
+	pidxEqual1based	A pointer to a size_t that receives the 1-based index of the equality
+					string found. If pszKeyOrVal points to a key, the function sets this
+					value to 0.
+
+	szLine			A pointer to the buffer that contains the "key = value" string.
+
+	lnLine			The length of szLine. If this parameter is USE_STRLEN, the function
+					obtains it with strlen (szLine).
+
+
+	The following parameters have been replaced with the SCULMLTSTRINGS structure psmlt:
+
+	nQuotes			The amount of quote strings. See parameters szOpenQuotes and
+					szClosQuotes below. If this value is 0, no quotes are recognised.
+
+	pszOpenQuotes	A pointer to an array of NUL-terminated strings recognised as opening
+					quotation marks/strings. The parameter nQuotes specifies the number
+					of elements in this array.
+
+	pszClosQuotes	A pointer to an array of NUL-terminated strings recognised as closing
+					quotation marks/strings. The parameter nQuotes specifies the number
+					of elements in this array.
+
+	pszEquals		A pointer to an array of NUL-terminated strings recognised as equality
+					characters/strings. The parameter nEquals specifies the number of
+					stings/elements in this array. If this parameter is NULL, the function
+					fails and returns false.
+
+	nEquals			The number of strings that are recognised as equality signs pointed
+					to by the parameter pszEquals. If this parameter is 0, the function is
+					bound to fail and return false, as a key/value pair cannot be identified
+					without at least one accepted equality sign character or string that
+					separates key and value.
+
 */
 bool strlineextractKeyOrValue	(
-		const char		**pszKeyOrVal,		size_t			*plnKeyOrVal,	// Out.
-		const char		**pszEqual,			size_t			*plnEqual,		// Out.
-		unsigned int	*pidxEqual1based,									// Out.
-		const char		*szLine,			size_t			lnLine,			// In.
-		unsigned int	nQuotes,											// In.
-		const char		**pszOpenQuotes,									// In.
-		const char		**pszClosQuotes,									// In.
-		const char		**pszEquals,		unsigned int	nEquals			// In.
+		const char		**cunilog_restrict pszKeyOrVal,	size_t	*plnKeyOrVal,	// Out.
+		const char		**cunilog_restrict pszEqual,	size_t	*plnEqual,		// Out.
+		unsigned int	*pidxEqual1based,										// Out.
+		const char		*szLine,						size_t	lnLine,			// In.
+		SCULMLTSTRINGS	*psmlt													// In.
 								)
 ;
 
@@ -347,18 +453,31 @@ bool strlineextractKeyOrValue	(
 	the function calls strlen (szLine) to obtain it.
 
 	Parameters
+	----------
 
 	pszKey			A pointer that receives the start address of the key. This parameter
-					cannot be NULL.
+					cannot be NULL. This returned string is not NUL-terminated, because it
+					is just a pointer within the buffer szLine.
 
 	plnKey			A pointer to a size_t that receives the length of the key. This parameter
 					must not be NULL.
 
 	pszVal			A pointer that receives the start address of the value. This
-					parameter cannot be NULL.
+					parameter cannot be NULL. The string is not NUL-terminated, as it is
+					only a pointer within the buffer of szLine.
 
-	lnVal			A pointer to a size_t that receives the length of the value. This
-					parameter cannot be NULL.
+	lnVal			A pointer to a size_t that receives the length of the value string.
+					This parameter cannot be NULL.
+
+	szLine			A pointer to the buffer that contains the "key = value" string.
+
+	lnLine			The length of szLine. If this parameter is USE_STRLEN, the function
+					obtains it with strlen (szLine).
+
+	The following parameters have been replaced with the SCULMLTSTRINGS structure psmlt:
+
+	nQuotes			The amount of quote strings. See parameters szOpenQuotes and
+					szClosQuotes below. If this value is 0, no quotes are recognised.
 
 	pszOpenQuotes	A pointer to an array of NUL-terminated strings recognised as opening
 					quotation marks/strings. The parameter nQuotes specifies the number
@@ -368,26 +487,108 @@ bool strlineextractKeyOrValue	(
 					quotation marks/strings. The parameter nQuotes specifies the number
 					of elements in this array.
 
-	nQuotes			The amount of quote strings. See parameters szOpenQuotes and
-					szClosQuotes above. If this value is 0, no quotes are recognised.
-
 	pszEquals		A pointer to an array of NUL-terminated strings recognised as equality
 					characters/strings. The parameter nEquals specifies the number of
-					stings/elements in this array.
+					stings/elements in this array. If this parameter is NULL, the function
+					fails and returns false.
+
+	nEquals			The number of strings that are recognised as equality signs pointed
+					to by the parameter pszEquals. If this parameter is 0, the function is
+					bound to fail and return false, as a key/value pair cannot be identified
+					without at least one accepted equality sign character or string that
+					separates key and value.
 
 	The function returns true if a key and a value could be extracted from the line,
 	which includes an empty string for the value but not for the key. The function
 	returns false if szLine is NULL or lnLine is 0.
 */
 bool strlineextractKeyAndValue	(
-		const char		**pszKey,			size_t			*plnKey,
-		const char		**pszVal,			size_t			*plnVal,
-		const char		*szLine,			size_t			lnLine,
-		unsigned int	nQuotes,
-		const char		**pszOpenQuotes,
-		const char		**pszClosQuotes,
-		const char		**pszEquals,		unsigned int	nEquals
+		const char		**cunilog_restrict pszKey,	size_t	*plnKey,		// Out.
+		const char		**cunilog_restrict pszVal,	size_t	*plnVal,		// Out.
+		const char		*cunilog_restrict szLine,	size_t	lnLine,			// In.
+		SCULMLTSTRINGS	*psmlt												// In.
 								)
+;
+
+enum en_strlineextract_white_space
+{
+	strlineextract_accept_white_space_and_comments,
+	strlineextract_accept_leading_and_trailing_white_space,
+	strlineextract_accept_leading_white_space,
+	strlineextract_accept_trailing_white_space,
+	strlineextract_reject_white_space
+};
+typedef enum en_strlineextract_white_space en_strlineextract_ws;
+
+/*
+	strlineextractSection
+
+	Extracts the name of a section from the line szLine with length lnLine.
+	If lnLine is USE_STRLEN, the function calls strlen (szLine) to obtain it.
+
+	Parameters
+	----------
+
+	pszSec			A pointer that receives the start address of the section name. This
+					parameter cannot be NULL. This returned string is not NUL-terminated,
+					because it is just a pointer within the buffer szLine.
+
+	plnSec			A pointer to a size_t that receives the length of the section name.
+					This parameter must not be NULL.
+
+	szLine			A pointer to the buffer that contains the "[section]" string.
+
+	lnLine			The length of szLine. If this parameter is USE_STRLEN, the function
+					obtains it with strlen (szLine).
+
+	psmlt			A pointer to an SCULMLTSTRINGS structure. The following members are
+					expected and used by the function:
+
+					nSections			The amount of opening/starting and closing/exiting
+										section strings. This value cannot be 0, as it
+										wouldn't make sense to call the function without
+										any declarations for section starts and exits.
+
+					ccStrtSections		An array of strings that specify accepted section
+										starts. The amount of strings in this array is
+										specified by the member nSections.
+
+					ccExitSections		An array of strings that secify accepted section
+										ends/exits. The amount of elements in this array is
+										given by the member nSections.
+
+					Additionally, if ws is strlineextract_accept_white_space_and_comments,
+					the following members are expected and used by the function:
+
+					ccLineComments		An array of strings that serve as the start of a line
+										comment.
+
+					nLineComments		The size of the ccLineComments array.
+
+					ccBegMultiComments	An array of strings that contain the starts of
+										block comments.
+
+					ccEndMultiComments	An array of strings the contain the ends of block
+										comments.
+
+					nMultiComments		The amounts of opening/starting and closing/ending
+										block comment strings.
+
+	ws				One of the values of the enum en_strlineextract_white_space to
+					determine if and what kind of white space is accepted/permitted or
+					rejected. If white space is encountered that doesn't fit this value,
+					the function fails and returns false.
+
+	The function returns true if a section name could be extracted from the line. It
+	returns false, if for example a closing/exiting section string is missing.
+	The function also returns false if szLine is NULL or lnLine is 0.
+*/
+bool strlineextractSection	(
+		const char				**cunilog_restrict pszSec,	size_t	*plnSec,
+		const char				*cunilog_restrict szLine,	size_t	lnLine,
+		SCULMLTSTRINGS			*psmlt,
+		en_strlineextract_ws	ws
+							)
 ;
 
 /*

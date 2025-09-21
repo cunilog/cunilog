@@ -55,12 +55,14 @@ When		Who				What
 		#include "./ubfdebug.h"
 		#include "./memstrstr.h"
 		#include "./ubfmem.h"
+		#include "./strlineextract.h"
 		#include "./strnewline.h"
 	#else
 		#include "./../pre/unref.h"
 		#include "./../dbg/ubfdebug.h"
 		#include "./../mem/memstrstr.h"
 		#include "./../mem/ubfmem.h"
+		#include "./../string/strlineextract.h"
 		#include "./../string/strnewline.h"
 	#endif
 
@@ -127,7 +129,7 @@ static SCUNILOGCFGNODE *newSCUNILOGCFGNODEfromExisting (SCUNILOGCFGNODE *pExisti
 	return new;
 }
 
-bool ignoreLineComment (CUNILOGCFGPARSERSTATUS *ps)
+static bool ignoreLineComment (CUNILOGCFGPARSERSTATUS *ps)
 {
 	ubf_assert_non_NULL (ps);
 	ubf_assert_non_NULL (ps->szCfg);
@@ -160,7 +162,7 @@ bool ignoreLineComment (CUNILOGCFGPARSERSTATUS *ps)
 	return false;
 }
 
-bool ignoreMultiLineComment (CUNILOGCFGPARSERSTATUS *ps)
+static bool ignoreMultiLineComment (CUNILOGCFGPARSERSTATUS *ps)
 {
 	ubf_assert_non_NULL (ps);
 	ubf_assert_non_NULL (ps->szCfg);
@@ -191,7 +193,7 @@ bool ignoreMultiLineComment (CUNILOGCFGPARSERSTATUS *ps)
 	return false;
 }
 
-char *usableString (SCUNILOGCFGNODE *pn, CUNILOGCFGPARSERSTATUS *ps, CUNILOGCFGERR *pErr)
+static char *usableString (SCUNILOGCFGNODE *pn, CUNILOGCFGPARSERSTATUS *ps, CUNILOGCFGERR *pErr)
 {
 	ubf_assert_non_NULL (pn);
 	ubf_assert_non_NULL (ps);
@@ -259,7 +261,7 @@ static void rememberEnclosing (CUNILOGCFGPARSERSTATUS *ps)
 	-- ps->lnCfg;
 }
 
-size_t lenUsableString (SCUNILOGCFGNODE *pn, CUNILOGCFGPARSERSTATUS *ps, CUNILOGCFGERR *pErr)
+static size_t lenUsableString (SCUNILOGCFGNODE *pn, CUNILOGCFGPARSERSTATUS *ps, CUNILOGCFGERR *pErr)
 {
 	ubf_assert_non_NULL (ps);
 
@@ -352,6 +354,308 @@ void DoneCunilogRootConfigData (SCUNILOGCFGNODE *cfg)
 	ubf_assert_non_NULL (cfg);
 }
 
+/*
+	nSects			Used to count the number of sections during the first iteration.
+					The memory block to store the section and key/value pair structures
+					is then allocated accordingly.
+	nKeyVs			Used to count the number of key/value pairs during the first iteration.
+					The memory block to store the section and key/value pair structures
+					is then allocated accordingly.
+
+	uiCurrSection	Used to identify the section we're currently in. For a new section,
+					this value must be incremented first.
+	uiCurrKeyVal	Used to identify the key/value pair we're currently in. For a new
+					key/value pair, this value must be incremented first.
+*/
+typedef struct snsectionsandkeyvals
+{
+	SCULMLTSTRINGS			*psmls;
+	unsigned int			nSects;
+	unsigned int			nKeyVs;
+	SCUNILOGINI				*pCunilogIni;
+	unsigned int			uiCurrSection;
+	unsigned int			uiCurrKeyVal;
+} SNSECTIONSANDKEYVALS;
+
+/*
+	Counts the amount of sections and key/value pairs.
+*/
+static bool createCreateSCUNILOGINI_count_cb (STRLINEINF *psli)
+{
+	ubf_assert_non_NULL	(psli);
+	ubf_assert_non_NULL	(psli->pCustom);
+	ubf_assert_non_0	(psli->lnLength);
+
+	SNSECTIONSANDKEYVALS *pkvs = (SNSECTIONSANDKEYVALS *) psli->pCustom;
+	ubf_assert_non_NULL (pkvs);
+	ubf_assert_non_NULL (pkvs->psmls);
+
+	const char	*szSection;
+	size_t		lnSection;
+	bool bIsSctn = strlineextractSection		(
+						&szSection, &lnSection, psli->szStart, psli->lnLength,
+						pkvs->psmls,
+						strlineextract_accept_white_space_and_comments
+												);
+	if (bIsSctn)
+	{
+		++ pkvs->nSects;
+		return true;
+	}
+	const char	*szKey;
+	size_t		lnKey;
+	const char	*szVal;
+	size_t		lnVal;
+	bool bIsKeyV = strlineextractKeyAndValue	(
+						&szKey, &lnKey, &szVal, &lnVal, psli->szStart, psli->lnLength,
+						pkvs->psmls
+												);
+	if (bIsKeyV)
+	{
+		++ pkvs->nKeyVs;
+
+		// We obviously have key/value pairs that don't belong to a section.
+		//	In this case we're going to create a section without a name as dummy.
+		//	Since an empty name ("") is possible to configure, this name is going
+		//	to be NULL.
+		if (0 == pkvs->nSects)
+			++ pkvs->nSects;
+
+		return true;
+	}
+
+	// Should never be reached.
+	ubf_assert (false);
+	return false;
+}
+
+static void storeSectionMembers	(
+		SNSECTIONSANDKEYVALS	*pkvs,
+		const char				*szSection,			size_t lnSection
+								)
+{
+	++ pkvs->uiCurrSection;
+	// Make it clear to the compiler that we do not care about padding.
+	memset (&pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection], 0, sizeof (SCUNILOGINISECTION));
+	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].szSectionName		= szSection;
+	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].lnSectionName		= lnSection;
+	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].pKeyValuePairs	= NULL;
+	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].nKeyValuePairs	= 0;
+}
+
+static void storeKeyValueMembers	(
+		SNSECTIONSANDKEYVALS	*pkvs,
+		const char				*szKey,			size_t lnKey,
+		const char				*szVal,			size_t lnVal
+									)
+{
+	++ pkvs->uiCurrKeyVal;
+	// The assignments cover the entire structure.
+	//memset (&pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal], 0, sizeof (SCUNILOGINIKEYVALUE));
+	pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal].szKeyName		= szKey;
+	pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal].lnKeyName		= lnKey;
+	pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal].szValue			= szVal;
+	pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal].lnValue			= lnVal;
+	++ pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].nKeyValuePairs;
+}
+
+/*
+	Assigns sections and key/value pairs.
+*/
+static bool createCreateSCUNILOGINI_assgn_cb (STRLINEINF *psli)
+{
+	ubf_assert_non_NULL	(psli);
+	ubf_assert_non_NULL	(psli->pCustom);
+	ubf_assert_non_0	(psli->lnLength);
+
+	SNSECTIONSANDKEYVALS *pkvs = (SNSECTIONSANDKEYVALS *) psli->pCustom;
+	ubf_assert_non_NULL (pkvs);
+	ubf_assert_non_NULL (pkvs->psmls);
+
+	const char	*szSection;
+	size_t		lnSection;
+	bool bIsSctn = strlineextractSection		(
+						&szSection, &lnSection, psli->szStart, psli->lnLength,
+						pkvs->psmls,
+						strlineextract_accept_white_space_and_comments
+												);
+	if (bIsSctn)
+	{
+		ONLY_IN_DEBUG (-- pkvs->nSects);
+		storeSectionMembers (pkvs, szSection, lnSection);
+		return true;
+	}
+	const char	*szKey;
+	size_t		lnKey;
+	const char	*szVal;
+	size_t		lnVal;
+	bool bIsKeyV = strlineextractKeyAndValue	(
+						&szKey, &lnKey, &szVal, &lnVal, psli->szStart, psli->lnLength,
+						pkvs->psmls
+												);
+	if (bIsKeyV)
+	{
+		ONLY_IN_DEBUG (-- pkvs->nKeyVs);
+		if (UINT_MAX == pkvs->uiCurrSection)
+		{
+			ONLY_IN_DEBUG (-- pkvs->nSects);
+			storeSectionMembers (pkvs, NULL, 0);
+		}
+		ubf_assert (UINT_MAX > pkvs->uiCurrSection);
+		storeKeyValueMembers (pkvs, szKey, lnKey, szVal, lnVal);
+		if (NULL == pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].pKeyValuePairs)
+		{
+			pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].pKeyValuePairs =
+				&pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal];
+		}
+		return true;
+	}
+
+	// Should never be reached.
+	ubf_assert (false);
+	return false;
+}
+
+bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t lnIniBuf)
+{
+	ubf_assert_non_NULL (pCunilogIni);
+	ubf_assert_non_NULL	(szIniBuf);
+	ubf_assert_non_0	(lnIniBuf);
+
+	memset (pCunilogIni, 0, sizeof (SCUNILOGINI));
+	lnIniBuf = USE_STRLEN == lnIniBuf ? strlen (szIniBuf) : lnIniBuf;
+
+	STRLINECONF	cnf;
+	InitSTRLINECONFforUBFL (&cnf);
+
+	SCULMLTSTRINGS			smls;
+	InitSCULMLTSTRINGSforC (&smls);
+	SNSECTIONSANDKEYVALS	kvs;
+	kvs.psmls			= &smls;
+	kvs.nSects			= 0;
+	kvs.nKeyVs			= 0;
+	kvs.pCunilogIni		= pCunilogIni;
+
+	// These overflow to 0 when incremented the first time.
+	kvs.uiCurrSection	= UINT_MAX;							// Idx of next section to use.
+	kvs.uiCurrKeyVal	= UINT_MAX;							// Idx of next key/val to use.
+
+	// First, count all sections and keys for us to allocate the correct array sizes.
+	unsigned int nLines;
+	nLines = StrLineExtract (szIniBuf, lnIniBuf, &cnf, createCreateSCUNILOGINI_count_cb, &kvs);
+
+	size_t stTotal		= 0;
+	size_t stSections	= 0;
+	if (kvs.nSects || kvs.nKeyVs)
+	{
+		stSections	=	ALIGNED_SIZE ((sizeof (SCUNILOGINISECTION)	* kvs.nSects), 8);
+		stTotal		+=	stSections;
+		stTotal		+=	ALIGNED_SIZE ((sizeof (SCUNILOGINIKEYVALUE)	* kvs.nKeyVs), 8);
+		pCunilogIni->buf = ubf_malloc (stTotal);
+
+		if (pCunilogIni->buf)
+		{
+			if (kvs.nSects)
+			{
+				pCunilogIni->pIniSections = (SCUNILOGINISECTION *) pCunilogIni->buf;
+				if (pCunilogIni->pIniSections)
+					pCunilogIni->nIniSections = kvs.nSects;
+			}
+			if (kvs.nKeyVs)
+			{
+				pCunilogIni->pKeyValuePairs = (SCUNILOGINIKEYVALUE *) (pCunilogIni->buf + stSections);
+				if (pCunilogIni->pKeyValuePairs)
+					pCunilogIni->nKeyValuePairs = kvs.nKeyVs;
+			}
+
+			// Then, fill the arrays.
+			nLines = StrLineExtract (szIniBuf, lnIniBuf, &cnf, createCreateSCUNILOGINI_assgn_cb, &kvs);
+
+			// Debug versions decrement these all the way to 0.
+			ubf_assert_0 (kvs.nSects);
+			ubf_assert_0 (kvs.nKeyVs);
+
+			return true;
+		}
+	}
+	return false;
+}
+
+/*
+	Compares the section names szA and szB and returns true, if they're identical.
+	Also returns true if both are NULL.
+*/
+static bool equalSectionNames	(
+				const char *cunilog_restrict szSA, size_t lnSA,
+				const char *cunilog_restrict szSB, size_t lnSB
+								)
+{
+	if (szSA && szSB && lnSA == lnSB)
+	{
+		if (lnSA)
+			return !memcmp (szSA, szSB, lnSA);
+		else
+			return true;
+	} else
+	if (NULL == szSA && NULL == szSB)
+	{
+		return true;
+	}
+	return false;
+}
+
+const char *CunilogGetIniValueFromKey	(
+				size_t			*pLen,
+				const char		*cunilog_restrict szSection,	size_t	lnSection,
+				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI		*pCunilogIni
+										)
+{
+	ubf_assert_non_NULL	(pCunilogIni);
+
+	lnSection	= USE_STRLEN == lnSection	? strlen (szSection)	: lnSection;
+	lnKey		= USE_STRLEN == lnKey		? strlen (szKey)		: lnKey;
+
+	if (0 == lnKey)
+		return NULL;
+
+	unsigned int uiS;
+	for (uiS = 0; uiS < pCunilogIni->nIniSections; ++ uiS)
+	{
+		if	(
+				equalSectionNames	(
+					szSection, lnSection,
+					pCunilogIni->pIniSections [uiS].szSectionName,
+					pCunilogIni->pIniSections [uiS].lnSectionName
+									)
+			)
+		{
+			unsigned int uiK;
+			for (uiK = 0; uiK < pCunilogIni->pIniSections [uiS].nKeyValuePairs; ++ uiK)
+			{
+				if (lnKey == pCunilogIni->pIniSections [uiS].pKeyValuePairs [uiK].lnKeyName)
+				{
+					if (!memcmp (szKey, pCunilogIni->pIniSections [uiS].pKeyValuePairs->szKeyName, lnKey))
+					{
+						if (*pLen)
+							*pLen = pCunilogIni->pIniSections [uiS].pKeyValuePairs->lnValue;
+						return pCunilogIni->pIniSections [uiS].pKeyValuePairs->szValue;
+					}
+				}
+			}
+		}
+	}
+	return NULL;
+}
+
+void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
+{
+	ubf_assert_non_NULL (pCunilogIni);
+
+	if (pCunilogIni->buf)
+		ubf_free (pCunilogIni->buf);
+}
+
 #ifdef CUNILOG_BUILD_CFG_PARSER_TEST_FNCT
 	bool TestCunilogCfgParser (void)
 	{
@@ -389,6 +693,155 @@ void DoneCunilogRootConfigData (SCUNILOGCFGNODE *cfg)
 		sz = usableString (&node, &stat, &err);
 		ubf_expect_bool_AND (b, !memcmp ("a = 5", stat.szCfg, 5));
 		ubf_expect_bool_AND (b, 0 == stat.mulCom);
+
+		char szIni [2048];
+		strcpy (szIni,
+			"/*\n"
+			"This is an example ini file. \n"
+			"*/\n"
+			"\n"
+			"      [Section 01]     /* Comment */    \n"
+			"\n"
+			"    Key01 = Value 01     \n"
+			"\n"
+			"Key02                = \"This is value 02\"\n"
+			"\n"
+			"\n"
+			"\n"
+			"\n"
+			"\n"
+			"  Key03\t\t = We are still in Section 01.           \n"
+			"\t\t\t\t\t        // Comment       \n"
+			"\n"
+			"\n"
+			"[Section 02]\n"
+			"\n"
+			"    S02Key01 = Value S01K01     \n"
+			"    S02Key02 = Value S01K02     \n"
+			"    S02Key03 = Value S01K03__x  \n"
+			"    S02Key04 = Value S01K04__xy     \n"
+			"\n"
+				);
+
+		SCUNILOGINI ci;
+		bool b1;
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, 2 == ci.nIniSections);
+		ubf_expect_bool_AND (b, 7 == ci.nKeyValuePairs);
+		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].nKeyValuePairs);
+		ubf_expect_bool_AND (b, 10 == ci.pIniSections [1].lnSectionName);
+		ubf_expect_bool_AND (b, 4 == ci.pIniSections [1].nKeyValuePairs);
+		ubf_expect_bool_AND (b, !memcmp ("Section 01]", ci.pIniSections [0].szSectionName, 11));
+		ubf_expect_bool_AND (b, !memcmp ("Section 02]", ci.pIniSections [1].szSectionName, 11));
+		ubf_expect_bool_AND (b, !memcmp ("Key01 ",							ci.pKeyValuePairs [0].szKeyName, 6));
+		ubf_expect_bool_AND (b, !memcmp ("Value 01 ",						ci.pKeyValuePairs [0].szValue, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Key02 ",							ci.pKeyValuePairs [1].szKeyName, 6));
+		ubf_expect_bool_AND (b, !memcmp ("This is value 02\"",				ci.pKeyValuePairs [1].szValue, 17));
+		ubf_expect_bool_AND (b, !memcmp ("Key03\t",							ci.pKeyValuePairs [2].szKeyName, 6));
+		ubf_expect_bool_AND (b, !memcmp ("We are still in Section 01. ",	ci.pKeyValuePairs [2].szValue, 28));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key01 ",						ci.pKeyValuePairs [3].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K01 ",					ci.pKeyValuePairs [3].szValue, 13));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key02 ",						ci.pKeyValuePairs [4].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K02 ",					ci.pKeyValuePairs [4].szValue, 13));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key03 ",						ci.pKeyValuePairs [5].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K03__x ",				ci.pKeyValuePairs [5].szValue, 16));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key04 ",						ci.pKeyValuePairs [6].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K04__xy ",				ci.pKeyValuePairs [6].szValue, 17));
+		DoneSCUNILOGINI (&ci);
+
+		// Now we got one out-of-section key/value pair.
+		strcpy	(szIni,
+			"/*\n"
+			"This is another example ini file. \n"
+			"*/\n"
+			"       ! Note that this is a comment.\n"
+			"       + This is also a comment.\n"
+			"       ; This is also a comment.\n"
+			" \t\t  \n"
+			" Key00 = Value00; This is not a comment. It belongs to the value.\n"
+			"\n"
+			"      [Section 01]     /* Comment */    \n"
+			"\n"
+			"    Key01 = Value 01     \n"
+			"\n"
+			"Key02                = \"This is value 02\"\n"
+			"\n"
+			"\n"
+			"\n"
+			"\n"
+			"\n"
+			"  Key03\t\t = We are still in Section 01.           \n"
+			"\t\t\t\t\t        // Comment       \n"
+			"\n"
+			"\n"
+			"[Section 02_]\n"
+			"\n"
+			"    S02Key01 = Value S01K01     \n"
+			"    S02Key02 = Value S01K02     \n"
+			"    S02Key03 = Value S01K03__x  \n"
+			"    S02Key04 = Value S01K04__xy     \n"
+			"\n"
+			// Future extension where line comment markers require to be prededed by white space.
+			//	At the moment, the value extends to the end of the line. 
+			" S02Key05 = Value05 ; This is a comment. It does not belong to the value.\n"
+			"\n"
+				);
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, 3 == ci.nIniSections);
+		ubf_expect_bool_AND (b, 9 == ci.nKeyValuePairs);
+		ubf_expect_bool_AND (b, 0	== ci.pIniSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, 10	== ci.pIniSections [1].lnSectionName);
+		ubf_expect_bool_AND (b, 11	== ci.pIniSections [2].lnSectionName);
+		ubf_expect_bool_AND (b, NULL == ci.pIniSections [0].szSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 01]", ci.pIniSections [1].szSectionName, 11));
+		ubf_expect_bool_AND (b, !memcmp ("Section 02_]", ci.pIniSections [2].szSectionName, 12));
+		ubf_expect_bool_AND	(b,
+			!memcmp ("Key00 ", ci.pKeyValuePairs [0].szKeyName, 6)
+							);
+		ubf_expect_bool_AND	(b,
+			!memcmp ("Value00; This is not a comment. It belongs to the value.", ci.pKeyValuePairs [0].szValue, 56)
+							);
+		ubf_expect_bool_AND (b, !memcmp ("Key01 ",							ci.pKeyValuePairs [1].szKeyName, 6));
+		ubf_expect_bool_AND (b, !memcmp ("Value 01 ",						ci.pKeyValuePairs [1].szValue, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Key02 ",							ci.pKeyValuePairs [2].szKeyName, 6));
+		ubf_expect_bool_AND (b, !memcmp ("This is value 02\"",				ci.pKeyValuePairs [2].szValue, 17));
+		ubf_expect_bool_AND (b, !memcmp ("Key03\t",							ci.pKeyValuePairs [3].szKeyName, 6));
+		ubf_expect_bool_AND (b, !memcmp ("We are still in Section 01. ",	ci.pKeyValuePairs [3].szValue, 28));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key01 ",						ci.pKeyValuePairs [4].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K01 ",					ci.pKeyValuePairs [4].szValue, 13));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key02 ",						ci.pKeyValuePairs [5].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K02 ",					ci.pKeyValuePairs [5].szValue, 13));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key03 ",						ci.pKeyValuePairs [6].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K03__x ",				ci.pKeyValuePairs [6].szValue, 16));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key04 ",						ci.pKeyValuePairs [7].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K04__xy ",				ci.pKeyValuePairs [7].szValue, 17));
+
+		/* This is meant as a future extension where white space is required before some line comment
+			strings to allow for "test!" without interpreting the exclamation mark as the start of a
+			line comment. In "test !" on the other hand the exclamation mark is a line comment marker.
+		ubf_expect_bool_AND (b, !memcmp ("S02Key05 ",						ci.pKeyValuePairs [8].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Value05 ",						ci.pKeyValuePairs [8].szValue, 8));
+		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [8].lnValue);
+		*/
+
+		const char	*szValue;
+		size_t		len = 4711;
+		szValue = CunilogGetIniValueFromKey (&len, "Section 01", USE_STRLEN, "Key01", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 4711 != len);
+		ubf_expect_bool_AND (b, 8 == len);
+		ubf_expect_bool_AND (b, !memcmp ("Value 01 ", szValue, 9));
+
+		// Retrieves a key that does not have a section.
+		len = 4712;
+		szValue = CunilogGetIniValueFromKey (&len, NULL, 0, "Key00", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 4712 != len);
+		ubf_expect_bool_AND (b, 56 == len);
+		ubf_expect_bool_AND (b, !memcmp ("Value00; This is not a comment. It belongs to the value.", szValue, 56));
+
+		DoneSCUNILOGINI (&ci);
 
 		return b;
 	}

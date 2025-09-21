@@ -31,6 +31,7 @@ head
 /OS/Apple/TrashCan
 /OS/CompressFile
 /OS/ExeFileName
+/OS/FileMembuf
 /OS/ProcessHelpers
 /OS/SharedMutex
 /OS/UserHome
@@ -64,6 +65,7 @@ head
 /string/strwildcards
 /string/ubfcharscountsandchecks
 /testcunilog/testProcesHelper
+/cunilog/cunilogcfgparser
 /cunilog/cunilogerrors
 /cunilog/cunilogstructs
 /cunilog/cunilogevtcmdsstructs
@@ -89,6 +91,7 @@ head
 /OS/Apple/TrashCan
 /OS/CompressFile
 /OS/ExeFileName
+/OS/FileMembuf
 /OS/ProcessHelpers
 /OS/SharedMutex
 /OS/UserHome
@@ -121,6 +124,7 @@ head
 /string/strwildcards
 /string/ubfcharscountsandchecks
 /testcunilog/testProcesHelper
+/cunilog/cunilogcfgparser
 /cunilog/cunilogerrors
 /cunilog/cunilogstructs
 /cunilog/cunilogevtcmdsstructs
