@@ -1245,6 +1245,8 @@ void DoneArgsList (char *szArgsList)
 			cbflgs |= RUNCMDPROC_CALLB_HEARTB;
 			cbflgs |= RUNCMDPROC_EXEARG_NOEXE;
 
+			/*
+				Wouldn't work if not installed.
 
 			// Should stay open for some time.
 			b &= CreateAndRunCmdProcessCapture	(
@@ -1254,7 +1256,7 @@ void DoneArgsList (char *szArgsList)
 					"C:\\Program Files\\Jellyfin",
 					&cbs, enRunCmdHow_All, cbflgs, NULL, 10000, &iExitCode
 														);
-
+			*/
 
 		#elif defined (PLATFORM_IS_POSIX)
 
