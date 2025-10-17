@@ -49,7 +49,7 @@ In addition to the standard semicolon single line comment, Cunilog recognises se
 | {- Comment -}      | Haskell                        |
 | (* Comment *)      | Pascal, Delphi, Applescript... |
 
-All of these are also valid at the end of a line.
+All of these are also valid at the end of a line, but require at least one white space character after the value.
 ```ini
 ! This is a comment.
 # This is also a comment.
@@ -61,6 +61,15 @@ newkey = value 2  // This makes it "value 2".
 key 03 = value 3  # "value 3"
 colour = green    /* Like grass */
 ```
+
+```ini
+[section]
+key   = Hello!
+key2  = Hello !
+key3  = Hello ! Comment.
+```
+The exclamation mark belongs to the value of ***key***, because there's no space between the text "Hello" and the exclamation mark. This makes it "Hello!".
+The value of ***key2*** is "Hello" without the exclamation mark, because it denotes the start of an (empty) line comment.
 
 ### Section and key on the same line
 
