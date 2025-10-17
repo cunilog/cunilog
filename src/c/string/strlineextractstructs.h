@@ -72,8 +72,8 @@ EXTERN_C_BEGIN
 // An array of ini values. Each key can have several values.
 typedef struct scuniloginivalues
 {
-	const char				*szValueName;					// Value of a multi-value key.
-	size_t					lnValueName;					// Its length.
+	const char				*szValue;						// Value of a multi-value key.
+	size_t					lnValue;						// Its length.
 } SCUNILOGINIVALUES;
 
 // A key with its values.

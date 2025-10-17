@@ -18126,8 +18126,8 @@ bool strlineextractKeyOrValue	(
 	szLine = strlineextractRemoveLeadingWhiteSpace (&newLnLine, szLine, lnLine);
 	lnLine = newLnLine;
 
-	const char *szRet;
-	const char *szEnd;
+	const char		*szRet;
+	const char		*szEnd;
 	unsigned int uQuote = strlineextractIsOpenString (szLine, lnLine, psmlt->nQuotes, psmlt->ccOpenQuotes);
 	if (uQuote)
 	{
@@ -18139,8 +18139,36 @@ bool strlineextractKeyOrValue	(
 		{
 			if (strlineextractIsCloseString (szLine, lnLine, psmlt->ccClosQuotes, uQuote))
 			{
-				*plnKeyOrVal = szLine - szRet;
-				*pszKeyOrVal = szRet;
+				*plnKeyOrVal	= szLine - szRet;
+				*pszKeyOrVal	= szRet;
+				size_t lnCloseQuote = strlen (psmlt->ccClosQuotes [uQuote - 1]);
+				szLine += lnCloseQuote;
+				lnLine -= lnCloseQuote;
+				if (0 == lnLine)
+					return true;
+				size_t ln;
+				const char *sz = strlineextractRemoveWhiteSpaceAndComments (&ln, szLine, lnLine, psmlt);
+				if (ln != lnLine)
+				{
+					if (ln)
+					{
+						lnLine = ln;
+						szLine = sz;
+					} else
+						return true;
+				}
+				unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
+				if (ui1)
+				{	// Return the position of the equality sign found and the remaining length
+					//	of the line and its 1-based index. This way the caller doesn't need to
+					//	parse white space up until after the equality sign again, since its
+					//	length can be obtained via the 1-based index - 1.
+					if (pszEqual)			*pszEqual			= szLine;
+					if (plnEqual)			*plnEqual			= lnLine;
+					if (pidxEqual1based)	*pidxEqual1based	= ui1;
+					return true;
+				}
+				// Must be something like "{key } abc", or even "{key },"
 				return true;
 			}
 			++ szLine;
@@ -18148,57 +18176,56 @@ bool strlineextractKeyOrValue	(
 		}
 		// No closing quote. The key or value is incomplete.
 		return false;
-	} else
-	{
-		szRet = szLine;
-		szEnd = NULL;
-
-		while (lnLine)
-		{
-			if	(
-						!isWhiteSpace (szLine [0])
-					&&	!strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals)
-					&&	!isLineComment (szLine, lnLine, psmlt)
-				)
-			{
-				szEnd = szLine;
-			}
-			if (isLineComment (szLine, lnLine, psmlt))
-				goto Escape;
-			size_t ln;
-			const char *sz = strlineextractRemoveWhiteSpaceAndComments (&ln, szLine, lnLine, psmlt);
-			if (ln != lnLine)
-			{
-				if (ln)
-				{
-					lnLine = ln;
-					szLine = sz;
-				} else
-					goto Escape;
-			} else
-			{
-				++ szLine;
-				-- lnLine;
-			}
-			unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
-			if (ui1)
-			{	// Return the position of the equality sign found and the remaining length
-				//	of the line and its 1-based index. This way the caller doesn't need to
-				//	parse white space up until after the equality sign again, since its
-				//	length can be obtained via the 1-based index - 1.
-				if (pszEqual)			*pszEqual			= szLine;
-				if (plnEqual)			*plnEqual			= lnLine;
-				if (pidxEqual1based)	*pidxEqual1based	= ui1;
-				break;
-			}
-		}
-		Escape:
-		if (szEnd)
-			szLine = szEnd + 1;
-		*plnKeyOrVal = szLine - szRet;
-		*pszKeyOrVal = szRet;
-		return true;
 	}
+
+	szRet = szLine;
+	szEnd = NULL;
+
+	while (lnLine)
+	{
+		if	(
+					!isWhiteSpace (szLine [0])
+				&&	!strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals)
+				&&	!isLineComment (szLine, lnLine, psmlt)
+			)
+		{
+			szEnd = szLine;
+		}
+		if (isLineComment (szLine, lnLine, psmlt))
+			goto Escape;
+		size_t ln;
+		const char *sz = strlineextractRemoveWhiteSpaceAndComments (&ln, szLine, lnLine, psmlt);
+		if (ln != lnLine)
+		{
+			if (ln)
+			{
+				lnLine = ln;
+				szLine = sz;
+			} else
+				goto Escape;
+		} else
+		{
+			++ szLine;
+			-- lnLine;
+		}
+		unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
+		if (ui1)
+		{	// Return the position of the equality sign found and the remaining length
+			//	of the line and its 1-based index. This way the caller doesn't need to
+			//	parse white space up until after the equality sign again, since its
+			//	length can be obtained via the 1-based index - 1.
+			if (pszEqual)			*pszEqual			= szLine;
+			if (plnEqual)			*plnEqual			= lnLine;
+			if (pidxEqual1based)	*pidxEqual1based	= ui1;
+			break;
+		}
+	}
+	Escape:
+	if (szEnd)
+		szLine = szEnd + 1;
+	*plnKeyOrVal = szLine - szRet;
+	*pszKeyOrVal = szRet;
+	return true;
 }
 
 unsigned int strlineextractKeyAndValues	(
@@ -18355,7 +18382,16 @@ bool strlineextractSection	(
 					lnLine = newLnLine;
 				}
 				if (0 == lnLine)
-					szLine	= NULL;
+					szLine = NULL;
+				else
+				{
+					unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
+					if (ui1)
+					{	// It's a key, not a section -> "[key] = value"
+						bRet = false;
+						goto Escape;
+					}
+				}
 				bRet = true;
 				goto Escape;
 			}
@@ -18525,6 +18561,21 @@ bool strlineextractSection	(
 		ubf_expect_bool_AND (b, NULL != szKey);
 		ubf_expect_bool_AND (b, 1 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("v ", szKey, 2));
+
+		szKey	= NULL;
+		lnKey	= 0;
+
+		const char	*szE;
+		size_t		lnE;
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, &szE, &lnE, NULL,
+				" \"k \" = v //Comment.", USE_STRLEN, &scmul
+										);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 2 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("k \"", szKey, 3));
+		ubf_expect_bool_AND (b, !memcmp ("= ", szE, 2));
 
 		szKey	= NULL;
 		lnKey	= 0;
@@ -19246,11 +19297,12 @@ bool strlineextractSection	(
 		ubf_expect_bool_AND (b, 7 == lnSect);
 		ubf_expect_bool_AND (b, !memcmp ("Section]", szSect, 8));
 
+		// Not a section. This is a key without a value.
 		strcpy	(
 			cBuf,
 			"\t\t\t     [Section]    =\t\t\t        "
 				);
-		b &= strlineextractSection	(
+		b &= !strlineextractSection	(
 				&szSect, &lnSect,
 				cBuf, USE_STRLEN,
 				&scmul,
@@ -19258,14 +19310,14 @@ bool strlineextractSection	(
 				&szTail, &lnTail
 									);
 		ubf_expect_true (b);
-		ubf_expect_non_NULL (szTail);
-		ubf_expect_bool_AND (b, !memcmp ("=\t\t\t", szTail, 4));
+		ubf_expect_NULL (szTail);
+		//ubf_expect_bool_AND (b, !memcmp ("=\t\t\t", szTail, 4));
 
 		strcpy	(
 			cBuf,
 			"\t\t\t     [Section]    \t\t\t    =    "
 				);
-		b &= strlineextractSection	(
+		b &= !strlineextractSection	(
 				&szSect, &lnSect,
 				cBuf, USE_STRLEN,
 				&scmul,
@@ -19273,13 +19325,13 @@ bool strlineextractSection	(
 				&szTail, &lnTail
 									);
 		ubf_expect_true (b);
-		ubf_expect_non_NULL (szTail);
+		ubf_expect_NULL (szTail);
 
 		strcpy	(
 			cBuf,
 			"\t\t\t     [Section]    \t\t\t    ="
 				);
-		b &= strlineextractSection	(
+		b &= !strlineextractSection	(
 				&szSect, &lnSect,
 				cBuf, USE_STRLEN,
 				&scmul,
@@ -19287,7 +19339,7 @@ bool strlineextractSection	(
 				&szTail, &lnTail
 									);
 		ubf_expect_true (b);
-		ubf_expect_non_NULL (szTail);
+		ubf_expect_NULL (szTail);
 
 		// Invalid equality sign.
 		szTail = NULL;
@@ -24190,11 +24242,11 @@ static void storeSectionMembers	(
 	ONLY_IN_DEBUG (-- pkvs->nSects);
 
 	// Make it clear to the compiler that we do not care about padding.
-	memset (&pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection], 0, sizeof (SCUNILOGINISECTION));
-	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].szSectionName		= szSection;
-	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].lnSectionName		= lnSection;
-	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].pKeyValuePairs	= NULL;
-	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].nKeyValuePairs	= 0;
+	memset (&pkvs->pCunilogIni->pSections [pkvs->uiCurrSection], 0, sizeof (SCUNILOGINISECTION));
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].szSectionName		= szSection;
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].lnSectionName		= lnSection;
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].pKeyValues	= NULL;
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].nKeyValues	= 0;
 
 	ubf_assert (UINT_MAX > pkvs->uiCurrSection);
 }
@@ -24239,8 +24291,8 @@ static bool createCreateSCUNILOGINI_assgn_cb (STRLINEINF *psli)
 	// Note that instead of pkvs->nValues we could afford a UINT_MAX as well,
 	//	because everything has been allocated with the required sizes already.
 	nVals = strlineextractKeyAndValues	(
-				&pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey].szKeyName,
-				&pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey].lnKeyName,
+				&pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].szKeyName,
+				&pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].lnKeyName,
 				&pkvs->pCunilogIni->pValues [pkvs->uiCurrValue],
 				pkvs->nValues,
 				szTail, lnTail,
@@ -24254,21 +24306,21 @@ static bool createCreateSCUNILOGINI_assgn_cb (STRLINEINF *psli)
 		{
 			storeSectionMembers (pkvs, NULL, 0);
 		}
-		if (NULL == pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].pKeyValuePairs)
+		if (NULL == pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].pKeyValues)
 		{
-			pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].pKeyValuePairs =
-				&pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey];
+			pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].pKeyValues =
+				&pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey];
 
-			ubf_assert (pkvs->pCunilogIni->nIniSections		> pkvs->uiCurrSection);
-			ubf_assert (pkvs->pCunilogIni->nKeyValuePairs	> pkvs->uiCurrentKey);
-			pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey].nValues = 0;
+			ubf_assert (pkvs->pCunilogIni->nSections		> pkvs->uiCurrSection);
+			ubf_assert (pkvs->pCunilogIni->nKeyValues	> pkvs->uiCurrentKey);
+			pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].nValues = 0;
 		}
 
-		pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey].pValues =
+		pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].pValues =
 			&pkvs->pCunilogIni->pValues [pkvs->uiCurrValue];
-		pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey].nValues = nVals;
+		pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].nValues = nVals;
 
-		++ pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].nKeyValuePairs;
+		++ pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].nKeyValues;
 		pkvs->uiCurrValue += nVals;
 		++ pkvs->uiCurrentKey;
 		return true;
@@ -24329,13 +24381,13 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 		{
 			if (kvs.nSects)
 			{	// The array with the sections is at the start of the buffer.
-				pCunilogIni->pIniSections	= (SCUNILOGINISECTION *)		pCunilogIni->buf;
-				pCunilogIni->nIniSections	= kvs.nSects;
+				pCunilogIni->pSections	= (SCUNILOGINISECTION *)		pCunilogIni->buf;
+				pCunilogIni->nSections	= kvs.nSects;
 			}
 			if (kvs.nKeys)
 			{	// Keys come after the sections.
-				pCunilogIni->pKeyValuePairs	= (SCUNILOGINIKEYANDVALUES *)	(pCunilogIni->buf + stSections);
-				pCunilogIni->nKeyValuePairs	= kvs.nKeys;
+				pCunilogIni->pKeyValues	= (SCUNILOGINIKEYANDVALUES *)	(pCunilogIni->buf + stSections);
+				pCunilogIni->nKeyValues	= kvs.nKeys;
 			}
 			if (kvs.nValues)
 			{	// Values are stored after the keys.
@@ -24427,46 +24479,46 @@ static unsigned int CunilogGetIniValuesFromKey_int	(
 		return 0;
 
 	size_t uiS;
-	for (uiS = 0; uiS < pCunilogIni->nIniSections; ++ uiS)
+	for (uiS = 0; uiS < pCunilogIni->nSections; ++ uiS)
 	{
 		bool bSectionsEqual;
 		if (enVlsCaseSensitiveSection == cs || enVlsCaseSensitiveSectionAndKey == cs)
 			bSectionsEqual = equalSectionNames		(
 				szSection, lnSection,
-				pCunilogIni->pIniSections [uiS].szSectionName,
-				pCunilogIni->pIniSections [uiS].lnSectionName
+				pCunilogIni->pSections [uiS].szSectionName,
+				pCunilogIni->pSections [uiS].lnSectionName
 													);
 		else
 			bSectionsEqual = equalSectionNames_ci	(
 				szSection, lnSection,
-				pCunilogIni->pIniSections [uiS].szSectionName,
-				pCunilogIni->pIniSections [uiS].lnSectionName
+				pCunilogIni->pSections [uiS].szSectionName,
+				pCunilogIni->pSections [uiS].lnSectionName
 													);
 		if (bSectionsEqual)
 		{
 			size_t uiK;
-			for (uiK = 0; uiK < pCunilogIni->pIniSections [uiS].nKeyValuePairs; ++ uiK)
+			for (uiK = 0; uiK < pCunilogIni->pSections [uiS].nKeyValues; ++ uiK)
 			{
-				if (lnKey == pCunilogIni->pIniSections [uiS].pKeyValuePairs [uiK].lnKeyName)
+				if (lnKey == pCunilogIni->pSections [uiS].pKeyValues [uiK].lnKeyName)
 				{
 					int icmp;
 					if (enVlsCaseSensitiveKey == cs || enVlsCaseSensitiveSectionAndKey == cs)
 						icmp = memcmp		(
 								szKey,
-								pCunilogIni->pIniSections [uiS].pKeyValuePairs [uiK].szKeyName,
+								pCunilogIni->pSections [uiS].pKeyValues [uiK].szKeyName,
 								lnKey
 											);
 					else
 						icmp = memcmp_ci	(
 								szKey,
-								pCunilogIni->pIniSections [uiS].pKeyValuePairs [uiK].szKeyName,
+								pCunilogIni->pSections [uiS].pKeyValues [uiK].szKeyName,
 								lnKey
 											);
 					if (!icmp)
 					{
 						if (pValues)
-							*pValues = pCunilogIni->pIniSections [uiS].pKeyValuePairs [uiK].pValues;
-						return pCunilogIni->pIniSections [uiS].pKeyValuePairs [uiK].nValues;
+							*pValues = pCunilogIni->pSections [uiS].pKeyValues [uiK].pValues;
+						return pCunilogIni->pSections [uiS].pKeyValues [uiK].nValues;
 					}
 				}
 			}
@@ -24620,17 +24672,76 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		SCUNILOGINI ci;
 		bool b1;
 
+		strcpy (szIni,
+				"[section]   \n"
+				"[k] = length is short  \n");
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_assert_bool_AND (b, 1 == ci.nSections);
+		ubf_assert_bool_AND (b, 1 == ci.nKeyValues);
+
+		strcpy (szIni,
+				"[section]   \n"
+				"\"key 1 \" = colour is green\n"
+				"[key 2] = length is short  \n"
+				"{key 3 } = colour is green \n"
+				"{key 4 } = length is short \n");
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, b1);
+		ubf_expect_bool_AND (b, 4 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 4 == ci.nValues);
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pValues [0].szValue, ci.pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pValues [1].szValue, ci.pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pValues [2].szValue, ci.pValues [2].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pValues [3].szValue, ci.pValues [3].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pKeyValues [1].pValues [0].szValue, ci.pKeyValues [1].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pKeyValues [2].pValues [0].szValue, ci.pKeyValues [2].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pKeyValues [3].pValues [0].szValue, ci.pKeyValues [3].pValues [0].lnValue));
+		DoneSCUNILOGINI (&ci);
+
+		strcpy (szIni,
+				"[section]\n"
+				" key  = value1, value2, value3\n"
+				" key2 = value1, value2, value3\n");
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, b1);
+		ubf_expect_bool_AND (b, 2 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 2 == ci.nValues);
+		ubf_expect_bool_AND (b, !memcmp ("value1, value2, value3", ci.pValues [0].szValue, ci.pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("value1, value2, value3", ci.pValues [1].szValue, ci.pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("value1, value2, value3", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("value1, value2, value3", ci.pKeyValues [1].pValues [0].szValue, ci.pKeyValues [1].pValues [0].lnValue));
+		DoneSCUNILOGINI (&ci);
+
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, b1);
+		ubf_expect_bool_AND (b, 4 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 4 == ci.nValues);
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pValues [0].szValue, ci.pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pValues [1].szValue, ci.pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pValues [2].szValue, ci.pValues [2].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pValues [3].szValue, ci.pValues [3].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pKeyValues [1].pValues [0].szValue, ci.pKeyValues [1].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pKeyValues [2].pValues [0].szValue, ci.pKeyValues [2].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pKeyValues [3].pValues [0].szValue, ci.pKeyValues [3].pValues [0].lnValue));
+		DoneSCUNILOGINI (&ci);
+
 		// Used for service tasks.
 		strcpy	(szIni, " [Section 03] mkey = [S01][S02][S03]\n");
 		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
 		ubf_assert_true (b1);
-		ubf_expect_bool_AND (b, 1 == ci.nIniSections);
-		ubf_expect_bool_AND (b, 1 == ci.nKeyValuePairs);
-		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
-		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pIniSections [0].szSectionName, 10));
-		ubf_expect_bool_AND (b, 1 == ci.pIniSections [0].nKeyValuePairs);
-		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [0].nValues);
-		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
+		ubf_expect_bool_AND (b, 1 == ci.nSections);
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 10 == ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pSections [0].szSectionName, 10));
+		ubf_expect_bool_AND (b, 1 == ci.pSections [0].nKeyValues);
+		ubf_expect_bool_AND (b, 3 == ci.pSections [0].pKeyValues [0].nValues);
+		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValues [0].szKeyName, ci.pKeyValues [0].lnKeyName));
 		unsigned int nVals;
 		unsigned int nVls2;
 		SCUNILOGINIVALUES *pVals;
@@ -24655,13 +24766,13 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 			" mkey = [S01][S02][S03]\n");
 		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
 		ubf_assert_true (b1);
-		ubf_expect_bool_AND (b, 1 == ci.nIniSections);
-		ubf_expect_bool_AND (b, 1 == ci.nKeyValuePairs);
-		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
-		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pIniSections [0].szSectionName, 10));
-		ubf_expect_bool_AND (b, 1 == ci.pIniSections [0].nKeyValuePairs);
-		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [0].nValues);
-		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
+		ubf_expect_bool_AND (b, 1 == ci.nSections);
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 10 == ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pSections [0].szSectionName, 10));
+		ubf_expect_bool_AND (b, 1 == ci.pSections [0].nKeyValues);
+		ubf_expect_bool_AND (b, 3 == ci.pSections [0].pKeyValues [0].nValues);
+		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValues [0].szKeyName, ci.pKeyValues [0].lnKeyName));
 		nVals = CunilogGetIniValuesFromKey (&pVals, NULL, 0, "mkey", USE_STRLEN, &ci);
 		ubf_expect_bool_AND (b, 0 == nVals);
 		nVals = CunilogGetIniValuesFromKey (&pVals, "Section 03", USE_STRLEN, "mkey", USE_STRLEN, &ci);
@@ -24681,13 +24792,13 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 			" mkey = 'S01' 'S02' 'S03' \n");
 		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
 		ubf_assert_true (b1);
-		ubf_expect_bool_AND (b, 1 == ci.nIniSections);
-		ubf_expect_bool_AND (b, 1 == ci.nKeyValuePairs);
-		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
-		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pIniSections [0].szSectionName, 10));
-		ubf_expect_bool_AND (b, 1 == ci.pIniSections [0].nKeyValuePairs);
-		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [0].nValues);
-		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
+		ubf_expect_bool_AND (b, 1 == ci.nSections);
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 10 == ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pSections [0].szSectionName, 10));
+		ubf_expect_bool_AND (b, 1 == ci.pSections [0].nKeyValues);
+		ubf_expect_bool_AND (b, 3 == ci.pSections [0].pKeyValues [0].nValues);
+		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValues [0].szKeyName, ci.pKeyValues [0].lnKeyName));
 		nVals = CunilogGetIniValuesFromKey		(&pVals, NULL, 0, "mkey", USE_STRLEN, &ci);
 		nVls2 = CunilogGetIniValuesFromKey_ci	(&pVls2, NULL, 0, "mKEy", USE_STRLEN, &ci);
 		ubf_expect_bool_AND (b, 0 == nVals);
@@ -24725,12 +24836,12 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 			" key 03 = value 3 // Comment.\n");
 		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
 		ubf_assert_true (b1);
-		ubf_expect_bool_AND (b, 1 == ci.nIniSections);
-		ubf_expect_bool_AND (b, 1 == ci.nKeyValuePairs);
-		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
-		ubf_expect_bool_AND (b, !memcmp ("Section 01", ci.pIniSections [0].szSectionName, 10));
-		ubf_expect_bool_AND (b, 1 == ci.pIniSections [0].nKeyValuePairs);
-		ubf_expect_bool_AND (b, !memcmp ("key 03", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
+		ubf_expect_bool_AND (b, 1 == ci.nSections);
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 10 == ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 01", ci.pSections [0].szSectionName, 10));
+		ubf_expect_bool_AND (b, 1 == ci.pSections [0].nKeyValues);
+		ubf_expect_bool_AND (b, !memcmp ("key 03", ci.pKeyValues [0].szKeyName, ci.pKeyValues [0].lnKeyName));
 		nVals = CunilogGetIniValuesFromKey (&pVals, NULL, 0, "mkey", USE_STRLEN, &ci);
 		ubf_expect_bool_AND (b, 0 == nVals);
 		nVals = CunilogGetIniValuesFromKey (&pVals, "Section 01", USE_STRLEN, "key 03", USE_STRLEN, &ci);
@@ -24747,27 +24858,27 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 			" nkey = [T01][T02][T03]\n");
 		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
 		ubf_assert_true (b1);
-		ubf_expect_bool_AND (b, 1 == ci.nIniSections);
-		ubf_expect_bool_AND (b, 2 == ci.nKeyValuePairs);
-		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
-		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pIniSections [0].szSectionName, 10));
-		ubf_expect_bool_AND (b, 2 == ci.pIniSections [0].nKeyValuePairs);
-		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [0].nValues);
-		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [1].nValues);
-		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
-		ubf_expect_bool_AND (b, !memcmp ("nkey", ci.pKeyValuePairs [1].szKeyName, ci.pKeyValuePairs [1].lnKeyName));
-		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [0].pValues [0].lnValue);
-		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [0].pValues [1].lnValue);
-		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [0].pValues [2].lnValue);
-		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [1].pValues [0].lnValue);
-		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [1].pValues [1].lnValue);
-		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [1].pValues [2].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("S01", ci.pKeyValuePairs [0].pValues [0].szValue, ci.pKeyValuePairs [0].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("S02", ci.pKeyValuePairs [0].pValues [1].szValue, ci.pKeyValuePairs [0].pValues [1].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("S03", ci.pKeyValuePairs [0].pValues [2].szValue, ci.pKeyValuePairs [0].pValues [2].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("T01", ci.pKeyValuePairs [1].pValues [0].szValue, ci.pKeyValuePairs [1].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("T02", ci.pKeyValuePairs [1].pValues [1].szValue, ci.pKeyValuePairs [1].pValues [1].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("T03", ci.pKeyValuePairs [1].pValues [2].szValue, ci.pKeyValuePairs [1].pValues [2].lnValue));
+		ubf_expect_bool_AND (b, 1 == ci.nSections);
+		ubf_expect_bool_AND (b, 2 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 10 == ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pSections [0].szSectionName, 10));
+		ubf_expect_bool_AND (b, 2 == ci.pSections [0].nKeyValues);
+		ubf_expect_bool_AND (b, 3 == ci.pSections [0].pKeyValues [0].nValues);
+		ubf_expect_bool_AND (b, 3 == ci.pSections [0].pKeyValues [1].nValues);
+		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValues [0].szKeyName, ci.pKeyValues [0].lnKeyName));
+		ubf_expect_bool_AND (b, !memcmp ("nkey", ci.pKeyValues [1].szKeyName, ci.pKeyValues [1].lnKeyName));
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValues [0].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValues [0].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValues [0].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValues [1].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValues [1].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValues [1].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("S01", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("S02", ci.pKeyValues [0].pValues [1].szValue, ci.pKeyValues [0].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("S03", ci.pKeyValues [0].pValues [2].szValue, ci.pKeyValues [0].pValues [2].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T01", ci.pKeyValues [1].pValues [0].szValue, ci.pKeyValues [1].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T02", ci.pKeyValues [1].pValues [1].szValue, ci.pKeyValues [1].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T03", ci.pKeyValues [1].pValues [2].szValue, ci.pKeyValues [1].pValues [2].lnValue));
 		DoneSCUNILOGINI (&ci);
 
 		memset (&ci, 255, sizeof (SCUNILOGINI));
@@ -24780,46 +24891,46 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 			" nkey2	= [C01] [C02_] [C03__]\n");
 		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
 		ubf_assert_true (b1);
-		ubf_expect_bool_AND (b, 2 == ci.nIniSections);
-		ubf_expect_bool_AND (b, 4 == ci.nKeyValuePairs);
-		ubf_expect_bool_AND (b, 11 == ci.pIniSections [0].lnSectionName);
-		ubf_expect_bool_AND (b, 10 == ci.pIniSections [1].lnSectionName);
-		ubf_expect_bool_AND (b, !memcmp ("Section NNN", ci.pIniSections [0].szSectionName, 11));
-		ubf_expect_bool_AND (b, !memcmp ("Section OO", ci.pIniSections [1].szSectionName, 10));
-		ubf_expect_bool_AND (b, 2 == ci.pIniSections [0].nKeyValuePairs);
-		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [0].nValues);
-		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [1].nValues);
-		ubf_expect_bool_AND (b, 2 == ci.pIniSections [1].nKeyValuePairs);
-		ubf_expect_bool_AND (b, 3 == ci.pIniSections [1].pKeyValuePairs [0].nValues);
-		ubf_expect_bool_AND (b, 3 == ci.pIniSections [1].pKeyValuePairs [1].nValues);
-		ubf_expect_bool_AND (b, 4 == ci.pKeyValuePairs [0].lnKeyName);
-		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [1].lnKeyName);
-		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
-		ubf_expect_bool_AND (b, !memcmp ("nkey2", ci.pKeyValuePairs [1].szKeyName, ci.pKeyValuePairs [1].lnKeyName));
-		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [0].pValues [0].lnValue);
-		ubf_expect_bool_AND (b, 4 == ci.pKeyValuePairs [0].pValues [1].lnValue);
-		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [0].pValues [2].lnValue);
-		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [1].pValues [0].lnValue);
-		ubf_expect_bool_AND (b, 4 == ci.pKeyValuePairs [1].pValues [1].lnValue);
-		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [1].pValues [2].lnValue);
-		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [2].pValues [0].lnValue);
-		ubf_expect_bool_AND (b, 4 == ci.pKeyValuePairs [2].pValues [1].lnValue);
-		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [2].pValues [2].lnValue);
-		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [3].pValues [0].lnValue);
-		ubf_expect_bool_AND (b, 4 == ci.pKeyValuePairs [3].pValues [1].lnValue);
-		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [3].pValues [2].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("A01",		ci.pKeyValuePairs [0].pValues [0].szValue, ci.pKeyValuePairs [0].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("A02_",	ci.pKeyValuePairs [0].pValues [1].szValue, ci.pKeyValuePairs [0].pValues [1].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("A03__",	ci.pKeyValuePairs [0].pValues [2].szValue, ci.pKeyValuePairs [0].pValues [2].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("T01",		ci.pKeyValuePairs [1].pValues [0].szValue, ci.pKeyValuePairs [1].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("T02_",	ci.pKeyValuePairs [1].pValues [1].szValue, ci.pKeyValuePairs [1].pValues [1].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("T03__",	ci.pKeyValuePairs [1].pValues [2].szValue, ci.pKeyValuePairs [1].pValues [2].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("B01",		ci.pKeyValuePairs [2].pValues [0].szValue, ci.pKeyValuePairs [0].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("B02_",	ci.pKeyValuePairs [2].pValues [1].szValue, ci.pKeyValuePairs [0].pValues [1].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("B03__",	ci.pKeyValuePairs [2].pValues [2].szValue, ci.pKeyValuePairs [0].pValues [2].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("C01",		ci.pKeyValuePairs [3].pValues [0].szValue, ci.pKeyValuePairs [1].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("C02_",	ci.pKeyValuePairs [3].pValues [1].szValue, ci.pKeyValuePairs [1].pValues [1].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("C03__",	ci.pKeyValuePairs [3].pValues [2].szValue, ci.pKeyValuePairs [1].pValues [2].lnValue));
+		ubf_expect_bool_AND (b, 2 == ci.nSections);
+		ubf_expect_bool_AND (b, 4 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 11 == ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, 10 == ci.pSections [1].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section NNN", ci.pSections [0].szSectionName, 11));
+		ubf_expect_bool_AND (b, !memcmp ("Section OO", ci.pSections [1].szSectionName, 10));
+		ubf_expect_bool_AND (b, 2 == ci.pSections [0].nKeyValues);
+		ubf_expect_bool_AND (b, 3 == ci.pSections [0].pKeyValues [0].nValues);
+		ubf_expect_bool_AND (b, 3 == ci.pSections [0].pKeyValues [1].nValues);
+		ubf_expect_bool_AND (b, 2 == ci.pSections [1].nKeyValues);
+		ubf_expect_bool_AND (b, 3 == ci.pSections [1].pKeyValues [0].nValues);
+		ubf_expect_bool_AND (b, 3 == ci.pSections [1].pKeyValues [1].nValues);
+		ubf_expect_bool_AND (b, 4 == ci.pKeyValues [0].lnKeyName);
+		ubf_expect_bool_AND (b, 5 == ci.pKeyValues [1].lnKeyName);
+		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValues [0].szKeyName, ci.pKeyValues [0].lnKeyName));
+		ubf_expect_bool_AND (b, !memcmp ("nkey2", ci.pKeyValues [1].szKeyName, ci.pKeyValues [1].lnKeyName));
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValues [0].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 4 == ci.pKeyValues [0].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 5 == ci.pKeyValues [0].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValues [1].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 4 == ci.pKeyValues [1].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 5 == ci.pKeyValues [1].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValues [2].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 4 == ci.pKeyValues [2].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 5 == ci.pKeyValues [2].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValues [3].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 4 == ci.pKeyValues [3].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 5 == ci.pKeyValues [3].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("A01",		ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("A02_",	ci.pKeyValues [0].pValues [1].szValue, ci.pKeyValues [0].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("A03__",	ci.pKeyValues [0].pValues [2].szValue, ci.pKeyValues [0].pValues [2].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T01",		ci.pKeyValues [1].pValues [0].szValue, ci.pKeyValues [1].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T02_",	ci.pKeyValues [1].pValues [1].szValue, ci.pKeyValues [1].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T03__",	ci.pKeyValues [1].pValues [2].szValue, ci.pKeyValues [1].pValues [2].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("B01",		ci.pKeyValues [2].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("B02_",	ci.pKeyValues [2].pValues [1].szValue, ci.pKeyValues [0].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("B03__",	ci.pKeyValues [2].pValues [2].szValue, ci.pKeyValues [0].pValues [2].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("C01",		ci.pKeyValues [3].pValues [0].szValue, ci.pKeyValues [1].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("C02_",	ci.pKeyValues [3].pValues [1].szValue, ci.pKeyValues [1].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("C03__",	ci.pKeyValues [3].pValues [2].szValue, ci.pKeyValues [1].pValues [2].lnValue));
 		DoneSCUNILOGINI (&ci);
 
 		memset (&ci, 255, sizeof (SCUNILOGINI));
@@ -24853,31 +24964,31 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 
 		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
 		ubf_assert_true (b1);
-		ubf_expect_bool_AND (b, 2 == ci.nIniSections);
-		ubf_expect_bool_AND (b, 7 == ci.nKeyValuePairs);
+		ubf_expect_bool_AND (b, 2 == ci.nSections);
+		ubf_expect_bool_AND (b, 7 == ci.nKeyValues);
 		ubf_expect_bool_AND (b, 7 == ci.nValues);
-		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
-		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].nKeyValuePairs);
-		ubf_expect_bool_AND (b, 10 == ci.pIniSections [1].lnSectionName);
-		ubf_expect_bool_AND (b, 4 == ci.pIniSections [1].nKeyValuePairs);
-		ubf_expect_bool_AND (b, !memcmp ("Section 01]", ci.pIniSections [0].szSectionName, 11));
-		ubf_expect_bool_AND (b, !memcmp ("Section 02]", ci.pIniSections [1].szSectionName, 11));
-		ubf_expect_bool_AND (b, !memcmp ("Key01 ",							ci.pKeyValuePairs [0].szKeyName, 6));
+		ubf_expect_bool_AND (b, 10 == ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, 3 == ci.pSections [0].nKeyValues);
+		ubf_expect_bool_AND (b, 10 == ci.pSections [1].lnSectionName);
+		ubf_expect_bool_AND (b, 4 == ci.pSections [1].nKeyValues);
+		ubf_expect_bool_AND (b, !memcmp ("Section 01]", ci.pSections [0].szSectionName, 11));
+		ubf_expect_bool_AND (b, !memcmp ("Section 02]", ci.pSections [1].szSectionName, 11));
+		ubf_expect_bool_AND (b, !memcmp ("Key01 ",							ci.pKeyValues [0].szKeyName, 6));
 		ubf_expect_bool_AND (b, !memcmp ("Value 01 ",						ci.pValues [0].szValue, 9));
-		ubf_expect_bool_AND (b, !memcmp ("Key02 ",							ci.pKeyValuePairs [1].szKeyName, 6));
+		ubf_expect_bool_AND (b, !memcmp ("Key02 ",							ci.pKeyValues [1].szKeyName, 6));
 		ubf_expect_bool_AND (b, !memcmp ("This is value 02\"",				ci.pValues [1].szValue, 17));
-		ubf_expect_bool_AND (b, !memcmp ("Key03\t",							ci.pKeyValuePairs [2].szKeyName, 6));
+		ubf_expect_bool_AND (b, !memcmp ("Key03\t",							ci.pKeyValues [2].szKeyName, 6));
 		ubf_expect_bool_AND (b, !memcmp ("We are still in Section 01. ",	ci.pValues [2].szValue, 28));
-		ubf_expect_bool_AND (b, !memcmp ("S02Key01 ",						ci.pKeyValuePairs [3].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key01 ",						ci.pKeyValues [3].szKeyName, 9));
 		ubf_expect_bool_AND (b, !memcmp ("Value S01K01 ",					ci.pValues [3].szValue, 13));
-		ubf_expect_bool_AND (b, !memcmp ("S02Key02 ",						ci.pKeyValuePairs [4].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key02 ",						ci.pKeyValues [4].szKeyName, 9));
 		ubf_expect_bool_AND (b, !memcmp ("Value S01K02 ",					ci.pValues [4].szValue, 13));
-		ubf_expect_bool_AND (b, !memcmp ("S02Key03 ",						ci.pKeyValuePairs [5].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key03 ",						ci.pKeyValues [5].szKeyName, 9));
 		ubf_expect_bool_AND (b, !memcmp ("Value S01K03__x ",				ci.pValues [5].szValue, 16));
-		ubf_expect_bool_AND (b, !memcmp ("S02Key04 ",						ci.pKeyValuePairs [6].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key04 ",						ci.pKeyValues [6].szKeyName, 9));
 		ubf_expect_bool_AND (b, !memcmp ("Value S01K04__xy ",				ci.pValues [6].szValue, 17));
-		ubf_expect_bool_AND (b, ci.pIniSections [0].pKeyValuePairs == ci.pKeyValuePairs);
-		ubf_expect_bool_AND (b, &ci.pIniSections [0].pKeyValuePairs [1] == &ci.pKeyValuePairs [1]);
+		ubf_expect_bool_AND (b, ci.pSections [0].pKeyValues == ci.pKeyValues);
+		ubf_expect_bool_AND (b, &ci.pSections [0].pKeyValues [1] == &ci.pKeyValues [1]);
 		DoneSCUNILOGINI (&ci);
 
 		// Now we got one out-of-section key/value pair.
@@ -24931,35 +25042,35 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		// Note that we got "Key00 = Value00" before the first section. This means we got
 		//	an additional "non-section", which is a section without a name. Our
 		//	ci.nIniSections is therefore one greater than the real amount of sections.
-		ubf_expect_bool_AND (b, 4 == ci.nIniSections);
-		ubf_expect_bool_AND (b, 10 == ci.nKeyValuePairs);
-		ubf_expect_bool_AND (b, 0	== ci.pIniSections [0].lnSectionName);
-		ubf_expect_bool_AND (b, 10	== ci.pIniSections [1].lnSectionName);
-		ubf_expect_bool_AND (b, 11	== ci.pIniSections [2].lnSectionName);
-		ubf_expect_bool_AND (b, 10	== ci.pIniSections [3].lnSectionName);
-		ubf_expect_bool_AND (b, NULL == ci.pIniSections [0].szSectionName);
-		ubf_expect_bool_AND (b, !memcmp ("Section 01]", ci.pIniSections [1].szSectionName, 11));
-		ubf_expect_bool_AND (b, !memcmp ("Section 02_]", ci.pIniSections [2].szSectionName, 12));
-		ubf_expect_bool_AND (b, !memcmp ("Section 03]", ci.pIniSections [3].szSectionName, 11));
+		ubf_expect_bool_AND (b, 4 == ci.nSections);
+		ubf_expect_bool_AND (b, 10 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 0	== ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, 10	== ci.pSections [1].lnSectionName);
+		ubf_expect_bool_AND (b, 11	== ci.pSections [2].lnSectionName);
+		ubf_expect_bool_AND (b, 10	== ci.pSections [3].lnSectionName);
+		ubf_expect_bool_AND (b, NULL == ci.pSections [0].szSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 01]", ci.pSections [1].szSectionName, 11));
+		ubf_expect_bool_AND (b, !memcmp ("Section 02_]", ci.pSections [2].szSectionName, 12));
+		ubf_expect_bool_AND (b, !memcmp ("Section 03]", ci.pSections [3].szSectionName, 11));
 		ubf_expect_bool_AND	(b,
-			!memcmp ("Key00 ", ci.pKeyValuePairs [0].szKeyName, 6)
+			!memcmp ("Key00 ", ci.pKeyValues [0].szKeyName, 6)
 							);
 		ubf_expect_bool_AND	(b,
 			!memcmp ("Value00; This is not a comment. It belongs to the value.", ci.pValues [0].szValue, 56)
 							);
-		ubf_expect_bool_AND (b, !memcmp ("Key01 ",							ci.pKeyValuePairs [1].szKeyName, 6));
+		ubf_expect_bool_AND (b, !memcmp ("Key01 ",							ci.pKeyValues [1].szKeyName, 6));
 		ubf_expect_bool_AND (b, !memcmp ("Value 01 ",						ci.pValues [1].szValue, 9));
-		ubf_expect_bool_AND (b, !memcmp ("Key02 ",							ci.pKeyValuePairs [2].szKeyName, 6));
+		ubf_expect_bool_AND (b, !memcmp ("Key02 ",							ci.pKeyValues [2].szKeyName, 6));
 		ubf_expect_bool_AND (b, !memcmp ("This is value 02\"",				ci.pValues [2].szValue, 17));
-		ubf_expect_bool_AND (b, !memcmp ("Key03\t",							ci.pKeyValuePairs [3].szKeyName, 6));
+		ubf_expect_bool_AND (b, !memcmp ("Key03\t",							ci.pKeyValues [3].szKeyName, 6));
 		ubf_expect_bool_AND (b, !memcmp ("We are still in Section 01. ",	ci.pValues [3].szValue, 28));
-		ubf_expect_bool_AND (b, !memcmp ("S02Key01 ",						ci.pKeyValuePairs [4].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key01 ",						ci.pKeyValues [4].szKeyName, 9));
 		ubf_expect_bool_AND (b, !memcmp ("Value S01K01 ",					ci.pValues [4].szValue, 13));
-		ubf_expect_bool_AND (b, !memcmp ("S02Key02 ",						ci.pKeyValuePairs [5].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key02 ",						ci.pKeyValues [5].szKeyName, 9));
 		ubf_expect_bool_AND (b, !memcmp ("Value S01K02 ",					ci.pValues [5].szValue, 13));
-		ubf_expect_bool_AND (b, !memcmp ("S02Key03 ",						ci.pKeyValuePairs [6].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key03 ",						ci.pKeyValues [6].szKeyName, 9));
 		ubf_expect_bool_AND (b, !memcmp ("Value S01K03__x ",				ci.pValues [6].szValue, 16));
-		ubf_expect_bool_AND (b, !memcmp ("S02Key04 ",						ci.pKeyValuePairs [7].szKeyName, 9));
+		ubf_expect_bool_AND (b, !memcmp ("S02Key04 ",						ci.pKeyValues [7].szKeyName, 9));
 		ubf_expect_bool_AND (b, !memcmp ("Value S01K04__xy ",				ci.pValues [7].szValue, 17));
 
 		/* This is meant as a future extension where white space is required before some line comment

@@ -945,8 +945,8 @@ unsigned int strlineextractKeyAndValues	(
 			-- nValues;
 			if (pValues)
 			{
-				pValues [nVals].szValueName = szVal;
-				pValues [nVals].lnValueName = lnVal;
+				pValues [nVals].szValue = szVal;
+				pValues [nVals].lnValue = lnVal;
 			}
 		}
 		++ nVals;
@@ -1514,8 +1514,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 1 == iv.lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v ", iv.szValueName, 2));
+		ubf_expect_bool_AND (b, 1 == iv.lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v ", iv.szValue, 2));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1532,8 +1532,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 5 == iv.lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValueName, 5));
+		ubf_expect_bool_AND (b, 5 == iv.lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1550,8 +1550,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 5 == iv.lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValueName, 5));
+		ubf_expect_bool_AND (b, 5 == iv.lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1568,8 +1568,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 5 == iv.lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValueName, 5));
+		ubf_expect_bool_AND (b, 5 == iv.lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1586,8 +1586,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 5 == iv.lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValueName, 5));
+		ubf_expect_bool_AND (b, 5 == iv.lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1604,8 +1604,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 5 == iv.lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValueName, 5));
+		ubf_expect_bool_AND (b, 5 == iv.lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
 
 		// A second equality string belongs to the value.
 		szKey = NULL;
@@ -1623,8 +1623,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 7 == iv.lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("->value", iv.szValueName, 5));
+		ubf_expect_bool_AND (b, 7 == iv.lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("->value", iv.szValue, 5));
 
 		// Without equality signs the function fails/returns 0.
 		szKey = NULL;
@@ -1677,8 +1677,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 7 == iva [0].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp (",value,", iva [0].szValueName, 7));
+		ubf_expect_bool_AND (b, 7 == iva [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp (",value,", iva [0].szValue, 7));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1695,10 +1695,10 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 2 == iva [0].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v1", iva [0].szValueName, 2));
-		ubf_expect_bool_AND (b, 2 == iva [1].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v2", iva [1].szValueName, 2));
+		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v1", iva [0].szValue, 2));
+		ubf_expect_bool_AND (b, 2 == iva [1].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v2", iva [1].szValue, 2));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1715,16 +1715,16 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 2 == iva [0].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValueName, 2));
-		ubf_expect_bool_AND (b, 3 == iva [1].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v1_", iva [1].szValueName, 3));
-		ubf_expect_bool_AND (b, 4 == iva [2].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValueName, 4));
-		ubf_expect_bool_AND (b, 5 == iva [3].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValueName, 5));
-		ubf_expect_bool_AND (b, 6 == iva [4].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValueName, 6));
+		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValue, 2));
+		ubf_expect_bool_AND (b, 3 == iva [1].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v1_", iva [1].szValue, 3));
+		ubf_expect_bool_AND (b, 4 == iva [2].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValue, 4));
+		ubf_expect_bool_AND (b, 5 == iva [3].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValue, 5));
+		ubf_expect_bool_AND (b, 6 == iva [4].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValue, 6));
 
 		// Return value should be 5, but nothing is stored.
 		szKey = NULL;
@@ -1759,8 +1759,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 2 == iva [0].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValueName, 2));
+		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValue, 2));
 
 		// Different value separator.
 		szKey = NULL;
@@ -1779,16 +1779,16 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 2 == iva [0].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValueName, 2));
-		ubf_expect_bool_AND (b, 3 == iva [1].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v1_", iva [1].szValueName, 3));
-		ubf_expect_bool_AND (b, 4 == iva [2].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValueName, 4));
-		ubf_expect_bool_AND (b, 5 == iva [3].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValueName, 5));
-		ubf_expect_bool_AND (b, 6 == iva [4].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValueName, 6));
+		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValue, 2));
+		ubf_expect_bool_AND (b, 3 == iva [1].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v1_", iva [1].szValue, 3));
+		ubf_expect_bool_AND (b, 4 == iva [2].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValue, 4));
+		ubf_expect_bool_AND (b, 5 == iva [3].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValue, 5));
+		ubf_expect_bool_AND (b, 6 == iva [4].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValue, 6));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1806,16 +1806,16 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 4 == iva [0].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp (" v0 ", iva [0].szValueName, 4));
-		ubf_expect_bool_AND (b, 5 == iva [1].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp (" v1 _", iva [1].szValueName, 5));
-		ubf_expect_bool_AND (b, 4 == iva [2].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValueName, 4));
-		ubf_expect_bool_AND (b, 5 == iva [3].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValueName, 5));
-		ubf_expect_bool_AND (b, 6 == iva [4].lnValueName);
-		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValueName, 6));
+		ubf_expect_bool_AND (b, 4 == iva [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp (" v0 ", iva [0].szValue, 4));
+		ubf_expect_bool_AND (b, 5 == iva [1].lnValue);
+		ubf_expect_bool_AND (b, !memcmp (" v1 _", iva [1].szValue, 5));
+		ubf_expect_bool_AND (b, 4 == iva [2].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValue, 4));
+		ubf_expect_bool_AND (b, 5 == iva [3].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValue, 5));
+		ubf_expect_bool_AND (b, 6 == iva [4].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValue, 6));
 
 		const char *szSect;
 		size_t		lnSect;
