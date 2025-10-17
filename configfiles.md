@@ -165,3 +165,18 @@ The section ***section*** above contains one key named ***key***. This key has a
 [section]
 key  = "value1 = value2 = value3"
 ```
+
+The following characters/character combinations are accepted as equality signs:
+| := |
+| =  |
+| :  |
+| -> |
+| <- |
+```ini
+[section]
+key1  := value1
+key2  =  value2
+key3  :  value3
+key4  -> value4
+key5  <- value5
+```
