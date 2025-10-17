@@ -125,7 +125,7 @@ underscore character ("***_***") for clarity.
 
 ### Comma is white space
 
-Cunilog treats a comma (",") as [white space](https://en.wikipedia.org/wiki/Whitespace_character) on the right-hand side of the equality sign (the side with the value). The reason for this is to separate multiple values with either normal white space or with commas to make them look a bit more array-like. See [Multi-value keys](Multi-value-keys) below.
+Cunilog treats a comma (",") as [white space](https://en.wikipedia.org/wiki/Whitespace_character) on the right-hand side of the equality sign (the side with the value). The reason for this is to separate multiple values with either normal white space or with commas to make them look a bit more array-like. See [Multi-value keys](#-Multi-value-keys) below.
 
 Other white space consists of the characters SPC (space, blank), BS (backspace), TAB,
 VT (vertical tab), and FF (form feed).
