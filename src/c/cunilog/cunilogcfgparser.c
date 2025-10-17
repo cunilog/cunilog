@@ -902,6 +902,15 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		ubf_expect_bool_AND (b, b1);
 		ubf_expect_bool_AND (b, 4 == ci.nKeyValues);
 		ubf_expect_bool_AND (b, 4 == ci.nValues);
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pValues [0].szValueName, ci.pValues [0].lnValueName));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pValues [1].szValueName, ci.pValues [1].lnValueName));
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pValues [2].szValueName, ci.pValues [2].lnValueName));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pValues [3].szValueName, ci.pValues [3].lnValueName));
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pKeyValues [0].pValues [0].szValueName, ci.pKeyValues [0].pValues [0].lnValueName));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pKeyValues [1].pValues [0].szValueName, ci.pKeyValues [1].pValues [0].lnValueName));
+		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pKeyValues [2].pValues [0].szValueName, ci.pKeyValues [2].pValues [0].lnValueName));
+		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pKeyValues [3].pValues [0].szValueName, ci.pKeyValues [3].pValues [0].lnValueName));
+		DoneSCUNILOGINI (&ci);
 
 		// Used for service tasks.
 		strcpy	(szIni, " [Section 03] mkey = [S01][S02][S03]\n");
