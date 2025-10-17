@@ -72,8 +72,8 @@ EXTERN_C_BEGIN
 // An array of ini values. Each key can have several values.
 typedef struct scuniloginivalues
 {
-	const char				*szValue;						// Value of a multi-value key.
-	size_t					lnValue;						// Its length.
+	const char				*szValueName;					// Value of a multi-value key.
+	size_t					lnValueName;					// Its length.
 } SCUNILOGINIVALUES;
 
 // A key with its values.
@@ -91,21 +91,21 @@ typedef struct scuniloginisection
 {
 	const char				*szSectionName;
 	size_t					lnSectionName;
-	SCUNILOGINIKEYANDVALUES	*pKeyValuePairs;
-	unsigned int			nKeyValuePairs;
+	SCUNILOGINIKEYANDVALUES	*pKeyValues;
+	unsigned int			nKeyValues;
 } SCUNILOGINISECTION;
 
 // The ini file itself.
 typedef struct scunilogini
 {
 	char					*buf;
-	SCUNILOGINISECTION		*pIniSections;
-	unsigned int			nIniSections;					// Number of sections. A "non-section"
+	SCUNILOGINISECTION		*pSections;
+	unsigned int			nSections;						// Number of sections. A "non-section"
 															//	also counts as section.
 
-	SCUNILOGINIKEYANDVALUES	*pKeyValuePairs;				// All key/value pairs. Multiple values
+	SCUNILOGINIKEYANDVALUES	*pKeyValues;					// All key/value pairs. Multiple values
 															//	are possible.
-	unsigned int			nKeyValuePairs;
+	unsigned int			nKeyValues;
 
 	SCUNILOGINIVALUES		*pValues;						// All values that belong to keys.
 	unsigned int			nValues;

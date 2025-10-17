@@ -780,8 +780,8 @@ bool strlineextractKeyOrValue	(
 	szLine = strlineextractRemoveLeadingWhiteSpace (&newLnLine, szLine, lnLine);
 	lnLine = newLnLine;
 
-	const char *szRet;
-	const char *szEnd;
+	const char		*szRet;
+	const char		*szEnd;
 	unsigned int uQuote = strlineextractIsOpenString (szLine, lnLine, psmlt->nQuotes, psmlt->ccOpenQuotes);
 	if (uQuote)
 	{
@@ -793,8 +793,36 @@ bool strlineextractKeyOrValue	(
 		{
 			if (strlineextractIsCloseString (szLine, lnLine, psmlt->ccClosQuotes, uQuote))
 			{
-				*plnKeyOrVal = szLine - szRet;
-				*pszKeyOrVal = szRet;
+				*plnKeyOrVal	= szLine - szRet;
+				*pszKeyOrVal	= szRet;
+				size_t lnCloseQuote = strlen (psmlt->ccClosQuotes [uQuote - 1]);
+				szLine += lnCloseQuote;
+				lnLine -= lnCloseQuote;
+				if (0 == lnLine)
+					return true;
+				size_t ln;
+				const char *sz = strlineextractRemoveWhiteSpaceAndComments (&ln, szLine, lnLine, psmlt);
+				if (ln != lnLine)
+				{
+					if (ln)
+					{
+						lnLine = ln;
+						szLine = sz;
+					} else
+						return true;
+				}
+				unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
+				if (ui1)
+				{	// Return the position of the equality sign found and the remaining length
+					//	of the line and its 1-based index. This way the caller doesn't need to
+					//	parse white space up until after the equality sign again, since its
+					//	length can be obtained via the 1-based index - 1.
+					if (pszEqual)			*pszEqual			= szLine;
+					if (plnEqual)			*plnEqual			= lnLine;
+					if (pidxEqual1based)	*pidxEqual1based	= ui1;
+					return true;
+				}
+				// Must be something like "{key } abc", or even "{key },"
 				return true;
 			}
 			++ szLine;
@@ -802,57 +830,56 @@ bool strlineextractKeyOrValue	(
 		}
 		// No closing quote. The key or value is incomplete.
 		return false;
-	} else
-	{
-		szRet = szLine;
-		szEnd = NULL;
-
-		while (lnLine)
-		{
-			if	(
-						!isWhiteSpace (szLine [0])
-					&&	!strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals)
-					&&	!isLineComment (szLine, lnLine, psmlt)
-				)
-			{
-				szEnd = szLine;
-			}
-			if (isLineComment (szLine, lnLine, psmlt))
-				goto Escape;
-			size_t ln;
-			const char *sz = strlineextractRemoveWhiteSpaceAndComments (&ln, szLine, lnLine, psmlt);
-			if (ln != lnLine)
-			{
-				if (ln)
-				{
-					lnLine = ln;
-					szLine = sz;
-				} else
-					goto Escape;
-			} else
-			{
-				++ szLine;
-				-- lnLine;
-			}
-			unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
-			if (ui1)
-			{	// Return the position of the equality sign found and the remaining length
-				//	of the line and its 1-based index. This way the caller doesn't need to
-				//	parse white space up until after the equality sign again, since its
-				//	length can be obtained via the 1-based index - 1.
-				if (pszEqual)			*pszEqual			= szLine;
-				if (plnEqual)			*plnEqual			= lnLine;
-				if (pidxEqual1based)	*pidxEqual1based	= ui1;
-				break;
-			}
-		}
-		Escape:
-		if (szEnd)
-			szLine = szEnd + 1;
-		*plnKeyOrVal = szLine - szRet;
-		*pszKeyOrVal = szRet;
-		return true;
 	}
+
+	szRet = szLine;
+	szEnd = NULL;
+
+	while (lnLine)
+	{
+		if	(
+					!isWhiteSpace (szLine [0])
+				&&	!strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals)
+				&&	!isLineComment (szLine, lnLine, psmlt)
+			)
+		{
+			szEnd = szLine;
+		}
+		if (isLineComment (szLine, lnLine, psmlt))
+			goto Escape;
+		size_t ln;
+		const char *sz = strlineextractRemoveWhiteSpaceAndComments (&ln, szLine, lnLine, psmlt);
+		if (ln != lnLine)
+		{
+			if (ln)
+			{
+				lnLine = ln;
+				szLine = sz;
+			} else
+				goto Escape;
+		} else
+		{
+			++ szLine;
+			-- lnLine;
+		}
+		unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
+		if (ui1)
+		{	// Return the position of the equality sign found and the remaining length
+			//	of the line and its 1-based index. This way the caller doesn't need to
+			//	parse white space up until after the equality sign again, since its
+			//	length can be obtained via the 1-based index - 1.
+			if (pszEqual)			*pszEqual			= szLine;
+			if (plnEqual)			*plnEqual			= lnLine;
+			if (pidxEqual1based)	*pidxEqual1based	= ui1;
+			break;
+		}
+	}
+	Escape:
+	if (szEnd)
+		szLine = szEnd + 1;
+	*plnKeyOrVal = szLine - szRet;
+	*pszKeyOrVal = szRet;
+	return true;
 }
 
 unsigned int strlineextractKeyAndValues	(
@@ -918,8 +945,8 @@ unsigned int strlineextractKeyAndValues	(
 			-- nValues;
 			if (pValues)
 			{
-				pValues [nVals].szValue = szVal;
-				pValues [nVals].lnValue = lnVal;
+				pValues [nVals].szValueName = szVal;
+				pValues [nVals].lnValueName = lnVal;
 			}
 		}
 		++ nVals;
@@ -1009,7 +1036,16 @@ bool strlineextractSection	(
 					lnLine = newLnLine;
 				}
 				if (0 == lnLine)
-					szLine	= NULL;
+					szLine = NULL;
+				else
+				{
+					unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
+					if (ui1)
+					{	// It's a key, not a section -> "[key] = value"
+						bRet = false;
+						goto Escape;
+					}
+				}
 				bRet = true;
 				goto Escape;
 			}
@@ -1179,6 +1215,21 @@ bool strlineextractSection	(
 		ubf_expect_bool_AND (b, NULL != szKey);
 		ubf_expect_bool_AND (b, 1 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("v ", szKey, 2));
+
+		szKey	= NULL;
+		lnKey	= 0;
+
+		const char	*szE;
+		size_t		lnE;
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, &szE, &lnE, NULL,
+				" \"k \" = v //Comment.", USE_STRLEN, &scmul
+										);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 2 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("k \"", szKey, 3));
+		ubf_expect_bool_AND (b, !memcmp ("= ", szE, 2));
 
 		szKey	= NULL;
 		lnKey	= 0;
@@ -1463,8 +1514,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 1 == iv.lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v ", iv.szValue, 2));
+		ubf_expect_bool_AND (b, 1 == iv.lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v ", iv.szValueName, 2));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1481,8 +1532,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 5 == iv.lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
+		ubf_expect_bool_AND (b, 5 == iv.lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValueName, 5));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1499,8 +1550,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 5 == iv.lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
+		ubf_expect_bool_AND (b, 5 == iv.lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValueName, 5));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1517,8 +1568,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 5 == iv.lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
+		ubf_expect_bool_AND (b, 5 == iv.lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValueName, 5));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1535,8 +1586,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 5 == iv.lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
+		ubf_expect_bool_AND (b, 5 == iv.lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValueName, 5));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1553,8 +1604,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 5 == iv.lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
+		ubf_expect_bool_AND (b, 5 == iv.lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValueName, 5));
 
 		// A second equality string belongs to the value.
 		szKey = NULL;
@@ -1572,8 +1623,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 7 == iv.lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("->value", iv.szValue, 5));
+		ubf_expect_bool_AND (b, 7 == iv.lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("->value", iv.szValueName, 5));
 
 		// Without equality signs the function fails/returns 0.
 		szKey = NULL;
@@ -1626,8 +1677,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 7 == iva [0].lnValue);
-		ubf_expect_bool_AND (b, !memcmp (",value,", iva [0].szValue, 7));
+		ubf_expect_bool_AND (b, 7 == iva [0].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp (",value,", iva [0].szValueName, 7));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1644,10 +1695,10 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v1", iva [0].szValue, 2));
-		ubf_expect_bool_AND (b, 2 == iva [1].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v2", iva [1].szValue, 2));
+		ubf_expect_bool_AND (b, 2 == iva [0].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v1", iva [0].szValueName, 2));
+		ubf_expect_bool_AND (b, 2 == iva [1].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v2", iva [1].szValueName, 2));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1664,16 +1715,16 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValue, 2));
-		ubf_expect_bool_AND (b, 3 == iva [1].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v1_", iva [1].szValue, 3));
-		ubf_expect_bool_AND (b, 4 == iva [2].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValue, 4));
-		ubf_expect_bool_AND (b, 5 == iva [3].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValue, 5));
-		ubf_expect_bool_AND (b, 6 == iva [4].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValue, 6));
+		ubf_expect_bool_AND (b, 2 == iva [0].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValueName, 2));
+		ubf_expect_bool_AND (b, 3 == iva [1].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v1_", iva [1].szValueName, 3));
+		ubf_expect_bool_AND (b, 4 == iva [2].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValueName, 4));
+		ubf_expect_bool_AND (b, 5 == iva [3].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValueName, 5));
+		ubf_expect_bool_AND (b, 6 == iva [4].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValueName, 6));
 
 		// Return value should be 5, but nothing is stored.
 		szKey = NULL;
@@ -1708,8 +1759,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValue, 2));
+		ubf_expect_bool_AND (b, 2 == iva [0].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValueName, 2));
 
 		// Different value separator.
 		szKey = NULL;
@@ -1728,16 +1779,16 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValue, 2));
-		ubf_expect_bool_AND (b, 3 == iva [1].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v1_", iva [1].szValue, 3));
-		ubf_expect_bool_AND (b, 4 == iva [2].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValue, 4));
-		ubf_expect_bool_AND (b, 5 == iva [3].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValue, 5));
-		ubf_expect_bool_AND (b, 6 == iva [4].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValue, 6));
+		ubf_expect_bool_AND (b, 2 == iva [0].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValueName, 2));
+		ubf_expect_bool_AND (b, 3 == iva [1].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v1_", iva [1].szValueName, 3));
+		ubf_expect_bool_AND (b, 4 == iva [2].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValueName, 4));
+		ubf_expect_bool_AND (b, 5 == iva [3].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValueName, 5));
+		ubf_expect_bool_AND (b, 6 == iva [4].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValueName, 6));
 
 		szKey = NULL;
 		lnKey = 0;
@@ -1755,16 +1806,16 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
-		ubf_expect_bool_AND (b, 4 == iva [0].lnValue);
-		ubf_expect_bool_AND (b, !memcmp (" v0 ", iva [0].szValue, 4));
-		ubf_expect_bool_AND (b, 5 == iva [1].lnValue);
-		ubf_expect_bool_AND (b, !memcmp (" v1 _", iva [1].szValue, 5));
-		ubf_expect_bool_AND (b, 4 == iva [2].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValue, 4));
-		ubf_expect_bool_AND (b, 5 == iva [3].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValue, 5));
-		ubf_expect_bool_AND (b, 6 == iva [4].lnValue);
-		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValue, 6));
+		ubf_expect_bool_AND (b, 4 == iva [0].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp (" v0 ", iva [0].szValueName, 4));
+		ubf_expect_bool_AND (b, 5 == iva [1].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp (" v1 _", iva [1].szValueName, 5));
+		ubf_expect_bool_AND (b, 4 == iva [2].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v2__", iva [2].szValueName, 4));
+		ubf_expect_bool_AND (b, 5 == iva [3].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v3___", iva [3].szValueName, 5));
+		ubf_expect_bool_AND (b, 6 == iva [4].lnValueName);
+		ubf_expect_bool_AND (b, !memcmp ("v4____", iva [4].szValueName, 6));
 
 		const char *szSect;
 		size_t		lnSect;
@@ -1900,11 +1951,12 @@ bool strlineextractSection	(
 		ubf_expect_bool_AND (b, 7 == lnSect);
 		ubf_expect_bool_AND (b, !memcmp ("Section]", szSect, 8));
 
+		// Not a section. This is a key without a value.
 		strcpy	(
 			cBuf,
 			"\t\t\t     [Section]    =\t\t\t        "
 				);
-		b &= strlineextractSection	(
+		b &= !strlineextractSection	(
 				&szSect, &lnSect,
 				cBuf, USE_STRLEN,
 				&scmul,
@@ -1912,14 +1964,14 @@ bool strlineextractSection	(
 				&szTail, &lnTail
 									);
 		ubf_expect_true (b);
-		ubf_expect_non_NULL (szTail);
-		ubf_expect_bool_AND (b, !memcmp ("=\t\t\t", szTail, 4));
+		ubf_expect_NULL (szTail);
+		//ubf_expect_bool_AND (b, !memcmp ("=\t\t\t", szTail, 4));
 
 		strcpy	(
 			cBuf,
 			"\t\t\t     [Section]    \t\t\t    =    "
 				);
-		b &= strlineextractSection	(
+		b &= !strlineextractSection	(
 				&szSect, &lnSect,
 				cBuf, USE_STRLEN,
 				&scmul,
@@ -1927,13 +1979,13 @@ bool strlineextractSection	(
 				&szTail, &lnTail
 									);
 		ubf_expect_true (b);
-		ubf_expect_non_NULL (szTail);
+		ubf_expect_NULL (szTail);
 
 		strcpy	(
 			cBuf,
 			"\t\t\t     [Section]    \t\t\t    ="
 				);
-		b &= strlineextractSection	(
+		b &= !strlineextractSection	(
 				&szSect, &lnSect,
 				cBuf, USE_STRLEN,
 				&scmul,
@@ -1941,7 +1993,7 @@ bool strlineextractSection	(
 				&szTail, &lnTail
 									);
 		ubf_expect_true (b);
-		ubf_expect_non_NULL (szTail);
+		ubf_expect_NULL (szTail);
 
 		// Invalid equality sign.
 		szTail = NULL;
