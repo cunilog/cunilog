@@ -149,6 +149,7 @@ Multiple values are only recognised when each single value is within quotation m
 [section]
 key  = value1, value2, value3
 key2 = value1, value2, value3
+```
 The value of each key is ***value1, value2, value3***.
 
 ### Equality sign
