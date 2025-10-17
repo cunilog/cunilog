@@ -78,6 +78,15 @@ A single key with its value can reside on the same line as a section name.
 [section] key = value
 ```
 
+### No sections
+
+The config files Cunilog can read do not require sections:
+```ini
+key1 = value1
+key2 = value2
+key3 = value3
+```
+
 ### Quotes and white space
 
 Keys and values may contain [white space](https://en.wikipedia.org/wiki/Whitespace_character).
