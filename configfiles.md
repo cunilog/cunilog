@@ -3,7 +3,7 @@
 
 Cunilog includes a config file reader that supports a format very similar to Windows ini files (https://en.wikipedia.org/wiki/INI_file) with some notable extensions.
 
-Windows ini files consist of ***sections***, ***keys***, and ***values***. Sometimes, ***keys*** are also called ***properties***, but for the sake of this document we stick with the term ***key***.
+Windows ini files consist of ***sections***, ***keys***, and ***values***. Sometimes, ***keys*** are also called ***properties***, but for the sake of this document we stick to the term ***key***.
 
 ```ini
 [section]
