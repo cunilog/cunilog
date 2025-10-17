@@ -93,8 +93,6 @@ Keys and values may contain [white space](https://en.wikipedia.org/wiki/Whitespa
 However, white space is removed before the first and after the last non-white-space character
 unless the key or values is enclosed in quotation characters.
 
-Some quotation markers have different opening and closing characters.
-
 | Opening quote | Closing quote |
 | ------------- | ------------- |
 | "             | "             |
@@ -127,8 +125,8 @@ underscore character ("***_***") for clarity.
 
 ### Comma is white space
 
-Cunilog treats a comma (",") as [white space](https://en.wikipedia.org/wiki/Whitespace_character).
-White space consists of the characters SPC (space, blank), BS (backspace), TAB,
+Cunilog treats a comma (",") as [white space](https://en.wikipedia.org/wiki/Whitespace_character) on the right-hand side of the equality sign (the side with the value).
+Other white space consists of the characters SPC (space, blank), BS (backspace), TAB,
 VT (vertical tab), and FF (form feed).
 
 ### Multi-value keys
