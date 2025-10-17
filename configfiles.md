@@ -3,7 +3,7 @@
 
 Cunilog includes a config file reader that supports a format very similar to Windows ini files (https://en.wikipedia.org/wiki/INI_file) with some notable extensions.
 
-Windows ini files consist of ***sections***, ***keys***, and ***values***.
+Windows ini files consist of ***sections***, ***keys***, and ***values***. Sometimes, ***keys*** are also called ***properties***, but for the sake of this document we stick with the term ***key***.
 
 ```ini
 [section]
@@ -23,7 +23,7 @@ Cunilog supports reading Windows ini files in a platform-independent way. It pro
 ## Cunilog extensions
 ### New line characters/line endings
 
-Cunilog's ini file reader supports all sorts of line endings, and in particular doesn't distinguish between Windows and POSIX. These config files are therefore binary compatible between Cunilog builds.
+Cunilog's ini file reader supports all sorts of line endings, and in particular doesn't distinguish between Windows and POSIX. These config files are therefore binary compatible between Cunilog builds, independent of the end of line sequence found.
 
 Build options however exist to extend or reduce support for various line endings.
 
