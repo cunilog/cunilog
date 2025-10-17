@@ -69,7 +69,7 @@ key2  = Hello !
 key3  = Hello ! Comment.
 ```
 The exclamation mark belongs to the value of ***key***, because there's no space between the text "Hello" and the exclamation mark. This makes it "Hello!".
-The value of ***key2*** is "Hello" without the exclamation mark, because it denotes the start of an (empty) line comment.
+The value of ***key2*** is "Hello" without the exclamation mark, because it denotes the start of an (empty) line comment. The same goes for ***key3*** but the line comment is not empty.
 
 ### Section and key on the same line
 
