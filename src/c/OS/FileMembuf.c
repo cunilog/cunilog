@@ -74,34 +74,36 @@ When		Who				What
 
 #endif
 
-static inline HANDLE CreateFileWin (const char *szFileName)
-{
-	HANDLE h;
-	if (is_absolute_path (szFileName))
+#if defined (PLATFORM_IS_WINDOWS)
+	static inline HANDLE CreateFileWin (const char *szFileName)
 	{
-		h = CreateFileU8long	(
-						szFileName,
-						GENERIC_READ,
-						FILE_SHARE_DELETE + FILE_SHARE_READ + FILE_SHARE_WRITE,
-						NULL,
-						OPEN_EXISTING,
-						FILE_ATTRIBUTE_NORMAL + FILE_FLAG_SEQUENTIAL_SCAN,
-						NULL
-								);
-	} else
-	{
-		h = CreateFileU8		(
-						szFileName,
-						GENERIC_READ,
-						FILE_SHARE_DELETE + FILE_SHARE_READ + FILE_SHARE_WRITE,
-						NULL,
-						OPEN_EXISTING,
-						FILE_ATTRIBUTE_NORMAL + FILE_FLAG_SEQUENTIAL_SCAN,
-						NULL
-								);
+		HANDLE h;
+		if (is_absolute_path (szFileName))
+		{
+			h = CreateFileU8long	(
+							szFileName,
+							GENERIC_READ,
+							FILE_SHARE_DELETE + FILE_SHARE_READ + FILE_SHARE_WRITE,
+							NULL,
+							OPEN_EXISTING,
+							FILE_ATTRIBUTE_NORMAL + FILE_FLAG_SEQUENTIAL_SCAN,
+							NULL
+									);
+		} else
+		{
+			h = CreateFileU8		(
+							szFileName,
+							GENERIC_READ,
+							FILE_SHARE_DELETE + FILE_SHARE_READ + FILE_SHARE_WRITE,
+							NULL,
+							OPEN_EXISTING,
+							FILE_ATTRIBUTE_NORMAL + FILE_FLAG_SEQUENTIAL_SCAN,
+							NULL
+									);
+		}
+		return h;
 	}
-	return h;
-}
+#endif
 
 size_t ReadFileSMEMBUF (SMEMBUF *pmb, const char *szFileName)
 {

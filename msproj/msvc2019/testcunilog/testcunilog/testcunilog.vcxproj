@@ -212,12 +212,14 @@
     <ClCompile Include="..\..\..\..\src\c\string\strisabsolutepath.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strisdotordotdot.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strlineextract.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strlineextractstructs.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strmembuf.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strnewline.c" />
     <ClCompile Include="..\..\..\..\src\c\string\struri.c" />
     <ClCompile Include="..\..\..\..\src\c\string\strwildcards.c" />
     <ClCompile Include="..\..\..\..\src\c\string\ubfcharscountsandchecks.c" />
     <ClCompile Include="..\..\..\..\src\c\testcunilog\CunilogTestFncts.c" />
+    <ClCompile Include="..\..\..\..\src\c\testcunilog\mersenne.c" />
     <ClCompile Include="..\..\..\..\src\c\testcunilog\testcunilog.c" />
     <ClCompile Include="..\..\..\..\src\c\testcunilog\testProcesHelper.c" />
   </ItemGroup>
@@ -282,12 +284,14 @@
     <ClInclude Include="..\..\..\..\src\c\string\strisabsolutepath.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strisdotordotdot.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strlineextract.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strlineextractstructs.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strmembuf.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strnewline.h" />
     <ClInclude Include="..\..\..\..\src\c\string\struri.h" />
     <ClInclude Include="..\..\..\..\src\c\string\strwildcards.h" />
     <ClInclude Include="..\..\..\..\src\c\string\ubfcharscountsandchecks.h" />
     <ClInclude Include="..\..\..\..\src\c\testcunilog\CunilogTestFncts.h" />
+    <ClInclude Include="..\..\..\..\src\c\testcunilog\mersenne.h" />
     <ClInclude Include="..\..\..\..\src\c\testcunilog\testcunilog.h" />
     <ClInclude Include="..\..\..\..\src\c\testcunilog\testProcesHelper.h" />
   </ItemGroup>

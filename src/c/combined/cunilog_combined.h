@@ -5391,15 +5391,16 @@ TYPEDEF_FNCT_PTR (DWORD, SetFileAttributesU8long)
 	The parameter waitTime specifies the time in milliseconds the function waits after
 	each attempt for the process to exit.
 
-	The caller can control which of the above attempts is made but they cannot change
-	the order of these attempts. The caller can further control if the function should
+	The caller can control which of the above attempts is made but the order of these
+	attempts is currently fixed. The caller can further control if the function should
 	wait after each of these attempts. For instance, to only attempt to terminate the
 	process by sending it a CTRL-Break event, set uiFlags to
-	TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK | TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK.
+	TERMCHILDPROCCONTROLLED_CTRL_BREAK | TERMCHILDPROCCONTROLLED_WAIT_CTRL_BREAK.
 	This instructs the function to attempt a CTRL-Break and then wait waitTime
-	milliseconds for the process to exit. Specify all flags for the attempts that should
-	be made, and specify the additional TERMCHILDPROCCONTROLLED_WAIT_ flags to wait
-	for the process to exit after the attempt in question.
+	milliseconds for the process to exit. Specify all TERMCHILDPROCCONTROLLED_ flags
+	for the attempts that should be made, and specify the additional
+	TERMCHILDPROCCONTROLLED_WAIT_ flags to wait for the process to exit after the attempt
+	in question.
 
 	The function returns true if the process has exited within waitTime ms after each
 	termination attempt. It returns false if the process has not exited within waitTime.
@@ -5431,7 +5432,7 @@ TYPEDEF_FNCT_PTR (BOOL, IsFirstArgumentExeArgumentW) (int *pargc, WCHAR **pargv 
 	SwallowExeArgumentW
 	
 	Examines the first element of the command-line argument list pargv points to
-	and disposes of it if is an executable argument.
+	and disposes of it if it is an executable argument.
 
 	Applications for POSIX systems require the first command-line argument (index 0)
 	to be the path to the executable called. In Windows, this is optional. This
@@ -5757,7 +5758,7 @@ typedef struct sDirWplinth
 	SDIRW					**_array;						// Array of sorted pointers.
 	union
 	{
-		void				*pstrPathWorU8;					// UTF-8 or UTF-16;
+		void				*strPathWorU8;					// UTF-8 or UTF-16;
 		char				*chPathU8;						// UTF-8.
 		unsigned char		*ucPathU8;						// Unsigned UTF-8.
 		WCHAR				*wcPathU8;						// UTF-16.
@@ -5775,7 +5776,7 @@ typedef struct srdirOneEntryStruct
 	union
 	{
 		// Unchanged path provided by the caller.
-		const void			*pstrPathWorU8;					// UTF-8 or UTF-16;
+		const void			*strPathWorU8;					// UTF-8 or UTF-16;
 		const char			*chPathU8;						// UTF-8.
 		const unsigned char	*ucPathU8;						// Unsigned UTF-8.
 		const WCHAR			*wcPathU8;						// UTF-16.
@@ -5786,28 +5787,30 @@ typedef struct srdirOneEntryStruct
 	WIN32_FIND_DATAW		*pwfd;
 	void					*pCustom;
 
-	// The file mask as provided by the caller.
-	const char				*szFileMask;
-	size_t					lnFileMask;						// Its length. Cannot be
-															//	USE_STRLEN.
+	// The file mask/pattern as provided by the caller.
+	const char				*szMaskU8;
+	size_t					lnMaskU8;						// Its length.
 
-	// The folder plus search mask for FindFirstFileU8long ().
-	SMEMBUF					mbSearchPath;					// "C:\\dir\*"
-	size_t					lnSearchPath;
+	// The current folder plus search mask/pattern for FindFirstFileU8long ().
+	SMEMBUF					mbSearchPathU8;					// "C:\\dir\*"
+	size_t					lnSearchPathU8;
+	size_t					lnOrgSeaPathU8;					// Original length.
 
-	// The full path, starting with chPathU8.
-	SMEMBUF					mbFullPathU8;
+	// The full path, starting with the path originally provided by the caller,
+	//	and its length. This points to the first character in mbSearchPath.
+	char					*szFullPathU8;
 	size_t					lnFullPathU8;
-	size_t					lnInitPathU8;
 
-	// Everything between szFullPathU8 and szFileNameU8.
+	// Everything between szFullPathU8 and szFileNameU8, i.e, excluding the start
+	//	of the path, which was originally provided by the caller. This is the path
+	//	the pattern/mask is matched against.
 	char					*szPathU8;
 	size_t					lnPathU8;
 
 	// The filename alone converted to UTF-8. Not all functions set these members.
 	//	The function ForEachDirectoryEntryMaskU8 () sets both members.
 	char					*szFileNameU8;
-	size_t					stFileNameU8;
+	size_t					lnFileNameU8;
 } SRDIRONEENTRYSTRUCT;
 
 /*
@@ -6068,6 +6071,8 @@ size_t	ForEachDirectoryEntryU8		(
 /*
 	ForEachDirectoryEntryMaskU8
 
+	Does not work! Do not use!
+
 	This function exists to provide better compatibilibty between Windows and POSIX.
 	Folder and file mask are split into two parameters.
 
@@ -6075,26 +6080,29 @@ size_t	ForEachDirectoryEntryU8		(
 						listing. The folder name may end with a forward or backslash.
 						This must be an absolute path. The folder cannot be relative, i.e.
 						cannot contain path navigators ("..\") unless they can be resolved
-						entirely.
+						entirely, i.e it is someting like "/dir/dir/../file", which would
+						resolve to "/dir/file".
 
 	lenFolderU8			The length of strFolderU8, excluding a terminating NUL character.
 						This parameter can be USE_STRLEN, which causes the function to invoke
-						strlen () on strFolderU8 to obtain its length.
+						strlen () on strFolderU8 to obtain its length. If the length is
+						provided instead of USE_STRLEN, the string does not have to be
+						NUL-terminated.
 
-	strFileMaskU8		The filename or mask for the files to call the callback function.
-						It can contain wildcard characters to match the files for whom
-						the callback function will be called.
+	strMaskU8			The ask for the files or folders to call the callback
+						function. It can contain wildcard characters to match the files for
+						whom the callback function will be called.
 						This parameter can be NULL, in which case the function calls the
 						callback function on every single file found.
 						This is not a simple "*" or "*.*" file mask as known from
 						Windows or POSIX. See remarks below the parameter descriptions.
 
-	lenFileMaskU8		The length of strFileMask, excluding a terminating NUL character.
+	lenMaskU8			The length of strFileMask, excluding a terminating NUL character.
 						This parameter can be USE_STRLEN, which causes the function to invoke
 						strlen () on strFileMask to obtain its length.
 						The parameter is ignored if strFileMaskU8 is NULL.
 
-	fedEnt				Pointer to the callback function. The function is called
+	fedEntCB			Pointer to the callback function. The function is called
 						for each found entry.
 
 	pCustom				Pointer to custom data that is passed on to the callback
@@ -6104,7 +6112,7 @@ size_t	ForEachDirectoryEntryU8		(
 						amount of subfolder levels to enumerate. If this parameter
 						is NULL or points to a value of 0, only the folder in strPathU8
 						is processed. Any other number specifies the amount of
-						subfolders to be enumerated by recursively calling this
+						subfolder levels to be enumerated by recursively calling this
 						function. The function uses the variable to count its
 						recursion levels. This means if it is not NULL and points
 						to a value greater than 0, the function alters it for
@@ -6112,7 +6120,7 @@ size_t	ForEachDirectoryEntryU8		(
 						time before the function is called.
 
 	The function reads a base directory, which is strFolderU8. It ignores the "." and ".."
-	folders returned by the operating system but matches every other file or directory
+	folders returned by the file system but matches any other file or directory
 	against strFileMaskU8. Matching starts with file or directory objects inside the folder
 	strFolderU8, which is different from how operating systems and system utilities usually
 	match wildcards and files or directories.
@@ -6139,9 +6147,9 @@ size_t	ForEachDirectoryEntryU8		(
 size_t ForEachDirectoryEntryMaskU8	(
 				const char				*strFolderU8,
 				size_t					lenFolderU8,
-				const char				*strFileMaskU8,
-				size_t					lenFileMaskU8,
-				pForEachDirEntryU8		fedEnt,
+				const char				*strMaskU8,
+				size_t					lenMaskU8,
+				pForEachDirEntryU8		fedEntCB,
 				void					*pCustom,
 				size_t					*pnSubLevels
 									)
@@ -7452,7 +7460,7 @@ enum enfilecompressresult
 	fscompress_uncompressed,
 	fscompress_error
 };
-typedef enum enfilecompressresult enfilecompressresult;
+typedef enum enfilecompressresult enfilecompressresult_t;
 
 /*
 	IsFileCompressedByName
@@ -7460,14 +7468,14 @@ typedef enum enfilecompressresult enfilecompressresult;
 	Returns true if the file is already compressed, false if it isn't.
 */
 #ifdef DEBUG
-	enfilecompressresult IsFileCompressedByName (const char *szFilename);
+	enfilecompressresult_t IsFileCompressedByName (const char *szFilename);
 #else
 	#if defined (OS_IS_WINDOWS)
 		#define IsFileCompressedByName(fn)				\
-			IsFileNTFSCompressedByName (fn)
+			(enfilecompressresult_t) IsFileNTFSCompressedByName (fn)
 	#elif defined (OS_IS_LINUX)
 		#define IsFileCompressedByName(fn)				\
-			(false)
+			(fscompress_error)
 	#endif
 #endif
 
@@ -7896,7 +7904,7 @@ typedef enum enRunCmdCallbackRetValue enRCmdCBval;
 	passed to CreateAndRunCmdProcessCapture () via the enum enRunCmdHowToCallCB,
 	the data/text may not be NUL-terminated. Do not read beyond lnOutput in this case.
 */
-typedef enRCmdCBval rcmdOutCB (SRUNCMDCBINF *pinf, char *szOutput, size_t lnOutput, void *pCustom);
+typedef enRCmdCBval rcmdOutCB (SRUNCMDCBINF *pInf, char *szOutput, size_t lnOutput, void *pCustom);
 
 /*
 	Callback function for stdin.
@@ -7926,9 +7934,9 @@ typedef enRCmdCBval rcmdOutCB (SRUNCMDCBINF *pinf, char *szOutput, size_t lnOutp
 	}
 
 */
-typedef enRCmdCBval rcmdInpCB (SRUNCMDCBINF *pinf, SMEMBUF *psmb, size_t *plnData, void *pCustom);
+typedef enRCmdCBval rcmdInpCB (SRUNCMDCBINF *pInf, SMEMBUF *psmb, size_t *plnData, void *pCustom);
 
-typedef enRCmdCBval rcmdHtbCB (SRUNCMDCBINF *pinf, void *pCustom);
+typedef enRCmdCBval rcmdHtbCB (SRUNCMDCBINF *pInf, void *pCustom);
 
 /*
 	SRCMDCBS
@@ -7987,7 +7995,9 @@ typedef struct srcmdCBs
 							line has been encountered.
 
 	enRunCmdHow_All			Called only once with the entire collected output of the process.
-							The data is NUL-terminated. Never called with a length of 0.
+							The data is NUL-terminated. Never called with a length of 0. If
+							the process does not produce any output, the callback function is
+							not called.
 */
 enum enRunCmdHowToCallCB
 {
@@ -8006,6 +8016,9 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 	
 	The process's input (stdin) can be provided by a callback function, and its output (stdout
 	and stderr) can be captured by callback functions.
+
+	The function blocks until the process completes its execution. If this is not desirable,
+	call it from a separate thread.
 
 	Parameters
 
@@ -8035,6 +8048,8 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 						to the real exit code of the child process. On most platforms,
 						EXIT_FAILURE has a value of 1.
 
+	The function returns true when the controlled process has been created and completed
+	execution. It returns false if the process couldn't be created.
 */
 #if defined (PLATFORM_IS_WINDOWS)
 
@@ -15789,6 +15804,8 @@ When		Who				What
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
+	#include "./strlineextractstructs.h"
+
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
@@ -15834,6 +15851,10 @@ extern char			*ccCulStdStrtSection	[];
 extern char			*ccCulStdExitSection	[];
 extern unsigned int	nCulStdSections;
 
+// Additional strings or characters that are recognised as white space.
+extern char			*ccCulStdExtraWhiteSpc	[];
+extern unsigned int	nCulStdExtraWhiteSpc;
+
 /*
 	
 */
@@ -15856,6 +15877,9 @@ typedef struct sculmltstrings
 	char			**ccStrtSections;
 	char			**ccExitSections;
 	unsigned int	nSections;
+
+	const char		**ccExtraWhiteSpc;
+	unsigned int	nExtraWhiteSpc;
 } SCULMLTSTRINGS;
 
 /*
@@ -16138,7 +16162,7 @@ bool strlineextractIsCloseString	(
 					to a value.
 
 	pidxEqual1based	A pointer to a size_t that receives the 1-based index of the equality
-					string found. If pszKeyOrVal points to a key, the function sets this
+					string found. If pszKeyOrVal points to a value, the function sets this
 					value to 0.
 
 	szLine			A pointer to the buffer that contains the "key = value" string.
@@ -16182,9 +16206,9 @@ bool strlineextractKeyOrValue	(
 ;
 
 /*
-	strlineextractKeyAndValue
+	strlineextractKeyAndValues
 
-	Extracts a key and value from szLine with length lnLine. If lnLine is USE_STRLEN,
+	Extracts a key and its values from szLine with length lnLine. If lnLine is USE_STRLEN,
 	the function calls strlen (szLine) to obtain it.
 
 	Parameters
@@ -16197,12 +16221,18 @@ bool strlineextractKeyOrValue	(
 	plnKey			A pointer to a size_t that receives the length of the key. This parameter
 					must not be NULL.
 
-	pszVal			A pointer that receives the start address of the value. This
-					parameter cannot be NULL. The string is not NUL-terminated, as it is
-					only a pointer within the buffer of szLine.
+	pValues			A pointer to an array of SCUNILOGINIVALUE structures that receive the
+					start address of the value(s) and their lengths.
+					If this parameter is NULL, the function returns the amount of elements
+					required to retrieve all values.
+					Note that the strings of the SCUNILOGINIVALUE structures are not
+					NUL-terminated, as they are only pointers to within the buffer of szLine.
 
-	lnVal			A pointer to a size_t that receives the length of the value string.
-					This parameter cannot be NULL.
+	nVls			The amount of elements pValues points to. The function returns the amount
+					of values found, independent of nVls.
+
+	plnVls			A pointer to an array of size_t values that receive the length of the
+					value strings. This parameter cannot be NULL.
 
 	szLine			A pointer to the buffer that contains the "key = value" string.
 
@@ -16233,16 +16263,18 @@ bool strlineextractKeyOrValue	(
 					without at least one accepted equality sign character or string that
 					separates key and value.
 
-	The function returns true if a key and a value could be extracted from the line,
-	which includes an empty string for the value but not for the key. The function
-	returns false if szLine is NULL or lnLine is 0.
+	The function returns the amount of values extracted if a key and at least one value
+	could be extracted from the line, which may include empty strings for the values but
+	not for the key. The function returns 0 if no key/value combination could be extracted
+	or if szLine is NULL or lnLine is 0.
 */
-bool strlineextractKeyAndValue	(
-		const char		**cunilog_restrict pszKey,	size_t	*plnKey,		// Out.
-		const char		**cunilog_restrict pszVal,	size_t	*plnVal,		// Out.
-		const char		*cunilog_restrict szLine,	size_t	lnLine,			// In.
+unsigned int strlineextractKeyAndValues	(
+		const char		**cunilog_restrict	pszKey,	size_t	*plnKey,		// Out.
+		SCUNILOGINIVALUES					*pValues,
+		unsigned int						nValues,
+		const char		*cunilog_restrict	szLine,	size_t	lnLine,			// In.
 		SCULMLTSTRINGS	*psmlt												// In.
-								)
+										)
 ;
 
 enum en_strlineextract_white_space
@@ -16314,15 +16346,29 @@ typedef enum en_strlineextract_white_space en_strlineextract_ws;
 					rejected. If white space is encountered that doesn't fit this value,
 					the function fails and returns false.
 
+	pszTail			A pointer to a tail string, if any; NULL if no tail.
+
+	plnTail			A pointer to the length of the tail, if any. The function writes 0
+					to this address if there is no tail.
+
 	The function returns true if a section name could be extracted from the line. It
 	returns false, if for example a closing/exiting section string is missing.
 	The function also returns false if szLine is NULL or lnLine is 0.
+
+	If a section name is found but there's still remaining data left, the function
+	returns true and sets the value pointed to by pszTail and plnTail to the remaining
+	tail data and its length. This also applies to data that is rejected, for instance,
+	if ws is strlineextract_reject_white_space and there's white space left, this white
+	space is returned as remaining tail, and the return value of the function is true.
+
+	If the function returns false, the output values are undefined.
 */
 bool strlineextractSection	(
 		const char				**cunilog_restrict pszSec,	size_t	*plnSec,
 		const char				*cunilog_restrict szLine,	size_t	lnLine,
 		SCULMLTSTRINGS			*psmlt,
-		en_strlineextract_ws	ws
+		en_strlineextract_ws	ws,
+		const char				**cunilog_restrict pszTail,	size_t	*plnTail
 							)
 ;
 
@@ -18843,10 +18889,12 @@ When		Who				What
 		#include "./externC.h"
 		#include "./platform.h"
 		#include "./functionptrtpydef.h"
+		#include "./restrict.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
 		#include "./../pre/functionptrtpydef.h"
+		#include "./../pre/restrict.h"
 	#endif
 
 #endif
@@ -19024,6 +19072,11 @@ size_t ubf_count_char (const char *cc, char c);
 TYPEDEF_FNCT_PTR (size_t, ubf_count_char) (const char *cc, char c);
 
 /*
+	Case-insensitive memcmp. Assumes ASCII characters, obviously.
+*/
+int memcmp_ci (const void *cunilog_restrict m1, const void *cunilog_restrict m2, size_t l);
+
+/*
 	ubf_obtain_strlen
 	STRLENSZ
 
@@ -19048,6 +19101,143 @@ TYPEDEF_FNCT_PTR (size_t, ubf_count_char) (const char *cc, char c);
 EXTERN_C_END
 
 #endif															// Of UBFCHARSCOUNTSANDCHECKS.
+/****************************************************************************************
+
+	File:		mersenne.h
+	Why:		Implements a Mersenne Twister. The code has been taken, with little
+				modifications, from https://en.wikipedia.org/wiki/Mersenne_Twister in
+				2025-07.
+	OS:			As many compilers and platforms as required.
+	Author:		Thomas
+	Created:	2025-09-29
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-09-29	Thomas			Created, i.e. code moved to its own module.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is public domain.
+*/
+
+#ifndef U_MERSENNE_TWISTER_H
+#define U_MERSENNE_TWISTER_H
+
+/*
+	The following code has been taken, with little modifications, from
+	https://en.wikipedia.org/wiki/Mersenne_Twister in 2025-07.
+
+	It is used to generate the test pattern for the module ProcessHelper.
+	Do NOT use this code for anything else! It is not cryptographically secure.
+	The reason why I copied this code from Wikipedia is because the ProcessHelper
+	test needs to seed a random number generator (RNG). If rand () and srand (), or
+	any other RNG provided by the OS or a library were used for this purpose, there's
+	a good chance that the test might interfere with an application that uses the
+	same RNG in other places.
+*/
+#include <stdint.h>
+
+#define n 624
+#define m 397
+#define w 32
+#define r 31
+#define UMASK (0xffffffffUL << r)
+#define LMASK (0xffffffffUL >> (w-r))
+#define a 0x9908b0dfUL
+#define u 11
+#define s 7
+#define t 15
+#define l 18
+#define b 0x9d2c5680UL
+#define c 0xefc60000UL
+#define f 1812433253UL
+
+typedef struct
+{
+	uint32_t state_array[n];         // the array for the state vector 
+	int state_index;                 // index into state vector array, 0 <= state_index <= n-1   always
+} mersenne_twister_state;
+
+
+static void initialize_state(mersenne_twister_state* state, uint32_t seed) 
+{
+	uint32_t* state_array = &(state->state_array[0]);
+	
+	state_array[0] = seed;                          // suggested initial seed = 19650218UL
+	
+	for (int i=1; i<n; i++)
+	{
+		seed = f * (seed ^ (seed >> (w-2))) + i;    // Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier.
+		state_array[i] = seed; 
+	}
+	
+	state->state_index = 0;
+}
+
+
+static uint32_t random_uint32(mersenne_twister_state* state)
+{
+	uint32_t* state_array = &(state->state_array[0]);
+	
+	int k = state->state_index;      // point to current state location
+									 // 0 <= state_index <= n-1   always
+	
+//  int k = k - n;                   // point to state n iterations before
+//  if (k < 0) k += n;               // modulo n circular indexing
+									 // the previous 2 lines actually do nothing
+									 //  for illustration only
+	
+	int j = k - (n-1);               // point to state n-1 iterations before
+	if (j < 0) j += n;               // modulo n circular indexing
+
+	uint32_t x = (state_array[k] & UMASK) | (state_array[j] & LMASK);
+	
+	uint32_t xA = x >> 1;
+	if (x & 0x00000001UL) xA ^= a;
+	
+	j = k - (n-m);                   // point to state n-m iterations before
+	if (j < 0) j += n;               // modulo n circular indexing
+	
+	x = state_array[j] ^ xA;         // compute next value in the state
+	state_array[k++] = x;            // update new state value
+	
+	if (k >= n) k = 0;               // modulo n circular indexing
+	state->state_index = k;
+	
+	uint32_t y = x ^ (x >> u);       // tempering 
+			 y = y ^ ((y << s) & b);
+			 y = y ^ ((y << t) & c);
+	uint32_t z = y ^ (y >> l);
+	
+	return z; 
+}
+/*
+	End of code taken from https://en.wikipedia.org/wiki/Mersenne_Twister .
+*/
+#undef n
+#undef m
+#undef w
+#undef r
+#undef UMASK
+#undef LMASK
+#undef a
+#undef u
+#undef s
+#undef t
+#undef l
+#undef b
+#undef c
+#undef f
+
+#endif														// Of #ifndef U_MERSENNE_TWISTER_H.
 /****************************************************************************************
 
 	File		testProcesHelper.h
@@ -19247,10 +19437,12 @@ When		Who				What
 		#include "./externC.h"
 		#include "./restrict.h"
 		//#include "./platform.h"
+		#include "./strlineextractstructs.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/restrict.h"
 		//#include "./../pre/platform.h"
+		#include "./../string/strlineextractstructs.h"
 	#endif
 
 #endif
@@ -19260,47 +19452,6 @@ When		Who				What
 #include <stdint.h>
 
 EXTERN_C_BEGIN
-
-/*
-	The structures for ini files.
-*/
-typedef struct scuniloginikeyvalue
-{
-	const char				*szKeyName;
-	size_t					lnKeyName;
-	const char				*szValue;
-	size_t					lnValue;
-} SCUNILOGINIKEYVALUE;
-
-typedef struct scuniloginisection
-{
-	const char				*szSectionName;
-	size_t					lnSectionName;
-	SCUNILOGINIKEYVALUE		*pKeyValuePairs;
-	unsigned int			nKeyValuePairs;
-} SCUNILOGINISECTION;
-
-typedef struct scunilogini
-{
-	char					*buf;
-	SCUNILOGINISECTION		*pIniSections;
-	unsigned int			nIniSections;
-	SCUNILOGINIKEYVALUE		*pKeyValuePairs;
-	unsigned int			nKeyValuePairs;
-
-	// Parse error.
-	size_t					errLineNumber;					// The line number within the buffer.
-															//	First line is 1.
-	size_t					errCharNumber;					// The position of pStart within
-															//	a line. 1 = first column/character.
-	size_t					errAbsPosition;					// Position within the entire buffer.
-															//	1 = first position/character.
-	bool					bParseFail;
-} SCUNILOGINI;
-/*
-	End of structures for ini files.
-*/
-
 
 typedef uint64_t	cunilogcfgopts;
 
@@ -19441,15 +19592,10 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 ;
 
 /*
-	CunilogGetIniValueFromKey
+	CunilogGetIniValuesFromKey
 
-	Retrieves the value of a key that belongs to section szSection..
-
-	pLen			A pointer to a size_t that receives the length of the returned string.
-					If this parameter is NULL, the function does not provide the length
-					of the returned string. Note that the string value the function
-					returns is not NUL-terminated, hence it is not recommended to set this
-					parameter NULL.
+	pValues			A pointer to an array of SCUNILOGINIVALUES structures that receives
+					the values of szKey.
 
 	szSection		The name of the section the key belongs to. Keys do not necessarily
 					belong to a section. To obtain a key that is not part of a section,
@@ -19459,7 +19605,7 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 					function to call strlen (szSection). Otherwise the name does not
 					need to be NUL-terminated.
 
-	szKey			The name of the key whose value is to be retrieved. This parameter
+	szKey			The name of the key whose first value is to be retrieved. This parameter
 					cannot be NULL.
 
 	lnKey			The length of the key name. If USE_STRLEN, the function uses strlen ()
@@ -19468,25 +19614,91 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 	pCunilogIni		A pointer to an SCUNILOGINI structure. The structure must have been
 					initialised with CreateSCUNILOGINI ().
 
-	The function returns a pointer to the value of the key, without quotation markers.
+	The function returns the amount of values the key szKey of section szSection contains.
+	If the section or key cannot be found, the function returns 0.
+*/
+unsigned int CunilogGetIniValuesFromKey		(
+				SCUNILOGINIVALUES	**pValues,
+				const char			*cunilog_restrict szSection,	size_t	lnSection,
+				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI			*pCunilogIni
+											)
+;
+
+/*
+	CunilogGetIniValuesFromKey_ci
+
+	This function is identical to CunilogGetIniValuesFromKey () but is case-insensitive
+	for the parameters szSection and szKey.
+*/
+unsigned int CunilogGetIniValuesFromKey_ci	(
+				SCUNILOGINIVALUES	**pValues,
+				const char			*cunilog_restrict szSection,	size_t	lnSection,
+				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI			*pCunilogIni
+											)
+;
+
+/*
+	CunilogGetFirstIniValueFromKey
+
+	Retrieves the first value of a key that belongs to section szSection.
+
+	pLen			A pointer to a size_t that receives the length of the returned string.
+					If this parameter is NULL, the function does not provide the length
+					of the returned string. Note that the string value the function
+					returns is not NUL-terminated, hence it is not recommended to set this
+					parameter to NULL.
+
+	szSection		The name of the section the key belongs to. Keys do not necessarily
+					belong to a section. To obtain a key that is not part of a section,
+					set szSection to NULL and lnSection to 0.
+
+	lnSection		The length of the section name szSection. Use USE_STRLEN for the
+					function to call strlen (szSection). Otherwise the name does not
+					need to be NUL-terminated.
+
+	szKey			The name of the key whose first value is to be retrieved. This parameter
+					cannot be NULL.
+
+	lnKey			The length of the key name. If USE_STRLEN, the function uses strlen ()
+					to obtain it. Otherwise the name does not need to be NUL-terminated.
+
+	pCunilogIni		A pointer to an SCUNILOGINI structure. The structure must have been
+					initialised with CreateSCUNILOGINI ().
+
+	The function returns a pointer to the first value of the key, without quotation markers.
 	This string is not NUL-terminated. If pLen is not NULL, the function provides the length
 	of the returned string at the address it points to.
 
 	The function returns NULL if the key does not exist. When the function returns NULL,
 	the address pLen points to is not changed.
 */
-const char *CunilogGetIniValueFromKey	(
+const char *CunilogGetFirstIniValueFromKey		(
 				size_t			*pLen,
 				const char		*cunilog_restrict szSection,	size_t	lnSection,
 				const char		*cunilog_restrict szKey,		size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
-										)
+												)
+;
+
+/*
+	CunilogGetFirstIniValueFromKey_ci
+
+	This function is identical to CunilogGetFirstIniValueFromKey () but is case-insensitive
+	for the parameters szSection and szKey.
+*/
+const char *CunilogGetFirstIniValueFromKey_ci	(
+				size_t			*pLen,
+				const char		*cunilog_restrict szSection,	size_t	lnSection,
+				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI		*pCunilogIni
+												)
 ;
 
 /*
 	TestCunilogCfgParser
 
-	Test function for the module.
 */
 #ifdef CUNILOG_BUILD_CFG_PARSER_TEST_FNCT
 	bool TestCunilogCfgParser (void);
@@ -23573,6 +23785,9 @@ bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 	cunilogPrioBeginBackground is identical to cunilogPrioIdle, which sets the thread priority
 	value to 19, and cunilogPrioEndBackground is identical to a value of 0, which means normal
 	priority. See https://www.man7.org/linux/man-pages/man3/pthread_setschedprio.3.html .
+
+	The priority of the separate logging thread can only be lowered. The highest priority is
+	cunilogPrioNormal.
 
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
 	to true.

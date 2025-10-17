@@ -135,6 +135,7 @@ HEADERS += \
     ../../src/c/string/strisabsolutepath.h \
     ../../src/c/string/strisdotordotdot.h \
     ../../src/c/string/strlineextract.h \
+    ../../src/c/string/strlineextractstructs.h \
     ../../src/c/string/strmembuf.h \
     ../../src/c/string/strnewline.h \
     ../../src/c/string/struri.h \
@@ -192,6 +193,7 @@ SOURCES += \
     ../../src/c/string/strisabsolutepath.c \
     ../../src/c/string/strisdotordotdot.c \
     ../../src/c/string/strlineextract.c \
+    ../../src/c/string/strlineextractstructs.c \
     ../../src/c/string/strmembuf.c \
     ../../src/c/string/strnewline.c \
     ../../src/c/string/struri.c \

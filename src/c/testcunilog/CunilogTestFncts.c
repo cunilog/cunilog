@@ -52,6 +52,7 @@ When		Who				What
 		#include "./ISO__DATE__.h"
 		#include "./ubf_date_and_time.h"
 		#include "./cunilog.h"
+		#include "./cunilogcfgparser.h"
 		#include "./unref.h"
 		#include "./memstrstr.h"
 		#include "./stransi.h"
@@ -80,6 +81,7 @@ When		Who				What
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
 		#include "./../cunilog/cunilog.h"
+		#include "./../cunilog/cunilogcfgparser.h"
 		#include "./../datetime/ISO__DATE__.h"
 		#include "./../datetime/ubf_date_and_time.h"
 		#include "./../pre/unref.h"
@@ -480,6 +482,20 @@ bool CunilogTestFunction	(
 		CunilogTestFnctStartTestToConsole ("Only macros tested. Internal test of module strlineextract...");
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
+
+	CunilogTestFnctStartTestToConsole ("Internal test of module cunilogcfgparser...");
+	#ifdef STRLINEEXTRACT_BUILD_TEST_FNCT
+		b &= TestCunilogCfgParser ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		b &= TestCunilogCfgParser ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macros tested. Internal test of module cunilogcfgparser...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
+	//TestPsxHome ();
+
 
 	CunilogTestFnctStartTestToConsole ("Quick ISO date tests...");
 	const char *szBld = szBuild_ISO__DATE__ ();

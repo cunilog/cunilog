@@ -53,6 +53,8 @@ When		Who				What
 	#include "./WinAPI_U8.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ArrayMacros.h"
+		#include "./unref.h"
 		#include "./ubfdebug.h"
 		#include "./ubfmem.h"
 		#include "./strfilesys.h"
@@ -60,6 +62,8 @@ When		Who				What
 		#include "./strmembuf.h"
 		#include "./strwildcards.h"
 	#else
+		#include "./../../pre/ArrayMacros.h"
+		#include "./../../pre/unref.h"
 		#include "./../../dbg/ubfdebug.h"
 		#include "./../../mem/ubfmem.h"
 		#include "./../../string/strfilesys.h"
@@ -117,7 +121,7 @@ SDIRW *ReadDirectoryEntriesSDIRW_WU8_ex	(
 	}
 
 	// Parameter for the ignore callback funciton.
-	sicData.UTF8orUTF16.pstrPathWorU8	= strPathWorU8;
+	sicData.UTF8orUTF16.strPathWorU8	= strPathWorU8;
 	sicData.pwfd						= &wfdLocal;
 	sicData.u							= u;
 	sicData.pCustom						= pCustom;
@@ -235,7 +239,7 @@ uint64_t ReleaseDirectoryEntriesSDIRW_cnt (SDIRW *swd)
 		SRDIRONEENTRYSTRUCT	sdOneEntry;
 		DWORD				dwErrToReturn;
 
-		sdOneEntry.UTF8orUTF16.pstrPathWorU8	= strPathU8;
+		sdOneEntry.UTF8orUTF16.strPathWorU8	= strPathU8;
 		sdOneEntry.pwfd							= &wfdW;
 		sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
 		sdOneEntry.pCustom						= pCustom;
@@ -305,7 +309,7 @@ size_t ForEachDirectoryEntryU8		(
 	SRDIRONEENTRYSTRUCT	sdOneEntry;
 	DWORD				dwErrToReturn;
 
-	sdOneEntry.UTF8orUTF16.pstrPathWorU8	= strPathU8;
+	sdOneEntry.UTF8orUTF16.strPathWorU8	= strPathU8;
 	sdOneEntry.pwfd							= &wfdW;
 	sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
 	sdOneEntry.pCustom						= pCustom;
@@ -367,100 +371,119 @@ static const char	ccCoverAllMask []	= "\\*";
 	No NULL checks.
 */
 size_t ForEachDirEntryMaskU8intern	(
-				const char				*szFolder,
-				size_t					lnFolder,
-				pForEachDirEntryU8		fedEnt,
+				const char				*szFolderU8,
+				size_t					lnFolderU8,
+				pForEachDirEntryU8		fedEntCB,
 				void					*pCustom,
 				size_t					*pnSubLevels,
 				SRDIRONEENTRYSTRUCT		*psdE
 									)
 {
 	ubf_assert_non_NULL	(psdE);
-	ubf_assert			(USE_STRLEN != lnFolder);
-	ubf_assert			(USE_STRLEN != psdE->lnFileMask);
+	ubf_assert_non_NULL	(psdE->mbSearchPathU8.buf.pcc);
+	ubf_assert			(EN_READ_DIR_ENTS_SDIRW_UTF8 == psdE->u);
+	ubf_assert			(USE_STRLEN != psdE->lnSearchPathU8);
+	ubf_assert			(USE_STRLEN != psdE->lnMaskU8);
+	ubf_assert			(psdE->mbSearchPathU8.buf.pcc == szFolderU8);
 
 	size_t				uiEnts			= 0;				// The return value.
 	DWORD				dwErrToReturn	= ERROR_SUCCESS;
+	bool				bContinue		= true;
 
-	growToSizeSMEMBUF (&psdE->mbSearchPath, lnFolder + SIZCOVERALLMSK);
-	if (isUsableSMEMBUF (&psdE->mbSearchPath))
+	UNUSED (szFolderU8);
+	//cunilog_puts_l (psdE->mbSearchPathU8.buf.pcc, lnFolderU8);
+
+	// The search path + mask, for instance "C:\temp\*.*".
+	size_t stToReserve	= lnFolderU8
+						+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
+						+ SIZCOVERALLMSK				// Starts with a dir separator.
+						+ 1;							// NUL terminator.
+	growToSizeRetainSMEMBUF (&psdE->mbSearchPathU8, stToReserve);
+	if (!isUsableSMEMBUF (&psdE->mbSearchPathU8))
 	{
-		memcpy (psdE->mbSearchPath.buf.pch, szFolder, lnFolder);
-		memcpy (psdE->mbSearchPath.buf.pch + lnFolder, ccCoverAllMask, SIZCOVERALLMSK);
-		psdE->lnSearchPath = lnFolder + LENCOVERALLMSK;
+		SetLastError (ERROR_NOT_ENOUGH_MEMORY);
+		return uiEnts;
+	}
+	memcpy (psdE->mbSearchPathU8.buf.pch + psdE->lnSearchPathU8, ccCoverAllMask, SIZCOVERALLMSK);
+	psdE->szFullPathU8	= psdE->mbSearchPathU8.buf.pch;
+	psdE->szPathU8		= psdE->mbSearchPathU8.buf.pch + psdE->lnOrgSeaPathU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR);
+	psdE->szFileNameU8	= psdE->mbSearchPathU8.buf.pch + psdE->lnSearchPathU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR);
 
-		HANDLE hFind = FindFirstFileU8long (psdE->mbSearchPath.buf.pch, psdE->pwfd);
-		if (INVALID_HANDLE_VALUE == hFind)
-		{	// Maybe no files or whatever.
-			return uiEnts;
-		}
+	HANDLE hFind = FindFirstFileU8long (psdE->mbSearchPathU8.buf.pch, psdE->pwfd);
+	if (INVALID_HANDLE_VALUE == hFind)
+	{	// Maybe no files or whatever. We do not call SetLastError (), because Windows
+		//	will have set an appropriate error already for us.
+		return uiEnts;
+	}
+	do
+	{	// Go through the folder and pick up each entry.
+		if (isDotOrDotDotW (psdE->pwfd->cFileName))
+			continue;
 
-		ubf_assert_non_0 (sizeof (UBF_WIN_DIR_SEP_STR) - 1);
-		ubf_assert_non_0 (1 == sizeof (UBF_WIN_DIR_SEP_STR) - 1);
-		growToSizeRetainSMEMBUF (&psdE->mbFullPathU8, lnFolder + sizeof (UBF_WIN_DIR_SEP_STR) - 1 + UTF8_MAX_PATH);
-		if (isUsableSMEMBUF (&psdE->mbFullPathU8))
+		++ uiEnts;
+		size_t stFileNameU8 = UTF8_from_WinU16	(
+									psdE->szFileNameU8, UTF8_MAX_PATH,
+									psdE->pwfd->cFileName
+												);
+		// We expect a NUL terminator.
+		ubf_assert (0 <stFileNameU8);
+		psdE->lnFileNameU8 = stFileNameU8 - 1;
+		ubf_assert (ASCII_NUL == psdE->szFileNameU8 [psdE->lnFileNameU8]);
+		// Must be part of the whole path.
+		ubf_assert (psdE->szFileNameU8 > psdE->mbSearchPathU8.buf.pch);
+
+		psdE->lnFullPathU8 = lnFolderU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR) + psdE->lnFileNameU8;
+		ubf_assert (ASCII_NUL == psdE->szFullPathU8 [psdE->lnFullPathU8]);
+		ubf_assert (strlen (psdE->szFullPathU8) == psdE->lnFullPathU8);
+
+		psdE->lnPathU8 = psdE->lnFileNameU8;
+		ubf_assert (lnFolderU8 >= psdE->lnOrgSeaPathU8);
+		if (lnFolderU8 - psdE->lnOrgSeaPathU8)
+			psdE->lnPathU8 += lnFolderU8 - psdE->lnOrgSeaPathU8;
+		ubf_assert (ASCII_NUL == psdE->szPathU8 [psdE->lnPathU8]);
+
+		bool bMatch = matchWildcardPattern	(
+						psdE->szPathU8,	psdE->lnPathU8,
+						psdE->szMaskU8,	psdE->lnMaskU8
+											);
+
+		// Ensure that everything's fine for the callback function.
+		ubf_assert (strlen (psdE->szFullPathU8)		== psdE->lnFullPathU8);
+		ubf_assert (strlen (psdE->szPathU8)			== psdE->lnPathU8);
+		ubf_assert (strlen (psdE->szFileNameU8)		== psdE->lnFileNameU8);
+
+		bContinue = fedEntCB && bMatch ? fedEntCB (psdE) : true;
+		if (
+					bContinue
+				&&	pnSubLevels
+				&&	*pnSubLevels
+				&&	psdE->pwfd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY
+			)
 		{
-			memcpy	(
-				psdE->mbFullPathU8.buf.pch + lnFolder,
-				UBF_WIN_DIR_SEP_STR,
-				sizeof (UBF_WIN_DIR_SEP_STR)
-					);
-			psdE->szPathU8		= psdE->mbFullPathU8.buf.pch + psdE->lnInitPathU8 + 1;
-			psdE->szFileNameU8	= psdE->szPathU8;
-			bool bContinue		= true;
-			do
-			{	// Go through the folder and pick up each entry.
-				if (!isDotOrDotDotW (psdE->pwfd->cFileName))
-				{
-					++ uiEnts;
-					psdE->stFileNameU8 = UTF8_from_WinU16	(
-												psdE->szFileNameU8, UTF8_MAX_PATH,
-												psdE->pwfd->cFileName
-															);
-					ubf_assert (0 < psdE->stFileNameU8);
-					psdE->lnPathU8 = psdE->stFileNameU8 - 1;
-					bool bMatch = matchWildcardPattern	(
-									psdE->szPathU8,		psdE->lnPathU8,
-									psdE->szFileMask,	psdE->lnFileMask
-														);
-					bContinue = fedEnt && bMatch ? fedEnt (psdE) : true;
-					if (
-								bContinue
-							&&	pnSubLevels
-							&&	*pnSubLevels
-							&&	psdE->pwfd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY
-						)
-					{
-						*pnSubLevels -= 1;
-						/*
-						psdE->lnSearchPath = SMEMBUFstrconcat	(
-												&psdE->mbSearchPath,	psdE->lnSearchPath,
-												psdE->szFileNameU8,		psdE->stFileNameU8 - 1,
-												64
-																);
-						*/
-						// Recursively invoke us again.
-						//size_t lnFullPath = lnFolder + 1;	// Includes terminating path separator.
-						psdE->lnFullPathU8 = lnFolder + 1 + psdE->stFileNameU8 - 1;
-						ubf_assert (strlen (psdE->mbFullPathU8.buf.pch) == psdE->lnFullPathU8);
-						uiEnts = ForEachDirEntryMaskU8intern	(
-										psdE->mbFullPathU8.buf.pcc,
-										psdE->lnFullPathU8,
-										fedEnt, pCustom, pnSubLevels, psdE
-																);
-						*pnSubLevels += 1;
-					}
-				}
-			} while (bContinue && FindNextFileW (hFind, psdE->pwfd));
+			*pnSubLevels -= 1;
+			ubf_assert (strlen (psdE->szFullPathU8) == psdE->lnFullPathU8);
+			size_t lnSearchPathU8	= psdE->lnOrgSeaPathU8;
+			size_t lnPathU8			= psdE->lnPathU8;
+			psdE->lnSearchPathU8 += LENOFSTR (UBF_WIN_DIR_SEP_STR) + psdE->lnFileNameU8;
+			uiEnts = ForEachDirEntryMaskU8intern	(
+							psdE->mbSearchPathU8.buf.pcc,
+							psdE->lnSearchPathU8,
+							fedEntCB, pCustom, pnSubLevels, psdE
+													);
+			psdE->lnSearchPathU8	= lnSearchPathU8;
+			psdE->szFullPathU8		= psdE->mbSearchPathU8.buf.pch;
+			psdE->szPathU8			= psdE->mbSearchPathU8.buf.pch + LENOFSTR (UBF_WIN_DIR_SEP_STR) + lnSearchPathU8;
+			psdE->lnPathU8			= lnPathU8;
+			psdE->szFileNameU8		= psdE->mbSearchPathU8.buf.pch + psdE->lnSearchPathU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR);
+			*pnSubLevels += 1;
+		}
+	} while (bContinue && FindNextFileW (hFind, psdE->pwfd));
 
-			// We want the caller to be able to obtain the last error produced by FindNextFileW ()
-			//	instead of FindClose ().
-			dwErrToReturn = GetLastError ();
-			FindClose (hFind);
-		} else
-			dwErrToReturn = ERROR_NOT_ENOUGH_MEMORY;
-	} else
-		dwErrToReturn = ERROR_NOT_ENOUGH_MEMORY;
+	// We want the caller to be able to obtain the last error produced by FindNextFileW ()
+	//	instead of FindClose ().
+	dwErrToReturn = GetLastError ();
+	FindClose (hFind);
+
 	SetLastError (dwErrToReturn);
 	return uiEnts;
 }
@@ -468,9 +491,9 @@ size_t ForEachDirEntryMaskU8intern	(
 size_t ForEachDirectoryEntryMaskU8	(
 				const char				*strFolderU8,
 				size_t					lenFolderU8,
-				const char				*strFileMaskU8,
-				size_t					lenFileMaskU8,
-				pForEachDirEntryU8		fedEnt,
+				const char				*strMaskU8,
+				size_t					lenMaskU8,
+				pForEachDirEntryU8		fedEntCB,
 				void					*pCustom,
 				size_t					*pnSubLevels
 									)
@@ -479,51 +502,47 @@ size_t ForEachDirectoryEntryMaskU8	(
 	ubf_assert_non_0	(lenFolderU8);
 
 	size_t	uiEnts		= 0;
-	size_t	folderU8len = str_remove_last_dir_separator (strFolderU8, lenFolderU8);
-	char	*szFolder;
+	size_t	folderU8len	= str_remove_last_dir_separator (strFolderU8, lenFolderU8);
 	if (folderU8len)
 	{
-		szFolder = ubf_malloc (folderU8len + 1);
-		if (szFolder)
-		{
-			memcpy (szFolder, strFolderU8, folderU8len); szFolder [folderU8len] = ASCII_NUL;
-			str_correct_dir_separators (szFolder, folderU8len);
-			str_remove_path_navigators (szFolder, &folderU8len);
-			size_t fileMaskU8len = strFileMaskU8 ? (USE_STRLEN == lenFileMaskU8 ? strlen (strFileMaskU8) : lenFileMaskU8) : 0;
+		lenMaskU8 = strMaskU8 ? (USE_STRLEN == lenMaskU8 ? strlen (strMaskU8) : lenMaskU8) : 0;
 
-			WIN32_FIND_DATAW	wfdW;
-			SRDIRONEENTRYSTRUCT	sdOneEntry;
-			sdOneEntry.UTF8orUTF16.pstrPathWorU8	= strFolderU8;
-			sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
-			sdOneEntry.pwfd							= &wfdW;
-			sdOneEntry.pCustom						= pCustom;
-			sdOneEntry.szFileMask					= strFileMaskU8;
-			sdOneEntry.lnFileMask					= fileMaskU8len;
-			sdOneEntry.szPathU8						= NULL;
+		WIN32_FIND_DATAW	wfdW;
+		SRDIRONEENTRYSTRUCT	sdOneEntry;
+		memset (&sdOneEntry, 0, sizeof (SRDIRONEENTRYSTRUCT));
+		sdOneEntry.UTF8orUTF16.strPathWorU8	= strFolderU8;
+		sdOneEntry.u						= EN_READ_DIR_ENTS_SDIRW_UTF8;
+		sdOneEntry.pwfd						= &wfdW;
+		sdOneEntry.pCustom					= pCustom;
+		sdOneEntry.szMaskU8					= strMaskU8;
+		sdOneEntry.lnMaskU8					= lenMaskU8;
+		INITSMEMBUF (sdOneEntry.mbSearchPathU8);
 
-			INITSMEMBUF (sdOneEntry.mbSearchPath);
-			INITSMEMBUF (sdOneEntry.mbFullPathU8);
+		size_t stToReserve	= lenFolderU8
+							+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
+							// We allow for a minimum of 2 levels deep beforehand.
+							+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
+							+ SIZCOVERALLMSK				// Starts with a dir separator.
+							+ 1;							// NUL terminator.
+		growToSizeSMEMBUF (&sdOneEntry.mbSearchPathU8, stToReserve);
+		// Windows is going to set the last error here.
+		if (!isUsableSMEMBUF (&sdOneEntry.mbSearchPathU8))
+			return uiEnts;
 
-			sdOneEntry.lnInitPathU8 = folderU8len;
-			size_t stToReserve = folderU8len + sizeof (UBF_WIN_DIR_SEP_STR) - 1 + UTF8_MAX_PATH;
-			growToSizeSMEMBUF (&sdOneEntry.mbFullPathU8, stToReserve);
-			if (isUsableSMEMBUF (&sdOneEntry.mbFullPathU8))
-			{
-				memcpy (sdOneEntry.mbFullPathU8.buf.pch, szFolder, folderU8len);
-				memcpy	(
-					sdOneEntry.mbFullPathU8.buf.pch + folderU8len,
-					UBF_WIN_DIR_SEP_STR, sizeof (UBF_WIN_DIR_SEP_STR)
-						);
-				uiEnts = ForEachDirEntryMaskU8intern	(
-							szFolder, folderU8len,
-							fedEnt, pCustom, pnSubLevels, &sdOneEntry
-														);
-			}
+		memcpy (sdOneEntry.mbSearchPathU8.buf.pch, strFolderU8, folderU8len);
+		sdOneEntry.mbSearchPathU8.buf.pch [folderU8len] = ASCII_NUL;
+		str_correct_dir_separators (sdOneEntry.mbSearchPathU8.buf.pch, folderU8len);
+		str_remove_path_navigators (sdOneEntry.mbSearchPathU8.buf.pch, &folderU8len);
+		sdOneEntry.lnSearchPathU8	= folderU8len;
+		sdOneEntry.lnOrgSeaPathU8	= folderU8len;
 
-			DONESMEMBUF (sdOneEntry.mbFullPathU8);
-			DONESMEMBUF (sdOneEntry.mbSearchPath);
-			ubf_free (szFolder);
-		}
+		uiEnts = ForEachDirEntryMaskU8intern	(
+					sdOneEntry.mbSearchPathU8.buf.pch,
+					sdOneEntry.lnSearchPathU8,
+					fedEntCB, pCustom, pnSubLevels, &sdOneEntry
+												);
+		DONESMEMBUF (sdOneEntry.mbSearchPathU8);
+
 	} else
 		SetLastError (ERROR_INVALID_PARAMETER);
 	return uiEnts;
@@ -539,7 +558,7 @@ size_t ForEachDirectoryEntryMaskU8	(
 
 		char cFilename [UTF8_MAX_PATH];
 		UTF8_from_WinU16 (cFilename, UTF8_MAX_PATH, psdE->pwfd->cFileName);
-		printf ("P: %s, %s\n", psdE->UTF8orUTF16.chPathU8, cFilename);
+		//printf ("P: %s, %s\n", psdE->UTF8orUTF16.chPathU8, cFilename);
 		++ uiTstGlob;
 		if (uiTstGlob >= 100)
 			ubf_assert (false);
@@ -555,7 +574,8 @@ size_t ForEachDirectoryEntryMaskU8	(
 
 		n = ForEachDirectoryEntryMaskU8	(
 				"C:\\temp",		USE_STRLEN,
-				"*.txt",		USE_STRLEN,
+				//"*.txt",		USE_STRLEN,
+				"**",			USE_STRLEN,
 				perFile, NULL, &ui
 										);
 		UNREFERENCED_PARAMETER (n);

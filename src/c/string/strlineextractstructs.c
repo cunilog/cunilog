@@ -1,22 +1,26 @@
 /****************************************************************************************
 
-	File:		CompressFile.c
-	Why:		Module to compress a file on different platforms.
-	OS:			POSIX, Windows.
+	File:		strlineextractstructs.c
+	Why:		Config file structures.
+	OS:			C99.
 	Author:		Thomas
-	Created:	2024-10-17
+	Created:	2025-10-08
 
 History
 -------
 
 When		Who				What
 -----------------------------------------------------------------------------------------
-2024-10-17	Thomas			Created.
+2025-10-08	Thomas			Created.
 
 ****************************************************************************************/
 
 /*
 	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	The module provides the config file structures for various purposes.
 */
 
 /*
@@ -44,61 +48,13 @@ When		Who				What
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
-	#include "./CompressFile.h"
+	#include "./strlineextractstructs.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 
-		#include "./ubfdebug.h"
-		#include "./platform.h"
-		#include "./unref.h"
-
 	#else
 
-		#include "./../dbg/ubfdebug.h"
-		#include "./../pre/platform.h"
-		#include "./../pre/unref.h"
-
 	#endif
 
 #endif
 
-#ifdef DEBUG
-	enfilecompressresult_t IsFileCompressedByName (const char *szFilename)
-	{
-		#if defined (OS_IS_WINDOWS)
-
-			#ifdef DEBUG
-				// Since the NTFS compressor provides a different enum, we need to make sure that
-				//	its values are identical to the ones in enfilecompressresult.
-				int a, b;
-				a = fscompress_compressed;		b = ntfscompress_compressed;	ubf_assert (a == b);
-				a = fscompress_uncompressed;	b = ntfscompress_uncompressed;	ubf_assert (a == b);
-				a = fscompress_error;			b = ntfscompress_error;			ubf_assert (a == b);
-			#endif
-
-			enfilecompressresult_t r = (enfilecompressresult_t) IsFileNTFSCompressedByName (szFilename);
-			return r;
-
-		#elif defined (OS_IS_LINUX)
-
-			UNUSED (szFilename);
-			return fscompress_error;
-			
-		#endif
-
-	}
-#endif
-
-bool FScompressFileByName (const char *szFilename)
-{
-	#if defined (OS_IS_WINDOWS)
-
-		return CompressFileNTFS_U8 (szFilename);
-
-	#elif defined (OS_IS_LINUX)
-	
-		UNUSED (szFilename);
-		return false;
-		
-	#endif
-}

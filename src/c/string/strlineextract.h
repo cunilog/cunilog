@@ -54,6 +54,8 @@ When		Who				What
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
+	#include "./strlineextractstructs.h"
+
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./platform.h"
@@ -99,6 +101,10 @@ extern char			*ccCulStdStrtSection	[];
 extern char			*ccCulStdExitSection	[];
 extern unsigned int	nCulStdSections;
 
+// Additional strings or characters that are recognised as white space.
+extern char			*ccCulStdExtraWhiteSpc	[];
+extern unsigned int	nCulStdExtraWhiteSpc;
+
 /*
 	
 */
@@ -121,6 +127,9 @@ typedef struct sculmltstrings
 	char			**ccStrtSections;
 	char			**ccExitSections;
 	unsigned int	nSections;
+
+	const char		**ccExtraWhiteSpc;
+	unsigned int	nExtraWhiteSpc;
 } SCULMLTSTRINGS;
 
 /*
@@ -403,7 +412,7 @@ bool strlineextractIsCloseString	(
 					to a value.
 
 	pidxEqual1based	A pointer to a size_t that receives the 1-based index of the equality
-					string found. If pszKeyOrVal points to a key, the function sets this
+					string found. If pszKeyOrVal points to a value, the function sets this
 					value to 0.
 
 	szLine			A pointer to the buffer that contains the "key = value" string.
@@ -447,9 +456,9 @@ bool strlineextractKeyOrValue	(
 ;
 
 /*
-	strlineextractKeyAndValue
+	strlineextractKeyAndValues
 
-	Extracts a key and value from szLine with length lnLine. If lnLine is USE_STRLEN,
+	Extracts a key and its values from szLine with length lnLine. If lnLine is USE_STRLEN,
 	the function calls strlen (szLine) to obtain it.
 
 	Parameters
@@ -462,12 +471,18 @@ bool strlineextractKeyOrValue	(
 	plnKey			A pointer to a size_t that receives the length of the key. This parameter
 					must not be NULL.
 
-	pszVal			A pointer that receives the start address of the value. This
-					parameter cannot be NULL. The string is not NUL-terminated, as it is
-					only a pointer within the buffer of szLine.
+	pValues			A pointer to an array of SCUNILOGINIVALUE structures that receive the
+					start address of the value(s) and their lengths.
+					If this parameter is NULL, the function returns the amount of elements
+					required to retrieve all values.
+					Note that the strings of the SCUNILOGINIVALUE structures are not
+					NUL-terminated, as they are only pointers to within the buffer of szLine.
 
-	lnVal			A pointer to a size_t that receives the length of the value string.
-					This parameter cannot be NULL.
+	nVls			The amount of elements pValues points to. The function returns the amount
+					of values found, independent of nVls.
+
+	plnVls			A pointer to an array of size_t values that receive the length of the
+					value strings. This parameter cannot be NULL.
 
 	szLine			A pointer to the buffer that contains the "key = value" string.
 
@@ -498,16 +513,18 @@ bool strlineextractKeyOrValue	(
 					without at least one accepted equality sign character or string that
 					separates key and value.
 
-	The function returns true if a key and a value could be extracted from the line,
-	which includes an empty string for the value but not for the key. The function
-	returns false if szLine is NULL or lnLine is 0.
+	The function returns the amount of values extracted if a key and at least one value
+	could be extracted from the line, which may include empty strings for the values but
+	not for the key. The function returns 0 if no key/value combination could be extracted
+	or if szLine is NULL or lnLine is 0.
 */
-bool strlineextractKeyAndValue	(
-		const char		**cunilog_restrict pszKey,	size_t	*plnKey,		// Out.
-		const char		**cunilog_restrict pszVal,	size_t	*plnVal,		// Out.
-		const char		*cunilog_restrict szLine,	size_t	lnLine,			// In.
+unsigned int strlineextractKeyAndValues	(
+		const char		**cunilog_restrict	pszKey,	size_t	*plnKey,		// Out.
+		SCUNILOGINIVALUES					*pValues,
+		unsigned int						nValues,
+		const char		*cunilog_restrict	szLine,	size_t	lnLine,			// In.
 		SCULMLTSTRINGS	*psmlt												// In.
-								)
+										)
 ;
 
 enum en_strlineextract_white_space
@@ -579,15 +596,29 @@ typedef enum en_strlineextract_white_space en_strlineextract_ws;
 					rejected. If white space is encountered that doesn't fit this value,
 					the function fails and returns false.
 
+	pszTail			A pointer to a tail string, if any; NULL if no tail.
+
+	plnTail			A pointer to the length of the tail, if any. The function writes 0
+					to this address if there is no tail.
+
 	The function returns true if a section name could be extracted from the line. It
 	returns false, if for example a closing/exiting section string is missing.
 	The function also returns false if szLine is NULL or lnLine is 0.
+
+	If a section name is found but there's still remaining data left, the function
+	returns true and sets the value pointed to by pszTail and plnTail to the remaining
+	tail data and its length. This also applies to data that is rejected, for instance,
+	if ws is strlineextract_reject_white_space and there's white space left, this white
+	space is returned as remaining tail, and the return value of the function is true.
+
+	If the function returns false, the output values are undefined.
 */
 bool strlineextractSection	(
 		const char				**cunilog_restrict pszSec,	size_t	*plnSec,
 		const char				*cunilog_restrict szLine,	size_t	lnLine,
 		SCULMLTSTRINGS			*psmlt,
-		en_strlineextract_ws	ws
+		en_strlineextract_ws	ws,
+		const char				**cunilog_restrict pszTail,	size_t	*plnTail
 							)
 ;
 

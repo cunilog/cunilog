@@ -101,10 +101,12 @@ When		Who				What
 		#include "./externC.h"
 		#include "./restrict.h"
 		//#include "./platform.h"
+		#include "./strlineextractstructs.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/restrict.h"
 		//#include "./../pre/platform.h"
+		#include "./../string/strlineextractstructs.h"
 	#endif
 
 #endif
@@ -114,47 +116,6 @@ When		Who				What
 #include <stdint.h>
 
 EXTERN_C_BEGIN
-
-/*
-	The structures for ini files.
-*/
-typedef struct scuniloginikeyvalue
-{
-	const char				*szKeyName;
-	size_t					lnKeyName;
-	const char				*szValue;
-	size_t					lnValue;
-} SCUNILOGINIKEYVALUE;
-
-typedef struct scuniloginisection
-{
-	const char				*szSectionName;
-	size_t					lnSectionName;
-	SCUNILOGINIKEYVALUE		*pKeyValuePairs;
-	unsigned int			nKeyValuePairs;
-} SCUNILOGINISECTION;
-
-typedef struct scunilogini
-{
-	char					*buf;
-	SCUNILOGINISECTION		*pIniSections;
-	unsigned int			nIniSections;
-	SCUNILOGINIKEYVALUE		*pKeyValuePairs;
-	unsigned int			nKeyValuePairs;
-
-	// Parse error.
-	size_t					errLineNumber;					// The line number within the buffer.
-															//	First line is 1.
-	size_t					errCharNumber;					// The position of pStart within
-															//	a line. 1 = first column/character.
-	size_t					errAbsPosition;					// Position within the entire buffer.
-															//	1 = first position/character.
-	bool					bParseFail;
-} SCUNILOGINI;
-/*
-	End of structures for ini files.
-*/
-
 
 typedef uint64_t	cunilogcfgopts;
 
@@ -295,9 +256,57 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 ;
 
 /*
-	CunilogGetIniValueFromKey
+	CunilogGetIniValuesFromKey
 
-	Retrieves the value of a key that belongs to section szSection..
+	pValues			A pointer to an array of SCUNILOGINIVALUES structures that receives
+					the values of szKey.
+
+	szSection		The name of the section the key belongs to. Keys do not necessarily
+					belong to a section. To obtain a key that is not part of a section,
+					set szSection to NULL and lnSection to 0.
+
+	lnSection		The length of the section name szSection. Use USE_STRLEN for the
+					function to call strlen (szSection). Otherwise the name does not
+					need to be NUL-terminated.
+
+	szKey			The name of the key whose first value is to be retrieved. This parameter
+					cannot be NULL.
+
+	lnKey			The length of the key name. If USE_STRLEN, the function uses strlen ()
+					to obtain it. Otherwise the name does not need to be NUL-terminated.
+
+	pCunilogIni		A pointer to an SCUNILOGINI structure. The structure must have been
+					initialised with CreateSCUNILOGINI ().
+
+	The function returns the amount of values the key szKey of section szSection contains.
+	If the section or key cannot be found, the function returns 0.
+*/
+unsigned int CunilogGetIniValuesFromKey		(
+				SCUNILOGINIVALUES	**pValues,
+				const char			*cunilog_restrict szSection,	size_t	lnSection,
+				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI			*pCunilogIni
+											)
+;
+
+/*
+	CunilogGetIniValuesFromKey_ci
+
+	This function is identical to CunilogGetIniValuesFromKey () but is case-insensitive
+	for the parameters szSection and szKey.
+*/
+unsigned int CunilogGetIniValuesFromKey_ci	(
+				SCUNILOGINIVALUES	**pValues,
+				const char			*cunilog_restrict szSection,	size_t	lnSection,
+				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI			*pCunilogIni
+											)
+;
+
+/*
+	CunilogGetFirstIniValueFromKey
+
+	Retrieves the first value of a key that belongs to section szSection.
 
 	pLen			A pointer to a size_t that receives the length of the returned string.
 					If this parameter is NULL, the function does not provide the length
@@ -313,7 +322,7 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 					function to call strlen (szSection). Otherwise the name does not
 					need to be NUL-terminated.
 
-	szKey			The name of the key whose value is to be retrieved. This parameter
+	szKey			The name of the key whose first value is to be retrieved. This parameter
 					cannot be NULL.
 
 	lnKey			The length of the key name. If USE_STRLEN, the function uses strlen ()
@@ -322,25 +331,38 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 	pCunilogIni		A pointer to an SCUNILOGINI structure. The structure must have been
 					initialised with CreateSCUNILOGINI ().
 
-	The function returns a pointer to the value of the key, without quotation markers.
+	The function returns a pointer to the first value of the key, without quotation markers.
 	This string is not NUL-terminated. If pLen is not NULL, the function provides the length
 	of the returned string at the address it points to.
 
 	The function returns NULL if the key does not exist. When the function returns NULL,
 	the address pLen points to is not changed.
 */
-const char *CunilogGetIniValueFromKey	(
+const char *CunilogGetFirstIniValueFromKey		(
 				size_t			*pLen,
 				const char		*cunilog_restrict szSection,	size_t	lnSection,
 				const char		*cunilog_restrict szKey,		size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
-										)
+												)
+;
+
+/*
+	CunilogGetFirstIniValueFromKey_ci
+
+	This function is identical to CunilogGetFirstIniValueFromKey () but is case-insensitive
+	for the parameters szSection and szKey.
+*/
+const char *CunilogGetFirstIniValueFromKey_ci	(
+				size_t			*pLen,
+				const char		*cunilog_restrict szSection,	size_t	lnSection,
+				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI		*pCunilogIni
+												)
 ;
 
 /*
 	TestCunilogCfgParser
 
-	Test function for the module.
 */
 #ifdef CUNILOG_BUILD_CFG_PARSER_TEST_FNCT
 	bool TestCunilogCfgParser (void);

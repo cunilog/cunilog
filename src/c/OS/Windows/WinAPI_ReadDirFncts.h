@@ -109,7 +109,7 @@ typedef struct sDirWplinth
 	SDIRW					**_array;						// Array of sorted pointers.
 	union
 	{
-		void				*pstrPathWorU8;					// UTF-8 or UTF-16;
+		void				*strPathWorU8;					// UTF-8 or UTF-16;
 		char				*chPathU8;						// UTF-8.
 		unsigned char		*ucPathU8;						// Unsigned UTF-8.
 		WCHAR				*wcPathU8;						// UTF-16.
@@ -127,7 +127,7 @@ typedef struct srdirOneEntryStruct
 	union
 	{
 		// Unchanged path provided by the caller.
-		const void			*pstrPathWorU8;					// UTF-8 or UTF-16;
+		const void			*strPathWorU8;					// UTF-8 or UTF-16;
 		const char			*chPathU8;						// UTF-8.
 		const unsigned char	*ucPathU8;						// Unsigned UTF-8.
 		const WCHAR			*wcPathU8;						// UTF-16.
@@ -138,28 +138,30 @@ typedef struct srdirOneEntryStruct
 	WIN32_FIND_DATAW		*pwfd;
 	void					*pCustom;
 
-	// The file mask as provided by the caller.
-	const char				*szFileMask;
-	size_t					lnFileMask;						// Its length. Cannot be
-															//	USE_STRLEN.
+	// The file mask/pattern as provided by the caller.
+	const char				*szMaskU8;
+	size_t					lnMaskU8;						// Its length.
 
-	// The folder plus search mask for FindFirstFileU8long ().
-	SMEMBUF					mbSearchPath;					// "C:\\dir\*"
-	size_t					lnSearchPath;
+	// The current folder plus search mask/pattern for FindFirstFileU8long ().
+	SMEMBUF					mbSearchPathU8;					// "C:\\dir\*"
+	size_t					lnSearchPathU8;
+	size_t					lnOrgSeaPathU8;					// Original length.
 
-	// The full path, starting with chPathU8.
-	SMEMBUF					mbFullPathU8;
+	// The full path, starting with the path originally provided by the caller,
+	//	and its length. This points to the first character in mbSearchPath.
+	char					*szFullPathU8;
 	size_t					lnFullPathU8;
-	size_t					lnInitPathU8;
 
-	// Everything between szFullPathU8 and szFileNameU8.
+	// Everything between szFullPathU8 and szFileNameU8, i.e, excluding the start
+	//	of the path, which was originally provided by the caller. This is the path
+	//	the pattern/mask is matched against.
 	char					*szPathU8;
 	size_t					lnPathU8;
 
 	// The filename alone converted to UTF-8. Not all functions set these members.
 	//	The function ForEachDirectoryEntryMaskU8 () sets both members.
 	char					*szFileNameU8;
-	size_t					stFileNameU8;
+	size_t					lnFileNameU8;
 } SRDIRONEENTRYSTRUCT;
 
 /*
@@ -420,6 +422,8 @@ size_t	ForEachDirectoryEntryU8		(
 /*
 	ForEachDirectoryEntryMaskU8
 
+	Does not work! Do not use!
+
 	This function exists to provide better compatibilibty between Windows and POSIX.
 	Folder and file mask are split into two parameters.
 
@@ -427,26 +431,29 @@ size_t	ForEachDirectoryEntryU8		(
 						listing. The folder name may end with a forward or backslash.
 						This must be an absolute path. The folder cannot be relative, i.e.
 						cannot contain path navigators ("..\") unless they can be resolved
-						entirely.
+						entirely, i.e it is someting like "/dir/dir/../file", which would
+						resolve to "/dir/file".
 
 	lenFolderU8			The length of strFolderU8, excluding a terminating NUL character.
 						This parameter can be USE_STRLEN, which causes the function to invoke
-						strlen () on strFolderU8 to obtain its length.
+						strlen () on strFolderU8 to obtain its length. If the length is
+						provided instead of USE_STRLEN, the string does not have to be
+						NUL-terminated.
 
-	strFileMaskU8		The filename or mask for the files to call the callback function.
-						It can contain wildcard characters to match the files for whom
-						the callback function will be called.
+	strMaskU8			The ask for the files or folders to call the callback
+						function. It can contain wildcard characters to match the files for
+						whom the callback function will be called.
 						This parameter can be NULL, in which case the function calls the
 						callback function on every single file found.
 						This is not a simple "*" or "*.*" file mask as known from
 						Windows or POSIX. See remarks below the parameter descriptions.
 
-	lenFileMaskU8		The length of strFileMask, excluding a terminating NUL character.
+	lenMaskU8			The length of strFileMask, excluding a terminating NUL character.
 						This parameter can be USE_STRLEN, which causes the function to invoke
 						strlen () on strFileMask to obtain its length.
 						The parameter is ignored if strFileMaskU8 is NULL.
 
-	fedEnt				Pointer to the callback function. The function is called
+	fedEntCB			Pointer to the callback function. The function is called
 						for each found entry.
 
 	pCustom				Pointer to custom data that is passed on to the callback
@@ -456,7 +463,7 @@ size_t	ForEachDirectoryEntryU8		(
 						amount of subfolder levels to enumerate. If this parameter
 						is NULL or points to a value of 0, only the folder in strPathU8
 						is processed. Any other number specifies the amount of
-						subfolders to be enumerated by recursively calling this
+						subfolder levels to be enumerated by recursively calling this
 						function. The function uses the variable to count its
 						recursion levels. This means if it is not NULL and points
 						to a value greater than 0, the function alters it for
@@ -464,7 +471,7 @@ size_t	ForEachDirectoryEntryU8		(
 						time before the function is called.
 
 	The function reads a base directory, which is strFolderU8. It ignores the "." and ".."
-	folders returned by the operating system but matches every other file or directory
+	folders returned by the file system but matches any other file or directory
 	against strFileMaskU8. Matching starts with file or directory objects inside the folder
 	strFolderU8, which is different from how operating systems and system utilities usually
 	match wildcards and files or directories.
@@ -491,9 +498,9 @@ size_t	ForEachDirectoryEntryU8		(
 size_t ForEachDirectoryEntryMaskU8	(
 				const char				*strFolderU8,
 				size_t					lenFolderU8,
-				const char				*strFileMaskU8,
-				size_t					lenFileMaskU8,
-				pForEachDirEntryU8		fedEnt,
+				const char				*strMaskU8,
+				size_t					lenMaskU8,
+				pForEachDirEntryU8		fedEntCB,
 				void					*pCustom,
 				size_t					*pnSubLevels
 									)

@@ -195,6 +195,28 @@ size_t ubf_count_char (const char *cc, char c)
 	return stRet;
 }
 
+/*
+	Case-insensitive memcmp. Assumes ASCII characters, obviously.
+*/
+int memcmp_ci (const void *cunilog_restrict m1, const void *cunilog_restrict m2, size_t l)
+{
+	if (0 == l)
+		return 0;
+
+	const char *c1 = m1;
+	const char *c2 = m2;
+	size_t n;
+
+	for (n = 0; n < l; ++ n)
+	{
+		if (toupper (c1 [n]) < toupper (c2 [n]))
+			return -1;
+		if (toupper (c1 [n]) > toupper (c2 [n]))
+			return 1;
+	}
+	return 0;
+}
+
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	size_t ubf_obtain_strlen (const char *sz, size_t providedLength)
 	{

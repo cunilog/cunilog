@@ -1972,6 +1972,16 @@ DWORD GetNumberOfProcessesAttachedToConsole (void)
 {
 	DWORD dwLst [1];
 
+	/*
+		https://learn.microsoft.com/en-us/windows/console/getconsoleprocesslist
+
+		Excerpt:
+
+		"If the buffer is too small to hold all the valid process identifiers, the return
+		value is the required number of array elements. The function will have stored no
+		identifiers in the buffer. In this situation, use the return value to allocate a
+		buffer that is large enough to store the entire list and call the function again."
+	*/
 	DWORD dwRet = GetConsoleProcessList (dwLst, 1);
 	if (0 == dwRet)
 	{	// Fail. See https://learn.microsoft.com/en-us/windows/console/getconsoleprocesslist .

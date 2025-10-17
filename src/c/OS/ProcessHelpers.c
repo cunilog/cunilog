@@ -586,7 +586,7 @@ void DoneArgsList (char *szArgsList)
 	#define OUTFLGS		(uiCBflags | RUNCMDPROC_CALLB_INTOUT)
 	#define ERRFLGS		(uiCBflags | RUNCMDPROC_CALLB_INTERR)
 
-	bool HandleCommPipes	(
+	static bool HandleCommPipes	(
 			SRUNCMDCBINF		*pinf,
 			PROCESS_INFORMATION	*pi,
 			PH_SCHILDHANDLES	*pph,
@@ -594,7 +594,7 @@ void DoneArgsList (char *szArgsList)
 			enRCmdCBhow			cbHow,
 			uint16_t			uiCBflags,
 			void				*pCustom
-							)
+								)
 	{
 		ubf_assert_non_NULL (pi);
 		ubf_assert_non_NULL (pi->hProcess);
@@ -780,7 +780,7 @@ void DoneArgsList (char *szArgsList)
 		return bRet;
 	}
 
-	bool HandleCommunication	(
+	static bool HandleCommunication	(
 			SRUNCMDCBINF			*pinf,
 			PROCESS_INFORMATION		*pi,
 			PH_SCHILDHANDLES		*pph,
@@ -788,7 +788,7 @@ void DoneArgsList (char *szArgsList)
 			enRCmdCBhow				cbHow,
 			uint16_t				uiCBflags,
 			void					*pCustom
-								)
+									)
 	{
 		ubf_assert_non_NULL (pi);
 		ubf_assert_non_NULL (pi->hProcess);

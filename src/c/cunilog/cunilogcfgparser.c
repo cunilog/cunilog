@@ -57,6 +57,7 @@ When		Who				What
 		#include "./ubfmem.h"
 		#include "./strlineextract.h"
 		#include "./strnewline.h"
+		#include "./ubfcharscountsandchecks.h"
 	#else
 		#include "./../pre/unref.h"
 		#include "./../dbg/ubfdebug.h"
@@ -64,6 +65,7 @@ When		Who				What
 		#include "./../mem/ubfmem.h"
 		#include "./../string/strlineextract.h"
 		#include "./../string/strnewline.h"
+		#include "./../string/ubfcharscountsandchecks.h"
 	#endif
 
 #endif
@@ -358,10 +360,10 @@ void DoneCunilogRootConfigData (SCUNILOGCFGNODE *cfg)
 	nSects			Used to count the number of sections during the first iteration.
 					The memory block to store the section and key/value pair structures
 					is then allocated accordingly.
-	nKeyVs			Used to count the number of key/value pairs during the first iteration.
+	nKeys			Used to count the number of key with values during the first iteration.
 					The memory block to store the section and key/value pair structures
 					is then allocated accordingly.
-
+	nValues			Used to count the number of values.
 	uiCurrSection	Used to identify the section we're currently in. For a new section,
 					this value must be incremented first.
 	uiCurrKeyVal	Used to identify the key/value pair we're currently in. For a new
@@ -371,10 +373,12 @@ typedef struct snsectionsandkeyvals
 {
 	SCULMLTSTRINGS			*psmls;
 	unsigned int			nSects;
-	unsigned int			nKeyVs;
+	unsigned int			nKeys;
+	unsigned int			nValues;
 	SCUNILOGINI				*pCunilogIni;
 	unsigned int			uiCurrSection;
-	unsigned int			uiCurrKeyVal;
+	unsigned int			uiCurrentKey;
+	unsigned int			uiCurrValue;
 } SNSECTIONSANDKEYVALS;
 
 /*
@@ -392,27 +396,37 @@ static bool createCreateSCUNILOGINI_count_cb (STRLINEINF *psli)
 
 	const char	*szSection;
 	size_t		lnSection;
+	const char	*szTail;
+	size_t		lnTail;
 	bool bIsSctn = strlineextractSection		(
 						&szSection, &lnSection, psli->szStart, psli->lnLength,
 						pkvs->psmls,
-						strlineextract_accept_white_space_and_comments
+						strlineextract_accept_white_space_and_comments,
+						&szTail, &lnTail
 												);
+	const char		*szKey;
+	size_t			lnKey;
+	unsigned int	nVals		= 0;
 	if (bIsSctn)
 	{
 		++ pkvs->nSects;
-		return true;
-	}
-	const char	*szKey;
-	size_t		lnKey;
-	const char	*szVal;
-	size_t		lnVal;
-	bool bIsKeyV = strlineextractKeyAndValue	(
-						&szKey, &lnKey, &szVal, &lnVal, psli->szStart, psli->lnLength,
-						pkvs->psmls
-												);
-	if (bIsKeyV)
+		// Allow for: "[Section] key = value".
+		if (NULL == szTail)
+			return true;
+		ubf_assert_non_0 (lnTail);
+	} else
 	{
-		++ pkvs->nKeyVs;
+		szTail = psli->szStart;
+		lnTail = psli->lnLength;
+	}
+	nVals = strlineextractKeyAndValues	(
+						&szKey, &lnKey, NULL, 0, szTail, lnTail,
+						pkvs->psmls
+										);
+	if (nVals)
+	{
+		++ pkvs->nKeys;
+		pkvs->nValues += nVals;
 
 		// We obviously have key/value pairs that don't belong to a section.
 		//	In this case we're going to create a section without a name as dummy.
@@ -434,29 +448,18 @@ static void storeSectionMembers	(
 		const char				*szSection,			size_t lnSection
 								)
 {
+	// The first time this rolls over from UINT_MAX to 0.
 	++ pkvs->uiCurrSection;
+	ONLY_IN_DEBUG (-- pkvs->nSects);
+
 	// Make it clear to the compiler that we do not care about padding.
 	memset (&pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection], 0, sizeof (SCUNILOGINISECTION));
 	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].szSectionName		= szSection;
 	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].lnSectionName		= lnSection;
 	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].pKeyValuePairs	= NULL;
 	pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].nKeyValuePairs	= 0;
-}
 
-static void storeKeyValueMembers	(
-		SNSECTIONSANDKEYVALS	*pkvs,
-		const char				*szKey,			size_t lnKey,
-		const char				*szVal,			size_t lnVal
-									)
-{
-	++ pkvs->uiCurrKeyVal;
-	// The assignments cover the entire structure.
-	//memset (&pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal], 0, sizeof (SCUNILOGINIKEYVALUE));
-	pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal].szKeyName		= szKey;
-	pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal].lnKeyName		= lnKey;
-	pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal].szValue			= szVal;
-	pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal].lnValue			= lnVal;
-	++ pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].nKeyValuePairs;
+	ubf_assert (UINT_MAX > pkvs->uiCurrSection);
 }
 
 /*
@@ -474,40 +477,63 @@ static bool createCreateSCUNILOGINI_assgn_cb (STRLINEINF *psli)
 
 	const char	*szSection;
 	size_t		lnSection;
+	const char	*szTail;
+	size_t		lnTail;
 	bool bIsSctn = strlineextractSection		(
 						&szSection, &lnSection, psli->szStart, psli->lnLength,
 						pkvs->psmls,
-						strlineextract_accept_white_space_and_comments
+						strlineextract_accept_white_space_and_comments,
+						&szTail, &lnTail
 												);
+	unsigned int	nVals		= 0;
 	if (bIsSctn)
 	{
-		ONLY_IN_DEBUG (-- pkvs->nSects);
 		storeSectionMembers (pkvs, szSection, lnSection);
-		return true;
-	}
-	const char	*szKey;
-	size_t		lnKey;
-	const char	*szVal;
-	size_t		lnVal;
-	bool bIsKeyV = strlineextractKeyAndValue	(
-						&szKey, &lnKey, &szVal, &lnVal, psli->szStart, psli->lnLength,
-						pkvs->psmls
-												);
-	if (bIsKeyV)
+		// Allow for: "[Section] key = value".
+		if (NULL == szTail)
+			return true;
+		ubf_assert_non_0 (lnTail);
+	} else
 	{
-		ONLY_IN_DEBUG (-- pkvs->nKeyVs);
+		szTail = psli->szStart;
+		lnTail = psli->lnLength;
+	}
+	
+	// Note that instead of pkvs->nValues we could afford a UINT_MAX as well,
+	//	because everything has been allocated with the required sizes already.
+	nVals = strlineextractKeyAndValues	(
+				&pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey].szKeyName,
+				&pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey].lnKeyName,
+				&pkvs->pCunilogIni->pValues [pkvs->uiCurrValue],
+				pkvs->nValues,
+				szTail, lnTail,
+				pkvs->psmls
+										);
+	if (nVals)
+	{
+		ONLY_IN_DEBUG (-- pkvs->nKeys);
+		ONLY_IN_DEBUG (pkvs->nValues -= nVals);
 		if (UINT_MAX == pkvs->uiCurrSection)
 		{
-			ONLY_IN_DEBUG (-- pkvs->nSects);
 			storeSectionMembers (pkvs, NULL, 0);
 		}
-		ubf_assert (UINT_MAX > pkvs->uiCurrSection);
-		storeKeyValueMembers (pkvs, szKey, lnKey, szVal, lnVal);
 		if (NULL == pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].pKeyValuePairs)
 		{
 			pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].pKeyValuePairs =
-				&pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrKeyVal];
+				&pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey];
+
+			ubf_assert (pkvs->pCunilogIni->nIniSections		> pkvs->uiCurrSection);
+			ubf_assert (pkvs->pCunilogIni->nKeyValuePairs	> pkvs->uiCurrentKey);
+			pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey].nValues = 0;
 		}
+
+		pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey].pValues =
+			&pkvs->pCunilogIni->pValues [pkvs->uiCurrValue];
+		pkvs->pCunilogIni->pKeyValuePairs [pkvs->uiCurrentKey].nValues = nVals;
+
+		++ pkvs->pCunilogIni->pIniSections [pkvs->uiCurrSection].nKeyValuePairs;
+		pkvs->uiCurrValue += nVals;
+		++ pkvs->uiCurrentKey;
 		return true;
 	}
 
@@ -531,41 +557,53 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 	SCULMLTSTRINGS			smls;
 	InitSCULMLTSTRINGSforC (&smls);
 	SNSECTIONSANDKEYVALS	kvs;
+	memset (&kvs, 0, sizeof (SNSECTIONSANDKEYVALS));
 	kvs.psmls			= &smls;
 	kvs.nSects			= 0;
-	kvs.nKeyVs			= 0;
+	kvs.nKeys			= 0;
+	kvs.nValues			= 0;
 	kvs.pCunilogIni		= pCunilogIni;
 
-	// These overflow to 0 when incremented the first time.
 	kvs.uiCurrSection	= UINT_MAX;							// Idx of next section to use.
-	kvs.uiCurrKeyVal	= UINT_MAX;							// Idx of next key/val to use.
+	kvs.uiCurrentKey	= 0;								// Idx of next key/val to use.
+	kvs.uiCurrValue		= 0;								// Idx of next value to use.
 
 	// First, count all sections and keys for us to allocate the correct array sizes.
 	unsigned int nLines;
 	nLines = StrLineExtract (szIniBuf, lnIniBuf, &cnf, createCreateSCUNILOGINI_count_cb, &kvs);
 
-	size_t stTotal		= 0;
-	size_t stSections	= 0;
-	if (kvs.nSects || kvs.nKeyVs)
+	// Note that we can't have values without keys, that we also can't have keys without
+	//	at least one section, but we can have sections without keys. This is why the most
+	//	efficient check here is for sections.
+	if (kvs.nSects)
 	{
-		stSections	=	ALIGNED_SIZE ((sizeof (SCUNILOGINISECTION)	* kvs.nSects), 8);
-		stTotal		+=	stSections;
-		stTotal		+=	ALIGNED_SIZE ((sizeof (SCUNILOGINIKEYVALUE)	* kvs.nKeyVs), 8);
+		size_t stTotal;
+		size_t stSections;
+		size_t stKeyAnVls;
+
+		stSections	=	ALIGNED_SIZE ((sizeof (SCUNILOGINISECTION)		* kvs.nSects),	8);
+		stTotal		=	stSections;
+		stTotal		+=	ALIGNED_SIZE ((sizeof (SCUNILOGINIKEYANDVALUES)	* kvs.nKeys),	8);
+		stKeyAnVls	=	stTotal;
+		stTotal		+=	ALIGNED_SIZE ((sizeof (SCUNILOGINIVALUES)		* kvs.nValues),	8);
 		pCunilogIni->buf = ubf_malloc (stTotal);
 
 		if (pCunilogIni->buf)
 		{
 			if (kvs.nSects)
-			{
-				pCunilogIni->pIniSections = (SCUNILOGINISECTION *) pCunilogIni->buf;
-				if (pCunilogIni->pIniSections)
-					pCunilogIni->nIniSections = kvs.nSects;
+			{	// The array with the sections is at the start of the buffer.
+				pCunilogIni->pIniSections	= (SCUNILOGINISECTION *)		pCunilogIni->buf;
+				pCunilogIni->nIniSections	= kvs.nSects;
 			}
-			if (kvs.nKeyVs)
-			{
-				pCunilogIni->pKeyValuePairs = (SCUNILOGINIKEYVALUE *) (pCunilogIni->buf + stSections);
-				if (pCunilogIni->pKeyValuePairs)
-					pCunilogIni->nKeyValuePairs = kvs.nKeyVs;
+			if (kvs.nKeys)
+			{	// Keys come after the sections.
+				pCunilogIni->pKeyValuePairs	= (SCUNILOGINIKEYANDVALUES *)	(pCunilogIni->buf + stSections);
+				pCunilogIni->nKeyValuePairs	= kvs.nKeys;
+			}
+			if (kvs.nValues)
+			{	// Values are stored after the keys.
+				pCunilogIni->pValues		= (SCUNILOGINIVALUES *)			(pCunilogIni->buf + stKeyAnVls);
+				pCunilogIni->nValues		= kvs.nValues;
 			}
 
 			// Then, fill the arrays.
@@ -573,7 +611,8 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 
 			// Debug versions decrement these all the way to 0.
 			ubf_assert_0 (kvs.nSects);
-			ubf_assert_0 (kvs.nKeyVs);
+			ubf_assert_0 (kvs.nKeys);
+			ubf_assert_0 (kvs.nValues);
 
 			return true;
 		}
@@ -585,10 +624,10 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 	Compares the section names szA and szB and returns true, if they're identical.
 	Also returns true if both are NULL.
 */
-static bool equalSectionNames	(
+static bool equalSectionNames		(
 				const char *cunilog_restrict szSA, size_t lnSA,
 				const char *cunilog_restrict szSB, size_t lnSB
-								)
+									)
 {
 	if (szSA && szSB && lnSA == lnSB)
 	{
@@ -604,12 +643,43 @@ static bool equalSectionNames	(
 	return false;
 }
 
-const char *CunilogGetIniValueFromKey	(
-				size_t			*pLen,
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
-				SCUNILOGINI		*pCunilogIni
-										)
+/*
+	The case-insensitive version.
+*/
+static bool equalSectionNames_ci	(
+				const char *cunilog_restrict szSA, size_t lnSA,
+				const char *cunilog_restrict szSB, size_t lnSB
+									)
+{
+	if (szSA && szSB && lnSA == lnSB)
+	{
+		if (lnSA)
+			return !memcmp_ci (szSA, szSB, lnSA);
+		else
+			return true;
+	} else
+	if (NULL == szSA && NULL == szSB)
+	{
+		return true;
+	}
+	return false;
+}
+
+enum enGetValsCaseSensitivity
+{
+	enVlsCaseInsensitive,
+	enVlsCaseSensitiveSection,
+	enVlsCaseSensitiveSectionAndKey,
+	enVlsCaseSensitiveKey
+};
+
+static unsigned int CunilogGetIniValuesFromKey_int	(
+				SCUNILOGINIVALUES				**pValues,
+				const char						*cunilog_restrict szSection,	size_t	lnSection,
+				const char						*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI						*pCunilogIni,
+				enum enGetValsCaseSensitivity	cs		
+													)
 {
 	ubf_assert_non_NULL	(pCunilogIni);
 
@@ -617,33 +687,141 @@ const char *CunilogGetIniValueFromKey	(
 	lnKey		= USE_STRLEN == lnKey		? strlen (szKey)		: lnKey;
 
 	if (0 == lnKey)
-		return NULL;
+		return 0;
 
-	unsigned int uiS;
+	size_t uiS;
 	for (uiS = 0; uiS < pCunilogIni->nIniSections; ++ uiS)
 	{
-		if	(
-				equalSectionNames	(
-					szSection, lnSection,
-					pCunilogIni->pIniSections [uiS].szSectionName,
-					pCunilogIni->pIniSections [uiS].lnSectionName
-									)
-			)
+		bool bSectionsEqual;
+		if (enVlsCaseSensitiveSection == cs || enVlsCaseSensitiveSectionAndKey == cs)
+			bSectionsEqual = equalSectionNames		(
+				szSection, lnSection,
+				pCunilogIni->pIniSections [uiS].szSectionName,
+				pCunilogIni->pIniSections [uiS].lnSectionName
+													);
+		else
+			bSectionsEqual = equalSectionNames_ci	(
+				szSection, lnSection,
+				pCunilogIni->pIniSections [uiS].szSectionName,
+				pCunilogIni->pIniSections [uiS].lnSectionName
+													);
+		if (bSectionsEqual)
 		{
-			unsigned int uiK;
+			size_t uiK;
 			for (uiK = 0; uiK < pCunilogIni->pIniSections [uiS].nKeyValuePairs; ++ uiK)
 			{
 				if (lnKey == pCunilogIni->pIniSections [uiS].pKeyValuePairs [uiK].lnKeyName)
 				{
-					if (!memcmp (szKey, pCunilogIni->pIniSections [uiS].pKeyValuePairs->szKeyName, lnKey))
+					int icmp;
+					if (enVlsCaseSensitiveKey == cs || enVlsCaseSensitiveSectionAndKey == cs)
+						icmp = memcmp		(
+								szKey,
+								pCunilogIni->pIniSections [uiS].pKeyValuePairs [uiK].szKeyName,
+								lnKey
+											);
+					else
+						icmp = memcmp_ci	(
+								szKey,
+								pCunilogIni->pIniSections [uiS].pKeyValuePairs [uiK].szKeyName,
+								lnKey
+											);
+					if (!icmp)
 					{
-						if (*pLen)
-							*pLen = pCunilogIni->pIniSections [uiS].pKeyValuePairs->lnValue;
-						return pCunilogIni->pIniSections [uiS].pKeyValuePairs->szValue;
+						if (pValues)
+							*pValues = pCunilogIni->pIniSections [uiS].pKeyValuePairs [uiK].pValues;
+						return pCunilogIni->pIniSections [uiS].pKeyValuePairs [uiK].nValues;
 					}
 				}
 			}
 		}
+	}
+	return 0;
+}
+
+unsigned int CunilogGetIniValuesFromKey		(
+				SCUNILOGINIVALUES	**pValues,
+				const char			*cunilog_restrict szSection,	size_t	lnSection,
+				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI			*pCunilogIni
+											)
+{
+	ubf_assert_non_NULL	(pCunilogIni);
+
+	return CunilogGetIniValuesFromKey_int	(
+				pValues,
+				szSection,	lnSection,
+				szKey,		lnKey,
+				pCunilogIni,
+				enVlsCaseSensitiveSectionAndKey
+											);
+}
+
+unsigned int CunilogGetIniValuesFromKey_ci	(
+				SCUNILOGINIVALUES	**pValues,
+				const char			*cunilog_restrict szSection,	size_t	lnSection,
+				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI			*pCunilogIni
+											)
+{
+	ubf_assert_non_NULL	(pCunilogIni);
+
+	return CunilogGetIniValuesFromKey_int	(
+				pValues,
+				szSection,	lnSection,
+				szKey,		lnKey,
+				pCunilogIni,
+				enVlsCaseInsensitive
+											);
+}
+
+const char *CunilogGetFirstIniValueFromKey		(
+				size_t			*pLen,
+				const char		*cunilog_restrict szSection,	size_t	lnSection,
+				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI		*pCunilogIni
+												)
+{
+	ubf_assert_non_NULL	(pCunilogIni);
+
+	SCUNILOGINIVALUES *pvals;
+	unsigned int n = CunilogGetIniValuesFromKey_int	(
+						&pvals,
+						szSection,		lnSection,
+						szKey,			lnKey,
+						pCunilogIni,
+						enVlsCaseSensitiveSectionAndKey
+													);
+	if (n)
+	{
+		if (pLen)
+			*pLen = pvals->lnValue;
+		return pvals->szValue;
+	}
+	return NULL;
+}
+
+const char *CunilogGetFirstIniValueFromKey_ci	(
+				size_t			*pLen,
+				const char		*cunilog_restrict szSection,	size_t	lnSection,
+				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI		*pCunilogIni
+												)
+{
+	ubf_assert_non_NULL	(pCunilogIni);
+
+	SCUNILOGINIVALUES *pvals;
+	unsigned int n = CunilogGetIniValuesFromKey_int	(
+						&pvals,
+						szSection,		lnSection,
+						szKey,			lnKey,
+						pCunilogIni,
+						enVlsCaseInsensitive
+													);
+	if (n)
+	{
+		if (pLen)
+			*pLen = pvals->lnValue;
+		return pvals->szValue;
 	}
 	return NULL;
 }
@@ -660,6 +838,13 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 	bool TestCunilogCfgParser (void)
 	{
 		bool	b = true;
+
+		ubf_expect_bool_AND (b, !memcmp_ci (NULL, NULL, 0));
+		ubf_expect_bool_AND (b, !memcmp_ci ("abc", "ABC", 3));
+		ubf_expect_bool_AND (b, !memcmp_ci ("ABC", "abc", 3));
+		ubf_expect_bool_AND (b, -1 == memcmp_ci ("aBc", "abd", 3));
+		ubf_expect_bool_AND (b, 1 ==  memcmp_ci ("aBd", "abc", 3));
+		ubf_expect_bool_AND (b, !memcmp_ci ("SECtIOn 01", "Section 01", 10));
 
 		SCUNILOGCFGNODE			node;
 		CUNILOGCFGPARSERSTATUS	stat;
@@ -695,6 +880,212 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		ubf_expect_bool_AND (b, 0 == stat.mulCom);
 
 		char szIni [2048];
+		SCUNILOGINI ci;
+		bool b1;
+
+		// Used for service tasks.
+		strcpy	(szIni, " [Section 03] mkey = [S01][S02][S03]\n");
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, 1 == ci.nIniSections);
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValuePairs);
+		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pIniSections [0].szSectionName, 10));
+		ubf_expect_bool_AND (b, 1 == ci.pIniSections [0].nKeyValuePairs);
+		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [0].nValues);
+		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
+		unsigned int nVals;
+		unsigned int nVls2;
+		SCUNILOGINIVALUES *pVals;
+		SCUNILOGINIVALUES *pVls2;
+		nVals = CunilogGetIniValuesFromKey (&pVals, NULL, 0, "mkey", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 0 == nVals);
+		nVals = CunilogGetIniValuesFromKey (&pVals, "Section 03", USE_STRLEN, "mkey", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 0 < nVals);
+		ubf_expect_bool_AND (b, 3 == nVals);
+		ubf_expect_bool_AND (b, 3 == pVals [0].lnValue);
+		ubf_expect_bool_AND (b, 3 == pVals [1].lnValue);
+		ubf_expect_bool_AND (b, 3 == pVals [2].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("S01]", pVals [0].szValue, 4));
+		ubf_expect_bool_AND (b, 3 == pVals [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("S02]", pVals [1].szValue, 4));
+		ubf_expect_bool_AND (b, !memcmp ("S03]", pVals [2].szValue, 4));
+		DoneSCUNILOGINI (&ci);
+
+		memset (&ci, 255, sizeof (SCUNILOGINI));
+		strcpy	(szIni,
+			" [Section 03] \n"
+			" mkey = [S01][S02][S03]\n");
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, 1 == ci.nIniSections);
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValuePairs);
+		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pIniSections [0].szSectionName, 10));
+		ubf_expect_bool_AND (b, 1 == ci.pIniSections [0].nKeyValuePairs);
+		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [0].nValues);
+		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
+		nVals = CunilogGetIniValuesFromKey (&pVals, NULL, 0, "mkey", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 0 == nVals);
+		nVals = CunilogGetIniValuesFromKey (&pVals, "Section 03", USE_STRLEN, "mkey", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 0 < nVals);
+		ubf_expect_bool_AND (b, 3 == nVals);
+		ubf_expect_bool_AND (b, 3 == pVals [0].lnValue);
+		ubf_expect_bool_AND (b, 3 == pVals [1].lnValue);
+		ubf_expect_bool_AND (b, 3 == pVals [2].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("S01]", pVals [0].szValue, 4));
+		ubf_expect_bool_AND (b, !memcmp ("S02]", pVals [1].szValue, 4));
+		ubf_expect_bool_AND (b, !memcmp ("S03]", pVals [2].szValue, 4));
+		DoneSCUNILOGINI (&ci);
+
+		memset (&ci, 255, sizeof (SCUNILOGINI));
+		strcpy	(szIni,
+			" [Section 03] \n"
+			" mkey = 'S01' 'S02' 'S03' \n");
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, 1 == ci.nIniSections);
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValuePairs);
+		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pIniSections [0].szSectionName, 10));
+		ubf_expect_bool_AND (b, 1 == ci.pIniSections [0].nKeyValuePairs);
+		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [0].nValues);
+		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
+		nVals = CunilogGetIniValuesFromKey		(&pVals, NULL, 0, "mkey", USE_STRLEN, &ci);
+		nVls2 = CunilogGetIniValuesFromKey_ci	(&pVls2, NULL, 0, "mKEy", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 0 == nVals);
+		ubf_expect_bool_AND (b, 0 == nVls2);
+		nVals = CunilogGetIniValuesFromKey		(&pVals, "Section 03", USE_STRLEN, "mkey", USE_STRLEN, &ci);
+		nVls2 = CunilogGetIniValuesFromKey_ci	(&pVls2, "SectioN 03", USE_STRLEN, "MkEy", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 0 < nVals);
+		ubf_expect_bool_AND (b, 0 < nVls2);
+		ubf_expect_bool_AND (b, 3 == nVals);
+		ubf_expect_bool_AND (b, 3 == nVls2);
+
+		ubf_expect_bool_AND (b, &pVals [0] == &pVls2 [0]);
+		ubf_expect_bool_AND (b, &pVals [1] == &pVls2 [1]);
+		ubf_expect_bool_AND (b, &pVals [2] == &pVls2 [2]);
+
+		ubf_expect_bool_AND (b, 3 == pVals [0].lnValue);
+		ubf_expect_bool_AND (b, 3 == pVals [1].lnValue);
+		ubf_expect_bool_AND (b, 3 == pVals [2].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("S01'", pVals [0].szValue, 4));
+		ubf_expect_bool_AND (b, !memcmp ("S02'", pVals [1].szValue, 4));
+		ubf_expect_bool_AND (b, !memcmp ("S03'", pVals [2].szValue, 4));
+
+		ubf_expect_bool_AND (b, 3 == pVls2 [0].lnValue);
+		ubf_expect_bool_AND (b, 3 == pVls2 [1].lnValue);
+		ubf_expect_bool_AND (b, 3 == pVls2 [2].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("S01'", pVls2 [0].szValue, 4));
+		ubf_expect_bool_AND (b, !memcmp ("S02'", pVls2 [1].szValue, 4));
+		ubf_expect_bool_AND (b, !memcmp ("S03'", pVls2 [2].szValue, 4));
+
+		DoneSCUNILOGINI (&ci);
+
+		memset (&ci, 255, sizeof (SCUNILOGINI));
+		strcpy	(szIni,
+			" [Section 01] \n"
+			" key 03 = value 3 // Comment.\n");
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, 1 == ci.nIniSections);
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValuePairs);
+		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 01", ci.pIniSections [0].szSectionName, 10));
+		ubf_expect_bool_AND (b, 1 == ci.pIniSections [0].nKeyValuePairs);
+		ubf_expect_bool_AND (b, !memcmp ("key 03", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
+		nVals = CunilogGetIniValuesFromKey (&pVals, NULL, 0, "mkey", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 0 == nVals);
+		nVals = CunilogGetIniValuesFromKey (&pVals, "Section 01", USE_STRLEN, "key 03", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 0 < nVals);
+		ubf_expect_bool_AND (b, 1 == nVals);
+		ubf_expect_bool_AND (b, 7 == pVals [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("value 3 ", pVals [0].szValue, 8));
+		DoneSCUNILOGINI (&ci);
+
+		memset (&ci, 255, sizeof (SCUNILOGINI));
+		strcpy	(szIni,
+			" [Section 03] \n"
+			" mkey = [S01][S02][S03]\n"
+			" nkey = [T01][T02][T03]\n");
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, 1 == ci.nIniSections);
+		ubf_expect_bool_AND (b, 2 == ci.nKeyValuePairs);
+		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section 03", ci.pIniSections [0].szSectionName, 10));
+		ubf_expect_bool_AND (b, 2 == ci.pIniSections [0].nKeyValuePairs);
+		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [0].nValues);
+		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [1].nValues);
+		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
+		ubf_expect_bool_AND (b, !memcmp ("nkey", ci.pKeyValuePairs [1].szKeyName, ci.pKeyValuePairs [1].lnKeyName));
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [0].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [0].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [0].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [1].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [1].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [1].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("S01", ci.pKeyValuePairs [0].pValues [0].szValue, ci.pKeyValuePairs [0].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("S02", ci.pKeyValuePairs [0].pValues [1].szValue, ci.pKeyValuePairs [0].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("S03", ci.pKeyValuePairs [0].pValues [2].szValue, ci.pKeyValuePairs [0].pValues [2].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T01", ci.pKeyValuePairs [1].pValues [0].szValue, ci.pKeyValuePairs [1].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T02", ci.pKeyValuePairs [1].pValues [1].szValue, ci.pKeyValuePairs [1].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T03", ci.pKeyValuePairs [1].pValues [2].szValue, ci.pKeyValuePairs [1].pValues [2].lnValue));
+		DoneSCUNILOGINI (&ci);
+
+		memset (&ci, 255, sizeof (SCUNILOGINI));
+		strcpy	(szIni,
+			" [Section NNN] \n"
+			" mkey	= [A01][A02_][A03__]\n"
+			" nkey2	= [T01][T02_][T03__]\n"
+			" [Section OO] \n"
+			" mkey	= [B01] [B02_] [B03__]\n"
+			" nkey2	= [C01] [C02_] [C03__]\n");
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, 2 == ci.nIniSections);
+		ubf_expect_bool_AND (b, 4 == ci.nKeyValuePairs);
+		ubf_expect_bool_AND (b, 11 == ci.pIniSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, 10 == ci.pIniSections [1].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("Section NNN", ci.pIniSections [0].szSectionName, 11));
+		ubf_expect_bool_AND (b, !memcmp ("Section OO", ci.pIniSections [1].szSectionName, 10));
+		ubf_expect_bool_AND (b, 2 == ci.pIniSections [0].nKeyValuePairs);
+		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [0].nValues);
+		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].pKeyValuePairs [1].nValues);
+		ubf_expect_bool_AND (b, 2 == ci.pIniSections [1].nKeyValuePairs);
+		ubf_expect_bool_AND (b, 3 == ci.pIniSections [1].pKeyValuePairs [0].nValues);
+		ubf_expect_bool_AND (b, 3 == ci.pIniSections [1].pKeyValuePairs [1].nValues);
+		ubf_expect_bool_AND (b, 4 == ci.pKeyValuePairs [0].lnKeyName);
+		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [1].lnKeyName);
+		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValuePairs [0].szKeyName, ci.pKeyValuePairs [0].lnKeyName));
+		ubf_expect_bool_AND (b, !memcmp ("nkey2", ci.pKeyValuePairs [1].szKeyName, ci.pKeyValuePairs [1].lnKeyName));
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [0].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 4 == ci.pKeyValuePairs [0].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [0].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [1].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 4 == ci.pKeyValuePairs [1].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [1].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [2].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 4 == ci.pKeyValuePairs [2].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [2].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, 3 == ci.pKeyValuePairs [3].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 4 == ci.pKeyValuePairs [3].pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [3].pValues [2].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("A01",		ci.pKeyValuePairs [0].pValues [0].szValue, ci.pKeyValuePairs [0].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("A02_",	ci.pKeyValuePairs [0].pValues [1].szValue, ci.pKeyValuePairs [0].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("A03__",	ci.pKeyValuePairs [0].pValues [2].szValue, ci.pKeyValuePairs [0].pValues [2].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T01",		ci.pKeyValuePairs [1].pValues [0].szValue, ci.pKeyValuePairs [1].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T02_",	ci.pKeyValuePairs [1].pValues [1].szValue, ci.pKeyValuePairs [1].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("T03__",	ci.pKeyValuePairs [1].pValues [2].szValue, ci.pKeyValuePairs [1].pValues [2].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("B01",		ci.pKeyValuePairs [2].pValues [0].szValue, ci.pKeyValuePairs [0].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("B02_",	ci.pKeyValuePairs [2].pValues [1].szValue, ci.pKeyValuePairs [0].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("B03__",	ci.pKeyValuePairs [2].pValues [2].szValue, ci.pKeyValuePairs [0].pValues [2].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("C01",		ci.pKeyValuePairs [3].pValues [0].szValue, ci.pKeyValuePairs [1].pValues [0].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("C02_",	ci.pKeyValuePairs [3].pValues [1].szValue, ci.pKeyValuePairs [1].pValues [1].lnValue));
+		ubf_expect_bool_AND (b, !memcmp ("C03__",	ci.pKeyValuePairs [3].pValues [2].szValue, ci.pKeyValuePairs [1].pValues [2].lnValue));
+		DoneSCUNILOGINI (&ci);
+
+		memset (&ci, 255, sizeof (SCUNILOGINI));
 		strcpy (szIni,
 			"/*\n"
 			"This is an example ini file. \n"
@@ -723,12 +1114,11 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 			"\n"
 				);
 
-		SCUNILOGINI ci;
-		bool b1;
 		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
 		ubf_assert_true (b1);
 		ubf_expect_bool_AND (b, 2 == ci.nIniSections);
 		ubf_expect_bool_AND (b, 7 == ci.nKeyValuePairs);
+		ubf_expect_bool_AND (b, 7 == ci.nValues);
 		ubf_expect_bool_AND (b, 10 == ci.pIniSections [0].lnSectionName);
 		ubf_expect_bool_AND (b, 3 == ci.pIniSections [0].nKeyValuePairs);
 		ubf_expect_bool_AND (b, 10 == ci.pIniSections [1].lnSectionName);
@@ -736,22 +1126,25 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		ubf_expect_bool_AND (b, !memcmp ("Section 01]", ci.pIniSections [0].szSectionName, 11));
 		ubf_expect_bool_AND (b, !memcmp ("Section 02]", ci.pIniSections [1].szSectionName, 11));
 		ubf_expect_bool_AND (b, !memcmp ("Key01 ",							ci.pKeyValuePairs [0].szKeyName, 6));
-		ubf_expect_bool_AND (b, !memcmp ("Value 01 ",						ci.pKeyValuePairs [0].szValue, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Value 01 ",						ci.pValues [0].szValue, 9));
 		ubf_expect_bool_AND (b, !memcmp ("Key02 ",							ci.pKeyValuePairs [1].szKeyName, 6));
-		ubf_expect_bool_AND (b, !memcmp ("This is value 02\"",				ci.pKeyValuePairs [1].szValue, 17));
+		ubf_expect_bool_AND (b, !memcmp ("This is value 02\"",				ci.pValues [1].szValue, 17));
 		ubf_expect_bool_AND (b, !memcmp ("Key03\t",							ci.pKeyValuePairs [2].szKeyName, 6));
-		ubf_expect_bool_AND (b, !memcmp ("We are still in Section 01. ",	ci.pKeyValuePairs [2].szValue, 28));
+		ubf_expect_bool_AND (b, !memcmp ("We are still in Section 01. ",	ci.pValues [2].szValue, 28));
 		ubf_expect_bool_AND (b, !memcmp ("S02Key01 ",						ci.pKeyValuePairs [3].szKeyName, 9));
-		ubf_expect_bool_AND (b, !memcmp ("Value S01K01 ",					ci.pKeyValuePairs [3].szValue, 13));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K01 ",					ci.pValues [3].szValue, 13));
 		ubf_expect_bool_AND (b, !memcmp ("S02Key02 ",						ci.pKeyValuePairs [4].szKeyName, 9));
-		ubf_expect_bool_AND (b, !memcmp ("Value S01K02 ",					ci.pKeyValuePairs [4].szValue, 13));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K02 ",					ci.pValues [4].szValue, 13));
 		ubf_expect_bool_AND (b, !memcmp ("S02Key03 ",						ci.pKeyValuePairs [5].szKeyName, 9));
-		ubf_expect_bool_AND (b, !memcmp ("Value S01K03__x ",				ci.pKeyValuePairs [5].szValue, 16));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K03__x ",				ci.pValues [5].szValue, 16));
 		ubf_expect_bool_AND (b, !memcmp ("S02Key04 ",						ci.pKeyValuePairs [6].szKeyName, 9));
-		ubf_expect_bool_AND (b, !memcmp ("Value S01K04__xy ",				ci.pKeyValuePairs [6].szValue, 17));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K04__xy ",				ci.pValues [6].szValue, 17));
+		ubf_expect_bool_AND (b, ci.pIniSections [0].pKeyValuePairs == ci.pKeyValuePairs);
+		ubf_expect_bool_AND (b, &ci.pIniSections [0].pKeyValuePairs [1] == &ci.pKeyValuePairs [1]);
 		DoneSCUNILOGINI (&ci);
 
 		// Now we got one out-of-section key/value pair.
+		memset (&ci, 255, sizeof (SCUNILOGINI));
 		strcpy	(szIni,
 			"/*\n"
 			"This is another example ini file. \n"
@@ -787,41 +1180,54 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 			//	At the moment, the value extends to the end of the line. 
 			" S02Key05 = Value05 ; This is a comment. It does not belong to the value.\n"
 			"\n"
+			"\n"
+			"\n"
+			" [Section 03]"
+			"\r"
+			"\r"
+			// Used for service tasks.
+			" mkey = [S01] [S02] [S03]\n"
+			"\n"
 				);
 		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
 		ubf_assert_true (b1);
-		ubf_expect_bool_AND (b, 3 == ci.nIniSections);
-		ubf_expect_bool_AND (b, 9 == ci.nKeyValuePairs);
+		// Note that we got "Key00 = Value00" before the first section. This means we got
+		//	an additional "non-section", which is a section without a name. Our
+		//	ci.nIniSections is therefore one greater than the real amount of sections.
+		ubf_expect_bool_AND (b, 4 == ci.nIniSections);
+		ubf_expect_bool_AND (b, 10 == ci.nKeyValuePairs);
 		ubf_expect_bool_AND (b, 0	== ci.pIniSections [0].lnSectionName);
 		ubf_expect_bool_AND (b, 10	== ci.pIniSections [1].lnSectionName);
 		ubf_expect_bool_AND (b, 11	== ci.pIniSections [2].lnSectionName);
+		ubf_expect_bool_AND (b, 10	== ci.pIniSections [3].lnSectionName);
 		ubf_expect_bool_AND (b, NULL == ci.pIniSections [0].szSectionName);
 		ubf_expect_bool_AND (b, !memcmp ("Section 01]", ci.pIniSections [1].szSectionName, 11));
 		ubf_expect_bool_AND (b, !memcmp ("Section 02_]", ci.pIniSections [2].szSectionName, 12));
+		ubf_expect_bool_AND (b, !memcmp ("Section 03]", ci.pIniSections [3].szSectionName, 11));
 		ubf_expect_bool_AND	(b,
 			!memcmp ("Key00 ", ci.pKeyValuePairs [0].szKeyName, 6)
 							);
 		ubf_expect_bool_AND	(b,
-			!memcmp ("Value00; This is not a comment. It belongs to the value.", ci.pKeyValuePairs [0].szValue, 56)
+			!memcmp ("Value00; This is not a comment. It belongs to the value.", ci.pValues [0].szValue, 56)
 							);
 		ubf_expect_bool_AND (b, !memcmp ("Key01 ",							ci.pKeyValuePairs [1].szKeyName, 6));
-		ubf_expect_bool_AND (b, !memcmp ("Value 01 ",						ci.pKeyValuePairs [1].szValue, 9));
+		ubf_expect_bool_AND (b, !memcmp ("Value 01 ",						ci.pValues [1].szValue, 9));
 		ubf_expect_bool_AND (b, !memcmp ("Key02 ",							ci.pKeyValuePairs [2].szKeyName, 6));
-		ubf_expect_bool_AND (b, !memcmp ("This is value 02\"",				ci.pKeyValuePairs [2].szValue, 17));
+		ubf_expect_bool_AND (b, !memcmp ("This is value 02\"",				ci.pValues [2].szValue, 17));
 		ubf_expect_bool_AND (b, !memcmp ("Key03\t",							ci.pKeyValuePairs [3].szKeyName, 6));
-		ubf_expect_bool_AND (b, !memcmp ("We are still in Section 01. ",	ci.pKeyValuePairs [3].szValue, 28));
+		ubf_expect_bool_AND (b, !memcmp ("We are still in Section 01. ",	ci.pValues [3].szValue, 28));
 		ubf_expect_bool_AND (b, !memcmp ("S02Key01 ",						ci.pKeyValuePairs [4].szKeyName, 9));
-		ubf_expect_bool_AND (b, !memcmp ("Value S01K01 ",					ci.pKeyValuePairs [4].szValue, 13));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K01 ",					ci.pValues [4].szValue, 13));
 		ubf_expect_bool_AND (b, !memcmp ("S02Key02 ",						ci.pKeyValuePairs [5].szKeyName, 9));
-		ubf_expect_bool_AND (b, !memcmp ("Value S01K02 ",					ci.pKeyValuePairs [5].szValue, 13));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K02 ",					ci.pValues [5].szValue, 13));
 		ubf_expect_bool_AND (b, !memcmp ("S02Key03 ",						ci.pKeyValuePairs [6].szKeyName, 9));
-		ubf_expect_bool_AND (b, !memcmp ("Value S01K03__x ",				ci.pKeyValuePairs [6].szValue, 16));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K03__x ",				ci.pValues [6].szValue, 16));
 		ubf_expect_bool_AND (b, !memcmp ("S02Key04 ",						ci.pKeyValuePairs [7].szKeyName, 9));
-		ubf_expect_bool_AND (b, !memcmp ("Value S01K04__xy ",				ci.pKeyValuePairs [7].szValue, 17));
+		ubf_expect_bool_AND (b, !memcmp ("Value S01K04__xy ",				ci.pValues [7].szValue, 17));
 
 		/* This is meant as a future extension where white space is required before some line comment
 			strings to allow for "test!" without interpreting the exclamation mark as the start of a
-			line comment. In "test !" on the other hand the exclamation mark is a line comment marker.
+			line comment. In "test !", on the other hand the exclamation mark is a line comment marker.
 		ubf_expect_bool_AND (b, !memcmp ("S02Key05 ",						ci.pKeyValuePairs [8].szKeyName, 9));
 		ubf_expect_bool_AND (b, !memcmp ("Value05 ",						ci.pKeyValuePairs [8].szValue, 8));
 		ubf_expect_bool_AND (b, 5 == ci.pKeyValuePairs [8].lnValue);
@@ -829,19 +1235,94 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 
 		const char	*szValue;
 		size_t		len = 4711;
-		szValue = CunilogGetIniValueFromKey (&len, "Section 01", USE_STRLEN, "Key01", USE_STRLEN, &ci);
+		szValue = CunilogGetFirstIniValueFromKey (&len, "Section 01", USE_STRLEN, "Key01", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 4711 != len);
+		ubf_expect_bool_AND (b, 8 == len);
+		ubf_expect_bool_AND (b, !memcmp ("Value 01 ", szValue, 9));
+
+		// Case-insensitive for section and key.
+		len = 4711;
+		szValue = CunilogGetFirstIniValueFromKey_ci (&len, "SECtIOn 01", USE_STRLEN, "KEY01", USE_STRLEN, &ci);
 		ubf_expect_bool_AND (b, 4711 != len);
 		ubf_expect_bool_AND (b, 8 == len);
 		ubf_expect_bool_AND (b, !memcmp ("Value 01 ", szValue, 9));
 
 		// Retrieves a key that does not have a section.
 		len = 4712;
-		szValue = CunilogGetIniValueFromKey (&len, NULL, 0, "Key00", USE_STRLEN, &ci);
+		szValue = CunilogGetFirstIniValueFromKey	(&len, NULL, 0, "Key00", USE_STRLEN, &ci);
 		ubf_expect_bool_AND (b, 4712 != len);
 		ubf_expect_bool_AND (b, 56 == len);
 		ubf_expect_bool_AND (b, !memcmp ("Value00; This is not a comment. It belongs to the value.", szValue, 56));
 
+		// Case-insensitive for section and key.
+		len = 4712;
+		szValue = CunilogGetFirstIniValueFromKey_ci	(&len, NULL, 0, "KEY00", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, 4712 != len);
+		ubf_expect_bool_AND (b, 56 == len);
+		ubf_expect_bool_AND (b, !memcmp ("Value00; This is not a comment. It belongs to the value.", szValue, 56));
+
+
+		pVals = NULL;
+		nVals = CunilogGetIniValuesFromKey		(&pVals, NULL, 0, "Key00", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, NULL != pVals);
+		ubf_expect_bool_AND (b, 0 < nVals);
+		ubf_expect_bool_AND (b, 1 == nVals);
+		ubf_expect_bool_AND (b, 56 == pVals->lnValue);
+		ubf_expect_bool_AND (b, NULL != pVals->szValue);
+		ubf_expect_bool_AND (b, !memcmp ("Value00; This is not a comment. It belongs to the value.", pVals->szValue, 56));
+
+		pVals = NULL;
+		//ci.pIniSections [0].pKeyValuePairs[0].pValues [0].szValue
+		nVals = CunilogGetIniValuesFromKey_ci	(&pVals, NULL, 0, "KEY00", USE_STRLEN, &ci);
+		ubf_expect_bool_AND (b, NULL != pVals);
+		ubf_expect_bool_AND (b, 0 < nVals);
+		ubf_expect_bool_AND (b, 1 == nVals);
+		ubf_expect_bool_AND (b, 56 == pVals->lnValue);
+		ubf_expect_bool_AND (b, NULL != pVals->szValue);
+		ubf_expect_bool_AND (b, !memcmp ("Value00; This is not a comment. It belongs to the value.", pVals->szValue, 56));
+
 		DoneSCUNILOGINI (&ci);
+
+		memset (&ci, 255, sizeof (SCUNILOGINI));
+		strcpy	(szIni,
+			"    \n"
+			"/*\n"
+			"    Comment. \n"
+			"*/\n"
+			"[S]\n"
+			" arr = '1', '2', '3', '4', \n"
+				);
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, b1);
+		ubf_expect_bool_AND (b, 4 == ci.nValues);
+		ubf_expect_bool_AND (b, 1 == ci.pValues [2].lnValue);
+		ubf_expect_bool_AND (b, 1 == ci.pValues [3].lnValue);
+		DoneSCUNILOGINI (&ci);
+
+		memset (&ci, 255, sizeof (SCUNILOGINI));
+		strcpy	(szIni,
+			"    \n"
+			"/*\n"
+			"    Comment. \n"
+			"*/\n"
+			"[S]\n"
+			" arr = '1', /* Comment in the middle */ '2', '3', '4', \n"
+				);
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_assert_true (b1);
+		ubf_expect_bool_AND (b, b1);
+		ubf_expect_bool_AND (b, 4 == ci.nValues);
+		ubf_expect_bool_AND (b, 1 == ci.pValues [0].lnValue);
+		ubf_expect_bool_AND (b, 1 == ci.pValues [1].lnValue);
+		ubf_expect_bool_AND (b, 1 == ci.pValues [2].lnValue);
+		ubf_expect_bool_AND (b, 1 == ci.pValues [3].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("1'", ci.pValues [0].szValue, ci.pValues [0].lnValue + 1));
+		ubf_expect_bool_AND (b, !memcmp ("2'", ci.pValues [1].szValue, ci.pValues [1].lnValue + 1));
+		ubf_expect_bool_AND (b, !memcmp ("3'", ci.pValues [2].szValue, ci.pValues [2].lnValue + 1));
+		ubf_expect_bool_AND (b, !memcmp ("4'", ci.pValues [3].szValue, ci.pValues [3].lnValue + 1));
+		DoneSCUNILOGINI (&ci);
+
 
 		return b;
 	}

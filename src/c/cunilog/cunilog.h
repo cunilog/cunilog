@@ -1988,6 +1988,9 @@ bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 	value to 19, and cunilogPrioEndBackground is identical to a value of 0, which means normal
 	priority. See https://www.man7.org/linux/man-pages/man3/pthread_setschedprio.3.html .
 
+	The priority of the separate logging thread can only be lowered. The highest priority is
+	cunilogPrioNormal.
+
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined, this is a macro that evaluates
 	to true.
 

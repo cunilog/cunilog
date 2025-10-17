@@ -75,9 +75,6 @@ int main (int argc, char *argv [])
 		Tests.
 	*/
 
-	TestCunilogCfgParser ();
-	TestPsxHome ();
-
 	/*
 	cunilog_printf_sev_fmtpy (cunilogEvtSeverityBlanks, cunilogEvtSeverityTypeChars3, "cunilog_printf_sev_fmtpy ()");
 	cunilog_printf_sev (cunilogEvtSeverityBlanks, "cunilog_printf_sev ()");

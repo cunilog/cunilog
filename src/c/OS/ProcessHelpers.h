@@ -158,7 +158,7 @@ typedef enum enRunCmdCallbackRetValue enRCmdCBval;
 	passed to CreateAndRunCmdProcessCapture () via the enum enRunCmdHowToCallCB,
 	the data/text may not be NUL-terminated. Do not read beyond lnOutput in this case.
 */
-typedef enRCmdCBval rcmdOutCB (SRUNCMDCBINF *pinf, char *szOutput, size_t lnOutput, void *pCustom);
+typedef enRCmdCBval rcmdOutCB (SRUNCMDCBINF *pInf, char *szOutput, size_t lnOutput, void *pCustom);
 
 /*
 	Callback function for stdin.
@@ -188,9 +188,9 @@ typedef enRCmdCBval rcmdOutCB (SRUNCMDCBINF *pinf, char *szOutput, size_t lnOutp
 	}
 
 */
-typedef enRCmdCBval rcmdInpCB (SRUNCMDCBINF *pinf, SMEMBUF *psmb, size_t *plnData, void *pCustom);
+typedef enRCmdCBval rcmdInpCB (SRUNCMDCBINF *pInf, SMEMBUF *psmb, size_t *plnData, void *pCustom);
 
-typedef enRCmdCBval rcmdHtbCB (SRUNCMDCBINF *pinf, void *pCustom);
+typedef enRCmdCBval rcmdHtbCB (SRUNCMDCBINF *pInf, void *pCustom);
 
 /*
 	SRCMDCBS
@@ -249,7 +249,9 @@ typedef struct srcmdCBs
 							line has been encountered.
 
 	enRunCmdHow_All			Called only once with the entire collected output of the process.
-							The data is NUL-terminated. Never called with a length of 0.
+							The data is NUL-terminated. Never called with a length of 0. If
+							the process does not produce any output, the callback function is
+							not called.
 */
 enum enRunCmdHowToCallCB
 {
@@ -268,6 +270,9 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 	
 	The process's input (stdin) can be provided by a callback function, and its output (stdout
 	and stderr) can be captured by callback functions.
+
+	The function blocks until the process completes its execution. If this is not desirable,
+	call it from a separate thread.
 
 	Parameters
 
@@ -297,6 +302,8 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 						to the real exit code of the child process. On most platforms,
 						EXIT_FAILURE has a value of 1.
 
+	The function returns true when the controlled process has been created and completed
+	execution. It returns false if the process couldn't be created.
 */
 #if defined (PLATFORM_IS_WINDOWS)
 

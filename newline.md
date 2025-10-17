@@ -32,7 +32,7 @@ name doesn't end with "__Ex__", and call __configCUNILOG_TARGETcunilognewline ()
 ## Legacy Systems
 
 Cunilog can be built to support all sorts of line endings. When CUNILOG_NEWLINE_EXTENDED
-is defined, additional legacy line endings are available, for example for zOS,
+is defined, additional legacy or exotic line endings are available, for example for zOS,
 QNX, and RISC OS.
 
 To make Cunilog write those legacy line endings, call one of the "__Ex__" Cunilog target

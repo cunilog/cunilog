@@ -53,10 +53,12 @@ When		Who				What
 		#include "./externC.h"
 		#include "./platform.h"
 		#include "./functionptrtpydef.h"
+		#include "./restrict.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
 		#include "./../pre/functionptrtpydef.h"
+		#include "./../pre/restrict.h"
 	#endif
 
 #endif
@@ -232,6 +234,11 @@ TYPEDEF_FNCT_PTR (size_t, ubf_count_special_characters) (const char *cc);
 */
 size_t ubf_count_char (const char *cc, char c);
 TYPEDEF_FNCT_PTR (size_t, ubf_count_char) (const char *cc, char c);
+
+/*
+	Case-insensitive memcmp. Assumes ASCII characters, obviously.
+*/
+int memcmp_ci (const void *cunilog_restrict m1, const void *cunilog_restrict m2, size_t l);
 
 /*
 	ubf_obtain_strlen

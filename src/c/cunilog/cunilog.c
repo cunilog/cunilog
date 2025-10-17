@@ -2128,6 +2128,7 @@ CUNILOG_TARGET *InitCUNILOG_TARGETstatic
 			put->qu.num			+= n;
 		} else
 		{
+			ubf_assert_0 (put->qu.num);
 			put->qu.first		= pev;
 			put->qu.last		= pev;
 			put->qu.num			= n;
@@ -4647,7 +4648,7 @@ static void cunilogFileSystemCompressLogfile (CUNILOG_TARGET *put)
 	bool b;
 	char szErr [CUNILOG_STD_MSG_SIZE];
 	
-	enfilecompressresult	cmprRes = IsFileCompressedByName (put->mbFilToRotate.buf.pch);
+	enfilecompressresult_t	cmprRes = IsFileCompressedByName (put->mbFilToRotate.buf.pch);
 	switch (cmprRes)
 	{
 		case fscompress_uncompressed:
@@ -5177,7 +5178,7 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 		ubf_assert_non_NULL (put);
 
 		CUNILOG_FLS	fls;
-		fls.stFilename = psdE->stFileNameU8;
+		fls.stFilename = psdE->lnFileNameU8 + 1;
 		fls.chFilename = psdE->szFileNameU8;
 		if (hasDotNumberPostfix (put) && !endsLogFileNameWithDotNumber (&fls))
 			return true;
@@ -5237,12 +5238,6 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 		ubf_assert			(strlen (put->mbLogFileMask.buf.pcc)	== put->lnLogFileMask);
 
 		uint64_t		n;
-		/*
-		n = ForEachDirectoryEntryU8	(
-				put->mbLogFileMask.buf.pcc,					// Search mask.
-				obtainLogfilesListToRotateCallbackWin, put, NULL
-									);
-		*/
 		n = ForEachDirectoryEntryMaskU8	(
 				put->mbLogPath.buf.pcc,			put->lnLogPath,
 				put->mbLogFileMask.buf.pcc,		put->lnLogFileMask,

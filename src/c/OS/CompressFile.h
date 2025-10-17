@@ -88,7 +88,7 @@ enum enfilecompressresult
 	fscompress_uncompressed,
 	fscompress_error
 };
-typedef enum enfilecompressresult enfilecompressresult;
+typedef enum enfilecompressresult enfilecompressresult_t;
 
 /*
 	IsFileCompressedByName
@@ -96,14 +96,14 @@ typedef enum enfilecompressresult enfilecompressresult;
 	Returns true if the file is already compressed, false if it isn't.
 */
 #ifdef DEBUG
-	enfilecompressresult IsFileCompressedByName (const char *szFilename);
+	enfilecompressresult_t IsFileCompressedByName (const char *szFilename);
 #else
 	#if defined (OS_IS_WINDOWS)
 		#define IsFileCompressedByName(fn)				\
-			IsFileNTFSCompressedByName (fn)
+			(enfilecompressresult_t) IsFileNTFSCompressedByName (fn)
 	#elif defined (OS_IS_LINUX)
 		#define IsFileCompressedByName(fn)				\
-			(false)
+			(fscompress_error)
 	#endif
 #endif
 
