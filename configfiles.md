@@ -144,3 +144,13 @@ primitive array definitions are possible:
 key  = "value1", "value2", "value3"
 key2 = [value1], [value2], [value]"
 ```
+
+### Equality sign
+
+Only the first equality sign found is recognised as the separator between a key and its values. If there's more than one equality sign, these are part of the value.
+
+```ini
+[section]
+key  = value1 = value2 = value3
+```
+The section ***section*** contains one key named ***key***. This key has a single value, which is ***value1 = value2 = value3***.
