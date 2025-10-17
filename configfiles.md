@@ -142,8 +142,14 @@ primitive array definitions are possible:
 ```ini
 [section]
 key  = "value1", "value2", "value3"
-key2 = [value1], [value2], [value]"
+key2 = [value1], [value2], [value3]"
 ```
+Multiple values are only recognised when each single value is within quotation marks. Without quotation marks, the entire string is assumed to be a single value.
+```ini
+[section]
+key  = value1, value2, value3
+key2 = value1, value2, value3
+The value of each key is ***value1, value2, value3***.
 
 ### Equality sign
 
