@@ -153,4 +153,4 @@ Only the first equality sign found is recognised as the separator between a key 
 [section]
 key  = value1 = value2 = value3
 ```
-The section ***section*** contains one key named ***key***. This key has a single value, which is ***value1 = value2 = value3***.
+The section ***section*** above contains one key named ***key***. This key has a single value, which is ***value1 = value2 = value3***.
