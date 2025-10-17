@@ -32,7 +32,7 @@ Build options however exist to extend or reduce support for various line endings
 Cunilog supports both, case sensitive and case insensitive sections and keys. Values are always verbatim and returned as-is.
 
 ### Single and multi-line comments
-In addition to the standard semicolon single line comment, Cunilog recognises several more characters and character combinations as the start of a single-line comment: 
+In addition to the standard semicolon single line comment, Cunilog recognises several more characters and character combinations as the start of a one-line comment: 
 
 | Single line comment | Notes                                |
 | ------------------- | -------------------------------------|
