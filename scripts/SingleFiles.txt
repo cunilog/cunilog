@@ -53,6 +53,7 @@ head
 /string/strcustomfmt
 /string/strfilesys
 /string/strhex
+/string/strlineextractstructs
 /string/strlineextract
 /string/strnewline
 /string/strhexdumpstructs
@@ -113,6 +114,7 @@ head
 /string/strcustomfmt
 /string/strfilesys
 /string/strhex
+/string/strlineextractstructs
 /string/strlineextract
 /string/strnewline
 /string/strhexdumpstructs
