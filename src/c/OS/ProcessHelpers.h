@@ -106,20 +106,6 @@ size_t ProcessHelpersSetBufferSize (size_t bufsize);
 char *CreateArgsList (const char *szExecutable, int argc, const char *argv [], bool bNoExeArg)
 ;
 
-typedef struct sruncmdcbinf
-{
-	const char			*szExecutable;						// As provided by the caller.
-	size_t				lnExecutable;						// Its length.
-	const char			*szArgsList;						// Arguments string.
-	size_t				lnArgsList;							// Its length.
-	const char			*szWorkingDir;
-	size_t				lnWorkingDir;
-	cunilog_pid_t		childProcessId;						// PID of the child.
-	enum enRCmdCBval	rvHtb;								// Return value of heartbeat CB.
-	uint64_t			uiChildExitTimeout;					// Time in ms to wait for the
-															//	child to exit.
-} SRUNCMDCBINF;
-
 /*
 	Callback function return values.
 
@@ -137,7 +123,7 @@ typedef struct sruncmdcbinf
 	enRunCmdRet_TerminateFail		Terminate the child process.
 									CreateAndRunCmdProcessCapture () returns true.
 */
-enum enRunCmdCallbackRetValue
+typedef enum
 {
 	enRunCmdRet_Continue,									// No change/continue.
 	enRunCmdRet_Terminate,									// Exit child process.
@@ -145,8 +131,21 @@ enum enRunCmdCallbackRetValue
 															//	but stop calling callback
 															//	function for this stream.
 	enRunCmdRet_TerminateFail
-};
-typedef enum enRunCmdCallbackRetValue enRCmdCBval;
+} enRCmdCBval;
+
+typedef struct sruncmdcbinf
+{
+	const char			*szExecutable;						// As provided by the caller.
+	size_t				lnExecutable;						// Its length.
+	const char			*szArgsList;						// Arguments string.
+	size_t				lnArgsList;							// Its length.
+	const char			*szWorkingDir;
+	size_t				lnWorkingDir;
+	cunilog_pid_t		childProcessId;						// PID of the child.
+	enRCmdCBval			rvHtb;								// Return value of heartbeat CB.
+	uint64_t			uiChildExitTimeout;					// Time in ms to wait for the
+															//	child to exit.
+} SRUNCMDCBINF;
 
 /*
 	Callback function for stdout and stderr.

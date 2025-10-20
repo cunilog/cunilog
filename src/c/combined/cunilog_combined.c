@@ -7824,7 +7824,7 @@ void DoneArgsList (char *szArgsList)
 					void				*pCustom
 									)
 	{
-		if (pCBs->cbHtb && RUNCMDPROC_CALLB_HEARTB & flags && enRunCmdRet_Continue == pinf->rvHtb)
+		if (NULL != pCBs->cbHtb && (RUNCMDPROC_CALLB_HEARTB & flags) && enRunCmdRet_Continue == pinf->rvHtb)
 		{
 			pinf->rvHtb = pCBs->cbHtb (pinf, pCustom);
 		}
