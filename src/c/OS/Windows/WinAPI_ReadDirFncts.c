@@ -503,7 +503,7 @@ size_t ForEachDirectoryEntryMaskU8	(
 
 	size_t	uiEnts		= 0;
 	size_t	folderU8len	= str_remove_last_dir_separator (strFolderU8, lenFolderU8);
-	if (lenFolderU8)
+	if (folderU8len)
 	{
 		lenMaskU8 = strMaskU8 ? (USE_STRLEN == lenMaskU8 ? strlen (strMaskU8) : lenMaskU8) : 0;
 
