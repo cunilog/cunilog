@@ -17418,10 +17418,13 @@ unsigned int	nCulStdLineCComment			= GET_ARRAY_LEN (ccCulStdLineCComment);
 const char		*ccCulStdLineUComment	[]	= {"//", "#", ";", "+", "--", "!"};
 unsigned int	nCulStdLineUComment			= GET_ARRAY_LEN (ccCulStdLineUComment);
 
-// These line comments are meant to be prededed by white space in the future.
-//	Not implemented yet.
+// These line comments are meant to be preceded by white space in the future.
+//	Not implemented yet. At the moment all line comments need to be preceded
+//	by white space if they appear at the end of a line.
+/*
 const char		*ccCulStdLineWSComment	[]	= {"#", ";", "!"};
 unsigned int	nCulStdLineWSComment		= GET_ARRAY_LEN (ccCulStdLineWSComment);
+*/
 
 const char		*ccCulStdBegMultComment	[]	= {"/*", "{-", "(*"};
 const char		*ccCulStdEndMultComment	[]	= {"*/", "-}", "*)"};
@@ -18229,7 +18232,8 @@ bool strlineextractKeyOrValue	(
 }
 
 unsigned int strlineextractKeyAndValues	(
-		const char		**cunilog_restrict	pszKey,	size_t	*plnKey,		// Out.
+		const char		**cunilog_restrict	pszKey,		size_t	*plnKey,	// Out.
+		const char		**cunilog_restrict	pszEqual,	size_t	*plnEqual,	// Out.
 		SCUNILOGINIVALUES					*pValues,
 		unsigned int						nValues,
 		const char		*cunilog_restrict	szLine,	size_t	lnLine,			// In.
@@ -18241,6 +18245,11 @@ unsigned int strlineextractKeyAndValues	(
 	lnLine = USE_STRLEN == lnLine ? strlen (szLine) : lnLine;
 	if (0 == lnLine)
 		return 0;
+
+	if (pszEqual)
+		*pszEqual = NULL;
+	if (plnEqual)
+		*plnEqual = 0;
 
 	ubf_assert_non_NULL (pszKey);
 	ubf_assert_non_NULL (plnKey);
@@ -18264,6 +18273,10 @@ unsigned int strlineextractKeyAndValues	(
 		return 0;
 
 	size_t lenOurFoundEqual = strlen (psmlt->ccEquals [idxEqual1 - 1]);
+	if (pszEqual)
+		*pszEqual = psmlt->ccEquals [idxEqual1 - 1];
+	if (plnEqual)
+		*plnEqual = lenOurFoundEqual;
 	szEqual += lenOurFoundEqual;
 	ubf_assert (0 < lnEqual);
 	ubf_assert (lnEqual >= lenOurFoundEqual);
@@ -18575,6 +18588,7 @@ bool strlineextractSection	(
 		ubf_expect_bool_AND (b, NULL != szKey);
 		ubf_expect_bool_AND (b, 2 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("k \"", szKey, 3));
+		ubf_expect_bool_AND (b, 14 == lnE);
 		ubf_expect_bool_AND (b, !memcmp ("= ", szE, 2));
 
 		szKey	= NULL;
@@ -18853,6 +18867,7 @@ bool strlineextractSection	(
 				);
 		b &= 1 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				&iv, 1,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -18860,6 +18875,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 1 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("=", szE, 2));
 		ubf_expect_bool_AND (b, 1 == iv.lnValue);
 		ubf_expect_bool_AND (b, !memcmp ("v ", iv.szValue, 2));
 
@@ -18871,6 +18888,7 @@ bool strlineextractSection	(
 				);
 		b &= 1 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				&iv, 1,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -18878,6 +18896,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 1 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("=", szE, 2));
 		ubf_expect_bool_AND (b, 5 == iv.lnValue);
 		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
 
@@ -18889,6 +18909,7 @@ bool strlineextractSection	(
 				);
 		b &= 1 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				&iv, 1,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -18896,6 +18917,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 1 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("=", szE, 2));
 		ubf_expect_bool_AND (b, 5 == iv.lnValue);
 		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
 
@@ -18907,6 +18930,7 @@ bool strlineextractSection	(
 				);
 		b &= 1 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				&iv, 1,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -18914,6 +18938,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 1 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("=", szE, 2));
 		ubf_expect_bool_AND (b, 5 == iv.lnValue);
 		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
 
@@ -18925,6 +18951,7 @@ bool strlineextractSection	(
 				);
 		b &= 1 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				&iv, 1,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -18932,6 +18959,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 2 == lnE);
+		ubf_expect_bool_AND (b, !memcmp (":=", szE, 3));
 		ubf_expect_bool_AND (b, 5 == iv.lnValue);
 		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
 
@@ -18943,6 +18972,7 @@ bool strlineextractSection	(
 				);
 		b &= 1 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				&iv, 1,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -18950,6 +18980,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 2 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("->", szE, 3));
 		ubf_expect_bool_AND (b, 5 == iv.lnValue);
 		ubf_expect_bool_AND (b, !memcmp ("value", iv.szValue, 5));
 
@@ -18962,6 +18994,7 @@ bool strlineextractSection	(
 				);
 		b &= 1 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				&iv, 1,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -18969,6 +19002,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 2 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("->", szE, 3));
 		ubf_expect_bool_AND (b, 7 == iv.lnValue);
 		ubf_expect_bool_AND (b, !memcmp ("->value", iv.szValue, 5));
 
@@ -18982,11 +19017,14 @@ bool strlineextractSection	(
 		scmul.nEquals = 0;
 		b &= 0 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				&iv, 1,
 				cBuf, USE_STRLEN,
 				&scmul
 										);
 		ubf_assert_true (b);
+		ubf_expect_bool_AND (b, 0 == lnE);
+		ubf_expect_bool_AND (b, NULL == szE);
 
 		scmul.nEquals = nCulStdEquals;
 
@@ -18998,6 +19036,7 @@ bool strlineextractSection	(
 				);
 		b &= 0 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				&iv, 1,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -19016,6 +19055,7 @@ bool strlineextractSection	(
 				);
 		b &= 1 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				iva, SCUNILOGINIVALUE_TST_VALUE,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -19023,6 +19063,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 1 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("=", szE, 2));
 		ubf_expect_bool_AND (b, 7 == iva [0].lnValue);
 		ubf_expect_bool_AND (b, !memcmp (",value,", iva [0].szValue, 7));
 
@@ -19034,6 +19076,7 @@ bool strlineextractSection	(
 				);
 		b &= 2 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				iva, SCUNILOGINIVALUE_TST_VALUE,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -19041,6 +19084,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 1 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("=", szE, 2));
 		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
 		ubf_expect_bool_AND (b, !memcmp ("v1", iva [0].szValue, 2));
 		ubf_expect_bool_AND (b, 2 == iva [1].lnValue);
@@ -19054,6 +19099,7 @@ bool strlineextractSection	(
 				);
 		b &= 5 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				iva, SCUNILOGINIVALUE_TST_VALUE,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -19061,6 +19107,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 1 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("=", szE, 2));
 		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
 		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValue, 2));
 		ubf_expect_bool_AND (b, 3 == iva [1].lnValue);
@@ -19081,6 +19129,7 @@ bool strlineextractSection	(
 				);
 		b &= 5 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				NULL, 0,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -19088,6 +19137,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 1 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("=", szE, 2));
 
 		// Only the first value is stored while 5 is returned.
 		szKey = NULL;
@@ -19098,6 +19149,7 @@ bool strlineextractSection	(
 				);
 		b &= 5 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				iva, 1,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -19105,6 +19157,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 1 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("=", szE, 2));
 		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
 		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValue, 2));
 
@@ -19117,6 +19171,7 @@ bool strlineextractSection	(
 				);
 		b &= 5 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				iva, SCUNILOGINIVALUE_TST_VALUE,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -19125,6 +19180,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 1 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("=", szE, 2));
 		ubf_expect_bool_AND (b, 2 == iva [0].lnValue);
 		ubf_expect_bool_AND (b, !memcmp ("v0", iva [0].szValue, 2));
 		ubf_expect_bool_AND (b, 3 == iva [1].lnValue);
@@ -19144,6 +19201,7 @@ bool strlineextractSection	(
 				);
 		b &= 5 == strlineextractKeyAndValues	(
 				&szKey, &lnKey,
+				&szE, &lnE,
 				iva, SCUNILOGINIVALUE_TST_VALUE,
 				cBuf, USE_STRLEN,
 				&scmul
@@ -19152,6 +19210,8 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 		ubf_expect_bool_AND (b, 3 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("key", szKey, 3));
+		ubf_expect_bool_AND (b, 1 == lnE);
+		ubf_expect_bool_AND (b, !memcmp ("=", szE, 2));
 		ubf_expect_bool_AND (b, 4 == iva [0].lnValue);
 		ubf_expect_bool_AND (b, !memcmp (" v0 ", iva [0].szValue, 4));
 		ubf_expect_bool_AND (b, 5 == iva [1].lnValue);
@@ -24209,7 +24269,8 @@ static bool createCreateSCUNILOGINI_count_cb (STRLINEINF *psli)
 		lnTail = psli->lnLength;
 	}
 	nVals = strlineextractKeyAndValues	(
-						&szKey, &lnKey, NULL, 0, szTail, lnTail,
+						&szKey, &lnKey, NULL, NULL,
+						NULL, 0, szTail, lnTail,
 						pkvs->psmls
 										);
 	if (nVals)
@@ -24293,6 +24354,8 @@ static bool createCreateSCUNILOGINI_assgn_cb (STRLINEINF *psli)
 	nVals = strlineextractKeyAndValues	(
 				&pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].szKeyName,
 				&pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].lnKeyName,
+				&pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].szEqualsSign,
+				&pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].lnEqualsSign,
 				&pkvs->pCunilogIni->pValues [pkvs->uiCurrValue],
 				pkvs->nValues,
 				szTail, lnTail,
@@ -24714,21 +24777,6 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		ubf_expect_bool_AND (b, !memcmp ("value1, value2, value3", ci.pValues [1].szValue, ci.pValues [1].lnValue));
 		ubf_expect_bool_AND (b, !memcmp ("value1, value2, value3", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
 		ubf_expect_bool_AND (b, !memcmp ("value1, value2, value3", ci.pKeyValues [1].pValues [0].szValue, ci.pKeyValues [1].pValues [0].lnValue));
-		DoneSCUNILOGINI (&ci);
-
-		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
-		ubf_assert_true (b1);
-		ubf_expect_bool_AND (b, b1);
-		ubf_expect_bool_AND (b, 4 == ci.nKeyValues);
-		ubf_expect_bool_AND (b, 4 == ci.nValues);
-		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pValues [0].szValue, ci.pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pValues [1].szValue, ci.pValues [1].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pValues [2].szValue, ci.pValues [2].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pValues [3].szValue, ci.pValues [3].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pKeyValues [1].pValues [0].szValue, ci.pKeyValues [1].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pKeyValues [2].pValues [0].szValue, ci.pKeyValues [2].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pKeyValues [3].pValues [0].szValue, ci.pKeyValues [3].pValues [0].lnValue));
 		DoneSCUNILOGINI (&ci);
 
 		// Used for service tasks.

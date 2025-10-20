@@ -30,8 +30,8 @@ Processors are not necessarily all called for every event. A processor's member 
 
 ## Rotators
 
-Rotators are s special type of processor. Rotators are s special type of processor. While other
-processors do something with an event, the job of a rotator is to do something with the logfile
-or an entire set of logfiles.
+Rotators are s special type of processor.
+While other processors do something with an event, the job of a rotator is to do
+something with the logfile or an entire set of logfiles.
 A rotator processor's __task__ member is set to __cunilogProcessRotateLogfiles__ and
 its __pData__ member points to a __CUNILOG_ROTATION_DATA__ structure.

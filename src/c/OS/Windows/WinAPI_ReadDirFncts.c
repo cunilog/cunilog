@@ -503,7 +503,7 @@ size_t ForEachDirectoryEntryMaskU8	(
 
 	size_t	uiEnts		= 0;
 	size_t	folderU8len	= str_remove_last_dir_separator (strFolderU8, lenFolderU8);
-	if (folderU8len)
+	if (lenFolderU8)
 	{
 		lenMaskU8 = strMaskU8 ? (USE_STRLEN == lenMaskU8 ? strlen (strMaskU8) : lenMaskU8) : 0;
 
@@ -518,7 +518,7 @@ size_t ForEachDirectoryEntryMaskU8	(
 		sdOneEntry.lnMaskU8					= lenMaskU8;
 		INITSMEMBUF (sdOneEntry.mbSearchPathU8);
 
-		size_t stToReserve	= lenFolderU8
+		size_t stToReserve	= folderU8len
 							+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
 							// We allow for a minimum of 2 levels deep beforehand.
 							+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH

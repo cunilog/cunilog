@@ -84,6 +84,9 @@ typedef struct scuniloginikeyandvalues
 
 	SCUNILOGINIVALUES		*pValues;						// A key can have multiple values.
 	unsigned int			nValues;
+
+	const char				*szEqualsSign;
+	size_t					lnEqualsSign;
 } SCUNILOGINIKEYANDVALUES;
 
 // A section.

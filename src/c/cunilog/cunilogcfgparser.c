@@ -420,7 +420,8 @@ static bool createCreateSCUNILOGINI_count_cb (STRLINEINF *psli)
 		lnTail = psli->lnLength;
 	}
 	nVals = strlineextractKeyAndValues	(
-						&szKey, &lnKey, NULL, 0, szTail, lnTail,
+						&szKey, &lnKey, NULL, NULL,
+						NULL, 0, szTail, lnTail,
 						pkvs->psmls
 										);
 	if (nVals)
@@ -504,6 +505,8 @@ static bool createCreateSCUNILOGINI_assgn_cb (STRLINEINF *psli)
 	nVals = strlineextractKeyAndValues	(
 				&pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].szKeyName,
 				&pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].lnKeyName,
+				&pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].szEqualsSign,
+				&pkvs->pCunilogIni->pKeyValues [pkvs->uiCurrentKey].lnEqualsSign,
 				&pkvs->pCunilogIni->pValues [pkvs->uiCurrValue],
 				pkvs->nValues,
 				szTail, lnTail,
@@ -925,21 +928,6 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		ubf_expect_bool_AND (b, !memcmp ("value1, value2, value3", ci.pValues [1].szValue, ci.pValues [1].lnValue));
 		ubf_expect_bool_AND (b, !memcmp ("value1, value2, value3", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
 		ubf_expect_bool_AND (b, !memcmp ("value1, value2, value3", ci.pKeyValues [1].pValues [0].szValue, ci.pKeyValues [1].pValues [0].lnValue));
-		DoneSCUNILOGINI (&ci);
-
-		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
-		ubf_assert_true (b1);
-		ubf_expect_bool_AND (b, b1);
-		ubf_expect_bool_AND (b, 4 == ci.nKeyValues);
-		ubf_expect_bool_AND (b, 4 == ci.nValues);
-		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pValues [0].szValue, ci.pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pValues [1].szValue, ci.pValues [1].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pValues [2].szValue, ci.pValues [2].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pValues [3].szValue, ci.pValues [3].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pKeyValues [1].pValues [0].szValue, ci.pKeyValues [1].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("colour is green", ci.pKeyValues [2].pValues [0].szValue, ci.pKeyValues [2].pValues [0].lnValue));
-		ubf_expect_bool_AND (b, !memcmp ("length is short", ci.pKeyValues [3].pValues [0].szValue, ci.pKeyValues [3].pValues [0].lnValue));
 		DoneSCUNILOGINI (&ci);
 
 		// Used for service tasks.

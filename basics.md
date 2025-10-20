@@ -111,7 +111,7 @@ The __enum cunilogtype__ denotes the type of a target.
 | :------------------- | --- |
 | cunilogSingleThreaded | Only a single thread can use this target |
 | cunilogMultiThreaded  | Several threads can use this target but function calls block if the target is busy |
-| cunilogSingleThreadedSeparateLoggingThread cunilogMultiThreadedSeparateLoggingThread | A single or several threads can use this target but the actual work is done in a separate logging thread
+| cunilogSingleThreadedSeparateLoggingThread cunilogMultiThreadedSeparateLoggingThread | A single or multiple threads can use this target, and the actual work is done in a separate logging thread
 | cunilogMultiProcesses | Not implemented yet |
 
 Note that __cunilogSingleThreadedSeparateLoggingThread__ is meant for a single application thread only but the actual logging tasks are delegated to a separate logging thread via an event queue. On the other hand __cunilogMultiThreadedSeparateLoggingThread__ is meant to do the same in a multi-threaded application. However, both are currently implemented identically.
@@ -127,7 +127,7 @@ is assigned.
 
 Each processor is assigned a certain task. Cunilog provides a default set of tasks for processors
 to carry out. A custom task is also available for which a callback function can be invoked.
-Each processor is assigned precisely one task, which is the member __task__ of data type __enum cunilogprocesstask__.
+Each processor is assigned one task only, which is the member __task__ of data type __enum cunilogprocesstask__.
 
 
 ## Rotators

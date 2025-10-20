@@ -16161,6 +16161,12 @@ bool strlineextractIsCloseString	(
 					pszKeyOrVal points to a key. If it receives NULL, pszKeyOrVal points
 					to a value.
 
+	plnEqual		If an equals string is encountered, this is a pointer to the full length
+					of the remaining string. Otherwise it receives 0.
+					Note that this is *not* the length of the equality string itself, and
+					that this return value differs from the one with the same name of the
+					function strlineextractKeyAndValues ().
+
 	pidxEqual1based	A pointer to a size_t that receives the 1-based index of the equality
 					string found. If pszKeyOrVal points to a value, the function sets this
 					value to 0.
@@ -16221,6 +16227,14 @@ bool strlineextractKeyOrValue	(
 	plnKey			A pointer to a size_t that receives the length of the key. This parameter
 					must not be NULL.
 
+	pszEquals		A pointer that receives the start address of the equality string.
+					This is a pointer to the element of the equals string array that was
+					found, not a pointer to within szLine. This string is NUL-terminated.
+
+	plnEquals		A pointer that receives the length of the equality string. Note that
+					this is different from the return value with the same name of the
+					function strlineextractKeyOrValue ().
+
 	pValues			A pointer to an array of SCUNILOGINIVALUE structures that receive the
 					start address of the value(s) and their lengths.
 					If this parameter is NULL, the function returns the amount of elements
@@ -16269,7 +16283,8 @@ bool strlineextractKeyOrValue	(
 	or if szLine is NULL or lnLine is 0.
 */
 unsigned int strlineextractKeyAndValues	(
-		const char		**cunilog_restrict	pszKey,	size_t	*plnKey,		// Out.
+		const char		**cunilog_restrict	pszKey,		size_t	*plnKey,	// Out.
+		const char		**cunilog_restrict	pszEqual,	size_t	*plnEqual,	// Out.
 		SCUNILOGINIVALUES					*pValues,
 		unsigned int						nValues,
 		const char		*cunilog_restrict	szLine,	size_t	lnLine,			// In.
