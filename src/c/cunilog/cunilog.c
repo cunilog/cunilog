@@ -819,21 +819,17 @@ bool CunilogGetAbsPathFromAbsOrRelPath	(
 		SMEMBUF	t	= SMEMBUF_INITIALISER;
 		size_t	lp	= ObtainRelativeLogPathBase (&t, absOrRelPath);
 		ln = lp + lnAbsOrRelPath;
-		if (!isDirSep (szAbsOrRelPath [lnAbsOrRelPath - 1]))
+		growToSizeSMEMBUF (&b, ln + 2);						// + 2 = NUL + dir sep.
+		if (isUsableSMEMBUF (&b))
 		{
-			growToSizeSMEMBUF (&b, ln + 1);
-			if (isUsableSMEMBUF (&b))
+			copySMEMBUF (&b, &t);
+			memcpy (b.buf.pch + lp, szAbsOrRelPath, lnAbsOrRelPath);
+			if (!isDirSep (szAbsOrRelPath [lnAbsOrRelPath - 1]))
 			{
-				copySMEMBUF (&b, &t);
-				memcpy (b.buf.pch + lp, szAbsOrRelPath, lnAbsOrRelPath);
 				b.buf.pch [lp + lnAbsOrRelPath] = UBF_DIR_SEP;
 				++ ln;
 			}
-		} else
-		{
-			growToSizeSMEMBUF (&b, ln);
-			if (isUsableSMEMBUF (&b))
-				memcpy (b.buf.pch + lp, szAbsOrRelPath, lnAbsOrRelPath);
+			b.buf.pch [ln] = ASCII_NUL;
 		}
 		doneSMEMBUF (&t);
 	}
@@ -3897,6 +3893,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 		ubf_assert_non_NULL (pszToOutput);
 		ubf_assert_non_NULL (plnToOutput);
 		ubf_assert_non_NULL (pev);
+
 		// Includes LEN_ANSI_RESET too.
 		size_t	lnThisColour	= evtSeverityColoursLen (pev->evSeverity);
 
@@ -8030,7 +8027,74 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
+					"C:/temp/",	USE_STRLEN,
+					"Unilog",	USE_STRLEN,
+					cunilogPath_relativeToExecutable,
+					cunilogSingleThreaded,
+					cunilogPostfixDay,
+					NULL, 0,
+					cunilogEvtTS_Default, cunilogNewLineSystem,
+					cunilogDontRunProcessorsOnStartup
+										);
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== pt);
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
+		ubf_expect_bool_AND (bRet, cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
+		ubf_expect_bool_AND (bRet, cunilogPostfixDay		== CUNILOG_TARGETstatic.culogPostfix);
+		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default		== CUNILOG_TARGETstatic.unilogEvtTSformat);
+		// Size is 8 + NUL.
+		ubf_expect_bool_AND (bRet, 9 == CUNILOG_TARGETstatic.mbLogPath.size);
+		ubf_assert	(
+				!memcmp	(
+					CUNILOG_TARGETstatic.mbLogPath.buf.pch,
+					"C:" UBF_DIR_SEP_STR "temp" UBF_DIR_SEP_STR ASCII_NUL_STR,
+					CUNILOG_TARGETstatic.mbLogPath.size
+						)
+					);
+		ubf_assert	(
+				// "C:\\temp\\Unilog".
+				!memcmp	(
+					CUNILOG_TARGETstatic.mbLogfileName.buf.pch,
+					"C:" UBF_DIR_SEP_STR "temp" UBF_DIR_SEP_STR "Unilog",
+					CUNILOG_TARGETstatic.mbLogPath.size + CUNILOG_TARGETstatic.lnAppName - 1
+						)
+					);
+		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
+		// Should be NUL-terminated.
+		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName + 1));
+
+		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
+
+		DoneCUNILOG_TARGETstatic ();
+
+		pt = InitCUNILOG_TARGETstaticEx	(
 					"../temp",	USE_STRLEN,
+					"Unilog",	USE_STRLEN,
+					cunilogPath_relativeToExecutable,
+					cunilogSingleThreaded,
+					cunilogPostfixDay,
+					NULL, 0, cunilogEvtTS_Default, cunilogNewLineSystem,
+					cunilogDontRunProcessorsOnStartup
+
+										);
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic == pt);
+		ubf_expect_bool_AND (bRet, pCUNILOG_TARGETstatic	== &CUNILOG_TARGETstatic);
+		ubf_expect_bool_AND (bRet, cunilogSingleThreaded	== CUNILOG_TARGETstatic.culogType);
+		ubf_expect_bool_AND (bRet, cunilogPostfixDay				== CUNILOG_TARGETstatic.culogPostfix);
+		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
+		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName + 1));
+
+		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
+		ubf_assert_non_NULL (szAbsLogPath);
+		ubf_assert_non_0 (lnAbsLogPath);
+		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
+
+		DoneCUNILOG_TARGETstatic ();
+
+		pt = InitCUNILOG_TARGETstaticEx	(
+					"../temp/",	USE_STRLEN,
 					"Unilog",	USE_STRLEN,
 					cunilogPath_relativeToExecutable,
 					cunilogSingleThreaded,

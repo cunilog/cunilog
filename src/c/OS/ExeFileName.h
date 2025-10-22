@@ -81,6 +81,11 @@ EXTERN_C_BEGIN
 	Obtains the executables full path including its name. The caller is responsible for
 	initialising the SMEMBUF structure beforehand.
 
+	Parameters
+
+	mb		A pointer to an initialised SMEMBUF structure that receives the full path
+			and name of the executable module (the executable file).
+
 	The function returns the amount of octets (bytes) written to the SMEMBUF's buf
 	member, not including the NUL terminator. If the function fails it returns 0.
 */
@@ -97,6 +102,11 @@ EXTERN_C_BEGIN
 
 	Obtains the application's name only, i.e. without path or ".exe" filename extension.
 	The caller is responsible for initialising the SMEMBUF structure beforehand.
+
+	Parameters
+
+	mb		A pointer to an initialised SMEMBUF structure that receives the name of
+			the executable module (the executable file) without path.
 
 	For an application "C:/temp/app.exe" the function sets mb to "app" and returns 3.
 
@@ -116,6 +126,11 @@ EXTERN_C_BEGIN
 
 	Returns the path part of the application's executable module.
 	On Windows, the last character of the returned path is usually a backslash.
+
+	Parameters
+
+	mb		A pointer to an initialised SMEMBUF structure that receives the path/folder of
+			the executable module (the executable file) without filename.
 
 	The function returns the amount of characters it placed in the structure's
 	buffer excluding a terminating NUL. It returns 0 upon failure.

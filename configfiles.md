@@ -1,4 +1,8 @@
 # Configuration files
+## Building
+
+By default, the config file parser in Cunilog is deactivated. To activate it, define CUNILOG_BUILD_CFG_PARSER.
+
 ## Windows ini config files
 
 Cunilog includes a config file reader that supports a format very similar to Windows ini files (https://en.wikipedia.org/wiki/INI_file) with some notable extensions.

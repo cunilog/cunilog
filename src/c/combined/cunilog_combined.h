@@ -4025,7 +4025,7 @@ TYPEDEF_FNCT_PTR (UINT, GetSystemDirectoryU8)
 	GetSystemDirectoryU8 ().
 
 	The function SystemDirectoryU8 () obtains the path of the system directory (excluding
-	a directory separator), while SystemDirectoryU8ln () obtains its length.
+	a directory separator), while SystemDirectoryU8len () obtains its length.
 
 	You may call DoneSystemDirectoryU8 () to free the buffer that holds the path to the
 	system directory. If DoneSystemDirectoryU8 () is not called before the application
@@ -7573,6 +7573,11 @@ EXTERN_C_BEGIN
 	Obtains the executables full path including its name. The caller is responsible for
 	initialising the SMEMBUF structure beforehand.
 
+	Parameters
+
+	mb		A pointer to an initialised SMEMBUF structure that receives the full path
+			and name of the executable module (the executable file).
+
 	The function returns the amount of octets (bytes) written to the SMEMBUF's buf
 	member, not including the NUL terminator. If the function fails it returns 0.
 */
@@ -7589,6 +7594,11 @@ EXTERN_C_BEGIN
 
 	Obtains the application's name only, i.e. without path or ".exe" filename extension.
 	The caller is responsible for initialising the SMEMBUF structure beforehand.
+
+	Parameters
+
+	mb		A pointer to an initialised SMEMBUF structure that receives the name of
+			the executable module (the executable file) without path.
 
 	For an application "C:/temp/app.exe" the function sets mb to "app" and returns 3.
 
@@ -7608,6 +7618,11 @@ EXTERN_C_BEGIN
 
 	Returns the path part of the application's executable module.
 	On Windows, the last character of the returned path is usually a backslash.
+
+	Parameters
+
+	mb		A pointer to an initialised SMEMBUF structure that receives the path/folder of
+			the executable module (the executable file) without filename.
 
 	The function returns the amount of characters it placed in the structure's
 	buffer excluding a terminating NUL. It returns 0 upon failure.
@@ -7724,7 +7739,9 @@ EXTERN_C_BEGIN
 	function writes two NUL octets to ensure it can also be used to read UTF-16 files.
 
 	The function returns the amount of octets/bytes written to the buffer, not including
-	the terminating NUL character.
+	the terminating NUL character. In case of an error, it returns READFILESMEMBUF_ERROR.
+
+	The file itself is opened, read, and then closed.
 */
 size_t ReadFileSMEMBUF (SMEMBUF *pmb, const char *szFileName)
 ;
@@ -19852,11 +19869,11 @@ const char *CunilogGetFirstIniValueFromKey_ci	(
 	#define TestCunilogCfgParser()
 #endif
 
-EXTERN_C_END
-
 #else
 	#define TestCunilogCfgParser()
 #endif														// Of #ifdef CUNILOG_BUILD_CFG_PARSER.
+
+EXTERN_C_END
 
 #endif														// Of #ifndef CUNILOGCFGPARSER_H.
 /****************************************************************************************

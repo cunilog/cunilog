@@ -115,9 +115,9 @@ static size_t WeHaveExecutableModuleNameAlready (SMEMBUF *mb)
 	return 0;
 }
 
-static unsigned int		uiDetExeMethod;							// The strategy used to
-																//	determine the executable's
-																//	path/folder.
+static unsigned int		uiDetExeMethod;						// The strategy used to
+															//	determine the executable's
+															//	path/folder.
 
 #ifdef OS_IS_MACOS
 	/*
@@ -130,10 +130,11 @@ static unsigned int		uiDetExeMethod;							// The strategy used to
 	{
 		ubf_assert_non_NULL (mb);
 
-		size_t len;												// The return value.
+		size_t len;											// The return value.
 		if (len = WeHaveExecutableModuleNameAlready (mb))
 			return len;
 
+		size_t exe_size = 1024;
 		chPath = ubf_malloc (exe_size);
 		while (chPath && -1 == _NSGetExecutablePath (chPath, &exe_size))
 		{

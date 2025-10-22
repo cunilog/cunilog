@@ -145,12 +145,7 @@ void InitSTRLINECONFforUBFL (STRLINECONF *pc)
 {
 	ubf_assert_non_NULL (pc);
 
-	// No initialisation in debug versions. We expect a slap in the face if we missed
-	//	something.
-	#ifndef DEBUG
-		memset (pc, 0, sizeof (STRLINECONF));
-	#endif
-
+	memset (pc, 0, sizeof (STRLINECONF));
 	pc->CharacterSet			= EN_STRLINEEXTRACT_UTF8;
 	pc->tabSize					= 4;
 	pc->pchLineCommentStr		= ccCulStdLineUComment;
@@ -158,9 +153,9 @@ void InitSTRLINECONFforUBFL (STRLINECONF *pc)
 	pc->pchStartMultiCommentStr	= ccCulStdBegMultComment;
 	pc->pchEndMultiCommentStr	= ccCulStdEndMultComment;
 	pc->nMultiCommentStr		= GET_ARRAY_LEN (ccCulStdBegMultComment);
-	#ifdef DEBUG
+	ONLY_IN_DEBUG	(
 		pc->bInitialised		= true;
-	#endif
+					);
 }
 
 void InitSTRLINECONFforC (STRLINECONF *pc)

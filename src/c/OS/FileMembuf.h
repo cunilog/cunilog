@@ -88,7 +88,9 @@ EXTERN_C_BEGIN
 	function writes two NUL octets to ensure it can also be used to read UTF-16 files.
 
 	The function returns the amount of octets/bytes written to the buffer, not including
-	the terminating NUL character.
+	the terminating NUL character. In case of an error, it returns READFILESMEMBUF_ERROR.
+
+	The file itself is opened, read, and then closed.
 */
 size_t ReadFileSMEMBUF (SMEMBUF *pmb, const char *szFileName)
 ;

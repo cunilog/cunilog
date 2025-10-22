@@ -370,10 +370,10 @@ const char *CunilogGetFirstIniValueFromKey_ci	(
 	#define TestCunilogCfgParser()
 #endif
 
-EXTERN_C_END
-
 #else
 	#define TestCunilogCfgParser()
 #endif														// Of #ifdef CUNILOG_BUILD_CFG_PARSER.
+
+EXTERN_C_END
 
 #endif														// Of #ifndef CUNILOGCFGPARSER_H.

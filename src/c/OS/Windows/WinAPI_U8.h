@@ -2183,7 +2183,7 @@ TYPEDEF_FNCT_PTR (UINT, GetSystemDirectoryU8)
 	GetSystemDirectoryU8 ().
 
 	The function SystemDirectoryU8 () obtains the path of the system directory (excluding
-	a directory separator), while SystemDirectoryU8ln () obtains its length.
+	a directory separator), while SystemDirectoryU8len () obtains its length.
 
 	You may call DoneSystemDirectoryU8 () to free the buffer that holds the path to the
 	system directory. If DoneSystemDirectoryU8 () is not called before the application
