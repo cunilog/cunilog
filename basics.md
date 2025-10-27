@@ -111,12 +111,24 @@ The __enum cunilogtype__ denotes the type of a target.
 | :------------------- | --- |
 | cunilogSingleThreaded | Only a single thread can use this target |
 | cunilogMultiThreaded  | Several threads can use this target but function calls block if the target is busy |
-| cunilogSingleThreadedSeparateLoggingThread cunilogMultiThreadedSeparateLoggingThread | A single or multiple threads can use this target, and the actual work is done in a separate logging thread
+| cunilogSingleThreadedSeparateLoggingThread cunilogMultiThreadedSeparateLoggingThread | A single or multiple threads can use this target, and the actual work is done in a separate logging thread |
+| cunilogSingleThreadedQueueOnly cunilogMultiThreadedQueueOnly | Events are only queued |
 | cunilogMultiProcesses | Not implemented yet |
 
 Note that __cunilogSingleThreadedSeparateLoggingThread__ is meant for a single application thread only but the actual logging tasks are delegated to a separate logging thread via an event queue. On the other hand __cunilogMultiThreadedSeparateLoggingThread__ is meant to do the same in a multi-threaded application. However, both are currently implemented identically.
 
 If unsure, __cunilogMultiThreadedSeparateLoggingThread__ is most likely what you should use. For more details on Cunilog target types, check the comments in the header file or have a look at the code.
+
+The Cunilog target types __cunilogSingleThreadedQueueOnly__ and __cunilogMultiThreadedQueueOnly__
+only store events in a queue and don't do anything else. This is meant as a replacement target when the real target is not available (yet). For instance, an application might choose to read some parameters of the logging target from a configuration file or obtain these parameters through other means, maybe from
+command-line arguments. This means the actual logging target can only be created once
+these parameters are available. You can use a cunilogSingleThreadedQueueOnly or a
+cunilogMultiThreadedQueueOnly target as a dummy target to log to until the real target
+can be created with the correct parameters. After the real target has been created,
+the entire queue can then be moved over to it, and no event is lost.
+
+The type __cunilogSingleThreaded__ is the most rudimentary target type and more or less identical to how
+most other logging libraries or modules work. Only a single thread from one instance of the current application can safely write out logging information. Every logging function blocks as it executes the list of processors before returning. If this is the only target type required, the size and complexity of Cunilog can be reduced significantly by defining __CUNILOG_BUILD_SINGLE_THREADED_ONLY__. A big portion of Cunilog's functionality and all other logging types are then disabled.
 
 ## Processors
 

@@ -19835,7 +19835,7 @@ unsigned int CunilogGetIniValuesFromKey_ci	(
 	of the returned string at the address it points to.
 
 	The function returns NULL if the key does not exist. When the function returns NULL,
-	the address pLen points to is not changed.
+	the address pLen points to is set to 0.
 */
 const char *CunilogGetFirstIniValueFromKey		(
 				size_t			*pLen,
@@ -19857,6 +19857,29 @@ const char *CunilogGetFirstIniValueFromKey_ci	(
 				const char		*cunilog_restrict szKey,		size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 												)
+;
+
+/*
+	CunilogIniKeyExists
+	CunilogIniKeyExists_ci
+
+	Checks if a key exists in a section. The function CunilogIniKeyExists ()
+	is case-sensitive or both, section and key name., the function CunilogIniKeyExists_ci ()
+	is not.
+
+	Returns true if the key szKey exists in section szSection, false otherwise.
+*/
+bool CunilogIniKeyExists	(
+				const char		*cunilog_restrict szSection,	size_t	lnSection,
+				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI		*pCunilogIni
+							)
+;
+bool CunilogIniKeyExists_ci	(
+				const char		*cunilog_restrict szSection,	size_t	lnSection,
+				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI		*pCunilogIni
+							)
 ;
 
 /*
@@ -20289,6 +20312,9 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 
 	Every logging function blocks as it executes the list of processors before returning.
 
+	This is the most rudimentary type. If this is the only target type required,
+	CUNILOG_BUILD_SINGLE_THREADED_ONLY can be defined to disable all other types.
+
 
 	cunilogSingleThreadedSeparateLoggingThread
 
@@ -20319,7 +20345,7 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	these parameters are available. You can use a cunilogSingleThreadedQueueOnly or a
 	cunilogMultiThreadedQueueOnly target as a dummy target to log to until the real target
 	can be created with the correct parameters. After the real target has been created,
-	the entire queue can be moved over to the new target, and no event is lost.
+	the entire queue can then be moved over to it, and no event is lost.
 
 
 	cunilogMultiThreaded
@@ -20357,12 +20383,14 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 enum cunilogtype
 {
 		cunilogSingleThreaded
+	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	,	cunilogSingleThreadedSeparateLoggingThread
 	,	cunilogSingleThreadedQueueOnly
 	,	cunilogMultiThreaded
 	,	cunilogMultiThreadedSeparateLoggingThread
 	,	cunilogMultiThreadedQueueOnly
 	,	cunilogMultiProcesses
+	#endif
 	// Do not add anything below this line.
 	,	cunilogTypeAmountEnumValues							// Used for table sizes.
 	// Do not add anything below cunilogTypeAmountEnumValues.
@@ -21108,8 +21136,12 @@ typedef struct CUNILOG_TARGET
 	unsigned int					nprocessors;
 
 	#if defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && defined (CUNILOG_BUILD_SINGLE_THREADED_QUEUE)
+		// Single-threaded with queue.
 		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.
+	#elif defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
+		// Single-threaded (no queue).
 	#else
+		// Multi-threade (locker, queue, separate thread).
 		CUNILOG_LOCKER				cl;						// Locker for events queue.
 		CUNILOG_SEMAPHORE			sm;						// Semaphore for event queue.
 		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.
@@ -22992,29 +23024,35 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 
 	The function returns true on success, false otherwise.
 */
-bool MoveCUNILOG_TARGETqueueToFrom	(
-		CUNILOG_TARGET *cunilog_restrict putTo,
-		CUNILOG_TARGET *cunilog_restrict putFrom
-									)
-;
-TYPEDEF_FNCT_PTR (bool, MoveCUNILOG_TARGETqueueToFrom)
-(
-		CUNILOG_TARGET *cunilog_restrict putTo,
-		CUNILOG_TARGET *cunilog_restrict putFrom
-);
+#if !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && !defined (CUNILOG_BUILD_SINGLE_THREADED_QUEUE)
+	bool MoveCUNILOG_TARGETqueueToFrom	(
+			CUNILOG_TARGET *cunilog_restrict putTo,
+			CUNILOG_TARGET *cunilog_restrict putFrom
+										)
+	;
+	TYPEDEF_FNCT_PTR (bool, MoveCUNILOG_TARGETqueueToFrom)
+	(
+			CUNILOG_TARGET *cunilog_restrict putTo,
+			CUNILOG_TARGET *cunilog_restrict putFrom
+	);
+#endif
 
 /*
 	HAS_CUNILOG_TARGET_A_QUEUE
 
 	Macro to check if a CUNILOG_TARGET structure has an event quueue.
 */
-#define HAS_CUNILOG_TARGET_A_QUEUE(put)					\
-(														\
-		cunilogSingleThreadedSeparateLoggingThread	== put->culogType\
-	||	cunilogMultiThreadedSeparateLoggingThread	== put->culogType\
-	||	cunilogSingleThreadedQueueOnly				== put->culogType\
-	||	cunilogMultiThreadedQueueOnly				== put->culogType\
-)
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#define HAS_CUNILOG_TARGET_A_QUEUE(put)				\
+	(													\
+			cunilogSingleThreadedSeparateLoggingThread	== put->culogType\
+		||	cunilogMultiThreadedSeparateLoggingThread	== put->culogType\
+		||	cunilogSingleThreadedQueueOnly				== put->culogType\
+		||	cunilogMultiThreadedQueueOnly				== put->culogType\
+	)
+#else
+	#define HAS_CUNILOG_TARGET_A_QUEUE(put)	(false)
+#endif
 
 /*
 	GetAbsoluteLogPathCUNILOG_TARGET

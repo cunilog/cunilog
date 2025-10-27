@@ -1031,29 +1031,35 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 
 	The function returns true on success, false otherwise.
 */
-bool MoveCUNILOG_TARGETqueueToFrom	(
-		CUNILOG_TARGET *cunilog_restrict putTo,
-		CUNILOG_TARGET *cunilog_restrict putFrom
-									)
-;
-TYPEDEF_FNCT_PTR (bool, MoveCUNILOG_TARGETqueueToFrom)
-(
-		CUNILOG_TARGET *cunilog_restrict putTo,
-		CUNILOG_TARGET *cunilog_restrict putFrom
-);
+#if !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && !defined (CUNILOG_BUILD_SINGLE_THREADED_QUEUE)
+	bool MoveCUNILOG_TARGETqueueToFrom	(
+			CUNILOG_TARGET *cunilog_restrict putTo,
+			CUNILOG_TARGET *cunilog_restrict putFrom
+										)
+	;
+	TYPEDEF_FNCT_PTR (bool, MoveCUNILOG_TARGETqueueToFrom)
+	(
+			CUNILOG_TARGET *cunilog_restrict putTo,
+			CUNILOG_TARGET *cunilog_restrict putFrom
+	);
+#endif
 
 /*
 	HAS_CUNILOG_TARGET_A_QUEUE
 
 	Macro to check if a CUNILOG_TARGET structure has an event quueue.
 */
-#define HAS_CUNILOG_TARGET_A_QUEUE(put)					\
-(														\
-		cunilogSingleThreadedSeparateLoggingThread	== put->culogType\
-	||	cunilogMultiThreadedSeparateLoggingThread	== put->culogType\
-	||	cunilogSingleThreadedQueueOnly				== put->culogType\
-	||	cunilogMultiThreadedQueueOnly				== put->culogType\
-)
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#define HAS_CUNILOG_TARGET_A_QUEUE(put)				\
+	(													\
+			cunilogSingleThreadedSeparateLoggingThread	== put->culogType\
+		||	cunilogMultiThreadedSeparateLoggingThread	== put->culogType\
+		||	cunilogSingleThreadedQueueOnly				== put->culogType\
+		||	cunilogMultiThreadedQueueOnly				== put->culogType\
+	)
+#else
+	#define HAS_CUNILOG_TARGET_A_QUEUE(put)	(false)
+#endif
 
 /*
 	GetAbsoluteLogPathCUNILOG_TARGET

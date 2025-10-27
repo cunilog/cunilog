@@ -198,6 +198,9 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 
 	Every logging function blocks as it executes the list of processors before returning.
 
+	This is the most rudimentary type. If this is the only target type required,
+	CUNILOG_BUILD_SINGLE_THREADED_ONLY can be defined to disable all other types.
+
 
 	cunilogSingleThreadedSeparateLoggingThread
 
@@ -228,7 +231,7 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	these parameters are available. You can use a cunilogSingleThreadedQueueOnly or a
 	cunilogMultiThreadedQueueOnly target as a dummy target to log to until the real target
 	can be created with the correct parameters. After the real target has been created,
-	the entire queue can be moved over to the new target, and no event is lost.
+	the entire queue can then be moved over to it, and no event is lost.
 
 
 	cunilogMultiThreaded
@@ -266,12 +269,14 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 enum cunilogtype
 {
 		cunilogSingleThreaded
+	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	,	cunilogSingleThreadedSeparateLoggingThread
 	,	cunilogSingleThreadedQueueOnly
 	,	cunilogMultiThreaded
 	,	cunilogMultiThreadedSeparateLoggingThread
 	,	cunilogMultiThreadedQueueOnly
 	,	cunilogMultiProcesses
+	#endif
 	// Do not add anything below this line.
 	,	cunilogTypeAmountEnumValues							// Used for table sizes.
 	// Do not add anything below cunilogTypeAmountEnumValues.
@@ -1017,8 +1022,12 @@ typedef struct CUNILOG_TARGET
 	unsigned int					nprocessors;
 
 	#if defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && defined (CUNILOG_BUILD_SINGLE_THREADED_QUEUE)
+		// Single-threaded with queue.
 		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.
+	#elif defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY)
+		// Single-threaded (no queue).
 	#else
+		// Multi-threade (locker, queue, separate thread).
 		CUNILOG_LOCKER				cl;						// Locker for events queue.
 		CUNILOG_SEMAPHORE			sm;						// Semaphore for event queue.
 		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.

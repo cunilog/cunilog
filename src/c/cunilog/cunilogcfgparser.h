@@ -336,7 +336,7 @@ unsigned int CunilogGetIniValuesFromKey_ci	(
 	of the returned string at the address it points to.
 
 	The function returns NULL if the key does not exist. When the function returns NULL,
-	the address pLen points to is not changed.
+	the address pLen points to is set to 0.
 */
 const char *CunilogGetFirstIniValueFromKey		(
 				size_t			*pLen,
@@ -358,6 +358,29 @@ const char *CunilogGetFirstIniValueFromKey_ci	(
 				const char		*cunilog_restrict szKey,		size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 												)
+;
+
+/*
+	CunilogIniKeyExists
+	CunilogIniKeyExists_ci
+
+	Checks if a key exists in a section. The function CunilogIniKeyExists ()
+	is case-sensitive or both, section and key name., the function CunilogIniKeyExists_ci ()
+	is not.
+
+	Returns true if the key szKey exists in section szSection, false otherwise.
+*/
+bool CunilogIniKeyExists	(
+				const char		*cunilog_restrict szSection,	size_t	lnSection,
+				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI		*pCunilogIni
+							)
+;
+bool CunilogIniKeyExists_ci	(
+				const char		*cunilog_restrict szSection,	size_t	lnSection,
+				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				SCUNILOGINI		*pCunilogIni
+							)
 ;
 
 /*

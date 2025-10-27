@@ -720,11 +720,11 @@ size_t ForEachDirectoryEntryMaskU8_dev	(
 		sdOneEntry.lnSearchPathU8	= folderU8len;
 		sdOneEntry.lnOrgSeaPathU8	= folderU8len;
 
-		uiEnts = ForEachDirEntryMaskU8intern	(
+		uiEnts = ForEachDirEntryMaskU8intern_dev	(
 					sdOneEntry.mbSearchPathU8.buf.pch,
 					sdOneEntry.lnSearchPathU8,
 					fedEntCB, pCustom, pnSubLevels, &sdOneEntry
-												);
+													);
 		DONESMEMBUF (sdOneEntry.mbSearchPathU8);
 
 	} else

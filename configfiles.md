@@ -158,7 +158,7 @@ The value of each key is ***value1, value2, value3***.
 
 ### Equality signs
 
-Only the first equality sign found is recognised as the separator between a key and its values. If there's more than one equality sign, these are part of the value.
+Only the first equals sign found is recognised as the separator between a key and its values. If there's more than one equality sign, these are part of the value.
 
 ```ini
 [section]
@@ -185,4 +185,47 @@ key2  =  value2
 key3  :  value3
 key4  -> value4
 key5  <- value5
+```
+
+### Keys without values
+
+The configuration
+```ini
+[section]
+key
+```
+could be understood in two different ways. This is either a section called ***section*** with a key named ***key*** that doesn't have any values, or the section has a value named ***key*** but the key doesn't have a name. Cunilog applies the former logic: the key ***key*** does not have a value.
+
+Therefore, this example defines 3 keys without values:
+```ini
+[section]
+key 1
+key 2
+key 3
+```
+
+Keys without values can be used as something like verbs or characteristics, or to create simple lists:
+```ini
+[section]
+RunWithLogging
+No main window
+```
+The first key can also be on the same line as the section name:
+```ini
+[section] RunWithLogging
+No main window
+```
+While key names can generally be quoted with square braces, this does not work with keys that do not have values, because Cunilog would interpret those as section names:
+```ini
+[section]
+[key 1]  // This is actually a section called "key 1"
+[key 2]  // This is actually a section called "key 2"
+[key 3]  // This is actually a section called "key 3"
+```
+If the keys are to be quoted with square brackets, Cunilog's config reader needs a little help to understand that these are indeed supposed to be keys without values:
+```ini
+[section]
+[key 1]  =
+[key 2]  =
+[key 3]  =
 ```

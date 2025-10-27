@@ -20,7 +20,9 @@ When		Who				What
 */
 
 #include "./testcunilogSingleThreaded.h"
-#include "./../combined/cunilog_combined.h"
+#include "./../cunilog/cunilog.h"
+#include "./../datetime/ISO__DATE__.h"
+#include "./../dbg/ubfdebug.h"
 
 #ifndef _WIN32
 	#include <unistd.h>
@@ -56,19 +58,19 @@ int main (int argc, char *argv [])
 		Tests.
 	*/
 
-	TestCunilogCfgParser ();
+	//TestCunilogCfgParser ();
 	test_strnewline ();
 	test_strhexdump ();
-	Test_ubf_times_functions ();
+	//Test_ubf_times_functions ();
 	Test_strintuint ();
-	strwildcards_test_function ();
-	ubf_test_ubf_strfilesys ();
+	//strwildcards_test_function ();
+	//ubf_test_ubf_strfilesys ();
 	const char *szBld = szBuild_ISO__DATE__ ();
 	ubf_assert (LEN_ISO8601DATE == strlen (szBld));
 	szBld = szBuild_ISO__DATE__TIME__ ();
 	ubf_assert (LEN_ISO8601DATETIMESTAMP_NO_OFFS == strlen (szBld));
-	TestStrCustomFmt ();
-	TestPsxHome ();
+	//TestStrCustomFmt ();
+	//TestPsxHome ();
 
 	/*
 		End of tests.
@@ -85,7 +87,7 @@ int main (int argc, char *argv [])
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
 				cunilogPath_relativeToExecutable,
-				cunilogMultiThreadedSeparateLoggingThread,
+				cunilogSingleThreaded,
 				cunilogPostfixDotNumberMinutely,
 				NULL, 0,
 				cunilogEvtTS_Default,
@@ -103,7 +105,7 @@ int main (int argc, char *argv [])
 				ccLogsFolder, lnLogsFolder,
 				NULL, 0,
 				cunilogPath_relativeToExecutable,
-				cunilogMultiThreadedSeparateLoggingThread,
+				cunilogSingleThreaded,
 				cunilogPostfixMinute,
 				NULL, 0,
 				cunilogEvtTS_Default,

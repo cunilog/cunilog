@@ -842,8 +842,13 @@ bool CunilogGetAbsPathFromAbsOrRelPath	(
 	return true;
 }
 
-#define isQueueOnlyCUNILOG_TARGET(cutpy)					\
-	(cunilogSingleThreadedQueueOnly == (cutpy) || cunilogMultiThreadedQueueOnly == (cutpy))
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	#define isQueueOnlyCUNILOG_TARGET(cutpy)					\
+		(cunilogSingleThreadedQueueOnly == (cutpy) || cunilogMultiThreadedQueueOnly == (cutpy))
+#else
+	#define isQueueOnlyCUNILOG_TARGET(cutpy)					\
+		(false)
+#endif
 
 char *createLogPathInCUNILOG_TARGET	(
 		CUNILOG_TARGET *put, const char *szLogPath, size_t len, enCunilogRelPath relLogPath
@@ -2134,45 +2139,47 @@ CUNILOG_TARGET *InitCUNILOG_TARGETstatic
 	}
 #endif
 
-bool MoveCUNILOG_TARGETqueueToFrom	(
-		CUNILOG_TARGET *cunilog_restrict putTo,
-		CUNILOG_TARGET *cunilog_restrict putFrom
-									)
-{
-	ubf_assert_non_NULL	(putTo);
-	ubf_assert_non_NULL	(putFrom);
-	ubf_assert			(putTo != putFrom);					// That's why cunilog_restrict.
-
-	if (HAS_CUNILOG_TARGET_A_QUEUE (putTo) && HAS_CUNILOG_TARGET_A_QUEUE (putFrom))
+#if !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && !defined (CUNILOG_BUILD_SINGLE_THREADED_QUEUE)
+	bool MoveCUNILOG_TARGETqueueToFrom	(
+			CUNILOG_TARGET *cunilog_restrict putTo,
+			CUNILOG_TARGET *cunilog_restrict putFrom
+										)
 	{
-		EnterCUNILOG_LOCKER (putFrom);
-		
-		// Remove the queue from putFrom.
-		CUNILOG_EVENT	*pev	= putFrom->qu.first;
-		size_t			n		= putFrom->qu.num;
+		ubf_assert_non_NULL	(putTo);
+		ubf_assert_non_NULL	(putFrom);
+		ubf_assert			(putTo != putFrom);					// That's why cunilog_restrict.
 
-		putFrom->qu.first		= NULL;
-		putFrom->qu.last		= NULL;
-		putFrom->qu.num			= 0;
-
-		LeaveCUNILOG_LOCKER (putFrom);
-
-		if (pev)
+		if (HAS_CUNILOG_TARGET_A_QUEUE (putTo) && HAS_CUNILOG_TARGET_A_QUEUE (putFrom))
 		{
-			ubf_assert_non_0 (n);
-			UNUSED (n);
+			EnterCUNILOG_LOCKER (putFrom);
+		
+			// Remove the queue from putFrom.
+			CUNILOG_EVENT	*pev	= putFrom->qu.first;
+			size_t			n		= putFrom->qu.num;
 
-			// And now add it to putTo.
-			size_t q = EnqueueCUNILOG_EVENTs (putTo, pev);
-			ubf_assert (q == n);
-			UNUSED (q);
-			return true;
+			putFrom->qu.first		= NULL;
+			putFrom->qu.last		= NULL;
+			putFrom->qu.num			= 0;
+
+			LeaveCUNILOG_LOCKER (putFrom);
+
+			if (pev)
+			{
+				ubf_assert_non_0 (n);
+				UNUSED (n);
+
+				// And now add it to putTo.
+				size_t q = EnqueueCUNILOG_EVENTs (putTo, pev);
+				ubf_assert (q == n);
+				UNUSED (q);
+				return true;
+			}
+
+			// There's no queue to move.
 		}
-
-		// There's no queue to move.
+		return false;
 	}
-	return false;
-}
+#endif
 
 const char *GetAbsoluteLogPathCUNILOG_TARGET (CUNILOG_TARGET *put, size_t *plen)
 {
@@ -5948,14 +5955,16 @@ static bool cunilogProcessEventMultiThreadedSeparateLoggingThread (CUNILOG_EVENT
 	return enqueueAndTriggerSeparateLoggingThread (pev);
 }
 
-static bool cunilogProcessQueue (CUNILOG_EVENT *pev)
-{
-	ubf_assert_non_NULL						(pev);
-	ubf_assert_non_NULL						(pev->pCUNILOG_TARGET);
-	ubf_assert (cunilogIsTargetInitialised	(pev->pCUNILOG_TARGET));
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	static bool cunilogProcessQueue (CUNILOG_EVENT *pev)
+	{
+		ubf_assert_non_NULL						(pev);
+		ubf_assert_non_NULL						(pev->pCUNILOG_TARGET);
+		ubf_assert (cunilogIsTargetInitialised	(pev->pCUNILOG_TARGET));
 
-	return EnqueueCUNILOG_EVENT (pev);
-}
+		return EnqueueCUNILOG_EVENT (pev);
+	}
+#endif
 
 static bool cunilogProcessOrQueueEventMultiProcesses (CUNILOG_EVENT *pev)
 {
@@ -5967,12 +5976,14 @@ static bool cunilogProcessOrQueueEventMultiProcesses (CUNILOG_EVENT *pev)
 static bool (*cunilogProcOrQueueEvt [cunilogTypeAmountEnumValues]) (CUNILOG_EVENT *pev) =
 {
 	/* cunilogSingleThreaded						*/   cunilogProcessEventSingleThreaded
+	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	/* cunilogSingleThreadedSeparateLoggingThread	*/ , cunilogProcessEventSingleThreadedSeparateLoggingThread
 	/* cunilogSingleThreadedQueueOnly				*/ , cunilogProcessQueue
 	/* cunilogMultiThreaded							*/ , cunilogProcessEventMultiThreaded
 	/* cunilogMultiThreadedSeparateLoggingThread	*/ , cunilogProcessEventMultiThreadedSeparateLoggingThread
 	/* cunilogMultiThreadedQueueOnly				*/ , cunilogProcessQueue
 	/* cunilogMultiProcesses						*/ , cunilogProcessOrQueueEventMultiProcesses
+	#endif
 };
 
 /*
@@ -7835,6 +7846,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 			ubf_assert_false (bTrash);
 		#endif
 
+	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+
 		CUNILOG_TARGET				cutQueue;
 		pt = InitCUNILOG_TARGET (&cutQueue, NULL, 0, NULL, 0, cunilogPath_isAbsolute, cunilogSingleThreadedQueueOnly);
 		ubf_expect_bool_AND (bRet, !cunilogTargetHasTargetAllocatedFlag (pt));
@@ -7899,6 +7912,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 
 		DoneCUNILOG_TARGET (pt);
 
+	#endif
 
 		/*
 			Static.
@@ -8197,6 +8211,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 
 		DoneCUNILOG_TARGET (pt);
 
+	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+
 		// Should fail.
 		CUNILOG_TARGET	cut;
 		CUNILOG_TARGET	*put;
@@ -8209,6 +8225,11 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 									);
 		ubf_assert_NULL (put);
 		ubf_expect_bool_AND (bRet, CUNILOG_ERROR_ABS_OR_REL_PATH == CunilogCunilogError (cut.error));
+
+		// Target should be NULL.
+		//DoneCUNILOG_TARGET (put);
+
+	#endif
 
 		/*
 			Application name from executable name.
