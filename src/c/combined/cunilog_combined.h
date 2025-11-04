@@ -12311,10 +12311,10 @@ void GetISO8601DateTimeStamp (char *chISO8601DateTimeStamp);
 	at the address sz points to.
 
 	The function storeU8ModifierLetterColon () stores only the UTF-8 codepoint for the
-	modifier letter colon, i.e. write exactly 3 octets (bytes). It does not write a NUL terminator.
+	modifier letter colon, i.e. writes exactly 3 octets (bytes). It does not write a NUL terminator.
 
 	The function storeU8ModifierLetterColon0 () stores the UTF-8 codepoint for the
-	modifier letter colon plus a NUL terminator, i.e. write exactly 4 octets (bytes).
+	modifier letter colon plus a NUL terminator, i.e. writes exactly 4 octets (bytes).
 */
 void storeU8ModifierLetterColon (char *sz);
 void storeU8ModifierLetterColon0 (char *sz);
