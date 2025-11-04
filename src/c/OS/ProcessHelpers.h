@@ -294,6 +294,10 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 	pCustom				An arbitrary pointer or value that is passed on to the callback
 						functions.
 
+	uiChildExitTimeout	The time to wait for a process to terminate after termination has been
+						requested. On Windows, this is the parameter waitTime of the
+						TerminateProcessControlled () function.
+
 	pExitCode			A pointer to an integer that receives the exit code of the child
 						process. If the exit code is not required, this parameter can be
 						NULL. If pExitCode is not NULL, the function sets the value to

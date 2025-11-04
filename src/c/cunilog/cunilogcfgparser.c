@@ -454,10 +454,10 @@ static void storeSectionMembers	(
 
 	// Make it clear to the compiler that we do not care about padding.
 	memset (&pkvs->pCunilogIni->pSections [pkvs->uiCurrSection], 0, sizeof (SCUNILOGINISECTION));
-	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].szSectionName		= szSection;
-	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].lnSectionName		= lnSection;
-	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].pKeyValues	= NULL;
-	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].nKeyValues	= 0;
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].szSectionName	= szSection;
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].lnSectionName	= lnSection;
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].pKeyValues		= NULL;
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].nKeyValues		= 0;
 
 	ubf_assert (UINT_MAX > pkvs->uiCurrSection);
 }
@@ -639,8 +639,8 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 	Also returns true if both are NULL.
 */
 static bool equalSectionNames		(
-				const char *cunilog_restrict szSA, size_t lnSA,
-				const char *cunilog_restrict szSB, size_t lnSB
+				const char *szSA, size_t lnSA,
+				const char *szSB, size_t lnSB
 									)
 {
 	if (szSA && szSB && lnSA == lnSB)
@@ -661,8 +661,8 @@ static bool equalSectionNames		(
 	The case-insensitive version.
 */
 static bool equalSectionNames_ci	(
-				const char *cunilog_restrict szSA, size_t lnSA,
-				const char *cunilog_restrict szSB, size_t lnSB
+				const char *szSA, size_t lnSA,
+				const char *szSB, size_t lnSB
 									)
 {
 	if (szSA && szSB && lnSA == lnSB)
@@ -688,8 +688,8 @@ enum enGetValsCaseSensitivity
 };
 
 static bool areSectionNamesEqual	(
-				const char *cunilog_restrict	szS1,	size_t	lnS1,
-				const char *cunilog_restrict	szS2,	size_t	lnS2,
+				const char *szS1,	size_t	lnS1,
+				const char *szS2,	size_t	lnS2,
 				enum enGetValsCaseSensitivity	cs		
 									)
 {
@@ -703,8 +703,8 @@ static bool areSectionNamesEqual	(
 	The caller has to ensure that szK1 and szK2 point to buffers of equal lengths.
 */
 static bool areKeyNamesEqual		(
-				const char *cunilog_restrict	szK1,
-				const char *cunilog_restrict	szK2,
+				const char *szK1,
+				const char *szK2,
 				size_t							len,
 				enum enGetValsCaseSensitivity	cs		
 									)
@@ -717,8 +717,8 @@ static bool areKeyNamesEqual		(
 
 static unsigned int CunilogGetIniValuesFromKey_int	(
 				SCUNILOGINIVALUES				**pValues,
-				const char						*cunilog_restrict szSection,	size_t	lnSection,
-				const char						*cunilog_restrict szKey,		size_t	lnKey,
+				const char						*szSection,		size_t	lnSection,
+				const char						*szKey,			size_t	lnKey,
 				SCUNILOGINI						*pCunilogIni,
 				enum enGetValsCaseSensitivity	cs		
 													)
@@ -763,8 +763,8 @@ static unsigned int CunilogGetIniValuesFromKey_int	(
 
 unsigned int CunilogGetIniValuesFromKey		(
 				SCUNILOGINIVALUES	**pValues,
-				const char			*cunilog_restrict szSection,	size_t	lnSection,
-				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				const char			*szSection,		size_t	lnSection,
+				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
 											)
 {
@@ -781,8 +781,8 @@ unsigned int CunilogGetIniValuesFromKey		(
 
 unsigned int CunilogGetIniValuesFromKey_ci	(
 				SCUNILOGINIVALUES	**pValues,
-				const char			*cunilog_restrict szSection,	size_t	lnSection,
-				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				const char			*szSection,		size_t	lnSection,
+				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
 											)
 {
@@ -799,8 +799,8 @@ unsigned int CunilogGetIniValuesFromKey_ci	(
 
 const char *CunilogGetFirstIniValueFromKey		(
 				size_t			*pLen,
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 												)
 {
@@ -827,8 +827,8 @@ const char *CunilogGetFirstIniValueFromKey		(
 
 const char *CunilogGetFirstIniValueFromKey_ci	(
 				size_t			*pLen,
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 												)
 {
@@ -854,8 +854,8 @@ const char *CunilogGetFirstIniValueFromKey_ci	(
 }
 
 static bool CunilogIniKeyExists_int	(
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni,
 				enum enGetValsCaseSensitivity	cs		
 									)
@@ -895,8 +895,8 @@ static bool CunilogIniKeyExists_int	(
 }
 
 bool CunilogIniKeyExists	(
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 							)
 {
@@ -907,8 +907,8 @@ bool CunilogIniKeyExists	(
 }
 
 bool CunilogIniKeyExists_ci	(
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 							)
 {

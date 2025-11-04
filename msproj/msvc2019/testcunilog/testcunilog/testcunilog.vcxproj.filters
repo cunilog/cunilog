@@ -192,6 +192,9 @@
     <ClCompile Include="..\..\..\..\src\c\string\strlineextractstructs.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogprocess.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogstructs.h">
@@ -402,6 +405,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\c\string\strlineextractstructs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogprocess.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

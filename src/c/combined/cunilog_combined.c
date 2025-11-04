@@ -11500,6 +11500,10 @@ void GetISO8601Week_c (char *chISO8601Week)
 	*chISO8601Week= '\0';
 }
 
+/*
+	The buffer chISO8601DateTimeStamp points to must be at least
+	SIZ_ISO8601DATETIMESTAMP octets (bytes) long.
+*/
 void GetISO8601DateTimeStamp (char *chISO8601DateTimeStamp)
 {	// Retrieves the current date/time as a text in the
 	// International Standard ISO 8601 format:
@@ -11554,6 +11558,72 @@ void GetISO8601DateTimeStamp (char *chISO8601DateTimeStamp)
 			'-' == chISO8601DateTimeStamp [19]
 		)
 		chISO8601DateTimeStamp [19] = '+';
+}
+
+void storeU8ModifierLetterColon (char *sz)
+{
+	ubf_assert_non_NULL (sz);
+	memcpy (sz, "\xEA\x9E\x89", 3);
+}
+
+void storeU8ModifierLetterColon0 (char *sz)
+{
+	ubf_assert_non_NULL (sz);
+	memcpy (sz, "\xEA\x9E\x89", 4);
+}
+
+/*
+	The buffer chISO8601DateTimeStampU8c points to must be at least
+	SIZ_ISO8601DATETIMESTAMPU8C octets (bytes) long.
+*/
+void GetISO8601DateTimeStampU8colon (char *chISO8601DateTimeStampU8c)
+{	// Retrieves the current date/time as a text in the
+	// International Standard ISO 8601 format:
+	// YYYY-MM-DD HH:MI:SS +/-TDIF
+	//
+	// Example: YYYY-MM-DD HH:MI:SS+01:00
+	//          YYYY-MM-DD HH:MI:SS-04:00
+	//
+	// This code should work on Unix/Linux platforms and on Windows. See the definition of the
+	//	gmtime_r () and localtime_r () macros in the header file. Windows only got the gmtime_s ()
+	//	and localtime_s () APIs with swapped parameters.
+
+	struct tm	tmRes;
+	time_t		t;
+	size_t		st;
+
+	#ifdef DEBUG
+		// If you get an access violation/segfault here, your buffer is not long enough.
+		memset (chISO8601DateTimeStampU8c, '0xFF', SIZ_ISO8601DATETIMESTAMPU8C);
+	#endif
+
+	time (&t);													// Retrieves the times in UTC on Windows.
+	localtime_r (&t, &tmRes);									// Adjust for local time.
+	//gmtime_r (&t, &tmRes);									// Won't adjust for local time.
+	st = strftime (chISO8601DateTimeStampU8c, SIZ_ISO8601DATETIMESTAMPU8C,
+				"%Y-%m-%d %H\xEA\x9E\x89%M\xEA\x9E\x89%S%z", &tmRes);
+	/*	The correct ISO 8601 implementation requires a "T" between date and time. We're not using this
+		 notation.
+			st = strftime (chISO8601DateTimeStamp, SIZ_ISO8601DATETIMESTAMP,
+						"%Y-%m-%dT%H:%M:%S%z", &tmRes);
+	*/
+	ubf_assert (st > 0 && st < SIZ_ISO8601DATETIMESTAMPU8C);
+	UNUSED_PARAMETER (st);
+
+	// PicoC (and probably other implementations too) produces a "-" instead of "+"
+	//	when the offset is 0.
+	if	(
+			'0' == chISO8601DateTimeStampU8c [24]	&&
+			'0' == chISO8601DateTimeStampU8c [25]	&&
+			'0' == chISO8601DateTimeStampU8c [26]	&&
+			'0' == chISO8601DateTimeStampU8c [27]	&&
+			'-' == chISO8601DateTimeStampU8c [23]
+		)
+		chISO8601DateTimeStampU8c [23] = '+';
+
+	// We got the offset as "-0000" or "+1000", but we want the offset with a colon between hours and minutes.
+	memmove (chISO8601DateTimeStampU8c + 29, chISO8601DateTimeStampU8c + 26, 3);
+	storeU8ModifierLetterColon (chISO8601DateTimeStampU8c + 26);
 }
 
 void GetISO8601DateTimeStampT (char *chISO8601DateTimeStamp)
@@ -13417,6 +13487,13 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ubf_expect_bool_AND (b, 2 == ub);
 		ubf_expect_bool_AND (b, 2002 == uYear);
 
+		memset (cOut, ' ', SIZ_ISO8601DATETIMESTAMPMS);
+		storeU8ModifierLetterColon (cOut);
+		ubf_expect_bool_AND (b, !memcmp (cOut, "\xEA\x9E\x89 ", 4));
+		memset (cOut, ' ', SIZ_ISO8601DATETIMESTAMPMS);
+		storeU8ModifierLetterColon0 (cOut);
+		ubf_expect_bool_AND (b, !memcmp (cOut, "\xEA\x9E\x89", 4));
+
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601Year_from_UBF_TIMESTAMPs (cOut, ut);
 		ubf_expect_bool_AND (b, !memcmp (cOut, "2022", SIZ_ISO8601YEAR));
@@ -13854,7 +13931,11 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16.00.00.123", USE_STRLEN));
 		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 
-		
+		char cOut2 [SIZ_ISO8601DATETIMESTAMPU8C + 3];
+		GetISO8601DateTimeStampU8colon (cOut2);
+		ubf_expect_bool_AND (b, strlen (cOut2) == SIZ_ISO8601DATETIMESTAMPU8C - 1);
+		ubf_expect_bool_AND (b, strlen (cOut2) == LEN_ISO8601DATETIMESTAMPU8C);
+
 		// Timings.
 		/*
 			We found that the psx function is twice as fast as the win version.
@@ -24543,10 +24624,10 @@ static void storeSectionMembers	(
 
 	// Make it clear to the compiler that we do not care about padding.
 	memset (&pkvs->pCunilogIni->pSections [pkvs->uiCurrSection], 0, sizeof (SCUNILOGINISECTION));
-	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].szSectionName		= szSection;
-	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].lnSectionName		= lnSection;
-	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].pKeyValues	= NULL;
-	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].nKeyValues	= 0;
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].szSectionName	= szSection;
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].lnSectionName	= lnSection;
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].pKeyValues		= NULL;
+	pkvs->pCunilogIni->pSections [pkvs->uiCurrSection].nKeyValues		= 0;
 
 	ubf_assert (UINT_MAX > pkvs->uiCurrSection);
 }
@@ -24728,8 +24809,8 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 	Also returns true if both are NULL.
 */
 static bool equalSectionNames		(
-				const char *cunilog_restrict szSA, size_t lnSA,
-				const char *cunilog_restrict szSB, size_t lnSB
+				const char *szSA, size_t lnSA,
+				const char *szSB, size_t lnSB
 									)
 {
 	if (szSA && szSB && lnSA == lnSB)
@@ -24750,8 +24831,8 @@ static bool equalSectionNames		(
 	The case-insensitive version.
 */
 static bool equalSectionNames_ci	(
-				const char *cunilog_restrict szSA, size_t lnSA,
-				const char *cunilog_restrict szSB, size_t lnSB
+				const char *szSA, size_t lnSA,
+				const char *szSB, size_t lnSB
 									)
 {
 	if (szSA && szSB && lnSA == lnSB)
@@ -24777,8 +24858,8 @@ enum enGetValsCaseSensitivity
 };
 
 static bool areSectionNamesEqual	(
-				const char *cunilog_restrict	szS1,	size_t	lnS1,
-				const char *cunilog_restrict	szS2,	size_t	lnS2,
+				const char *szS1,	size_t	lnS1,
+				const char *szS2,	size_t	lnS2,
 				enum enGetValsCaseSensitivity	cs		
 									)
 {
@@ -24792,8 +24873,8 @@ static bool areSectionNamesEqual	(
 	The caller has to ensure that szK1 and szK2 point to buffers of equal lengths.
 */
 static bool areKeyNamesEqual		(
-				const char *cunilog_restrict	szK1,
-				const char *cunilog_restrict	szK2,
+				const char *szK1,
+				const char *szK2,
 				size_t							len,
 				enum enGetValsCaseSensitivity	cs		
 									)
@@ -24806,8 +24887,8 @@ static bool areKeyNamesEqual		(
 
 static unsigned int CunilogGetIniValuesFromKey_int	(
 				SCUNILOGINIVALUES				**pValues,
-				const char						*cunilog_restrict szSection,	size_t	lnSection,
-				const char						*cunilog_restrict szKey,		size_t	lnKey,
+				const char						*szSection,		size_t	lnSection,
+				const char						*szKey,			size_t	lnKey,
 				SCUNILOGINI						*pCunilogIni,
 				enum enGetValsCaseSensitivity	cs		
 													)
@@ -24852,8 +24933,8 @@ static unsigned int CunilogGetIniValuesFromKey_int	(
 
 unsigned int CunilogGetIniValuesFromKey		(
 				SCUNILOGINIVALUES	**pValues,
-				const char			*cunilog_restrict szSection,	size_t	lnSection,
-				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				const char			*szSection,		size_t	lnSection,
+				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
 											)
 {
@@ -24870,8 +24951,8 @@ unsigned int CunilogGetIniValuesFromKey		(
 
 unsigned int CunilogGetIniValuesFromKey_ci	(
 				SCUNILOGINIVALUES	**pValues,
-				const char			*cunilog_restrict szSection,	size_t	lnSection,
-				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				const char			*szSection,		size_t	lnSection,
+				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
 											)
 {
@@ -24888,8 +24969,8 @@ unsigned int CunilogGetIniValuesFromKey_ci	(
 
 const char *CunilogGetFirstIniValueFromKey		(
 				size_t			*pLen,
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 												)
 {
@@ -24916,8 +24997,8 @@ const char *CunilogGetFirstIniValueFromKey		(
 
 const char *CunilogGetFirstIniValueFromKey_ci	(
 				size_t			*pLen,
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 												)
 {
@@ -24943,8 +25024,8 @@ const char *CunilogGetFirstIniValueFromKey_ci	(
 }
 
 static bool CunilogIniKeyExists_int	(
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni,
 				enum enGetValsCaseSensitivity	cs		
 									)
@@ -24984,8 +25065,8 @@ static bool CunilogIniKeyExists_int	(
 }
 
 bool CunilogIniKeyExists	(
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 							)
 {
@@ -24996,8 +25077,8 @@ bool CunilogIniKeyExists	(
 }
 
 bool CunilogIniKeyExists_ci	(
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 							)
 {
@@ -28826,23 +28907,25 @@ enum cunilogeventseverity
 	,	cunilogEvtSeverityEmergency								//	5
 	,	cunilogEvtSeverityNotice								//	6
 	,	cunilogEvtSeverityInfo									//  7
-	,	cunilogEvtSeverityMessage								//  8
-	,	cunilogEvtSeverityWarning								//  9
-	,	cunilogEvtSeverityError									// 10
-	,	cunilogEvtSeverityPass									// 11
-	,	cunilogEvtSeverityFail									// 12
-	,	cunilogEvtSeverityCritical								// 13
-	,	cunilogEvtSeverityFatal									// 14
-	,	cunilogEvtSeverityDebug									// 15
-	,	cunilogEvtSeverityTrace									// 16
-	,	cunilogEvtSeverityDetail								// 17
-	,	cunilogEvtSeverityVerbose								// 18
-	,	cunilogEvtSeverityIllegal								// 19
-	,	cunilogEvtSeveritySyntax								// 20
+	,	cunilogEvtSeverityOutput								//  8
+	,	cunilogEvtSeverityMessage								//  9
+	,	cunilogEvtSeverityWarning								// 10
+	,	cunilogEvtSeverityError									// 11
+	,	cunilogEvtSeverityPass									// 12
+	,	cunilogEvtSeverityFail									// 13
+	,	cunilogEvtSeverityCritical								// 14
+	,	cunilogEvtSeverityFatal									// 15
+	,	cunilogEvtSeverityDebug									// 16
+	,	cunilogEvtSeverityTrace									// 17
+	,	cunilogEvtSeverityDetail								// 18
+	,	cunilogEvtSeverityVerbose								// 19
+	,	cunilogEvtSeverityIllegal								// 20
+	,	cunilogEvtSeveritySyntax								// 21
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
 };
+typedef enum cunilogeventseverity cueventseverity;
 */
 
 /*
@@ -28876,143 +28959,22 @@ static const SEVTSEVTEXTS EvtSevTexts [] =
 	{"EMG",	"EMRGY",	"EMRGY",	"EMERGENCY",	"EMERGENCY"},	// cunilogEvtSeverityEmergency	 5
 	{"NOT",	"NOTE ",	"NOTE",		"NOTICE   ",	"NOTICE"},		// cunilogEvtSeverityNotice		 6
 	{"INF",	"INFO ",	"INFO",		"INFO     ",	"INFO"},		// cunilogEvtSeverityInfo		 7
-	{"MSG",	"MESSG",	"MESSG",	"MESSAGE  ",	"MESSAGE"},		// cunilogEvtSeverityMessage	 8
-	{"WRN",	"WARN ",	"WARN",		"WARNING  ",	"WARNING"},		// cunilogEvtSeverityWarning	 9
-	{"ERR",	"ERROR",	"ERROR",	"ERROR    ",	"ERROR"},		// cunilogEvtSeverityError		10
-	{"PAS",	"PASS ",	"PASS",		"PASS     ",	"PASS"},		// cunilogEvtSeverityPass		11
-	{"FAI",	"FAIL ",	"FAIL",		"FAIL     ",	"FAIL"},		// cunilogEvtSeverityFail		12
-	{"CRI",	"CRIT ",	"CRIT",		"CRITICAL ",	"CRITICAL"},	// cunilogEvtSeverityCritical	13
-	{"FTL",	"FATAL",	"FATAL",	"FATAL    ",	"FATAL"},		// cunilogEvtSeverityFatal		14
-	{"DBG",	"DEBUG",	"DEBUG",	"DEBUG    ",	"DEBUG"},		// cunilogEvtSeverityDebug		15
-	{"TRC",	"TRACE",	"TRACE",	"TRACE    ",	"TRACE"},		// cunilogEvtSeverityTrace		16
-	{"DET",	"DETAI",	"DETAI",	"DETAIL   ",	"DETAIL"},		// cunilogEvtSeverityDetail		17
-	{"VBS",	"VERBO",	"VERBO",	"VERBOSE  ",	"VERBOSE"},		// cunilogEvtSeverityVerbose	18
-	{"ILG",	"ILLEG",	"ILLEG",	"ILLEGAL  ",	"ILLEGAL"},		// cunilogEvtSeverityIllegal	19
-	{"SYN",	"SYNTX",	"SYNTX",	"SYNTAX   ",	"SYNTAX"},		// cunilogEvtSeveritySyntax		20
+	{"OUT", "OUTPT",	"OUTPT",	"OUTPUT   ",	"OUTPUT"},		// cunilogEvtSeverityOutput		 8
+	{"MSG",	"MESSG",	"MESSG",	"MESSAGE  ",	"MESSAGE"},		// cunilogEvtSeverityMessage	 9
+	{"WRN",	"WARN ",	"WARN",		"WARNING  ",	"WARNING"},		// cunilogEvtSeverityWarning	10
+	{"ERR",	"ERROR",	"ERROR",	"ERROR    ",	"ERROR"},		// cunilogEvtSeverityError		11
+	{"PAS",	"PASS ",	"PASS",		"PASS     ",	"PASS"},		// cunilogEvtSeverityPass		12
+	{"FAI",	"FAIL ",	"FAIL",		"FAIL     ",	"FAIL"},		// cunilogEvtSeverityFail		13
+	{"CRI",	"CRIT ",	"CRIT",		"CRITICAL ",	"CRITICAL"},	// cunilogEvtSeverityCritical	14
+	{"FTL",	"FATAL",	"FATAL",	"FATAL    ",	"FATAL"},		// cunilogEvtSeverityFatal		15
+	{"DBG",	"DEBUG",	"DEBUG",	"DEBUG    ",	"DEBUG"},		// cunilogEvtSeverityDebug		16
+	{"TRC",	"TRACE",	"TRACE",	"TRACE    ",	"TRACE"},		// cunilogEvtSeverityTrace		17
+	{"DET",	"DETAI",	"DETAI",	"DETAIL   ",	"DETAIL"},		// cunilogEvtSeverityDetail		18
+	{"VBS",	"VERBO",	"VERBO",	"VERBOSE  ",	"VERBOSE"},		// cunilogEvtSeverityVerbose	19
+	{"ILG",	"ILLEG",	"ILLEG",	"ILLEGAL  ",	"ILLEGAL"},		// cunilogEvtSeverityIllegal	20
+	{"SYN",	"SYNTX",	"SYNTX",	"SYNTAX   ",	"SYNTAX"},		// cunilogEvtSeveritySyntax		21
 };
 
-/*
-static const char *EventSeverityTexts3 [] =
-{
-		""				// cunilogEvtSeverityNone			0
-	,	""				// cunilogEvtSeverityNonePass		1
-	,	""				// cunilogEvtSevertiyNoneFail		2
-	,	""				// cunilogEvtSevertiyNoneWarn		3
-	,	"   "			// cunilogEvtSeverityBlanks			4
-	,	"EMG"			// cunilogEvtSeverityEmergency		5
-	,	"NOT"			// cunilogEvtSeverityNotice			6
-	,	"INF"
-	,	"MSG"
-	,	"WRN"
-	,	"ERR"
-	,	"PAS"			// cunilogEvtSeverityPass			11
-	,	"FAI"
-	,	"CRI"
-	,	"FTL"
-	,	"DBG"
-	,	"TRC"
-	,	"DET"
-	,	"VBS"
-	,	"ILG"			// cunilogEvtSeverityIllegal		19
-	,	"SYN"			// cunilogEvtSeveritySyntax			20
-};
-static const char *EventSeverityTexts5 [] =
-{
-		""				// cunilogEvtSeverityNone			0
-	,	""				// cunilogEvtSeverityNonePass		1
-	,	""				// cunilogEvtSevertiyNoneFail		2
-	,	""				// cunilogEvtSevertiyNoneWarn		3
-	,	"     "			// cunilogEvtSeverityBlanks			4
-	,	"EMRGY"			// cunilogEvtSeverityEmergency		5
-	,	"NOTE "			// cunilogEvtSeverityNotice			6
-	,	"INFO "
-	,	"MESSG"
-	,	"WARN "
-	,	"ERROR"
-	,	"PASS "			//cunilogEvtSeverityPass			11
-	,	"FAIL "
-	,	"CRIT "
-	,	"FATAL"
-	,	"DEBUG"
-	,	"TRACE"
-	,	"DETAI"
-	,	"VERBO"
-	,	"ILLEG"			// cunilogEvtSeverityIllegal		19
-	,	"SYNTX"			// cunilogEvtSeveritySyntax			20
-};
-static const char *EventSeverityTexts5tgt [] =
-{
-		""				// cunilogEvtSeverityNone			0
-	,	""				// cunilogEvtSeverityNonePass		1
-	,	""				// cunilogEvtSevertiyNoneFail		2
-	,	""				// cunilogEvtSevertiyNoneWarn		3
-	,	""				// cunilogEvtSeverityBlanks			4
-	,	"EMRGY"			// cunilogEvtSeverityEmergency		5
-	,	"NOTE"			// cunilogEvtSeverityNotice			6
-	,	"INFO"
-	,	"MESSG"
-	,	"WARN"
-	,	"ERROR"
-	,	"PASS"			//cunilogEvtSeverityPass			11
-	,	"FAIL"
-	,	"CRIT"
-	,	"FATAL"
-	,	"DEBUG"
-	,	"TRACE"
-	,	"DETAI"
-	,	"VERBO"
-	,	"ILLEG"			// cunilogEvtSeverityIllegal		19
-	,	"SYNTX"			// cunilogEvtSeveritySyntax			20
-};
-static const char *EventSeverityTexts9 [] =
-{
-		""				// cunilogEvtSeverityNone			0
-	,	""				// cunilogEvtSeverityNonePass		1
-	,	""				// cunilogEvtSevertiyNoneFail		2
-	,	""				// cunilogEvtSevertiyNoneWarn		3
-	,	"         "		// cunilogEvtSeverityBlanks			4
-	,	"EMERGENCY"		// cunilogEvtSeverityEmergency		5
-	,	"NOTICE   "		// cunilogEvtSeverityNotice			6
-	,	"INFO     "
-	,	"MESSAGE  "
-	,	"WARNING  "
-	,	"ERROR    "
-	,	"PASS     "		// cunilogEvtSeverityPass			11
-	,	"FAIL     "
-	,	"CRITICAL "
-	,	"FATAL    "
-	,	"DEBUG    "
-	,	"TRACE    "
-	,	"DETAIL   "
-	,	"VERBOSE  "
-	,	"ILLEGAL  "		// cunilogEvtSeverityIllegal		19
-	,	"SYNTAX   "		// cunilogEvtSeveritySyntax			20
-};
-static const char *EventSeverityTexts9tgt [] =
-{
-		""				// cunilogEvtSeverityNone			0
-	,	""				// cunilogEvtSeverityNonePass		1
-	,	""				// cunilogEvtSevertiyNoneFail		2
-	,	""				// cunilogEvtSevertiyNoneWarn		3
-	,	""				// cunilogEvtSeverityBlanks			4
-	,	"EMERGENCY"		// cunilogEvtSeverityEmergency		5
-	,	"NOTICE"		// cunilogEvtSeverityNotice			6
-	,	"INFO"
-	,	"MESSAGE"
-	,	"WARNING"
-	,	"ERROR"
-	,	"PASS"			// cunilogEvtSeverityPass			11
-	,	"FAIL"
-	,	"CRITICAL"
-	,	"FATAL"
-	,	"DEBUG"
-	,	"TRACE"
-	,	"DETAIL"
-	,	"VERBOSE"
-	,	"ILLEGAL"		// cunilogEvtSeverityIllegal		19
-	,	"SYNTAX"		// cunilogEvtSeveritySyntax			20
-};
-*/
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 STRANSICOLOURSEQUENCE evtSeverityColours [cunilogEvtSeverityXAmountEnumValues] =
@@ -29430,17 +29392,15 @@ static size_t readCaptionLengthFromData (unsigned char *pData, size_t ui)
 
 	switch (ui)
 	{
-		case 0:	lnRet = 0;									break;
-		case 1:	memcpy (&ui8, pData, ui);	lnRet = ui8;	break;
-		case 2:	memcpy (&ui16, pData, ui);	lnRet = ui16;	break;
-		case 4:	memcpy (&ui32, pData, ui);	lnRet = ui32;	break;
-		case 8:	
+		case 0:									lnRet = 0;				break;
+		case 1:	memcpy (&ui8,	pData, ui);		lnRet = ui8;			break;
+		case 2:	memcpy (&ui16,	pData, ui);		lnRet = ui16;			break;
+		case 4:	memcpy (&ui32,	pData, ui);		lnRet = ui32;			break;
+		case 8:
 				ubf_assert_msg (false, "Really??? A caption length of more than 4 GiB??");
-				memcpy (&ui64, pData, ui);
-				lnRet = (size_t) ui64;						break;
+				memcpy (&ui64,	pData, ui);		lnRet = (size_t) ui64;	break;
 		default:
-				ubf_assert_msg (false, "Bug");
-				lnRet = 0;									break;
+				ubf_assert_msg (false, "Bug");	lnRet = 0;				break;
 	}
 	return lnRet;
 }
@@ -30083,7 +30043,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 		CunilogEnableANSIifNotInitialised ();
 
 		if (len)
-		{	// This function expects a NUL-terminated string.
+		{	// These functions expect a NUL-terminated string.
 			ubf_assert (strlen (szOutput) == len);
 			ubf_assert (ASCII_NUL == szOutput [len]);
 
@@ -30115,7 +30075,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 		CunilogEnableANSIifNotInitialised ();
 
 		if (len)
-		{	// This function expects a NUL-terminated string.
+		{	// These functions expect a NUL-terminated string.
 			ubf_assert (strlen (szOutput) == len);
 			ubf_assert (ASCII_NUL == szOutput [len]);
 
@@ -32957,8 +32917,7 @@ bool logTextWU16sevl			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t 
 	if (p8)
 	{
 		UTF8_from_WinU16l (p8, siz, cwText, il);
-		if (ASCII_NUL == p8 [siz])
-			-- siz;
+		p8 [siz] = ASCII_NUL;
 		bool b = logTextU8sevl (put, sev, p8, siz);
 
 		if (p8 != s8)
@@ -32978,32 +32937,7 @@ bool logTextWU16sev			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
-	char s8 [CUNILOG_STD_MSG_SIZE * 4];
-	char *p8;
-
-	int siz = reqUTF8size (cwText);
-
-	// We always need at least space for a NUL terminator, hence siz can actually never
-	//	be 0 here.
-	ubf_assert_non_0 (siz);
-
-	if (siz <= CUNILOG_STD_MSG_SIZE * 4)
-		p8 = s8;
-	else
-		p8 = malloc (siz);
-	if (p8)
-	{
-		UTF8_from_WinU16 (p8, siz, cwText);
-		if (ASCII_NUL == p8 [siz])
-			-- siz;
-		bool b = logTextU8sevl (put, sev, p8, siz);
-
-		if (p8 != s8)
-			free (p8);
-
-		return b;
-	}
-	return false;
+	return logTextWU16sevl (put, sev, cwText, USE_STRLEN);
 }
 #endif
 
@@ -33796,20 +33730,21 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet,  5 == cunilogEvtSeverityEmergency);
 		ubf_expect_bool_AND (bRet,  6 == cunilogEvtSeverityNotice);
 		ubf_expect_bool_AND (bRet,  7 == cunilogEvtSeverityInfo);
-		ubf_expect_bool_AND (bRet,  8 == cunilogEvtSeverityMessage);
-		ubf_expect_bool_AND (bRet,  9 == cunilogEvtSeverityWarning);
-		ubf_expect_bool_AND (bRet, 10 == cunilogEvtSeverityError);
-		ubf_expect_bool_AND (bRet, 11 == cunilogEvtSeverityPass);
-		ubf_expect_bool_AND (bRet, 12 == cunilogEvtSeverityFail);
-		ubf_expect_bool_AND (bRet, 13 == cunilogEvtSeverityCritical);
-		ubf_expect_bool_AND (bRet, 14 == cunilogEvtSeverityFatal);
-		ubf_expect_bool_AND (bRet, 15 == cunilogEvtSeverityDebug);
-		ubf_expect_bool_AND (bRet, 16 == cunilogEvtSeverityTrace);
-		ubf_expect_bool_AND (bRet, 17 == cunilogEvtSeverityDetail);
-		ubf_expect_bool_AND (bRet, 18 == cunilogEvtSeverityVerbose);
-		ubf_expect_bool_AND (bRet, 19 == cunilogEvtSeverityIllegal);
-		ubf_expect_bool_AND (bRet, 20 == cunilogEvtSeveritySyntax);
-		ubf_expect_bool_AND (bRet, 21 == cunilogEvtSeverityXAmountEnumValues);
+		ubf_expect_bool_AND (bRet,  8 == cunilogEvtSeverityOutput);
+		ubf_expect_bool_AND (bRet,  9 == cunilogEvtSeverityMessage);
+		ubf_expect_bool_AND (bRet, 10 == cunilogEvtSeverityWarning);
+		ubf_expect_bool_AND (bRet, 11 == cunilogEvtSeverityError);
+		ubf_expect_bool_AND (bRet, 12 == cunilogEvtSeverityPass);
+		ubf_expect_bool_AND (bRet, 13 == cunilogEvtSeverityFail);
+		ubf_expect_bool_AND (bRet, 14 == cunilogEvtSeverityCritical);
+		ubf_expect_bool_AND (bRet, 15 == cunilogEvtSeverityFatal);
+		ubf_expect_bool_AND (bRet, 16 == cunilogEvtSeverityDebug);
+		ubf_expect_bool_AND (bRet, 17 == cunilogEvtSeverityTrace);
+		ubf_expect_bool_AND (bRet, 18 == cunilogEvtSeverityDetail);
+		ubf_expect_bool_AND (bRet, 19 == cunilogEvtSeverityVerbose);
+		ubf_expect_bool_AND (bRet, 20 == cunilogEvtSeverityIllegal);
+		ubf_expect_bool_AND (bRet, 21 == cunilogEvtSeveritySyntax);
+		ubf_expect_bool_AND (bRet, 22 == cunilogEvtSeverityXAmountEnumValues);
 
 		ubf_expect_bool_AND (bRet, 0 == strlen (EvtSevTexts [cunilogEvtSeverityNone]		.texts3));
 		ubf_expect_bool_AND (bRet, 0 == strlen (EvtSevTexts [cunilogEvtSeverityNonePass]	.texts3));
@@ -33819,6 +33754,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityEmergency]	.texts3));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityNotice]		.texts3));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityInfo]		.texts3));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityOutput]		.texts3));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityMessage]		.texts3));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityWarning]		.texts3));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityError]		.texts3));
@@ -33841,6 +33777,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityEmergency]	.texts5));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityNotice]		.texts5));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityInfo]		.texts5));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityOutput]		.texts5));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityMessage]		.texts5));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityWarning]		.texts5));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityError]		.texts5));
@@ -33863,6 +33800,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityEmergency]	.texts5tgt));
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityNotice]		.texts5tgt));
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityInfo]		.texts5tgt));
+		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityOutput]		.texts5tgt));
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityMessage]		.texts5tgt));
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityWarning]		.texts5tgt));
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityError]		.texts5tgt));
@@ -33885,6 +33823,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityEmergency]	.texts9));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityNotice]		.texts9));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityInfo]		.texts9));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityOutput]		.texts9));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityMessage]		.texts9));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityWarning]		.texts9));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityError]		.texts9));
@@ -33907,6 +33846,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityEmergency]	.texts9tgt));
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityNotice]		.texts9tgt));
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityInfo]		.texts9tgt));
+		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityOutput]		.texts9tgt));
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityMessage]		.texts9tgt));
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityWarning]		.texts9tgt));
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityError]		.texts9tgt));
@@ -33937,6 +33877,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNotice,	cunilogEvtSeverityTypeChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityTypeChars3);
+		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityTypeChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityTypeChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
@@ -33981,6 +33923,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityTypeChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityTypeChars5);
+		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityTypeChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityWarning,	cunilogEvtSeverityTypeChars5);
@@ -34024,6 +33968,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityTypeChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityTypeChars9);
+		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityTypeChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityWarning,	cunilogEvtSeverityTypeChars9);
@@ -34059,6 +34005,10 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityInfo,	cunilogEvtSeverityTypeChars3);
 		ubf_expect_bool_AND (bRet, 4 == stEvtSev);			// Includes a terminating space (" ") but no NUL.
 		ubf_expect_bool_AND (bRet, !memcmp ("INF ", szEvtSev, 4 + 1));
+		memset (szEvtSev, 0, 32);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityOutput,	cunilogEvtSeverityTypeChars3);
+		ubf_expect_bool_AND (bRet, 4 == stEvtSev);			// Includes a terminating space (" ") but no NUL.
+		ubf_expect_bool_AND (bRet, !memcmp ("OUT ", szEvtSev, 4 + 1));
 		memset (szEvtSev, 0, 32);
 		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityMessage,	cunilogEvtSeverityTypeChars3);
 		ubf_expect_bool_AND (bRet, 4 == stEvtSev);			// Includes a terminating space (" ") but no NUL.
@@ -34521,6 +34471,165 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		return bRet;
 	}
 #endif
+/****************************************************************************************
+
+	File:		cunilogprocess.c
+	Why:		Cunilog wrapper for module ProcessHelpers.
+	OS:			C99
+	Author:		Thomas
+	Created:	2025-11-02
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-11-02	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	Cunilog wrapper for module ProcessHelpers.
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include "./cunilog.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ubfdebug.h"
+		#include "./ProcessHelpers.h"
+		#include "./unref.h"
+	#else
+		#include "./../dbg/ubfdebug.h"
+		#include "./../OS/ProcessHelpers.h"
+		#include "./../pre/unref.h"
+	#endif
+
+#endif
+
+/*
+	This function will probably not be implemented, as its functionality is already
+	covered by RunCunilogProcessWithTargets ().
+
+bool RunCunilogProcessWithTarget	(
+		CUNILOG_TARGET			*pctStdoutStderr,
+		cueventseverity			sevStdout,
+		cueventseverity			sevStderr,
+		const char				*szExecutable,
+		const char				*szCmdLine,
+		const char				*szWorkingDir,
+		uint64_t				uiChildExitTimeout,			// Time in ms to wait for the child to
+															//	exit/terminate.
+		int						*pExitCode					// Exit code of process.
+									)
+{
+	UNUSED (pctStdoutStderr);
+	UNUSED (sevStdout);
+	UNUSED (sevStderr);
+	UNUSED (szExecutable);
+	UNUSED (szCmdLine);
+	UNUSED (szWorkingDir);
+	UNUSED (uiChildExitTimeout);
+	UNUSED (pExitCode);
+
+	return false;
+}
+*/
+
+typedef struct culgProcStdpCstm
+{
+	CUNILOG_TARGET				*pCTstdout;
+	CUNILOG_TARGET				*pCTstderr;
+	cueventseverity				sevStdout;
+	cueventseverity				sevStderr;
+} CULGPROCSTDPCSTM;
+
+enRCmdCBval stdoutCallback (SRUNCMDCBINF *pInf, char *szOutput, size_t lnOutput, void *pCustom)
+{
+	UNUSED (pInf);
+
+	CULGPROCSTDPCSTM *pcst = pCustom;
+	if (pcst->pCTstdout)
+		logTextU8sevl (pcst->pCTstdout, pcst->sevStdout, szOutput, lnOutput);
+	return enRunCmdRet_Continue;
+}
+
+enRCmdCBval stderrCallback (SRUNCMDCBINF *pInf, char *szOutput, size_t lnOutput, void *pCustom)
+{
+	UNUSED (pInf);
+
+	CULGPROCSTDPCSTM *pcst = pCustom;
+	if (pcst->pCTstderr)
+		logTextU8sevl (pcst->pCTstderr, pcst->sevStderr, szOutput, lnOutput);
+	return enRunCmdRet_Continue;
+}
+
+bool RunCunilogProcessWithTargets	(
+		CUNILOG_TARGET			*pctStdout,
+		cueventseverity			sevStdout,
+		CUNILOG_TARGET			*pctStderr,
+		cueventseverity			sevStderr,
+		const char				*szExecutable,
+		const char				*szCmdLine,
+		const char				*szWorkingDir,
+		int						*pExitCode					// Exit code of process.
+									)
+{
+	SRCMDCBS scbs;
+	memset (&scbs, 0, sizeof (scbs));
+	scbs.cbOut = stdoutCallback;
+	scbs.cbErr = stderrCallback;
+
+	uint16_t uiCallbackFlags	= RUNCMDPROC_CALLB_STDOUT
+								| RUNCMDPROC_CALLB_STDERR;
+	uint64_t uiChildExitTimeout	= 5000;
+
+	CULGPROCSTDPCSTM cust;
+	cust.pCTstdout = pctStdout;
+	cust.pCTstderr = pctStderr;
+	cust.sevStdout = sevStdout;
+	cust.sevStderr = sevStderr;
+
+	bool bRun = CreateAndRunCmdProcessCapture	(
+					szExecutable, szCmdLine, szWorkingDir,
+					&scbs, enRunCmdHow_OneLine, uiCallbackFlags,
+					&cust, uiChildExitTimeout,
+					pExitCode
+												);
+	return bRun;
+}
+
+#endif														// Of #ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS.
 /****************************************************************************************
 
 	File:		bottom.c

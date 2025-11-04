@@ -180,6 +180,9 @@
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinSharedMutex.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogprocess.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\c\testcunilog\testcunilogSingleThreaded.h">
@@ -378,6 +381,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinSharedMutex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogprocess.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

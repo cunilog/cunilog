@@ -1,0 +1,2 @@
+# Cunilog event severities
+

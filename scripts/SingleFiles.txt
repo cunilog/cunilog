@@ -73,6 +73,7 @@ head
 /cunilog/cunilogevtcmdsstructs
 /cunilog/cunilogevtcmds
 /cunilog/cunilog
+/cunilog/cunilogprocess
 bottom
 
 :.c
@@ -134,4 +135,5 @@ head
 /cunilog/cunilogevtcmdsstructs
 /cunilog/cunilogevtcmds
 /cunilog/cunilog
+/cunilog/cunilogprocess
 bottom

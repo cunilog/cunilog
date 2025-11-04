@@ -84,7 +84,7 @@ A single key with its value can reside on the same line as a section name.
 
 ### No sections
 
-The config files Cunilog can read do not require sections:
+The config files Cunilog can read do not require sections.
 ```ini
 key1 = value1
 key2 = value2
@@ -95,7 +95,7 @@ key3 = value3
 
 Keys and values may contain [white space](https://en.wikipedia.org/wiki/Whitespace_character).
 However, white space is removed before the first and after the last non-white-space character
-unless the key or values is enclosed in quotation characters.
+unless key or values are enclosed in quotation characters.
 
 | Opening quote | Closing quote |
 | ------------- | ------------- |

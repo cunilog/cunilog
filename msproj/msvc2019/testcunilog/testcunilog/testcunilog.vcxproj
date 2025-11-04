@@ -168,6 +168,7 @@
     <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogerrors.c" />
     <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogevtcmds.c" />
     <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogevtcmdsstructs.c" />
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogprocess.c" />
     <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogstructs.c" />
     <ClCompile Include="..\..\..\..\src\c\datetime\ISO__DATE__.c" />
     <ClCompile Include="..\..\..\..\src\c\datetime\shortmonths.c" />
@@ -230,6 +231,7 @@
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogerrors.h" />
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogevtcmds.h" />
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogevtcmdsstructs.h" />
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogprocess.h" />
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogstructs.h" />
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogversion.h" />
     <ClInclude Include="..\..\..\..\src\c\datetime\ISO__DATE__.h" />

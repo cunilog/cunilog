@@ -2577,23 +2577,25 @@ enum cunilogeventseverity
 	,	cunilogEvtSeverityEmergency								//	5
 	,	cunilogEvtSeverityNotice								//	6
 	,	cunilogEvtSeverityInfo									//  7
-	,	cunilogEvtSeverityMessage								//  8
-	,	cunilogEvtSeverityWarning								//  9
-	,	cunilogEvtSeverityError									// 10
-	,	cunilogEvtSeverityPass									// 11
-	,	cunilogEvtSeverityFail									// 12
-	,	cunilogEvtSeverityCritical								// 13
-	,	cunilogEvtSeverityFatal									// 14
-	,	cunilogEvtSeverityDebug									// 15
-	,	cunilogEvtSeverityTrace									// 16
-	,	cunilogEvtSeverityDetail								// 17
-	,	cunilogEvtSeverityVerbose								// 18
-	,	cunilogEvtSeverityIllegal								// 19
-	,	cunilogEvtSeveritySyntax								// 20
+	,	cunilogEvtSeverityOutput								//  8
+	,	cunilogEvtSeverityMessage								//  9
+	,	cunilogEvtSeverityWarning								// 10
+	,	cunilogEvtSeverityError									// 11
+	,	cunilogEvtSeverityPass									// 12
+	,	cunilogEvtSeverityFail									// 13
+	,	cunilogEvtSeverityCritical								// 14
+	,	cunilogEvtSeverityFatal									// 15
+	,	cunilogEvtSeverityDebug									// 16
+	,	cunilogEvtSeverityTrace									// 17
+	,	cunilogEvtSeverityDetail								// 18
+	,	cunilogEvtSeverityVerbose								// 19
+	,	cunilogEvtSeverityIllegal								// 20
+	,	cunilogEvtSeveritySyntax								// 21
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
 };
+typedef enum cunilogeventseverity cueventseverity;
 */
 
 /*
@@ -2627,143 +2629,22 @@ static const SEVTSEVTEXTS EvtSevTexts [] =
 	{"EMG",	"EMRGY",	"EMRGY",	"EMERGENCY",	"EMERGENCY"},	// cunilogEvtSeverityEmergency	 5
 	{"NOT",	"NOTE ",	"NOTE",		"NOTICE   ",	"NOTICE"},		// cunilogEvtSeverityNotice		 6
 	{"INF",	"INFO ",	"INFO",		"INFO     ",	"INFO"},		// cunilogEvtSeverityInfo		 7
-	{"MSG",	"MESSG",	"MESSG",	"MESSAGE  ",	"MESSAGE"},		// cunilogEvtSeverityMessage	 8
-	{"WRN",	"WARN ",	"WARN",		"WARNING  ",	"WARNING"},		// cunilogEvtSeverityWarning	 9
-	{"ERR",	"ERROR",	"ERROR",	"ERROR    ",	"ERROR"},		// cunilogEvtSeverityError		10
-	{"PAS",	"PASS ",	"PASS",		"PASS     ",	"PASS"},		// cunilogEvtSeverityPass		11
-	{"FAI",	"FAIL ",	"FAIL",		"FAIL     ",	"FAIL"},		// cunilogEvtSeverityFail		12
-	{"CRI",	"CRIT ",	"CRIT",		"CRITICAL ",	"CRITICAL"},	// cunilogEvtSeverityCritical	13
-	{"FTL",	"FATAL",	"FATAL",	"FATAL    ",	"FATAL"},		// cunilogEvtSeverityFatal		14
-	{"DBG",	"DEBUG",	"DEBUG",	"DEBUG    ",	"DEBUG"},		// cunilogEvtSeverityDebug		15
-	{"TRC",	"TRACE",	"TRACE",	"TRACE    ",	"TRACE"},		// cunilogEvtSeverityTrace		16
-	{"DET",	"DETAI",	"DETAI",	"DETAIL   ",	"DETAIL"},		// cunilogEvtSeverityDetail		17
-	{"VBS",	"VERBO",	"VERBO",	"VERBOSE  ",	"VERBOSE"},		// cunilogEvtSeverityVerbose	18
-	{"ILG",	"ILLEG",	"ILLEG",	"ILLEGAL  ",	"ILLEGAL"},		// cunilogEvtSeverityIllegal	19
-	{"SYN",	"SYNTX",	"SYNTX",	"SYNTAX   ",	"SYNTAX"},		// cunilogEvtSeveritySyntax		20
+	{"OUT", "OUTPT",	"OUTPT",	"OUTPUT   ",	"OUTPUT"},		// cunilogEvtSeverityOutput		 8
+	{"MSG",	"MESSG",	"MESSG",	"MESSAGE  ",	"MESSAGE"},		// cunilogEvtSeverityMessage	 9
+	{"WRN",	"WARN ",	"WARN",		"WARNING  ",	"WARNING"},		// cunilogEvtSeverityWarning	10
+	{"ERR",	"ERROR",	"ERROR",	"ERROR    ",	"ERROR"},		// cunilogEvtSeverityError		11
+	{"PAS",	"PASS ",	"PASS",		"PASS     ",	"PASS"},		// cunilogEvtSeverityPass		12
+	{"FAI",	"FAIL ",	"FAIL",		"FAIL     ",	"FAIL"},		// cunilogEvtSeverityFail		13
+	{"CRI",	"CRIT ",	"CRIT",		"CRITICAL ",	"CRITICAL"},	// cunilogEvtSeverityCritical	14
+	{"FTL",	"FATAL",	"FATAL",	"FATAL    ",	"FATAL"},		// cunilogEvtSeverityFatal		15
+	{"DBG",	"DEBUG",	"DEBUG",	"DEBUG    ",	"DEBUG"},		// cunilogEvtSeverityDebug		16
+	{"TRC",	"TRACE",	"TRACE",	"TRACE    ",	"TRACE"},		// cunilogEvtSeverityTrace		17
+	{"DET",	"DETAI",	"DETAI",	"DETAIL   ",	"DETAIL"},		// cunilogEvtSeverityDetail		18
+	{"VBS",	"VERBO",	"VERBO",	"VERBOSE  ",	"VERBOSE"},		// cunilogEvtSeverityVerbose	19
+	{"ILG",	"ILLEG",	"ILLEG",	"ILLEGAL  ",	"ILLEGAL"},		// cunilogEvtSeverityIllegal	20
+	{"SYN",	"SYNTX",	"SYNTX",	"SYNTAX   ",	"SYNTAX"},		// cunilogEvtSeveritySyntax		21
 };
 
-/*
-static const char *EventSeverityTexts3 [] =
-{
-		""				// cunilogEvtSeverityNone			0
-	,	""				// cunilogEvtSeverityNonePass		1
-	,	""				// cunilogEvtSevertiyNoneFail		2
-	,	""				// cunilogEvtSevertiyNoneWarn		3
-	,	"   "			// cunilogEvtSeverityBlanks			4
-	,	"EMG"			// cunilogEvtSeverityEmergency		5
-	,	"NOT"			// cunilogEvtSeverityNotice			6
-	,	"INF"
-	,	"MSG"
-	,	"WRN"
-	,	"ERR"
-	,	"PAS"			// cunilogEvtSeverityPass			11
-	,	"FAI"
-	,	"CRI"
-	,	"FTL"
-	,	"DBG"
-	,	"TRC"
-	,	"DET"
-	,	"VBS"
-	,	"ILG"			// cunilogEvtSeverityIllegal		19
-	,	"SYN"			// cunilogEvtSeveritySyntax			20
-};
-static const char *EventSeverityTexts5 [] =
-{
-		""				// cunilogEvtSeverityNone			0
-	,	""				// cunilogEvtSeverityNonePass		1
-	,	""				// cunilogEvtSevertiyNoneFail		2
-	,	""				// cunilogEvtSevertiyNoneWarn		3
-	,	"     "			// cunilogEvtSeverityBlanks			4
-	,	"EMRGY"			// cunilogEvtSeverityEmergency		5
-	,	"NOTE "			// cunilogEvtSeverityNotice			6
-	,	"INFO "
-	,	"MESSG"
-	,	"WARN "
-	,	"ERROR"
-	,	"PASS "			//cunilogEvtSeverityPass			11
-	,	"FAIL "
-	,	"CRIT "
-	,	"FATAL"
-	,	"DEBUG"
-	,	"TRACE"
-	,	"DETAI"
-	,	"VERBO"
-	,	"ILLEG"			// cunilogEvtSeverityIllegal		19
-	,	"SYNTX"			// cunilogEvtSeveritySyntax			20
-};
-static const char *EventSeverityTexts5tgt [] =
-{
-		""				// cunilogEvtSeverityNone			0
-	,	""				// cunilogEvtSeverityNonePass		1
-	,	""				// cunilogEvtSevertiyNoneFail		2
-	,	""				// cunilogEvtSevertiyNoneWarn		3
-	,	""				// cunilogEvtSeverityBlanks			4
-	,	"EMRGY"			// cunilogEvtSeverityEmergency		5
-	,	"NOTE"			// cunilogEvtSeverityNotice			6
-	,	"INFO"
-	,	"MESSG"
-	,	"WARN"
-	,	"ERROR"
-	,	"PASS"			//cunilogEvtSeverityPass			11
-	,	"FAIL"
-	,	"CRIT"
-	,	"FATAL"
-	,	"DEBUG"
-	,	"TRACE"
-	,	"DETAI"
-	,	"VERBO"
-	,	"ILLEG"			// cunilogEvtSeverityIllegal		19
-	,	"SYNTX"			// cunilogEvtSeveritySyntax			20
-};
-static const char *EventSeverityTexts9 [] =
-{
-		""				// cunilogEvtSeverityNone			0
-	,	""				// cunilogEvtSeverityNonePass		1
-	,	""				// cunilogEvtSevertiyNoneFail		2
-	,	""				// cunilogEvtSevertiyNoneWarn		3
-	,	"         "		// cunilogEvtSeverityBlanks			4
-	,	"EMERGENCY"		// cunilogEvtSeverityEmergency		5
-	,	"NOTICE   "		// cunilogEvtSeverityNotice			6
-	,	"INFO     "
-	,	"MESSAGE  "
-	,	"WARNING  "
-	,	"ERROR    "
-	,	"PASS     "		// cunilogEvtSeverityPass			11
-	,	"FAIL     "
-	,	"CRITICAL "
-	,	"FATAL    "
-	,	"DEBUG    "
-	,	"TRACE    "
-	,	"DETAIL   "
-	,	"VERBOSE  "
-	,	"ILLEGAL  "		// cunilogEvtSeverityIllegal		19
-	,	"SYNTAX   "		// cunilogEvtSeveritySyntax			20
-};
-static const char *EventSeverityTexts9tgt [] =
-{
-		""				// cunilogEvtSeverityNone			0
-	,	""				// cunilogEvtSeverityNonePass		1
-	,	""				// cunilogEvtSevertiyNoneFail		2
-	,	""				// cunilogEvtSevertiyNoneWarn		3
-	,	""				// cunilogEvtSeverityBlanks			4
-	,	"EMERGENCY"		// cunilogEvtSeverityEmergency		5
-	,	"NOTICE"		// cunilogEvtSeverityNotice			6
-	,	"INFO"
-	,	"MESSAGE"
-	,	"WARNING"
-	,	"ERROR"
-	,	"PASS"			// cunilogEvtSeverityPass			11
-	,	"FAIL"
-	,	"CRITICAL"
-	,	"FATAL"
-	,	"DEBUG"
-	,	"TRACE"
-	,	"DETAIL"
-	,	"VERBOSE"
-	,	"ILLEGAL"		// cunilogEvtSeverityIllegal		19
-	,	"SYNTAX"		// cunilogEvtSeveritySyntax			20
-};
-*/
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 STRANSICOLOURSEQUENCE evtSeverityColours [cunilogEvtSeverityXAmountEnumValues] =
@@ -3181,17 +3062,15 @@ static size_t readCaptionLengthFromData (unsigned char *pData, size_t ui)
 
 	switch (ui)
 	{
-		case 0:	lnRet = 0;									break;
-		case 1:	memcpy (&ui8, pData, ui);	lnRet = ui8;	break;
-		case 2:	memcpy (&ui16, pData, ui);	lnRet = ui16;	break;
-		case 4:	memcpy (&ui32, pData, ui);	lnRet = ui32;	break;
-		case 8:	
+		case 0:									lnRet = 0;				break;
+		case 1:	memcpy (&ui8,	pData, ui);		lnRet = ui8;			break;
+		case 2:	memcpy (&ui16,	pData, ui);		lnRet = ui16;			break;
+		case 4:	memcpy (&ui32,	pData, ui);		lnRet = ui32;			break;
+		case 8:
 				ubf_assert_msg (false, "Really??? A caption length of more than 4 GiB??");
-				memcpy (&ui64, pData, ui);
-				lnRet = (size_t) ui64;						break;
+				memcpy (&ui64,	pData, ui);		lnRet = (size_t) ui64;	break;
 		default:
-				ubf_assert_msg (false, "Bug");
-				lnRet = 0;									break;
+				ubf_assert_msg (false, "Bug");	lnRet = 0;				break;
 	}
 	return lnRet;
 }
@@ -3834,7 +3713,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 		CunilogEnableANSIifNotInitialised ();
 
 		if (len)
-		{	// This function expects a NUL-terminated string.
+		{	// These functions expect a NUL-terminated string.
 			ubf_assert (strlen (szOutput) == len);
 			ubf_assert (ASCII_NUL == szOutput [len]);
 
@@ -3866,7 +3745,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 		CunilogEnableANSIifNotInitialised ();
 
 		if (len)
-		{	// This function expects a NUL-terminated string.
+		{	// These functions expect a NUL-terminated string.
 			ubf_assert (strlen (szOutput) == len);
 			ubf_assert (ASCII_NUL == szOutput [len]);
 
@@ -6708,8 +6587,7 @@ bool logTextWU16sevl			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t 
 	if (p8)
 	{
 		UTF8_from_WinU16l (p8, siz, cwText, il);
-		if (ASCII_NUL == p8 [siz])
-			-- siz;
+		p8 [siz] = ASCII_NUL;
 		bool b = logTextU8sevl (put, sev, p8, siz);
 
 		if (p8 != s8)
@@ -6729,32 +6607,7 @@ bool logTextWU16sev			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
 
-	char s8 [CUNILOG_STD_MSG_SIZE * 4];
-	char *p8;
-
-	int siz = reqUTF8size (cwText);
-
-	// We always need at least space for a NUL terminator, hence siz can actually never
-	//	be 0 here.
-	ubf_assert_non_0 (siz);
-
-	if (siz <= CUNILOG_STD_MSG_SIZE * 4)
-		p8 = s8;
-	else
-		p8 = malloc (siz);
-	if (p8)
-	{
-		UTF8_from_WinU16 (p8, siz, cwText);
-		if (ASCII_NUL == p8 [siz])
-			-- siz;
-		bool b = logTextU8sevl (put, sev, p8, siz);
-
-		if (p8 != s8)
-			free (p8);
-
-		return b;
-	}
-	return false;
+	return logTextWU16sevl (put, sev, cwText, USE_STRLEN);
 }
 #endif
 
@@ -7547,20 +7400,21 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet,  5 == cunilogEvtSeverityEmergency);
 		ubf_expect_bool_AND (bRet,  6 == cunilogEvtSeverityNotice);
 		ubf_expect_bool_AND (bRet,  7 == cunilogEvtSeverityInfo);
-		ubf_expect_bool_AND (bRet,  8 == cunilogEvtSeverityMessage);
-		ubf_expect_bool_AND (bRet,  9 == cunilogEvtSeverityWarning);
-		ubf_expect_bool_AND (bRet, 10 == cunilogEvtSeverityError);
-		ubf_expect_bool_AND (bRet, 11 == cunilogEvtSeverityPass);
-		ubf_expect_bool_AND (bRet, 12 == cunilogEvtSeverityFail);
-		ubf_expect_bool_AND (bRet, 13 == cunilogEvtSeverityCritical);
-		ubf_expect_bool_AND (bRet, 14 == cunilogEvtSeverityFatal);
-		ubf_expect_bool_AND (bRet, 15 == cunilogEvtSeverityDebug);
-		ubf_expect_bool_AND (bRet, 16 == cunilogEvtSeverityTrace);
-		ubf_expect_bool_AND (bRet, 17 == cunilogEvtSeverityDetail);
-		ubf_expect_bool_AND (bRet, 18 == cunilogEvtSeverityVerbose);
-		ubf_expect_bool_AND (bRet, 19 == cunilogEvtSeverityIllegal);
-		ubf_expect_bool_AND (bRet, 20 == cunilogEvtSeveritySyntax);
-		ubf_expect_bool_AND (bRet, 21 == cunilogEvtSeverityXAmountEnumValues);
+		ubf_expect_bool_AND (bRet,  8 == cunilogEvtSeverityOutput);
+		ubf_expect_bool_AND (bRet,  9 == cunilogEvtSeverityMessage);
+		ubf_expect_bool_AND (bRet, 10 == cunilogEvtSeverityWarning);
+		ubf_expect_bool_AND (bRet, 11 == cunilogEvtSeverityError);
+		ubf_expect_bool_AND (bRet, 12 == cunilogEvtSeverityPass);
+		ubf_expect_bool_AND (bRet, 13 == cunilogEvtSeverityFail);
+		ubf_expect_bool_AND (bRet, 14 == cunilogEvtSeverityCritical);
+		ubf_expect_bool_AND (bRet, 15 == cunilogEvtSeverityFatal);
+		ubf_expect_bool_AND (bRet, 16 == cunilogEvtSeverityDebug);
+		ubf_expect_bool_AND (bRet, 17 == cunilogEvtSeverityTrace);
+		ubf_expect_bool_AND (bRet, 18 == cunilogEvtSeverityDetail);
+		ubf_expect_bool_AND (bRet, 19 == cunilogEvtSeverityVerbose);
+		ubf_expect_bool_AND (bRet, 20 == cunilogEvtSeverityIllegal);
+		ubf_expect_bool_AND (bRet, 21 == cunilogEvtSeveritySyntax);
+		ubf_expect_bool_AND (bRet, 22 == cunilogEvtSeverityXAmountEnumValues);
 
 		ubf_expect_bool_AND (bRet, 0 == strlen (EvtSevTexts [cunilogEvtSeverityNone]		.texts3));
 		ubf_expect_bool_AND (bRet, 0 == strlen (EvtSevTexts [cunilogEvtSeverityNonePass]	.texts3));
@@ -7570,6 +7424,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityEmergency]	.texts3));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityNotice]		.texts3));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityInfo]		.texts3));
+		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityOutput]		.texts3));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityMessage]		.texts3));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityWarning]		.texts3));
 		ubf_expect_bool_AND (bRet, 3 == strlen (EvtSevTexts [cunilogEvtSeverityError]		.texts3));
@@ -7592,6 +7447,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityEmergency]	.texts5));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityNotice]		.texts5));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityInfo]		.texts5));
+		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityOutput]		.texts5));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityMessage]		.texts5));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityWarning]		.texts5));
 		ubf_expect_bool_AND (bRet, 5 == strlen (EvtSevTexts [cunilogEvtSeverityError]		.texts5));
@@ -7614,6 +7470,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityEmergency]	.texts5tgt));
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityNotice]		.texts5tgt));
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityInfo]		.texts5tgt));
+		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityOutput]		.texts5tgt));
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityMessage]		.texts5tgt));
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityWarning]		.texts5tgt));
 		ubf_expect_bool_AND (bRet, 5 >= strlen (EvtSevTexts [cunilogEvtSeverityError]		.texts5tgt));
@@ -7636,6 +7493,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityEmergency]	.texts9));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityNotice]		.texts9));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityInfo]		.texts9));
+		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityOutput]		.texts9));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityMessage]		.texts9));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityWarning]		.texts9));
 		ubf_expect_bool_AND (bRet, 9 == strlen (EvtSevTexts [cunilogEvtSeverityError]		.texts9));
@@ -7658,6 +7516,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityEmergency]	.texts9tgt));
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityNotice]		.texts9tgt));
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityInfo]		.texts9tgt));
+		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityOutput]		.texts9tgt));
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityMessage]		.texts9tgt));
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityWarning]		.texts9tgt));
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeverityError]		.texts9tgt));
@@ -7688,6 +7547,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNotice,	cunilogEvtSeverityTypeChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityTypeChars3);
+		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityTypeChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityTypeChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
@@ -7732,6 +7593,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityTypeChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityTypeChars5);
+		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityTypeChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityWarning,	cunilogEvtSeverityTypeChars5);
@@ -7775,6 +7638,8 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityTypeChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityTypeChars9);
+		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityTypeChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
 		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityWarning,	cunilogEvtSeverityTypeChars9);
@@ -7810,6 +7675,10 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityInfo,	cunilogEvtSeverityTypeChars3);
 		ubf_expect_bool_AND (bRet, 4 == stEvtSev);			// Includes a terminating space (" ") but no NUL.
 		ubf_expect_bool_AND (bRet, !memcmp ("INF ", szEvtSev, 4 + 1));
+		memset (szEvtSev, 0, 32);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityOutput,	cunilogEvtSeverityTypeChars3);
+		ubf_expect_bool_AND (bRet, 4 == stEvtSev);			// Includes a terminating space (" ") but no NUL.
+		ubf_expect_bool_AND (bRet, !memcmp ("OUT ", szEvtSev, 4 + 1));
 		memset (szEvtSev, 0, 32);
 		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityMessage,	cunilogEvtSeverityTypeChars3);
 		ubf_expect_bool_AND (bRet, 4 == stEvtSev);			// Includes a terminating space (" ") but no NUL.

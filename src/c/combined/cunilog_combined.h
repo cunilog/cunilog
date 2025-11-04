@@ -8057,6 +8057,10 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 	pCustom				An arbitrary pointer or value that is passed on to the callback
 						functions.
 
+	uiChildExitTimeout	The time to wait for a process to terminate after termination has been
+						requested. On Windows, this is the parameter waitTime of the
+						TerminateProcessControlled () function.
+
 	pExitCode			A pointer to an integer that receives the exit code of the child
 						process. If the exit code is not required, this parameter can be
 						NULL. If pExitCode is not NULL, the function sets the value to
@@ -11250,6 +11254,12 @@ When		Who				What
 #ifndef SIZ_ISO8601DATETIMESTAMP								// "YYYY-MM-DD HH:MI:SS+01:00"
 #define SIZ_ISO8601DATETIMESTAMP			(LEN_ISO8601DATETIMESTAMP + 1)
 #endif
+#ifndef LEN_ISO8601DATETIMESTAMPU8C								// "YYYY-MM-DD HH:MI:SS+01:00"
+#define LEN_ISO8601DATETIMESTAMPU8C			(25 + 6)			//	Each colon is 3 octets.
+#endif
+#ifndef SIZ_ISO8601DATETIMESTAMPU8C								// "YYYY-MM-DD HH:MI:SS+01:00"
+#define SIZ_ISO8601DATETIMESTAMPU8C			(LEN_ISO8601DATETIMESTAMPU8C + 1)
+#endif
 #ifndef LEN_ISO8601DATETIMESTAMP_HOL							// "1YYYY-MM-DD HH:MI:SS+01:00"
 #define LEN_ISO8601DATETIMESTAMP_HOL		(26)
 #endif
@@ -12292,6 +12302,44 @@ void GetISO8601Week_c (char *chISO8601Week);
 	for good summaries.
 */
 void GetISO8601DateTimeStamp (char *chISO8601DateTimeStamp);
+
+/*
+	storeU8ModifierLetterColon
+	storeU8ModifierLetterColon0
+
+	These functions store a modifier letter colon (see https://www.compart.com/en/unicode/U+A789)
+	at the address sz points to.
+
+	The function storeU8ModifierLetterColon () stores only the UTF-8 codepoint for the
+	modifier letter colon, i.e. write exactly 3 octets (bytes). It does not write a NUL terminator.
+
+	The function storeU8ModifierLetterColon0 () stores the UTF-8 codepoint for the
+	modifier letter colon plus a NUL terminator, i.e. write exactly 4 octets (bytes).
+*/
+void storeU8ModifierLetterColon (char *sz);
+void storeU8ModifierLetterColon0 (char *sz);
+
+/*
+	Retrieves the current date/time as a text of the
+	International Standard ISO 8601 format:
+	YYYY-MM-DD HH:MI:SS +/-TDIF
+	
+	Instead of a colon (":"), the modifier letter colon is inserted to make
+	the string compatible with NTFS. See https://www.compart.com/en/unicode/U+A789 .
+
+	The buffer chISO8601DateTimeStamp points to must be at least
+	SIZ_ISO8601DATETIMESTAMPU8C bytes long.
+
+	Example return values:	YYYY-MM-DD HH:MI:SS+01:00
+							YYYY-MM-DD HH:MI:SS-04:00
+							2017-08-29 21:39:10+01:00
+
+	Note that each colon character is 3 octets (bytes) long instead of one.
+
+	See https://www.cl.cam.ac.uk/~mgk25/iso-time.html and https://en.wikipedia.org/wiki/ISO_8601
+	for good summaries.
+*/
+void GetISO8601DateTimeStampU8colon (char *chISO8601DateTimeStampU8c);
 
 /*
 	GetISO8601DateTimeStampT
@@ -19735,6 +19783,8 @@ void DoneCunilogRootConfigData (SCUNILOGCFGNODE *cfg)
 	the members errLineNumber, errCharNumber, and errAbsPosition of the SCUNILOGINI structure
 	pCunilogIni point to contain the position at which the buffer couldn't be parsed.
 	Additionally, the boolean bParseFail is set to true.
+	The function also returns true if szIniBuf does not contain any information typically
+	found in ini files, like sections, keys, and values.
 
 	The caller does not need to initialise the SCUNILOGINI structure pCunilogIni points
 	to beforehand.
@@ -19782,8 +19832,8 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 */
 unsigned int CunilogGetIniValuesFromKey		(
 				SCUNILOGINIVALUES	**pValues,
-				const char			*cunilog_restrict szSection,	size_t	lnSection,
-				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				const char			*szSection,		size_t	lnSection,
+				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
 											)
 ;
@@ -19796,8 +19846,8 @@ unsigned int CunilogGetIniValuesFromKey		(
 */
 unsigned int CunilogGetIniValuesFromKey_ci	(
 				SCUNILOGINIVALUES	**pValues,
-				const char			*cunilog_restrict szSection,	size_t	lnSection,
-				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				const char			*szSection,		size_t	lnSection,
+				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
 											)
 ;
@@ -19839,8 +19889,8 @@ unsigned int CunilogGetIniValuesFromKey_ci	(
 */
 const char *CunilogGetFirstIniValueFromKey		(
 				size_t			*pLen,
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 												)
 ;
@@ -19853,8 +19903,8 @@ const char *CunilogGetFirstIniValueFromKey		(
 */
 const char *CunilogGetFirstIniValueFromKey_ci	(
 				size_t			*pLen,
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 												)
 ;
@@ -19870,14 +19920,14 @@ const char *CunilogGetFirstIniValueFromKey_ci	(
 	Returns true if the key szKey exists in section szSection, false otherwise.
 */
 bool CunilogIniKeyExists	(
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 							)
 ;
 bool CunilogIniKeyExists_ci	(
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 							)
 ;
@@ -19893,7 +19943,7 @@ bool CunilogIniKeyExists_ci	(
 #endif
 
 #else
-	#define TestCunilogCfgParser()
+	#define TestCunilogCfgParser()	(true)
 #endif														// Of #ifdef CUNILOG_BUILD_CFG_PARSER.
 
 EXTERN_C_END
@@ -21448,19 +21498,20 @@ enum cunilogeventseverity
 	,	cunilogEvtSeverityEmergency								//	5
 	,	cunilogEvtSeverityNotice								//	6
 	,	cunilogEvtSeverityInfo									//  7
-	,	cunilogEvtSeverityMessage								//  8
-	,	cunilogEvtSeverityWarning								//  9
-	,	cunilogEvtSeverityError									// 10
-	,	cunilogEvtSeverityPass									// 11
-	,	cunilogEvtSeverityFail									// 12
-	,	cunilogEvtSeverityCritical								// 13
-	,	cunilogEvtSeverityFatal									// 14
-	,	cunilogEvtSeverityDebug									// 15
-	,	cunilogEvtSeverityTrace									// 16
-	,	cunilogEvtSeverityDetail								// 17
-	,	cunilogEvtSeverityVerbose								// 18
-	,	cunilogEvtSeverityIllegal								// 19
-	,	cunilogEvtSeveritySyntax								// 20
+	,	cunilogEvtSeverityOutput								//  8
+	,	cunilogEvtSeverityMessage								//  9
+	,	cunilogEvtSeverityWarning								// 10
+	,	cunilogEvtSeverityError									// 11
+	,	cunilogEvtSeverityPass									// 12
+	,	cunilogEvtSeverityFail									// 13
+	,	cunilogEvtSeverityCritical								// 14
+	,	cunilogEvtSeverityFatal									// 15
+	,	cunilogEvtSeverityDebug									// 16
+	,	cunilogEvtSeverityTrace									// 17
+	,	cunilogEvtSeverityDetail								// 18
+	,	cunilogEvtSeverityVerbose								// 19
+	,	cunilogEvtSeverityIllegal								// 20
+	,	cunilogEvtSeveritySyntax								// 21
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
@@ -22565,7 +22616,7 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 						If this parameter is not NULL, the function does not create a
 						copy of the provided processor list, which means the list must be
 						available/accessible until ShutdownCUNILOG_TARGET () or
-						CancelCUNILOG_TARGET (), and then DoneSCUNILOGTAREGE () are called
+						CancelCUNILOG_TARGET (), and then DoneCUNILOG_TARGET () are called
 						on it. In other words the list is required to either reside on the
 						heap, is static, or is created as automatic in main ().
 
@@ -22710,9 +22761,9 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 						path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
 						relative path or NULL, the function fails.
 
-	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
+	type				The type of the CUNILOG_TARGET. See cunilogstructs.h for more details.
 
-	postfix				The postfix used for the SUNILOGTARGET's logfile. See cunilogstructs.h
+	postfix				The postfix used for the CUNILOG_TARGET's logfile. See cunilogstructs.h
 						for more details.
 
 	cuProcessorList		A pointer to a list with cunilog processors. This parameter can be
@@ -22720,11 +22771,13 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 						If this parameter is not NULL, the function does not create a
 						copy of the provided processor list, which means the list must be
 						available/accessible until ShutdownCUNILOG_TARGET () or
-						CancelCUNILOG_TARGET (), and then DoneSCUNILOGTAREGE () are called
+						CancelCUNILOG_TARGET (), and then DoneCUNILOG_TARGET () are called
 						on it. In other words the list is required to either reside on the
 						heap, is static, or is created as automatic in main ().
 
-	nProcessors			The amount of processors cuProcessorList points to.
+	nProcessors			The amount of processors cuProcessorList points to. If the parameter
+						cuProcessorList is NULL, this parameter is ignored and should be set
+						to 0.
 
 	unilogTSformat		The format of an event date/timestamp. Use unilogEvtTS_Default, which is
 						an ISO 8601 date/timestamp with a space between date and time.
@@ -24302,6 +24355,148 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion);
 EXTERN_C_END
 
 #endif														// Of #ifndef CUNILOG_H.
+/****************************************************************************************
+
+	File:		cunilogprocess.h
+	Why:		Cunilog wrapper for module ProcessHelpers.
+	OS:			C99
+	Author:		Thomas
+	Created:	2025-11-02
+  
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-11-02	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	Cunilog wrapper for module ProcessHelpers.
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS
+
+#ifndef U_CUNILOGPROCESS_H
+#define U_CUNILOGPROCESS_H
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include "./cunilog.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ProcessHelpers.h"
+	#else
+		#include "./../OS/ProcessHelpers.h"
+	#endif
+
+#endif
+
+#ifndef USE_STRLEN
+#define USE_STRLEN							((size_t) -1)
+#endif
+
+EXTERN_C_BEGIN
+
+/*
+	RunCunilogProcessWithTarget
+
+	This function will probably not be implemented, as its functionality is already
+	covered by RunCunilogProcessWithTargets ().
+
+	Creates and runs a process and directs its output for stdout and stderr to the
+	CUNILOG_TARGET pctStdoutStderr points to.
+
+*/
+/*
+bool RunCunilogProcessWithTarget	(
+		CUNILOG_TARGET			*pctStdoutStderr,
+		cueventseverity			sevStdout,
+		cueventseverity			sevStderr,
+		const char				*szExecutable,
+		const char				*szCmdLine,
+		const char				*szWorkingDir,
+		uint64_t				uiChildExitTimeout,			// Time in ms to wait for the child to
+															//	exit/terminate.
+		int						*pExitCode					// Exit code of process.
+									)
+;
+*/
+
+/*
+	RunCunilogProcessWithTargets
+
+	Creates and runs a process and directs its output for stdout to the CUNILOG_TARGET
+	pctStdout points to and stderr to the CUNILOG_TARGET pctStderr points to.
+
+	pctStdout			The CUNILOG_TARGET that receives output that goes to stdout.
+
+	sevStdout			The severity the output is sent to the target with.
+
+	pctStderr			The CUNILOG_TARGET that receives output that goes to stderr.
+
+	sevStderr			The severity with which the output is sent to the target.
+
+	szExecutable		The full path to the executable module for the child process.
+
+	szCmdLine			Additonal arguments for the child process.
+
+	szWorkingDir		The working directory for the child process.
+
+	pExitCode			A pointer to an integer that receives the exit code of the
+						child process.
+
+	If pctStdout and pctStderr point to the same target, it is advised to distinguish
+	stdout from stderr by using different severity values.
+
+	The function returns true if the process could be created and executed. It returns
+	false if this fails.
+*/
+bool RunCunilogProcessWithTargets	(
+		CUNILOG_TARGET			*pctStdout,
+		cueventseverity			sevStdout,
+		CUNILOG_TARGET			*pctStderr,
+		cueventseverity			sevStderr,
+		const char				*szExecutable,
+		const char				*szCmdLine,
+		const char				*szWorkingDir,
+		int						*pExitCode					// Exit code of process.
+									)
+;
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_CUNILOGPROCESS_H.
+
+#endif														// Of #ifndef CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS.
 /****************************************************************************************
 
 	File:		bottom.h

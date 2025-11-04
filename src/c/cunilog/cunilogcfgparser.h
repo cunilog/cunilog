@@ -236,6 +236,8 @@ void DoneCunilogRootConfigData (SCUNILOGCFGNODE *cfg)
 	the members errLineNumber, errCharNumber, and errAbsPosition of the SCUNILOGINI structure
 	pCunilogIni point to contain the position at which the buffer couldn't be parsed.
 	Additionally, the boolean bParseFail is set to true.
+	The function also returns true if szIniBuf does not contain any information typically
+	found in ini files, like sections, keys, and values.
 
 	The caller does not need to initialise the SCUNILOGINI structure pCunilogIni points
 	to beforehand.
@@ -283,8 +285,8 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 */
 unsigned int CunilogGetIniValuesFromKey		(
 				SCUNILOGINIVALUES	**pValues,
-				const char			*cunilog_restrict szSection,	size_t	lnSection,
-				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				const char			*szSection,		size_t	lnSection,
+				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
 											)
 ;
@@ -297,8 +299,8 @@ unsigned int CunilogGetIniValuesFromKey		(
 */
 unsigned int CunilogGetIniValuesFromKey_ci	(
 				SCUNILOGINIVALUES	**pValues,
-				const char			*cunilog_restrict szSection,	size_t	lnSection,
-				const char			*cunilog_restrict szKey,		size_t	lnKey,
+				const char			*szSection,		size_t	lnSection,
+				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
 											)
 ;
@@ -340,8 +342,8 @@ unsigned int CunilogGetIniValuesFromKey_ci	(
 */
 const char *CunilogGetFirstIniValueFromKey		(
 				size_t			*pLen,
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 												)
 ;
@@ -354,8 +356,8 @@ const char *CunilogGetFirstIniValueFromKey		(
 */
 const char *CunilogGetFirstIniValueFromKey_ci	(
 				size_t			*pLen,
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 												)
 ;
@@ -371,14 +373,14 @@ const char *CunilogGetFirstIniValueFromKey_ci	(
 	Returns true if the key szKey exists in section szSection, false otherwise.
 */
 bool CunilogIniKeyExists	(
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 							)
 ;
 bool CunilogIniKeyExists_ci	(
-				const char		*cunilog_restrict szSection,	size_t	lnSection,
-				const char		*cunilog_restrict szKey,		size_t	lnKey,
+				const char		*szSection,			size_t	lnSection,
+				const char		*szKey,				size_t	lnKey,
 				SCUNILOGINI		*pCunilogIni
 							)
 ;
@@ -394,7 +396,7 @@ bool CunilogIniKeyExists_ci	(
 #endif
 
 #else
-	#define TestCunilogCfgParser()
+	#define TestCunilogCfgParser()	(true)
 #endif														// Of #ifdef CUNILOG_BUILD_CFG_PARSER.
 
 EXTERN_C_END

@@ -1334,19 +1334,20 @@ enum cunilogeventseverity
 	,	cunilogEvtSeverityEmergency								//	5
 	,	cunilogEvtSeverityNotice								//	6
 	,	cunilogEvtSeverityInfo									//  7
-	,	cunilogEvtSeverityMessage								//  8
-	,	cunilogEvtSeverityWarning								//  9
-	,	cunilogEvtSeverityError									// 10
-	,	cunilogEvtSeverityPass									// 11
-	,	cunilogEvtSeverityFail									// 12
-	,	cunilogEvtSeverityCritical								// 13
-	,	cunilogEvtSeverityFatal									// 14
-	,	cunilogEvtSeverityDebug									// 15
-	,	cunilogEvtSeverityTrace									// 16
-	,	cunilogEvtSeverityDetail								// 17
-	,	cunilogEvtSeverityVerbose								// 18
-	,	cunilogEvtSeverityIllegal								// 19
-	,	cunilogEvtSeveritySyntax								// 20
+	,	cunilogEvtSeverityOutput								//  8
+	,	cunilogEvtSeverityMessage								//  9
+	,	cunilogEvtSeverityWarning								// 10
+	,	cunilogEvtSeverityError									// 11
+	,	cunilogEvtSeverityPass									// 12
+	,	cunilogEvtSeverityFail									// 13
+	,	cunilogEvtSeverityCritical								// 14
+	,	cunilogEvtSeverityFatal									// 15
+	,	cunilogEvtSeverityDebug									// 16
+	,	cunilogEvtSeverityTrace									// 17
+	,	cunilogEvtSeverityDetail								// 18
+	,	cunilogEvtSeverityVerbose								// 19
+	,	cunilogEvtSeverityIllegal								// 20
+	,	cunilogEvtSeveritySyntax								// 21
 	// Do not add anything below this line.
 	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.

@@ -572,7 +572,7 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 						If this parameter is not NULL, the function does not create a
 						copy of the provided processor list, which means the list must be
 						available/accessible until ShutdownCUNILOG_TARGET () or
-						CancelCUNILOG_TARGET (), and then DoneSCUNILOGTAREGE () are called
+						CancelCUNILOG_TARGET (), and then DoneCUNILOG_TARGET () are called
 						on it. In other words the list is required to either reside on the
 						heap, is static, or is created as automatic in main ().
 
@@ -717,9 +717,9 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 						path. If this value is cunilogLogPath_isAbsolute and szLogPath is a
 						relative path or NULL, the function fails.
 
-	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
+	type				The type of the CUNILOG_TARGET. See cunilogstructs.h for more details.
 
-	postfix				The postfix used for the SUNILOGTARGET's logfile. See cunilogstructs.h
+	postfix				The postfix used for the CUNILOG_TARGET's logfile. See cunilogstructs.h
 						for more details.
 
 	cuProcessorList		A pointer to a list with cunilog processors. This parameter can be
@@ -727,11 +727,13 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 						If this parameter is not NULL, the function does not create a
 						copy of the provided processor list, which means the list must be
 						available/accessible until ShutdownCUNILOG_TARGET () or
-						CancelCUNILOG_TARGET (), and then DoneSCUNILOGTAREGE () are called
+						CancelCUNILOG_TARGET (), and then DoneCUNILOG_TARGET () are called
 						on it. In other words the list is required to either reside on the
 						heap, is static, or is created as automatic in main ().
 
-	nProcessors			The amount of processors cuProcessorList points to.
+	nProcessors			The amount of processors cuProcessorList points to. If the parameter
+						cuProcessorList is NULL, this parameter is ignored and should be set
+						to 0.
 
 	unilogTSformat		The format of an event date/timestamp. Use unilogEvtTS_Default, which is
 						an ISO 8601 date/timestamp with a space between date and time.

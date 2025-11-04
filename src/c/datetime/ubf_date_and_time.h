@@ -525,6 +525,44 @@ void GetISO8601Week_c (char *chISO8601Week);
 void GetISO8601DateTimeStamp (char *chISO8601DateTimeStamp);
 
 /*
+	storeU8ModifierLetterColon
+	storeU8ModifierLetterColon0
+
+	These functions store a modifier letter colon (see https://www.compart.com/en/unicode/U+A789)
+	at the address sz points to.
+
+	The function storeU8ModifierLetterColon () stores only the UTF-8 codepoint for the
+	modifier letter colon, i.e. write exactly 3 octets (bytes). It does not write a NUL terminator.
+
+	The function storeU8ModifierLetterColon0 () stores the UTF-8 codepoint for the
+	modifier letter colon plus a NUL terminator, i.e. write exactly 4 octets (bytes).
+*/
+void storeU8ModifierLetterColon (char *sz);
+void storeU8ModifierLetterColon0 (char *sz);
+
+/*
+	Retrieves the current date/time as a text of the
+	International Standard ISO 8601 format:
+	YYYY-MM-DD HH:MI:SS +/-TDIF
+	
+	Instead of a colon (":"), the modifier letter colon is inserted to make
+	the string compatible with NTFS. See https://www.compart.com/en/unicode/U+A789 .
+
+	The buffer chISO8601DateTimeStamp points to must be at least
+	SIZ_ISO8601DATETIMESTAMPU8C bytes long.
+
+	Example return values:	YYYY-MM-DD HH:MI:SS+01:00
+							YYYY-MM-DD HH:MI:SS-04:00
+							2017-08-29 21:39:10+01:00
+
+	Note that each colon character is 3 octets (bytes) long instead of one.
+
+	See https://www.cl.cam.ac.uk/~mgk25/iso-time.html and https://en.wikipedia.org/wiki/ISO_8601
+	for good summaries.
+*/
+void GetISO8601DateTimeStampU8colon (char *chISO8601DateTimeStampU8c);
+
+/*
 	GetISO8601DateTimeStampT
 	
 	The function is identical to GetISO8601DateTimeStamp (), which retrieves the

@@ -428,6 +428,10 @@ void GetISO8601Week_c (char *chISO8601Week)
 	*chISO8601Week= '\0';
 }
 
+/*
+	The buffer chISO8601DateTimeStamp points to must be at least
+	SIZ_ISO8601DATETIMESTAMP octets (bytes) long.
+*/
 void GetISO8601DateTimeStamp (char *chISO8601DateTimeStamp)
 {	// Retrieves the current date/time as a text in the
 	// International Standard ISO 8601 format:
@@ -482,6 +486,72 @@ void GetISO8601DateTimeStamp (char *chISO8601DateTimeStamp)
 			'-' == chISO8601DateTimeStamp [19]
 		)
 		chISO8601DateTimeStamp [19] = '+';
+}
+
+void storeU8ModifierLetterColon (char *sz)
+{
+	ubf_assert_non_NULL (sz);
+	memcpy (sz, "\xEA\x9E\x89", 3);
+}
+
+void storeU8ModifierLetterColon0 (char *sz)
+{
+	ubf_assert_non_NULL (sz);
+	memcpy (sz, "\xEA\x9E\x89", 4);
+}
+
+/*
+	The buffer chISO8601DateTimeStampU8c points to must be at least
+	SIZ_ISO8601DATETIMESTAMPU8C octets (bytes) long.
+*/
+void GetISO8601DateTimeStampU8colon (char *chISO8601DateTimeStampU8c)
+{	// Retrieves the current date/time as a text in the
+	// International Standard ISO 8601 format:
+	// YYYY-MM-DD HH:MI:SS +/-TDIF
+	//
+	// Example: YYYY-MM-DD HH:MI:SS+01:00
+	//          YYYY-MM-DD HH:MI:SS-04:00
+	//
+	// This code should work on Unix/Linux platforms and on Windows. See the definition of the
+	//	gmtime_r () and localtime_r () macros in the header file. Windows only got the gmtime_s ()
+	//	and localtime_s () APIs with swapped parameters.
+
+	struct tm	tmRes;
+	time_t		t;
+	size_t		st;
+
+	#ifdef DEBUG
+		// If you get an access violation/segfault here, your buffer is not long enough.
+		memset (chISO8601DateTimeStampU8c, '0xFF', SIZ_ISO8601DATETIMESTAMPU8C);
+	#endif
+
+	time (&t);													// Retrieves the times in UTC on Windows.
+	localtime_r (&t, &tmRes);									// Adjust for local time.
+	//gmtime_r (&t, &tmRes);									// Won't adjust for local time.
+	st = strftime (chISO8601DateTimeStampU8c, SIZ_ISO8601DATETIMESTAMPU8C,
+				"%Y-%m-%d %H\xEA\x9E\x89%M\xEA\x9E\x89%S%z", &tmRes);
+	/*	The correct ISO 8601 implementation requires a "T" between date and time. We're not using this
+		 notation.
+			st = strftime (chISO8601DateTimeStamp, SIZ_ISO8601DATETIMESTAMP,
+						"%Y-%m-%dT%H:%M:%S%z", &tmRes);
+	*/
+	ubf_assert (st > 0 && st < SIZ_ISO8601DATETIMESTAMPU8C);
+	UNUSED_PARAMETER (st);
+
+	// PicoC (and probably other implementations too) produces a "-" instead of "+"
+	//	when the offset is 0.
+	if	(
+			'0' == chISO8601DateTimeStampU8c [24]	&&
+			'0' == chISO8601DateTimeStampU8c [25]	&&
+			'0' == chISO8601DateTimeStampU8c [26]	&&
+			'0' == chISO8601DateTimeStampU8c [27]	&&
+			'-' == chISO8601DateTimeStampU8c [23]
+		)
+		chISO8601DateTimeStampU8c [23] = '+';
+
+	// We got the offset as "-0000" or "+1000", but we want the offset with a colon between hours and minutes.
+	memmove (chISO8601DateTimeStampU8c + 29, chISO8601DateTimeStampU8c + 26, 3);
+	storeU8ModifierLetterColon (chISO8601DateTimeStampU8c + 26);
 }
 
 void GetISO8601DateTimeStampT (char *chISO8601DateTimeStamp)
@@ -2345,6 +2415,13 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ubf_expect_bool_AND (b, 2 == ub);
 		ubf_expect_bool_AND (b, 2002 == uYear);
 
+		memset (cOut, ' ', SIZ_ISO8601DATETIMESTAMPMS);
+		storeU8ModifierLetterColon (cOut);
+		ubf_expect_bool_AND (b, !memcmp (cOut, "\xEA\x9E\x89 ", 4));
+		memset (cOut, ' ', SIZ_ISO8601DATETIMESTAMPMS);
+		storeU8ModifierLetterColon0 (cOut);
+		ubf_expect_bool_AND (b, !memcmp (cOut, "\xEA\x9E\x89", 4));
+
 		memset (cOut, 0, SIZ_ISO8601DATETIMESTAMPMS);
 		ISO8601Year_from_UBF_TIMESTAMPs (cOut, ut);
 		ubf_expect_bool_AND (b, !memcmp (cOut, "2022", SIZ_ISO8601YEAR));
@@ -2782,7 +2859,11 @@ bool FormattedMilliseconds (char *chFormatted, const uint64_t uiTimeInMillisecon
 		ubf_expect_bool_AND (b, !is_datetimestampformat_l_store_corrected (szd, "99991122T16.00.00.123", USE_STRLEN));
 		ubf_expect_bool_AND (b, ASCII_NUL == szd [LEN_ISO8601DATETIMESTAMPMS_NO_OFFS]);
 
-		
+		char cOut2 [SIZ_ISO8601DATETIMESTAMPU8C + 3];
+		GetISO8601DateTimeStampU8colon (cOut2);
+		ubf_expect_bool_AND (b, strlen (cOut2) == SIZ_ISO8601DATETIMESTAMPU8C - 1);
+		ubf_expect_bool_AND (b, strlen (cOut2) == LEN_ISO8601DATETIMESTAMPU8C);
+
 		// Timings.
 		/*
 			We found that the psx function is twice as fast as the win version.
