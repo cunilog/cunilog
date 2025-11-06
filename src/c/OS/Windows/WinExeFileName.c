@@ -226,4 +226,10 @@ When		Who				What
 		return 0;
 	}
 
+	void DoneWinExecutableModule (void)
+	{
+		lnOurExectuablePath = 0;
+		doneSMEMBUF (&mbOurExecutablePath);
+	}
+
 #endif														// Of #ifdef OS_IS_WINDOWS

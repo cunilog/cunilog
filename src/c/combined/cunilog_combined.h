@@ -6572,6 +6572,13 @@ size_t WinObtainAppNameFromExecutableModule (SMEMBUF *mb)
 size_t WinObtainPathFromExecutableModule (SMEMBUF *mb)
 ;
 
+/*
+	DoneWinExecutableModule
+
+	Frees the resources allocated by this module.
+*/
+void DoneWinExecutableModule (void);
+
 #endif														// Of #ifdef OS_IS_WINDOWS.
 
 EXTERN_C_END
@@ -6754,6 +6761,14 @@ size_t PsxObtainAppNameFromExecutableModule (SMEMBUF *mb)
 */
 size_t PsxObtainPathFromExecutableModule (SMEMBUF *mb)
 ;
+
+/*
+	DonePsxExecutableModule
+
+	Frees the resources allocated by this module.
+*/
+void DonePsxExecutableModule (void);
+
 
 #endif														// Of #ifdef PLATFORM_IS_POSIX.
 
@@ -7570,7 +7585,7 @@ EXTERN_C_BEGIN
 /*
 	ObtainExecutableModuleName
 
-	Obtains the executables full path including its name. The caller is responsible for
+	Obtains the executable's full path including its name. The caller is responsible for
 	initialising the SMEMBUF structure beforehand.
 
 	Parameters
@@ -7633,6 +7648,19 @@ EXTERN_C_BEGIN
 #else
 	#define ObtainPathFromExecutableModule(mb)			\
 		PsxObtainPathFromExecutableModule (mb)
+#endif
+
+/*
+	DoneOurExecutableModule
+
+	Frees the resources allocated by the module in question.
+*/
+#ifdef OS_IS_WINDOWS
+	#define DoneOurExecutableModule()					\
+		DoneWinExecutableModule ()
+#else
+	#define DoneOurExecutableModule()					\
+		DonePsxExecutableModule ()
 #endif
 
 /*
@@ -9285,6 +9313,21 @@ When		Who				What
 	#define DBG_INIT_pCNTTRACKER(cntname)
 #endif
 
+/*
+	DBG_DONE_CNTTRACKER
+
+*/
+#ifdef DEBUG
+	#define DBG_DONE_CNTTRACKER(cntname)				\
+				doneTrackDBGcountandtrack (&(cntname))
+	#define DBG_DONE_pCNTTRACKER(cntname)				\
+				doneTrackDBGcountandtrack (cntname)
+#else
+	#define DBG_DONE_CNTTRACKER(cntname)
+	#define DBG_DONE_pCNTTRACKER(cntname)
+#endif
+
+
 #ifdef DEBUG
 	void resetDBGcountandtrack	(
 			SDBGTRACKER *pt, const char *szFile, const char *szFunc, unsigned int line
@@ -9314,6 +9357,12 @@ When		Who				What
 			unsigned int line
 								)
 	;
+#endif
+
+#ifdef DEBUG
+	void doneTrackDBGcountandtrack (SDBGTRACKER *pt);
+#else
+	#define doneTrackDBGcountandtrack()
 #endif
 
 /*
@@ -12325,7 +12374,9 @@ void storeU8ModifierLetterColon0 (char *sz);
 	YYYY-MM-DD HH:MI:SS +/-TDIF
 	
 	Instead of a colon (":"), the modifier letter colon is inserted to make
-	the string compatible with NTFS. See https://www.compart.com/en/unicode/U+A789 .
+	the string compatible with NTFS, the native file system of Windows.
+	See https://www.compart.com/en/unicode/U+A789 and
+	https://www.unicode-symbol.com/u/A789.html .
 
 	The buffer chISO8601DateTimeStamp points to must be at least
 	SIZ_ISO8601DATETIMESTAMPU8C bytes long.
@@ -12334,7 +12385,9 @@ void storeU8ModifierLetterColon0 (char *sz);
 							YYYY-MM-DD HH:MI:SS-04:00
 							2017-08-29 21:39:10+01:00
 
-	Note that each colon character is 3 octets (bytes) long instead of one.
+	Note that each colon character (the so-called modifier letter colon) is 3 octets
+	(bytes) long instead of one. For the purpose of this comment, the text above contains
+	normal colons, though.
 
 	See https://www.cl.cam.ac.uk/~mgk25/iso-time.html and https://en.wikipedia.org/wiki/ISO_8601
 	for good summaries.
@@ -23866,6 +23919,9 @@ bool logTextWU16sevl		(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *
 bool logTextWU16sev			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *cwText);
 bool logTextWU16l			(CUNILOG_TARGET *put, const wchar_t *cwText, size_t len);
 bool logTextWU16			(CUNILOG_TARGET *put, const wchar_t *cwText);
+bool logTextWU16fmt			(CUNILOG_TARGET *put, const wchar_t *wcFmt, ...);
+bool logTextWU16svfmtsev	(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *wcFmt, va_list ap);
+bool logTextWU16sfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *wcFmt, ...);
 #endif
 
 // Console output only. No other processors are invoked.

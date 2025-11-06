@@ -287,4 +287,10 @@ size_t PsxObtainPathFromExecutableModule (SMEMBUF *mb)
 	return 0;
 }
 
+void DonePsxExecutableModule (void)
+{
+	lnOurExectuablePath = 0;
+	doneSMEMBUF (&mbOurExecutablePath);
+}
+
 #endif													// Of #ifdef OS_IS_POSIX.

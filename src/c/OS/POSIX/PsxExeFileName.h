@@ -107,6 +107,14 @@ size_t PsxObtainAppNameFromExecutableModule (SMEMBUF *mb)
 size_t PsxObtainPathFromExecutableModule (SMEMBUF *mb)
 ;
 
+/*
+	DonePsxExecutableModule
+
+	Frees the resources allocated by this module.
+*/
+void DonePsxExecutableModule (void);
+
+
 #endif														// Of #ifdef PLATFORM_IS_POSIX.
 
 EXTERN_C_END

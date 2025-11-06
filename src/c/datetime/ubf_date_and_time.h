@@ -546,7 +546,9 @@ void storeU8ModifierLetterColon0 (char *sz);
 	YYYY-MM-DD HH:MI:SS +/-TDIF
 	
 	Instead of a colon (":"), the modifier letter colon is inserted to make
-	the string compatible with NTFS. See https://www.compart.com/en/unicode/U+A789 .
+	the string compatible with NTFS, the native file system of Windows.
+	See https://www.compart.com/en/unicode/U+A789 and
+	https://www.unicode-symbol.com/u/A789.html .
 
 	The buffer chISO8601DateTimeStamp points to must be at least
 	SIZ_ISO8601DATETIMESTAMPU8C bytes long.
@@ -555,7 +557,9 @@ void storeU8ModifierLetterColon0 (char *sz);
 							YYYY-MM-DD HH:MI:SS-04:00
 							2017-08-29 21:39:10+01:00
 
-	Note that each colon character is 3 octets (bytes) long instead of one.
+	Note that each colon character (the so-called modifier letter colon) is 3 octets
+	(bytes) long instead of one. For the purpose of this comment, the text above contains
+	normal colons, though.
 
 	See https://www.cl.cam.ac.uk/~mgk25/iso-time.html and https://en.wikipedia.org/wiki/ISO_8601
 	for good summaries.

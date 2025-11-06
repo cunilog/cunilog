@@ -78,7 +78,7 @@ EXTERN_C_BEGIN
 /*
 	ObtainExecutableModuleName
 
-	Obtains the executables full path including its name. The caller is responsible for
+	Obtains the executable's full path including its name. The caller is responsible for
 	initialising the SMEMBUF structure beforehand.
 
 	Parameters
@@ -141,6 +141,19 @@ EXTERN_C_BEGIN
 #else
 	#define ObtainPathFromExecutableModule(mb)			\
 		PsxObtainPathFromExecutableModule (mb)
+#endif
+
+/*
+	DoneOurExecutableModule
+
+	Frees the resources allocated by the module in question.
+*/
+#ifdef OS_IS_WINDOWS
+	#define DoneOurExecutableModule()					\
+		DoneWinExecutableModule ()
+#else
+	#define DoneOurExecutableModule()					\
+		DonePsxExecutableModule ()
 #endif
 
 /*

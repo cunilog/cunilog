@@ -174,6 +174,21 @@ When		Who				What
 	#define DBG_INIT_pCNTTRACKER(cntname)
 #endif
 
+/*
+	DBG_DONE_CNTTRACKER
+
+*/
+#ifdef DEBUG
+	#define DBG_DONE_CNTTRACKER(cntname)				\
+				doneTrackDBGcountandtrack (&(cntname))
+	#define DBG_DONE_pCNTTRACKER(cntname)				\
+				doneTrackDBGcountandtrack (cntname)
+#else
+	#define DBG_DONE_CNTTRACKER(cntname)
+	#define DBG_DONE_pCNTTRACKER(cntname)
+#endif
+
+
 #ifdef DEBUG
 	void resetDBGcountandtrack	(
 			SDBGTRACKER *pt, const char *szFile, const char *szFunc, unsigned int line
@@ -203,6 +218,12 @@ When		Who				What
 			unsigned int line
 								)
 	;
+#endif
+
+#ifdef DEBUG
+	void doneTrackDBGcountandtrack (SDBGTRACKER *pt);
+#else
+	#define doneTrackDBGcountandtrack()
 #endif
 
 /*

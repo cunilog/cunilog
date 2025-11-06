@@ -2548,6 +2548,7 @@ static void DoneCUNILOG_TARGETmembers (CUNILOG_TARGET *put)
 	vec_deinit (&put->fls);
 	DoneSBULKMEM (&put->sbm);
 	DoneCUNILOG_TARGETpsdump (put);
+	DBG_DONE_CNTTRACKER (put->evtLineTracker);
 }
 
 CUNILOG_TARGET *DoneCUNILOG_TARGET (CUNILOG_TARGET *put)
@@ -2627,7 +2628,7 @@ static const SEVTSEVTEXTS EvtSevTexts [] =
 	{"",	"",			"",			"",				""},			// cunilogEvtSevertiyNoneWarn	 3
 	{"   ",	"     ",	"",			"         ",	""},			// cunilogEvtSeverityBlanks		 4
 	{"EMG",	"EMRGY",	"EMRGY",	"EMERGENCY",	"EMERGENCY"},	// cunilogEvtSeverityEmergency	 5
-	{"NOT",	"NOTE ",	"NOTE",		"NOTICE   ",	"NOTICE"},		// cunilogEvtSeverityNotice		 6
+	{"NTC",	"NOTE ",	"NOTE",		"NOTICE   ",	"NOTICE"},		// cunilogEvtSeverityNotice		 6
 	{"INF",	"INFO ",	"INFO",		"INFO     ",	"INFO"},		// cunilogEvtSeverityInfo		 7
 	{"OUT", "OUTPT",	"OUTPT",	"OUTPUT   ",	"OUTPUT"},		// cunilogEvtSeverityOutput		 8
 	{"MSG",	"MESSG",	"MESSG",	"MESSAGE  ",	"MESSAGE"},		// cunilogEvtSeverityMessage	 9
@@ -2655,9 +2656,10 @@ STRANSICOLOURSEQUENCE evtSeverityColours [cunilogEvtSeverityXAmountEnumValues] =
 	,	{STR_ANSI_FGCOL_BRIGHT_MAGENTA,	LEN_ANSI_FGCOL_BRIGHT_MAGENTA}	// cunilogEvtSeverityNoneWarn	 3
 	,	{"",	0}														// cunilogEvtSeverityBlanks		 4
 	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityEmergency	 5
-	,	{"",	0}														// cunilogEvtSeverityNotice		 6
-	,	{"",	0}														// cunilogEvtSeverityInfo		 7
-	,	{"",	0}														// cunilogEvtSeverityMessage	 8
+	,	{STR_ANSI_FGCOL_BRIGHT_YELLOW,	LEN_ANSI_FGCOL_BRIGHT_YELLOW}	// cunilogEvtSeverityNotice		 6
+	,	{STR_ANSI_FGCOL_BRIGHT_YELLOW,	LEN_ANSI_FGCOL_BRIGHT_YELLOW}	// cunilogEvtSeverityInfo		 7
+	,	{"",	0}														// cunilogEvtSeverityOutput		 8
+	,	{STR_ANSI_FGCOL_BRIGHT_WHITE,	LEN_ANSI_FGCOL_BRIGHT_WHITE}	// cunilogEvtSeverityMessage	 8
 	,	{STR_ANSI_FGCOL_BRIGHT_MAGENTA,	LEN_ANSI_FGCOL_BRIGHT_MAGENTA}	// cunilogEvtSeverityWarning	 9
 	,	{STR_ANSI_FGCOL_BRIGHT_RED,		LEN_ANSI_FGCOL_BRIGHT_RED}		// cunilogEvtSeverityError		10
 	,	{STR_ANSI_FGCOL_BRIGHT_GREEN,	LEN_ANSI_FGCOL_BRIGHT_GREEN}	// cunilogEvtSeverityPass		11
@@ -5783,6 +5785,7 @@ static bool cunilogProcessEventSingleThreaded (CUNILOG_EVENT *pev)
 		cunilogProcessProcessors (pev);
 		if (cunilogHasEventNoRotation (pev))
 			DecrementPendingNoRotationEvents (pev->pCUNILOG_TARGET);
+		DoneCUNILOG_EVENT (pev->pCUNILOG_TARGET, pev);
 		return true;
 	}
 	return false;
@@ -6632,6 +6635,72 @@ bool logTextWU16				(CUNILOG_TARGET *put, const wchar_t *cwText)
 		return false;
 
 	return logTextWU16sev (put, cunilogEvtSeverityNone, cwText);
+}
+#endif
+
+#ifdef PLATFORM_IS_WINDOWS
+bool logTextWU16svfmtsev	(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *wcFmt, va_list ap)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
+		return false;
+
+	size_t		l;
+
+	wchar_t		wcb [CUNILOG_DEFAULT_SFMT_SIZE];
+	wchar_t		*wob;
+
+	l = (size_t) _vsnwprintf (NULL, 0, wcFmt, ap);
+
+	wob = l < CUNILOG_DEFAULT_SFMT_SIZE ? wcb : ubf_malloc (l + 1);
+	if (wob)
+	{
+		_vsnwprintf (wob, l + 1, wcFmt, ap);
+
+		bool b = logTextWU16sevl (put, sev, wob, l);
+		if (wob != wcb) ubf_free (wob);
+		return b;
+	}
+	return false;
+}
+#endif
+
+#ifdef PLATFORM_IS_WINDOWS
+bool logTextWU16sfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *wcFmt, ...)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
+		return false;
+
+	va_list		ap;
+	bool		b;
+
+	va_start (ap, wcFmt);
+	b = logTextWU16svfmtsev (put, sev, wcFmt, ap);
+	va_end (ap);
+
+	return b;
+}
+#endif
+
+#ifdef PLATFORM_IS_WINDOWS
+bool logTextWU16fmt			(CUNILOG_TARGET *put, const wchar_t *wcFmt, ...)
+{
+	ubf_assert_non_NULL (put);
+
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
+		return false;
+
+	va_list		ap;
+	bool		b;
+
+	va_start (ap, wcFmt);
+	b = logTextWU16svfmtsev (put, cunilogEvtSeverityNone, wcFmt, ap);
+	va_end (ap);
+
+	return b;
 }
 #endif
 

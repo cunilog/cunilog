@@ -1822,6 +1822,9 @@ bool logTextWU16sevl		(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *
 bool logTextWU16sev			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *cwText);
 bool logTextWU16l			(CUNILOG_TARGET *put, const wchar_t *cwText, size_t len);
 bool logTextWU16			(CUNILOG_TARGET *put, const wchar_t *cwText);
+bool logTextWU16fmt			(CUNILOG_TARGET *put, const wchar_t *wcFmt, ...);
+bool logTextWU16svfmtsev	(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *wcFmt, va_list ap);
+bool logTextWU16sfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *wcFmt, ...);
 #endif
 
 // Console output only. No other processors are invoked.

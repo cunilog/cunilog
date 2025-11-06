@@ -113,6 +113,13 @@ size_t WinObtainAppNameFromExecutableModule (SMEMBUF *mb)
 size_t WinObtainPathFromExecutableModule (SMEMBUF *mb)
 ;
 
+/*
+	DoneWinExecutableModule
+
+	Frees the resources allocated by this module.
+*/
+void DoneWinExecutableModule (void);
+
 #endif														// Of #ifdef OS_IS_WINDOWS.
 
 EXTERN_C_END

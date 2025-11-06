@@ -137,6 +137,16 @@ When		Who				What
 #endif
 
 #ifdef DEBUG
+	void doneTrackDBGcountandtrack (SDBGTRACKER *pt)
+	{
+		ubf_assert_non_NULL (pt);
+		if (pt->trackers)
+			free (pt->trackers);
+		memset (pt, 0, sizeof (SDBGTRACKER));
+	}
+#endif
+
+#ifdef DEBUG
 	void trackcheckDBGcountandtrack	(
 			SDBGTRACKER *pt, size_t value, const char *szFile, const char *szFunc,
 			unsigned int line
