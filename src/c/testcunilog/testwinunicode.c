@@ -28,9 +28,9 @@ void wmain (void)
 
 	CunilogSetConsoleToUTF8 ();
 
-	SCUNILOGTARGET	*put;
+	CUNILOG_TARGET	*put;
 
-	put = InitSCUNILOGTARGETstatic	(
+	put = InitCUNILOG_TARGETstatic	(
 			STR_LOGS_FOLDER, USE_STRLEN,
 			NULL, 0,
 			cunilogPath_relativeToExecutable, cunilogSingleThreaded
@@ -45,6 +45,12 @@ void wmain (void)
 
 	logTextWU16_static (L"This one's in UTF-16 (\u0158), which should be an \"R\" with a flipped roof.");
 
-	ShutdownSCUNILOGTARGETstatic ();
-	DoneSCUNILOGTARGETstatic ();
+	ShutdownCUNILOG_TARGETstatic ();
+	DoneCUNILOG_TARGETstatic ();
+
+	DoneWinExecutableModule ();								// Not required, but for the sake of
+															//	identifying memory leaks.
+
+	_CrtDumpMemoryLeaks ();
+
 }

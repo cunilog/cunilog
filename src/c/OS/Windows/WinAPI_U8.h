@@ -2739,9 +2739,9 @@ TYPEDEF_FNCT_PTR (int, MessageBoxExU8)
 	to maximise it has been posted successfully. It returns FALSE if the message
 	could not be posted or if the current process does not have a console window.
 	
-	To use this function, define HAVE_WINUSER and link to User32.lib.
+	To use this function, define HAVE_USER32 and link to User32.lib.
 */
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL MaxiMiseThisConsoleWindow (void);
 	TYPEDEF_FNCT_PTR (BOOL, MaxiMiseThisConsoleWindow) (void);
 	#define MaxiMizeThisConsoleWindow()						\
@@ -2764,9 +2764,9 @@ TYPEDEF_FNCT_PTR (int, MessageBoxExU8)
 	to minimise it has been posted successfully. It returns FALSE if the message
 	could not be posted or if the current process does not have a console window.
 	
-	To use this function, define HAVE_WINUSER and link to User32.lib.
+	To use this function, define HAVE_USER32 and link to User32.lib.
 */
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL MiniMiseThisConsoleWindow (void);
 	TYPEDEF_FNCT_PTR (BOOL, MiniMiseThisConsoleWindow) (void);
 	#define MiniMizeThisConsoleWindow()						\
@@ -2787,9 +2787,9 @@ TYPEDEF_FNCT_PTR (int, MessageBoxExU8)
 	to restore it has been posted successfully. It returns FALSE if the message
 	could not be posted or if the current process does not have a console window.
 	
-	To use this function, define HAVE_WINUSER and link to User32.lib.
+	To use this function, define HAVE_USER32 and link to User32.lib.
 */
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL RestoreThisConsoleWindow (void);
 	TYPEDEF_FNCT_PTR (BOOL, RestoreThisConsoleWindow) (void);
 #endif
@@ -3570,8 +3570,10 @@ TYPEDEF_FNCT_PTR (DWORD, SetFileAttributesU8long)
 	send CTRL-Break and wait for it to succeed, the function waits up to twice waitTime
 	in case the first attempt (CTRL-C) is unsuccessful.
 */
+#ifdef HAVE_USER32
 bool TerminateProcessControlled (HANDLE hProcess, uint16_t uiFlags, DWORD waitTime);
 TYPEDEF_FNCT_PTR (bool, TerminateProcessControlled) (HANDLE hProcess, uint16_t uiFlags, DWORD waitTime);
+#endif
 
 /*
 	IsFirstArgumentExeArgumentW

@@ -494,12 +494,9 @@ WCHAR *AllocWinU16_from_UTF8 (const char *ccU8)
 		int	iRequiredSize = reqWinU16wchars (ccU8);
 		pwc = ubf_malloc (iRequiredSize * sizeof (WCHAR));
 		if (pwc)
-		{
 			WinU16_from_UTF8 (pwc, iRequiredSize, ccU8);
-			return pwc;
-		}
 	}
-	return NULL;
+	return pwc;
 }
 
 WCHAR *AllocWinU16_from_UTF8_00 (const char *ccU8)
@@ -27253,7 +27250,8 @@ char *createLogPathInCUNILOG_TARGET	(
 			return NULL;
 		}
 	}
-	put->uiOpts |= CUNILOGTARGET_LOGPATH_ALLOCATED;
+	cunilogTargetSetLogPathAllocatedFlag (put);
+	//put->uiOpts |= CUNILOGTARGET_LOGPATH_ALLOCATED;
 	return put->mbLogPath.buf.pch;
 }
 

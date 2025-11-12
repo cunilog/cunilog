@@ -22,6 +22,25 @@ When		Who				What
 */
 
 /*
+	Calling a function in this module causes some internal memory to be allocated,
+	which is not freed automatically. Call DoneOurExecutableModule () to deallocate
+	these resources.
+
+	The buffer is allocated the first time one of the functions in this module is
+	called, and then stays allocated throughout an application's lifetime. Consecutive
+	calls into this module then only return a pointer to this buffer, which is much
+	faster than invoking the relevant system calls again. Since the operating system
+	reclaims this block after an application exits, there's normally only advantages.
+
+	However, if your application utilises a memory leak detector, this block shows up
+	as a memory leak. Calling DoneOurExecutableModule () deallocates the block, and
+	it won't show up as a memory leak.
+
+	If a function in this module is called after DoneOurExecutableModule () has been
+	called, the internal buffer is created again.
+*/
+
+/*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
 	Copyright (c) 2024, 2025 Thomas
@@ -79,15 +98,26 @@ EXTERN_C_BEGIN
 	ObtainExecutableModuleName
 
 	Obtains the executable's full path including its name. The caller is responsible for
-	initialising the SMEMBUF structure beforehand.
+	initialising the SMEMBUF structure beforehand. The caller is also responsible for
+	deallocating the resources of the mb structure again. This can be done with
+	doneSMEMBUF (&mb).
 
 	Parameters
 
 	mb		A pointer to an initialised SMEMBUF structure that receives the full path
 			and name of the executable module (the executable file).
 
+	For an application "C:/temp/app.exe" the function sets mb to "C:/temp/app.exe" and
+	returns 15.
+	For an application "/usr/bin/app" it sets mb to "/usr/bin/app" and returns 13.
+
 	The function returns the amount of octets (bytes) written to the SMEMBUF's buf
 	member, not including the NUL terminator. If the function fails it returns 0.
+
+	Calling a function in this module causes some internal memory to be allocated,
+	which is not freed automatically. Call DoneOurExecutableModule () to deallocate
+	these resources.
+	See comments at top of this file.
 */
 #ifdef OS_IS_WINDOWS
 	#define ObtainExecutableModuleName(mb)				\
@@ -102,6 +132,8 @@ EXTERN_C_BEGIN
 
 	Obtains the application's name only, i.e. without path or ".exe" filename extension.
 	The caller is responsible for initialising the SMEMBUF structure beforehand.
+	The caller is also responsible for deallocating the resources of the mb structure
+	again. This can be done with doneSMEMBUF (&mb).
 
 	Parameters
 
@@ -112,6 +144,11 @@ EXTERN_C_BEGIN
 
 	The function returns the amount of octets (bytes) written to the SMEMBUF's buf
 	member, not including the NUL terminator. If the function fails it returns 0.
+
+	Calling a function in this module causes some internal memory to be allocated,
+	which is not freed automatically. Call DoneOurExecutableModule () to deallocate
+	these resources.
+	See comments at top of this file.
 */
 #ifdef OS_IS_WINDOWS
 	#define ObtainAppNameFromExecutableModule(mb)		\
@@ -126,6 +163,9 @@ EXTERN_C_BEGIN
 
 	Returns the path part of the application's executable module.
 	On Windows, the last character of the returned path is usually a backslash.
+	The caller is responsible for initialising the SMEMBUF structure beforehand.
+	The caller is also responsible for deallocating the resources of the mb structure
+	again. This can be done with doneSMEMBUF (&mb).
 
 	Parameters
 
@@ -134,6 +174,11 @@ EXTERN_C_BEGIN
 
 	The function returns the amount of characters it placed in the structure's
 	buffer excluding a terminating NUL. It returns 0 upon failure.
+
+	Calling a function in this module causes some internal memory to be allocated,
+	which is not freed automatically. Call DoneOurExecutableModule () to deallocate
+	these resources.
+	See comments at top of this file.
 */
 #ifdef OS_IS_WINDOWS
 	#define ObtainPathFromExecutableModule(mb)			\
@@ -147,6 +192,11 @@ EXTERN_C_BEGIN
 	DoneOurExecutableModule
 
 	Frees the resources allocated by the module in question.
+
+	Calling a function in this module causes some internal memory to be allocated,
+	which is not freed automatically. Call DoneOurExecutableModule () to deallocate
+	these resources.
+	See comments at top of this file.
 */
 #ifdef OS_IS_WINDOWS
 	#define DoneOurExecutableModule()					\

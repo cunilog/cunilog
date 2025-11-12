@@ -901,7 +901,8 @@ char *createLogPathInCUNILOG_TARGET	(
 			return NULL;
 		}
 	}
-	put->uiOpts |= CUNILOGTARGET_LOGPATH_ALLOCATED;
+	cunilogTargetSetLogPathAllocatedFlag (put);
+	//put->uiOpts |= CUNILOGTARGET_LOGPATH_ALLOCATED;
 	return put->mbLogPath.buf.pch;
 }
 

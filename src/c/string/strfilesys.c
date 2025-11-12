@@ -56,11 +56,13 @@ When		Who				What
 		#include "./ubfdebug.h"
 		#include "./platform.h"
 		#include "./Warnings.h"
+		#include "./strisabsolutepath.h"
 	#else
 		#include "./../mem/memstrstr.h"
 		#include "./../dbg/ubfdebug.h"
 		#include "./../pre/platform.h"
 		#include "./../pre/Warnings.h"
+		#include "./../string/strisabsolutepath.h"
 	#endif
 
 #endif
@@ -286,6 +288,56 @@ size_t str_remove_last_dir_separator (const char *str, size_t len)
 	}
 	return len;
 }
+
+size_t smb_absolute_path_from_relative_path	(
+			SMEMBUF		*pmbAbsolute,
+			const char *cunilog_restrict	szRelative,		size_t	lnRelative,
+			const char *cunilog_restrict	szReference,	size_t	lnReference
+											)
+{
+	ubf_assert_non_NULL	(pmbAbsolute);
+	ubf_assert			(isInitialisedSMEMBUF (pmbAbsolute));
+	ubf_assert_non_NULL	(szRelative);
+	ubf_assert_non_NULL	(szReference);
+
+	lnRelative	= USE_STRLEN == lnRelative	? strlen (szRelative)	: lnRelative;
+	lnReference	= USE_STRLEN == lnReference	? strlen (szReference)	: lnReference;
+	ubf_assert_non_0	(lnRelative);
+	ubf_assert_non_0	(lnReference);
+
+	/*
+	ubf_assert (!isDirectorySeparator (szRelative [0]));
+	ubf_assert (!is_absolute_path_l (szRelative, lnRelative));
+	*/
+
+	size_t ln = 0;
+	if (is_absolute_path_l (szRelative, lnRelative))
+	{
+		growToSizeSMEMBUF (pmbAbsolute, lnRelative + 1);
+		if (isUsableSMEMBUF (pmbAbsolute))
+		{
+			memcpy (pmbAbsolute->buf.pch, szRelative, lnRelative);
+			pmbAbsolute->buf.pch [lnRelative] = ASCII_NUL;
+			ln = lnReference;
+			str_remove_path_navigators (pmbAbsolute->buf.pch, &ln);
+		}
+	} else
+	{
+		growToSizeSMEMBUF (pmbAbsolute, lnReference + lnRelative + 2);
+		if (isUsableSMEMBUF (pmbAbsolute))
+		{
+			memcpy (pmbAbsolute->buf.pch, szReference, lnReference);
+			if (!isDirectorySeparator (szReference [lnReference - 1]))
+				pmbAbsolute->buf.pch [lnReference ++] = UBF_DIR_SEP;
+			memcpy (pmbAbsolute->buf.pch + lnReference, szRelative, lnRelative);
+			ln = lnReference + lnRelative;
+			pmbAbsolute->buf.pch [ln] = ASCII_NUL;
+			str_remove_path_navigators (pmbAbsolute->buf.pch, &ln);
+		}
+	}
+	return ln;
+}
+
 
 #ifdef BUILD_DEBUG_UBF_STRFILESYS_TESTS
 	bool ubf_test_ubf_strfilesys (void)
@@ -575,6 +627,20 @@ size_t str_remove_last_dir_separator (const char *str, size_t len)
 		st = ubf_len_with_last_directory_separator ("C:file.ext", USE_STRLEN);
 		ubf_expect_bool_AND (b, 2 == st);
 	
+		SMEMBUF smb = SMEMBUF_INITIALISER;
+		size_t ln;
+		ln = smb_absolute_path_from_relative_path (&smb, "../", USE_STRLEN, "C:/", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("C:/../", smb.buf.pcc, 7));
+
+		ln = smb_absolute_path_from_relative_path (&smb, "../", USE_STRLEN, "C:/folder", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("C:/", smb.buf.pcc, 4));
+
+		ln = smb_absolute_path_from_relative_path (&smb, "../", USE_STRLEN, "C:/folder/", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("C:/", smb.buf.pcc, 4));
+
+		ln = smb_absolute_path_from_relative_path (&smb, "/home", USE_STRLEN, "C:/folder/", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("/home", smb.buf.pcc, 6));
+
 		// Return the test result.
 		bRet = b;
 		return bRet;

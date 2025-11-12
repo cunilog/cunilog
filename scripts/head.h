@@ -40,6 +40,21 @@ When		Who				What
 #endif
 
 /*
+	Debug versions of heap allocation functions.
+	It is recommended to also define _CRTDBG_MAP_ALLOC in the project settings.
+	
+	See
+	https://learn.microsoft.com/en-us/cpp/c-runtime-library/crtdbg-map-alloc?view=msvc-170
+	and
+	https://learn.microsoft.com/en-us/cpp/c-runtime-library/debug-versions-of-heap-allocation-functions?view=msvc-170 .
+*/
+#ifndef CUNILOG_DONT_USE_CRTDBG_MAP_ALLOC
+	#ifndef _CRTDBG_MAP_ALLOC
+	#define _CRTDBG_MAP_ALLOC
+	#endif
+#endif
+
+/*
 	Our include guard.
 	The #endif is in bottom.h.
 */

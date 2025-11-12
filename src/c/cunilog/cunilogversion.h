@@ -57,10 +57,10 @@ When		Who				What
 #define CUNILOG_PROGRAM_EMAIL	"-"							// Email.
 
 // Version numbers.
-#define CUNILOG_VERSION_MAJOR	1							// Major version.
-#define CUNILOG_VERSION_MINOR	0							// Minor version.
-#define CUNILOG_VERSION_SUB		2							// Subversion for maintenance.
-#define CUNILOG_VERSION_BUILD	9							// Build number.
+#define CUNILOG_VERSION_MAJOR	0							// Major version.
+#define CUNILOG_VERSION_MINOR	8							// Minor version.
+#define CUNILOG_VERSION_SUB		0							// Subversion for maintenance.
+#define CUNILOG_VERSION_BUILD	1							// Build number.
 #define CUNILOG_VERSION_YEAR	"2025"						// Copyright year.
 
 #define VERSION_URL		"https://github.com/cunilog"

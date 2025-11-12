@@ -54,10 +54,12 @@ When		Who				What
 		#include "./externC.h"
 		#include "./platform.h"
 		#include "./restrict.h"
+		#include "./membuf.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
 		#include "./../pre/restrict.h"
+		#include "./../mem/membuf.h"
 	#endif
 
 #endif
@@ -226,6 +228,53 @@ size_t str_correct_dir_separators (char *str, size_t len)
 	The function does not expect (or remove) more than one path separator at the end of str.
 */
 size_t str_remove_last_dir_separator (const char *str, size_t len)
+;
+
+/*
+	smb_absolute_path_from_relative_path
+
+	Stores the absolute path of the relative path szRelative points to by using the reference
+	path szReference points to as the starting point. The length parameters lnRelative and
+	lnReference can be USE_STRLEN, which is defined as (size_t) (-1).
+
+	The absolute path is stored in the buffer of the SMEMBUF structure pmbAbsolute points to.
+	This structure must have been initialised before the function is called. The caller is
+	responsible for releasing the memory allocated by the structure again, for instance
+	by calling doneSMEMBUF () on it.
+
+	The function reduces the amount of path navigators ("../" or "..\") as much as possible.
+
+	Parameters
+	----------
+
+	pmAbsolute		A pointer to an initialised SMEMBUF structure that receives the
+					absolute path in its buffer.
+
+	szRelative		A pointer to a relative path. If this is an absolute path, the
+					parameter szReference is ignored, and szRelative is placed in
+					pmAbsolute as the result of the functions, and the function's
+					return value is its length.
+					If this parameter points to a relative path, the function
+					calculates its absolute path relative to szReference, with path
+					navigators removed.
+
+	lnRelative		Its length. This can be USE_STRLEN, in which case szRelative
+					requires to be NUL-terminated.
+
+	szReference		A pointer to an absolute reference path. The function assumes that
+					szRelative is relative to this path.
+
+	lnReference		Its length. This can be USE_STRLEN, in which case szReference
+					requires to be NUL-terminated.
+
+	The function returns the amount of octets/bytes written to the SMEMBUF structure's buffer,
+	not including a terminating NUL character, which the function also stores.
+*/
+size_t smb_absolute_path_from_relative_path	(
+			SMEMBUF		*pmbAbsolute,
+			const char *cunilog_restrict	szRelative,		size_t	lnRelative,
+			const char *cunilog_restrict	szReference,	size_t	lnReference
+											)
 ;
 
 /*

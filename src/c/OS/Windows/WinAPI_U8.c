@@ -54,6 +54,16 @@ When		Who				What
 	#include <crtdbg.h>
 #endif
 
+/*
+	2025-11-11, Thomas:
+	HAVE_WINUSER changed to HAVE_USER32
+*/
+#ifdef HAVE_WINUSER
+	#ifndef HAVE_USER32
+	#define HAVE_USER32
+	#endif
+#endif
+
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
 	#include "./WinAPI_U8.h"
@@ -209,12 +219,9 @@ WCHAR *AllocWinU16_from_UTF8 (const char *ccU8)
 		int	iRequiredSize = reqWinU16wchars (ccU8);
 		pwc = ubf_malloc (iRequiredSize * sizeof (WCHAR));
 		if (pwc)
-		{
 			WinU16_from_UTF8 (pwc, iRequiredSize, ccU8);
-			return pwc;
-		}
 	}
-	return NULL;
+	return pwc;
 }
 
 WCHAR *AllocWinU16_from_UTF8_00 (const char *ccU8)
@@ -3079,7 +3086,7 @@ HMODULE LoadLibraryU8(
     }
 #endif
 
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL PostSysCommandWPARAMtoThisConsole (WPARAM wparam)
 	{
 		HWND		hConsoleWindow;
@@ -3093,21 +3100,21 @@ HMODULE LoadLibraryU8(
 	}
 #endif
 
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL MaxiMiseThisConsoleWindow (void)
 	{
 		return PostSysCommandWPARAMtoThisConsole (SC_MAXIMIZE);
 	}
 #endif
 
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL MiniMiseThisConsoleWindow (void)
 	{
 		return PostSysCommandWPARAMtoThisConsole (SC_MINIMIZE);
 	}
 #endif
 
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL RestoreThisConsoleWindow (void)
 	{
 		return PostSysCommandWPARAMtoThisConsole (SC_RESTORE);
