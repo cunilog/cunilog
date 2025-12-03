@@ -78,7 +78,7 @@ EXTERN_C_BEGIN
 /*
 	WinObtainExecutableModuleName
 
-	Obtains the executables full path including its name. The caller is responsible for
+	Obtains the executable's full path including its name. The caller is responsible for
 	initialising the SMEMBUF structure beforehand.
 
 	The function returns the amount of octets (bytes) written to the SMEMBUF's buf
@@ -86,6 +86,20 @@ EXTERN_C_BEGIN
 */
 size_t WinObtainExecutableModuleName (SMEMBUF *mb)
 ;
+
+/*
+	WinGetExecutableModuleNameStr
+
+	Returns the executable's full path including its name as a const char *.
+*/
+const char *WinGetExecutableModuleNameStr (void);
+
+/*
+	WinGetExecutableModuleNameLen
+
+	Returns the length of the exectuable's full path including its name.
+*/
+size_t WinGetExecutableModuleNameLen (void);
 
 /*
 	WinObtainAppNameFromExecutableModule

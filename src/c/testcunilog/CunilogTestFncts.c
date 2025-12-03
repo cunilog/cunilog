@@ -1033,6 +1033,7 @@ bool CunilogTestFunction	(
 	
 	SMEMBUF smb = SMEMBUF_INITIALISER;
 	logTextU8smbfmt_static (&smb, "Another string is \"%s\"", "String");
+	doneSMEMBUF (&smb);
 
 	/*
 	Sleep (2000);

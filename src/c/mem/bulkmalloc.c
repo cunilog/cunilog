@@ -34,7 +34,7 @@ When		Who				What
 	The above copyright notice and this permission notice shall be included in all copies
 	or substantial portions of the Software.
 
-	THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
 	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
 	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
@@ -208,6 +208,7 @@ SBULKMEM *AllocInitSBULKMEM	(
 	} else
 	{
 		stTotal									= stSBULKMEM + stSBULKMEMBLOCK + stMemblockSize;
+		//if (1048656 == stTotal) ASSERT (FALSE);
 		plinth = ubf_malloc (stTotal);
 		if (plinth)
 		{
@@ -267,7 +268,7 @@ SBULKMEM *DoneSBULKMEM (SBULKMEM *pPlinth)
 		if (l->uiFlags & USBM_STRUCT_ALLOCATED)
 			ubf_free (l);
 	}
-	if (pPlinth->uiFlags & USBM_MEM_BLOCK_ALLOCATED)
+	if (pPlinth->uiFlags & USBM_STRUCT_ALLOCATED)
 	{
 		ubf_free (pPlinth);
 		return NULL;
@@ -333,6 +334,7 @@ SBULKMEMBLOCK *GrowSBULKMEM	(
 		size_t			stSBULKMEMBLOCK	= ALIGNED_SIZE (sizeof (SBULKMEMBLOCK), DEFAULT_SBULKMEM_ALIGNMENT);
 		size_t			stMemoryBlock	= CalculateAlignedSize (size, DEFAULT_SBULKMEM_ALIGNMENT);
 
+		//if (1048624 == stSBULKMEMBLOCK + stMemoryBlock) ASSERT (false);
 		pnew = ubf_malloc (stSBULKMEMBLOCK + stMemoryBlock);
 		if (pnew)
 		{
@@ -679,12 +681,16 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 
 		// Example 1 used for the top of the header file.
 		//	->
+		#ifdef OUR_BULK_DATA_ARRAY_SIZE
+		#undef OUR_BULK_DATA_ARRAY_SIZE
+		#endif
 		#define OUR_BULK_DATA_ARRAY_SIZE	(100)
 
 		SBULKMEM	sbulk	= SBULKMEM_INITIALISER (DEFAULT_SBULKMEM_SIZE);
 		void		*pDat2 [OUR_BULK_DATA_ARRAY_SIZE];
-		int			i;
 
+		int			i;
+		InitSBULKMEM (&sbulk, DEFAULT_SBULKMEM_SIZE);
 		for (i = 0; i < OUR_BULK_DATA_ARRAY_SIZE; ++i)
 		{
 			pDat2 [i] = GetMemFromSBULKMEM (&sbulk, 1024, 8, EN_SBULKMEM_CAN_GROW);
@@ -698,6 +704,9 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 
 		// Example 2 used for the top of the header file.
 		//	->
+		#ifdef OUR_BULK_DATA_ARRAY_SIZE
+		#undef OUR_BULK_DATA_ARRAY_SIZE
+		#endif
 		#define OUR_BULK_DATA_ARRAY_SIZE	(100)
 		SBULKMEM	*pBulk	= AllocInitSBULKMEM (NULL, DEFAULT_SBULKMEM_SIZE);
 		if (pBulk)
@@ -707,13 +716,13 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 
 			for (j = 0; j < OUR_BULK_DATA_ARRAY_SIZE; ++j)
 			{
-				pData [j] = GetMemFromSBULKMEM (&sbulk, 1024, 0, EN_SBULKMEM_CAN_GROW);
+				pData [j] = GetMemFromSBULKMEM (pBulk, 1024, 0, EN_SBULKMEM_CAN_GROW);
 				if (pData [j])
 				{
 					memset (pData [j], 0xFF, 1024);
 				}
 			}
-			DoneSBULKMEM (&sbulk);
+			DoneSBULKMEM (pBulk);
 		}
 		//	<-
 

@@ -20,6 +20,7 @@ head
 /OS/Windows/WinAPI_U8_Test
 /OS/Windows/WinAPI_ReadDirFncts
 /OS/Windows/CompressNTFS_U8
+/OS/Windows/WinConfigureISOdate
 /OS/Windows/WinSharedMutex
 /OS/Windows/WinExeFileName
 /OS/POSIX/PsxCompressFile
@@ -83,6 +84,7 @@ head
 /OS/Windows/WinAPI_U8_Test
 /OS/Windows/WinAPI_ReadDirFncts
 /OS/Windows/CompressNTFS_U8
+/OS/Windows/WinConfigureISOdate
 /OS/Windows/WinSharedMutex
 /OS/Windows/WinExeFileName
 /OS/POSIX/PsxCompressFile

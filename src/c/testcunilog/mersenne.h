@@ -28,6 +28,18 @@ When		Who				What
 #ifndef U_MERSENNE_TWISTER_H
 #define U_MERSENNE_TWISTER_H
 
+#if		defined	(TEST_PROCESS_HELPER_BUILD_TEST_FNCT)	\
+	||	defined	(U_TEST_PROCESS_HELPER_BUILD_MAIN)		\
+	||	defined	(PROCESS_HELPERS_BUILD_TEST_FNCT)		\
+	||	!defined (CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS)
+
+	#ifndef BUILD_MERSENNE_TWISTER_FOR_TESTS
+	#define BUILD_MERSENNE_TWISTER_FOR_TESTS
+	#endif
+#endif
+
+#ifdef BUILD_MERSENNE_TWISTER_FOR_TESTS
+
 /*
 	The following code has been taken, with little modifications, from
 	https://en.wikipedia.org/wiki/Mersenne_Twister in 2025-07.
@@ -133,5 +145,7 @@ static uint32_t random_uint32(mersenne_twister_state* state)
 #undef b
 #undef c
 #undef f
+
+#endif														// Of #ifdef BUILD_MERSENNE_TWISTER_FOR_TESTS.
 
 #endif														// Of #ifndef U_MERSENNE_TWISTER_H.

@@ -32,6 +32,7 @@
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>false</EnableASAN>
+    <EnableUnitySupport>false</EnableUnitySupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -40,6 +41,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>false</EnableASAN>
+    <EnableUnitySupport>false</EnableUnitySupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -47,6 +49,7 @@
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>false</EnableASAN>
+    <EnableUnitySupport>false</EnableUnitySupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -55,6 +58,7 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <EnableASAN>false</EnableASAN>
+    <EnableUnitySupport>false</EnableUnitySupport>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -90,7 +94,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32;HAVE_VERSION</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -102,6 +106,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -110,7 +115,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32;HAVE_VERSION</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -122,13 +127,14 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;HAVE_STRWILDCARDS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;UBF_HEX_BUILD_TEST_FUNCTION;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;HAVE_STRWILDCARDS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;UBF_HEX_BUILD_TEST_FUNCTION;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32;HAVE_VERSION</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -140,6 +146,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -148,7 +155,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32;HAVE_VERSION</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -160,6 +167,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -197,6 +205,7 @@
     <ClCompile Include="..\..\..\..\src\c\OS\SharedMutex.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\UserHome.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\CompressNTFS_U8.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinConfigureISOdate.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8_Test.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinSharedMutex.c" />
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinExeFileName.c" />
@@ -261,6 +270,7 @@
     <ClInclude Include="..\..\..\..\src\c\OS\SharedMutex.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\UserHome.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\CompressNTFS_U8.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinConfigureISOdate.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8_Test.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinSharedMutex.h" />
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinExeFileName.h" />

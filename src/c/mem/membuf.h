@@ -237,7 +237,7 @@ TYPEDEF_FNCT_PTR (void *, setToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 
 	The function returns a pointer to ps->buf.pvoid.
 	
-	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	If the function fails, it calls doneSMEMBUF () on the structure to make it unusable.
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
@@ -254,7 +254,7 @@ TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 
 	The function returns a pointer to ps->buf.pvoid.
 	
-	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	If the function fails, it calls doneSMEMBUF () on the structure to make it unusable.
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *growToSizeSMEMBUFreserve (SMEMBUF *pb, size_t siz, size_t res);
@@ -266,7 +266,7 @@ TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUFreserve) (SMEMBUF *pb, size_t siz, si
 	The function is identical to growToSizeSMEMBUF () but always aligns the size to
 	64 octets/bytes.
 
-	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	If the function fails, it calls doneSMEMBUF () on the structure to make it unusable.
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz);
@@ -282,7 +282,7 @@ TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF64aligned) (SMEMBUF *pb, size_t siz);
 
 	The buffer never shrinks.
 
-	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	If the function fails, it calls doneSMEMBUF () on the structure to make it unusable.
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);

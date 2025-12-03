@@ -307,9 +307,9 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 			#endif
 			break;
 		case cunilogCmdConfigCunilognewline:
-			memcpy (&put->unilogNewLine, szData, sizeof (newline_t));
-			ubf_assert (0 <=put->unilogNewLine);
-			ubf_assert (cunilogNewLineAmountEnumValues > put->unilogNewLine);
+			memcpy (&put->culogNewLine, szData, sizeof (newline_t));
+			ubf_assert (0 <=put->culogNewLine);
+			ubf_assert (cunilogNewLineAmountEnumValues > put->culogNewLine);
 			break;
 		case cunilogCmdConfigDisableTaskProcessors:
 			culCmdConfigDisableTaskProcessors (put, szData);

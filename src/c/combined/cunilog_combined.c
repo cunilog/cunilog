@@ -99,10 +99,12 @@ void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz)
 			{
 				ubf_free (pb->buf.puc);
 				pb->buf.puc = NULL;
+				//if (143 == siz) ubf_assert (false);
 				p = ubf_malloc (siz);
 			}
 		} else
 		{
+			//if (81 == siz) ubf_assert (false);
 			p = ubf_malloc (siz);
 		}
 		if (p)
@@ -337,6 +339,16 @@ When		Who				What
 
 #ifdef _MSC_VER
 	#include <crtdbg.h>
+#endif
+
+/*
+	2025-11-11, Thomas:
+	HAVE_WINUSER changed to HAVE_USER32
+*/
+#ifdef HAVE_WINUSER
+	#ifndef HAVE_USER32
+	#define HAVE_USER32
+	#endif
 #endif
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
@@ -2250,6 +2262,166 @@ enum en_wapi_fs_type GetFileSystemType (const char *chDriveRoot)
 	}
 #endif
 
+#ifdef HAVE_VERSION
+	DWORD GetFileVersionInfoSizeU8(
+	  LPCSTR lpFilenameU8,
+	  LPDWORD lpdwHandle
+	)
+	{
+		WCHAR	wcFileName [WINAPI_U8_HEAP_THRESHOLD];
+		WCHAR	*pwcFileName;
+		DWORD	dwRet;
+
+		pwcFileName = AllocWinU16fromU8orUseThreshold (wcFileName, lpFilenameU8);
+		dwRet = GetFileVersionInfoSizeW (pwcFileName, lpdwHandle);
+		DoneWinU16fromU8orUseThreshold (pwcFileName, wcFileName);
+		return dwRet;
+	}
+#endif
+
+#ifdef HAVE_VERSION
+	bool GetFileVersionNumbers	(
+			DWORD		*pdwMajor,		DWORD *pdwMinor,
+			DWORD		*pdwMinBuild,	DWORD *pdwMinRevision,
+			const char	*szFileNameU8
+								)
+	{
+		WCHAR	wcFileName [WINAPI_U8_HEAP_THRESHOLD];
+		WCHAR	*pwcFileName;
+		bool	bRet = false;
+
+		pwcFileName = AllocWinU16fromU8orUseThreshold (wcFileName, szFileNameU8);
+		if (NULL == pwcFileName)
+			return false;
+
+		void *buf = NULL;
+		DWORD dwHandle	= 0;
+		DWORD dwSize	= GetFileVersionInfoSizeW (pwcFileName, &dwHandle);
+		if (0 == dwSize)
+			goto Escape;
+
+		buf = malloc (dwSize);
+		if (!buf)
+			goto Escape;
+		bool b = GetFileVersionInfoW (pwcFileName, 0, dwSize, buf);
+		if (!b)
+			goto Escape;
+
+		typedef struct sLANGANDCODEPAGE
+		{
+			WORD wLanguage;
+			WORD wCodePage;
+		} SLANGANDCODEPAGE;
+		SLANGANDCODEPAGE	*lpTranslate;
+
+		lpTranslate = buf;
+		unsigned int uiLen;
+		if (VerQueryValueW (buf, L"\\VarFileInfo\\Translation", &lpTranslate, &uiLen))
+		{
+			for (unsigned int ui=0; ui < (uiLen / sizeof (SLANGANDCODEPAGE)); ui ++)
+			{
+				/*
+				if	(
+						// Retrieve file description for language and code page "ui". 
+						msnprintf (SubBlock, 50,
+							TEXT("\\StringFileInfo\\%04x%04x\\FileDescription"),
+							lpTranslate[ui].wLanguage,
+							lpTranslate[ui].wCodePage)
+						> 0
+					)
+				*/
+				WCHAR cSubBlock [1024];
+				_snwprintf	(
+					cSubBlock, 1024, L"\\StringFileInfo\\%04x%04x\\FileVersion",
+					lpTranslate [ui].wLanguage, lpTranslate[ui].wCodePage
+							);
+				cSubBlock [1024 - 1] = L'\0';
+				void *pb;
+				VerQueryValueW (buf, cSubBlock, &pb, &uiLen);
+				if (uiLen)
+				{
+					// Version comes as "1, 8, 0, 0".
+					unsigned int	uiMa, uiMi, uiSu, uiBu;
+					/*
+					int s = swscanf	(
+										pb, L"%u, %u, %u, %u",
+										&uiMa, &uiMi, &uiSu, &uiBu
+									);
+					*/
+					int s = swscanf	(
+										pb, L"%u.%u.%u.%u",
+										&uiMa, &uiMi, &uiSu, &uiBu
+									);
+					if (s)
+						;
+					{	// Return the values to the caller.
+						*pdwMajor		= (WORD) uiMa;
+						*pdwMinor		= (WORD) uiMi;
+						*pdwMinBuild	= (WORD) uiSu;
+						*pdwMinRevision	= (WORD) uiBu;
+						bRet = true;
+					}
+				}
+			}
+		}
+
+		Escape:
+		DoneWinU16fromU8orUseThreshold (pwcFileName, wcFileName);
+		if (buf)
+			free (buf);
+		return bRet;
+	}
+#endif
+
+#ifdef HAVE_VERSION
+	#define npexe	"notepad.exe"
+
+	static bool	bWinNotepadSupportsLineFeed;
+	static bool bWinNotepadSupportsLineFeedCalled;
+
+	bool WinNotepadSupportsLineFeed (void)
+	{
+		if (bWinNotepadSupportsLineFeedCalled)
+			return bWinNotepadSupportsLineFeed;
+
+		bool br = false;
+		size_t ln = SystemDirectoryU8len ();
+		ln += 1;											// Directory separator.
+		ln += sizeof (npexe);
+		char *sz = malloc (ln);
+		if (sz)
+		{
+			memcpy (sz, SystemDirectoryU8 (), SystemDirectoryU8len ());
+			sz [SystemDirectoryU8len ()] = UBF_DIR_SEP;
+			memcpy (sz + SystemDirectoryU8len () + 1, npexe, sizeof (npexe));
+			DWORD maj, min, mbl, mrv;
+			if (GetFileVersionNumbers (&maj, &min, &mbl, &mrv, sz))
+			{
+				if (maj > 10)
+					br = true;
+				else if (maj == 10)
+				{
+					if (min > 0)
+						br = true;
+					else if (mbl >= 17763)
+						br = true;
+				}
+			}
+			free (sz);
+		}
+		// There's no need to perform this expensive check again. It is very unlikely
+		//	that the version of Notepad changes during the runtime of our app.
+		bWinNotepadSupportsLineFeed			= br;
+		bWinNotepadSupportsLineFeedCalled	= true;
+		return br;
+	}
+
+	void ResetWinNotepadSupportsLineFeed ()
+	{
+		bWinNotepadSupportsLineFeedCalled	= false;
+	}
+#endif
+
 DWORD GetNumberOfProcessesAttachedToConsole (void)
 {
 	DWORD dwLst [1];
@@ -3361,7 +3533,7 @@ HMODULE LoadLibraryU8(
     }
 #endif
 
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL PostSysCommandWPARAMtoThisConsole (WPARAM wparam)
 	{
 		HWND		hConsoleWindow;
@@ -3375,21 +3547,21 @@ HMODULE LoadLibraryU8(
 	}
 #endif
 
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL MaxiMiseThisConsoleWindow (void)
 	{
 		return PostSysCommandWPARAMtoThisConsole (SC_MAXIMIZE);
 	}
 #endif
 
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL MiniMiseThisConsoleWindow (void)
 	{
 		return PostSysCommandWPARAMtoThisConsole (SC_MINIMIZE);
 	}
 #endif
 
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL RestoreThisConsoleWindow (void)
 	{
 		return PostSysCommandWPARAMtoThisConsole (SC_RESTORE);
@@ -4437,6 +4609,7 @@ When		Who				What
 	#include "./WinAPI_U8.h"
 	#include "./WinAPI_U8_Test.h"
 	#include "./WinAPI_ReadDirFncts.h"
+	#include "./WinExeFileName.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./ubfdebug.h"
@@ -4629,6 +4802,17 @@ When		Who				What
 		printf (" Processes attached to current console: %u ", dw);
 		bool bOnlyConsole = IsOnlyProcessAttachedToConsole ();
 		UNREFERENCED_PARAMETER (bOnlyConsole);
+
+		#ifdef HAVE_VERSION
+			DWORD dwMaj;
+			DWORD dwMin;
+			DWORD dwBld;
+			DWORD dwRev;
+			//b &= GetFileVersionNumbers (&dwMaj, &dwMin, &dwBld, &dwRev, WinGetExecutableModuleNameStr ());
+			b &= GetFileVersionNumbers (&dwMaj, &dwMin, &dwBld, &dwRev, "C:\\Windows\\System32\\notepad.exe");
+			bool bs = WinNotepadSupportsLineFeed ();
+			UNREFERENCED_PARAMETER (bs);
+		#endif
 
 		return b;
 	}
@@ -5624,6 +5808,140 @@ enntfscompressresult IsFileNTFSCompressedByHandle (HANDLE hFile)
 #endif														// Of #ifdef _WIN32.
 /****************************************************************************************
 
+	File:		WinConfigureISOdate.c
+	Why:		Module to configure date and time format in the Windows registry.
+	OS:			Windows.
+	Author:		Thomas
+	Created:	2025-11-17
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-11-17	Thomas			Created.
+
+****************************************************************************************/
+
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#include <stdbool.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <string.h>
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include "./WinConfigureISOdate.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+	#else
+	#endif
+
+	#ifdef BUILD_WINCONFIGUREISODATE_TEST
+		#include <stdio.h>
+	#endif
+
+#endif
+
+#ifdef PLATFORM_IS_WINDOWS
+
+#define WCI_M	L"-"										// Date component separator.
+#define WCI_D	L"yyyy-MM-dd"
+//#define WCI_L	L"dddd yyyy-MM-dd"							// We do not set the long date.
+
+#define WCI_C	L":"										// Time component separator.
+#define WCI_S	L"HH:mm"
+#define WCI_T	L"HH:mm:ss"
+
+const WCHAR		wcUSER_HK_KEY	[] = L"HKEY_CURRENT_USER";
+const WCHAR		wcUSER_ISO_DATE [] = L"Control Panel\\International";
+
+const WCHAR		wcALL_HK_KEY	[]	= L"HKEY_USERS";
+const WCHAR		wcALL_ISO_DATE	[]	= L".DEFAULT\\Control Panel\\International";
+
+#define reg_rights	(KEY_READ | KEY_SET_VALUE)
+
+bool setISO8601inRegistry (enum enISOregistry reg)
+{
+	const WCHAR	*pwSKey				= NULL;
+	const WCHAR	*pwBKey				= NULL;
+	HKEY		key;
+	HKEY		hk;
+	LSTATUS		ls;
+
+	switch (reg)
+	{
+		case enISOregistryCurrentUser:	key		= HKEY_CURRENT_USER;
+										pwBKey	= wcUSER_HK_KEY;
+										pwSKey	= wcUSER_ISO_DATE;
+										break;
+		case enISOregistryAllUsers:		key		= HKEY_USERS;
+										pwBKey	= wcALL_HK_KEY;
+										pwSKey	= wcALL_ISO_DATE;
+										break;
+		default:						return false;
+	}
+
+	ls = RegOpenKeyExW (key, pwSKey, 0, reg_rights, &hk);
+	if (ERROR_SUCCESS != ls) return false;
+	ls = RegSetValueExW (hk, L"sDate", 0, REG_SZ, (LPBYTE) WCI_M, (DWORD) sizeof (WCI_M));
+	if (ERROR_SUCCESS != ls) goto Escape;
+	ls = RegSetValueExW (hk, L"sShortDate", 0, REG_SZ, (LPBYTE) WCI_D, (DWORD) sizeof (WCI_D));
+	if (ERROR_SUCCESS != ls) goto Escape;
+	// We do not set the long date.
+	/*
+	ls = RegSetValueExW (hk, "sLongDate", 0, REG_SZ, (LPBYTE) WCI_L, (DWORD) sizeof (WCI_L));
+	if (ERROR_SUCCESS != ls) goto Escape;
+	*/
+	ls = RegSetValueExW (hk, L"sTime", 0, REG_SZ, (LPBYTE) WCI_C, (DWORD) sizeof (WCI_C));
+	if (ERROR_SUCCESS != ls) goto Escape;
+	ls = RegSetValueExW (hk, L"sShortTime", 0, REG_SZ, (LPBYTE) WCI_S, (DWORD) sizeof (WCI_S));
+	if (ERROR_SUCCESS != ls) goto Escape;
+	ls = RegSetValueExW (hk, L"sTimeFormat", 0, REG_SZ, (LPBYTE) WCI_T, (DWORD) sizeof (WCI_T));
+
+	Escape:
+	SetLastError (ls);
+	RegCloseKey(hk);
+	return ERROR_SUCCESS == ls;
+}
+
+#ifdef BUILD_WINCONFIGUREISODATE_TEST
+	bool WinConfigureISOdateTestFnct (void)
+	{
+		return setISO8601inRegistry (enISOregistryCurrentUser);
+	}
+#endif
+
+#endif													// Of #ifdef PLATFORM_IS_WINDOWS.
+/****************************************************************************************
+
 	File:		WinSharedMutex.c
 	Why:		Implements a mutex for interprocess-locking.
 	OS:			C99
@@ -5877,6 +6195,32 @@ When		Who				What
 			} else
 				break;
 		} while (dwCurrSiz < INT16_MAX);
+		return 0;
+	}
+
+	const char *WinGetExecutableModuleNameStr (void)
+	{
+		if (!isUsableSMEMBUF (&mbOurExecutablePath))
+		{
+			SMEMBUF smb = SMEMBUF_INITIALISER;
+			WinObtainExecutableModuleName (&smb);
+			doneSMEMBUF (&smb);
+		}
+		if (isUsableSMEMBUF (&mbOurExecutablePath))
+			return mbOurExecutablePath.buf.pcc;
+		return NULL;
+	}
+
+	size_t WinGetExecutableModuleNameLen (void)
+	{
+		if (!isUsableSMEMBUF (&mbOurExecutablePath))
+		{
+			SMEMBUF smb = SMEMBUF_INITIALISER;
+			WinObtainExecutableModuleName (&smb);
+			doneSMEMBUF (&smb);
+		}
+		if (isUsableSMEMBUF (&mbOurExecutablePath))
+			return lnOurExectuablePath;
 		return 0;
 	}
 
@@ -6304,6 +6648,32 @@ static unsigned int		uiDetExeMethod;						// The strategy used to
 		return exe_used;
 	}
 #endif
+
+	const char *PsxnGetExecutableModuleNameStr (void)
+	{
+		if (!isUsableSMEMBUF (&mbOurExecutablePath))
+		{
+			SMEMBUF smb = SMEMBUF_INITIALISER;
+			PsxObtainExecutableModuleName (&smb);
+			doneSMEMBUF (&smb);
+		}
+		if (isUsableSMEMBUF (&mbOurExecutablePath))
+			return mbOurExecutablePath.buf.pcc;
+		return NULL;
+	}
+
+	size_t PsxGetExecutableModuleNameLen (void)
+	{
+		if (!isUsableSMEMBUF (&mbOurExecutablePath))
+		{
+			SMEMBUF smb = SMEMBUF_INITIALISER;
+			PsxObtainExecutableModuleName (&smb);
+			doneSMEMBUF (&smb);
+		}
+		if (isUsableSMEMBUF (&mbOurExecutablePath))
+			return lnOurExectuablePath;
+		return 0;
+	}
 
 size_t PsxObtainAppNameFromExecutableModule (SMEMBUF *mb)
 {
@@ -7339,12 +7709,17 @@ When		Who				What
 		SMEMBUF smbE = SMEMBUF_INITIALISER;
 		size_t stE = ObtainExecutableModuleName (&smbE);
 		ubf_assert_bool_AND (b, 0 < stE);
+		DONESMEMBUF (smbE);
+
 		SMEMBUF smbA = SMEMBUF_INITIALISER;
 		size_t stA = ObtainAppNameFromExecutableModule (&smbA);
 		ubf_assert_bool_AND (b, 0 < stA);
+		DONESMEMBUF (smbA);
+
 		SMEMBUF smbP = SMEMBUF_INITIALISER;
 		size_t stP = ObtainPathFromExecutableModule (&smbP);
 		ubf_assert_bool_AND (b, 0 < stP);
+		DONESMEMBUF (smbP);
 
 		return b;
 	}
@@ -9489,7 +9864,7 @@ When		Who				What
 	The above copyright notice and this permission notice shall be included in all copies
 	or substantial portions of the Software.
 
-	THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
 	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
 	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
@@ -9663,6 +10038,7 @@ SBULKMEM *AllocInitSBULKMEM	(
 	} else
 	{
 		stTotal									= stSBULKMEM + stSBULKMEMBLOCK + stMemblockSize;
+		//if (1048656 == stTotal) ASSERT (FALSE);
 		plinth = ubf_malloc (stTotal);
 		if (plinth)
 		{
@@ -9722,7 +10098,7 @@ SBULKMEM *DoneSBULKMEM (SBULKMEM *pPlinth)
 		if (l->uiFlags & USBM_STRUCT_ALLOCATED)
 			ubf_free (l);
 	}
-	if (pPlinth->uiFlags & USBM_MEM_BLOCK_ALLOCATED)
+	if (pPlinth->uiFlags & USBM_STRUCT_ALLOCATED)
 	{
 		ubf_free (pPlinth);
 		return NULL;
@@ -9788,6 +10164,7 @@ SBULKMEMBLOCK *GrowSBULKMEM	(
 		size_t			stSBULKMEMBLOCK	= ALIGNED_SIZE (sizeof (SBULKMEMBLOCK), DEFAULT_SBULKMEM_ALIGNMENT);
 		size_t			stMemoryBlock	= CalculateAlignedSize (size, DEFAULT_SBULKMEM_ALIGNMENT);
 
+		//if (1048624 == stSBULKMEMBLOCK + stMemoryBlock) ASSERT (false);
 		pnew = ubf_malloc (stSBULKMEMBLOCK + stMemoryBlock);
 		if (pnew)
 		{
@@ -10134,12 +10511,16 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 
 		// Example 1 used for the top of the header file.
 		//	->
+		#ifdef OUR_BULK_DATA_ARRAY_SIZE
+		#undef OUR_BULK_DATA_ARRAY_SIZE
+		#endif
 		#define OUR_BULK_DATA_ARRAY_SIZE	(100)
 
 		SBULKMEM	sbulk	= SBULKMEM_INITIALISER (DEFAULT_SBULKMEM_SIZE);
 		void		*pDat2 [OUR_BULK_DATA_ARRAY_SIZE];
-		int			i;
 
+		int			i;
+		InitSBULKMEM (&sbulk, DEFAULT_SBULKMEM_SIZE);
 		for (i = 0; i < OUR_BULK_DATA_ARRAY_SIZE; ++i)
 		{
 			pDat2 [i] = GetMemFromSBULKMEM (&sbulk, 1024, 8, EN_SBULKMEM_CAN_GROW);
@@ -10153,6 +10534,9 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 
 		// Example 2 used for the top of the header file.
 		//	->
+		#ifdef OUR_BULK_DATA_ARRAY_SIZE
+		#undef OUR_BULK_DATA_ARRAY_SIZE
+		#endif
 		#define OUR_BULK_DATA_ARRAY_SIZE	(100)
 		SBULKMEM	*pBulk	= AllocInitSBULKMEM (NULL, DEFAULT_SBULKMEM_SIZE);
 		if (pBulk)
@@ -10162,13 +10546,13 @@ void getSBULKMEMstats (SBULKMEMSTATS *pStats, SBULKMEM *pPlinth)
 
 			for (j = 0; j < OUR_BULK_DATA_ARRAY_SIZE; ++j)
 			{
-				pData [j] = GetMemFromSBULKMEM (&sbulk, 1024, 0, EN_SBULKMEM_CAN_GROW);
+				pData [j] = GetMemFromSBULKMEM (pBulk, 1024, 0, EN_SBULKMEM_CAN_GROW);
 				if (pData [j])
 				{
 					memset (pData [j], 0xFF, 1024);
 				}
 			}
-			DoneSBULKMEM (&sbulk);
+			DoneSBULKMEM (pBulk);
 		}
 		//	<-
 
@@ -15118,8 +15502,16 @@ When		Who				What
 #include <stddef.h>
 #include <string.h>
 
-#ifndef USE_STRLEN
-#define USE_STRLEN						((size_t) -1)
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include "./check_utf8.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ubfdebug.h"
+	#else
+		#include "./../dbg/ubfdebug.h"
+	#endif
+
 #endif
 
 bool c_check_utf8(const char *str, size_t len)
@@ -15167,6 +15559,34 @@ bool c_check_utf8(const char *str, size_t len)
 }
 
 /*
+	See https://en.wikipedia.org/wiki/UTF-8 :
+	Byte 1:
+	0yyyzzzz	01111111	127		< 128		-> 1 octet/byte
+	110xxxyy	11011111	223		< 224		-> 2 octets/bytes
+	1110wwww	11101111	239		< 240		-> 3 octets/bytes
+	11110uvv	11110111	247		< 248		-> 4 octets/bytes
+*/
+unsigned int nOctetsInUTF8char (uint8_t c)
+{
+	if (c < 128) return 1;
+	if (c < 224) return 2;
+	if (c < 240) return 3;
+	if (c < 248) return 4;
+	return 0;
+}
+
+/*
+	See https://en.wikipedia.org/wiki/UTF-16 .
+*/
+unsigned int nWordsInUTF16char (uint16_t c)
+{
+	// Not sure.
+	//if (c >= 0xD800 && c <= 0xDBFF) return 2;
+	if (c >= 0xD800 && c <= 0xDFFF) return 2;
+	return 1;
+}
+
+/*
 	https://github.com/yasuoka/check_utf8/blob/main/check_utf8_test.c
 */
 #ifdef U_CHECK_UTF8_BUILD_TEST_FNCT
@@ -15175,21 +15595,43 @@ bool c_check_utf8(const char *str, size_t len)
 		bool b = true;
 
 		b &= c_check_utf8("ほげほげ", 12);
+		ubf_assert_true (b);
 		//ほげほげ in Shift-JIS
 		b &= c_check_utf8("\x82\xd9\x82\xb0\x82\xd9\x82\xb0", 8) == false;
+		ubf_assert_true (b);
 		//copyright mark in UTF-8
 		b &= c_check_utf8 ("\xC2\xA9", 2);
+		ubf_assert_true (b);
 		b &= c_check_utf8("©", 2) == true;
+		ubf_assert_true (b);
 		// face in medical mask in UTF-8
 		b &= c_check_utf8("\xF0\x9F\x98\xB7", 4) == true;
+		ubf_assert_true (b);
 		// length invalid
 		b &= c_check_utf8("ふがふが", 11) == false;
+		ubf_assert_true (b);
 		// ascii
 		b &= c_check_utf8("Hello world.", 12) == true;
+		ubf_assert_true (b);
 		// empty
 		b &= c_check_utf8("", 1) == true;
+		ubf_assert_true (b);
 		// specials
 		b &= c_check_utf8("\t\b", 2) == true;
+		ubf_assert_true (b);
+
+		unsigned int n = nOctetsInUTF8char ((uint8_t) '\xF0');
+		b &= 4 == n;
+		ubf_assert_true (b);
+		n = nOctetsInUTF8char ((uint8_t) '\xC2');
+		b &= 2 == n;
+		ubf_assert_true (b);
+		n = nOctetsInUTF8char ((uint8_t) 'a');
+		b &= 1 == n;
+		ubf_assert_true (b);
+		n = nOctetsInUTF8char ((uint8_t) 250);
+		b &= 0 == n;
+		ubf_assert_true (b);
 
 		return b;
 	}
@@ -15632,11 +16074,15 @@ When		Who				What
 		#include "./ubfdebug.h"
 		#include "./platform.h"
 		#include "./Warnings.h"
+		#include "./strisabsolutepath.h"
+		#include "./strmembuf.h"
 	#else
 		#include "./../mem/memstrstr.h"
 		#include "./../dbg/ubfdebug.h"
 		#include "./../pre/platform.h"
 		#include "./../pre/Warnings.h"
+		#include "./../string/strisabsolutepath.h"
+		#include "./../string/strmembuf.h"
 	#endif
 
 #endif
@@ -15646,7 +16092,7 @@ size_t str_correct_dir_separators (char *str, size_t len)
 	size_t	n;
 	size_t	r	= 0;
 	
-	len = (size_t) -1 == len ? strlen (str) : len;
+	len = USE_STRLEN == len ? strlen (str) : len;
 	for (n = 0; n < len; ++ n)
 	{
 		if (isWrongDirectorySeparator (str [n]))
@@ -15696,6 +16142,39 @@ char *str_find_path_navigator (char *szString, size_t lnString)
 			-- lnString;
 		} else
 			return NULL;
+	}
+	return NULL;
+}
+
+size_t str_len_without_extension (const char *szPath, size_t lnPath)
+{
+	lnPath = USE_STRLEN == lnPath ? strlen (szPath) : lnPath;
+	size_t ln = lnPath;
+	if (szPath)
+	{
+		while (lnPath)
+		{
+			if ('.' == szPath [lnPath - 1])
+				return lnPath - 1;
+			-- lnPath;
+		}
+	}
+	return ln;
+}
+
+const char *str_find_path_separator (const char *szPath, size_t lnPath)
+{
+	lnPath = USE_STRLEN == lnPath ? strlen (szPath) : lnPath;
+	if (szPath)
+	{
+		size_t o = 0;
+		while (o < lnPath)
+		{
+			if (is_path_separator (szPath [0]))
+				return szPath;
+			++ szPath;
+			++ o;
+		}
 	}
 	return NULL;
 }
@@ -15820,7 +16299,7 @@ DEFAULT_WARNING_ASSIGNMENT_WITHIN_CONDITIONAL_EXPRESSION ()
 
 void ubf_change_directory_separators (char *szPath, size_t len, const char newSeparator)
 {
-	size_t	l = (size_t) -1 == len ? strlen (szPath) : len;
+	size_t	l = USE_STRLEN == len ? strlen (szPath) : len;
 	size_t	i;
 	
 	for (i = 0; i < l; ++i)
@@ -15832,7 +16311,7 @@ void ubf_change_directory_separators (char *szPath, size_t len, const char newSe
 
 size_t ubf_len_with_last_directory_separator (const char *szPath, size_t len)
 {
-	size_t	l = (size_t) -1 == len ? strlen (szPath) : len;
+	size_t	l = USE_STRLEN == len ? strlen (szPath) : len;
 	
 	if (szPath)
 	{
@@ -15863,6 +16342,125 @@ size_t str_remove_last_dir_separator (const char *str, size_t len)
 	return len;
 }
 
+size_t smb_absolute_path_from_relative_path	(
+			SMEMBUF							*pmbAbsolute,
+			const char *cunilog_restrict	szRelative,		size_t	lnRelative,
+			const char *cunilog_restrict	szReference,	size_t	lnReference
+											)
+{
+	ubf_assert_non_NULL	(pmbAbsolute);
+	ubf_assert			(isInitialisedSMEMBUF (pmbAbsolute));
+	ubf_assert_non_NULL	(szRelative);
+	ubf_assert_non_NULL	(szReference);
+
+	lnRelative	= USE_STRLEN == lnRelative	? strlen (szRelative)	: lnRelative;
+	lnReference	= USE_STRLEN == lnReference	? strlen (szReference)	: lnReference;
+	ubf_assert_non_0	(lnRelative);
+	ubf_assert_non_0	(lnReference);
+	ubf_assert			(is_absolute_path_l (szReference, lnReference));
+
+	size_t ln = 0;
+	if (is_absolute_path_l (szRelative, lnRelative))
+	{
+		growToSizeSMEMBUF (pmbAbsolute, lnRelative + 1);
+		if (isUsableSMEMBUF (pmbAbsolute))
+		{
+			memcpy (pmbAbsolute->buf.pch, szRelative, lnRelative);
+			pmbAbsolute->buf.pch [lnRelative] = ASCII_NUL;
+			ln = lnReference;
+			str_remove_path_navigators (pmbAbsolute->buf.pch, &ln);
+		}
+	} else
+	{
+		growToSizeSMEMBUF (pmbAbsolute, lnReference + lnRelative + 2);
+		if (isUsableSMEMBUF (pmbAbsolute))
+		{
+			memcpy (pmbAbsolute->buf.pch, szReference, lnReference);
+			if (!isDirectorySeparator (szReference [lnReference - 1]))
+				pmbAbsolute->buf.pch [lnReference ++] = UBF_DIR_SEP;
+			memcpy (pmbAbsolute->buf.pch + lnReference, szRelative, lnRelative);
+			ln = lnReference + lnRelative;
+			pmbAbsolute->buf.pch [ln] = ASCII_NUL;
+			str_remove_path_navigators (pmbAbsolute->buf.pch, &ln);
+		}
+	}
+	return ln;
+}
+
+size_t smb_absolute_path_from_relative_path_fref	(
+			SMEMBUF							*pmbAbsolute,
+			const char *cunilog_restrict	szRelative,			size_t	lnRelative,
+			const char *cunilog_restrict	szReferenceFile,	size_t	lnReferenceFile
+													)
+{
+	ubf_assert_non_NULL	(pmbAbsolute);
+	ubf_assert			(isInitialisedSMEMBUF (pmbAbsolute));
+	ubf_assert_non_NULL	(szRelative);
+	ubf_assert_non_NULL	(szReferenceFile);
+
+	lnReferenceFile = USE_STRLEN == lnReferenceFile ? strlen (szReferenceFile) : lnReferenceFile;
+	ubf_assert			(is_absolute_path_l (szReferenceFile, lnReferenceFile));
+
+	size_t ln = ubf_len_with_last_directory_separator (szReferenceFile, lnReferenceFile);
+	return smb_absolute_path_from_relative_path (
+				pmbAbsolute,
+				szRelative,			lnRelative,
+				szReferenceFile,	ln
+												);
+}
+
+size_t str_filename_from_path (SMEMBUF *pmb, const char *szPath, size_t lnPath)
+{
+	ubf_assert_non_NULL (pmb);
+
+	size_t	rLen = 0;
+
+	if (szPath)
+	{
+		lnPath = USE_STRLEN == lnPath ? strlen (szPath) : lnPath;
+		size_t	ln = lnPath;
+
+		// Find last directory separator.
+		const char	*szToSearch = szPath;
+		const char	*sz;
+		do
+		{
+			sz	= str_find_path_separator (szToSearch, lnPath);
+			if (sz)
+			{	// First character after last directory separator.
+				++ sz;
+				// "home/file"
+				lnPath -= sz - szToSearch;
+				szToSearch = sz;
+			}
+		} while (NULL != sz);
+
+		if (szPath == szToSearch)
+		{	// "C:file"
+			sz = memstrchr (szToSearch, ln, ':');
+			if (sz)
+			{
+				++ sz;
+				ln -= sz - szToSearch;
+				szToSearch = sz;
+				lnPath = ln;
+			}
+		}
+
+		if (lnPath)
+		{
+			ln = str_len_without_extension (szToSearch, lnPath);
+			if (ln)
+				lnPath = ln;
+		}
+		SMEMBUFfromStr (pmb, szToSearch, lnPath);
+		if (isUsableSMEMBUF (pmb))
+			rLen = lnPath;
+	}
+
+	return rLen;
+}
+
 #ifdef BUILD_DEBUG_UBF_STRFILESYS_TESTS
 	bool ubf_test_ubf_strfilesys (void)
 	{
@@ -15877,6 +16475,7 @@ size_t str_remove_last_dir_separator (const char *str, size_t len)
 	
 		ubf_assert ((size_t) -1 == SUBF_STRING_UNKNOWN_LENGTH);
 		ubf_assert ((size_t) -1 == SUBF_STRING_USE_STRLEN);
+		ubf_assert ((size_t) -1 == USE_STRLEN);
 
 		// Function str_find_path_navigator ().
 		strcpy (chPath, "..");
@@ -16151,6 +16750,133 @@ size_t str_remove_last_dir_separator (const char *str, size_t len)
 		st = ubf_len_with_last_directory_separator ("C:file.ext", USE_STRLEN);
 		ubf_expect_bool_AND (b, 2 == st);
 	
+		SMEMBUF smb = SMEMBUF_INITIALISER;
+		size_t ln;
+		ln = smb_absolute_path_from_relative_path (&smb, "../", USE_STRLEN, "C:/", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("C:/../", smb.buf.pcc, 7));
+
+		ln = smb_absolute_path_from_relative_path (&smb, "../", USE_STRLEN, "C:/folder", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("C:/", smb.buf.pcc, 4));
+
+		ln = smb_absolute_path_from_relative_path (&smb, "../", USE_STRLEN, "C:/folder/", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("C:/", smb.buf.pcc, 4));
+
+		ln = smb_absolute_path_from_relative_path (&smb, "/home", USE_STRLEN, "C:/folder/", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("/home", smb.buf.pcc, 6));
+
+		// Absolute path instead of relative one.
+		ln = smb_absolute_path_from_relative_path (&smb, "/../x", USE_STRLEN, "/a/b/c/d", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("/../x", smb.buf.pcc, 6));
+
+		ln = smb_absolute_path_from_relative_path (&smb, "../x", USE_STRLEN, "/a/b/c/d", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("/a/b/c/x", smb.buf.pcc, 6));
+
+		ln = smb_absolute_path_from_relative_path_fref (&smb, "../123", USE_STRLEN, "/a/b/file", USE_STRLEN);
+		ubf_expect_bool_AND (b, 6 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("/a/123", smb.buf.pcc, 7));
+
+		ln = smb_absolute_path_from_relative_path_fref (&smb, "../123", USE_STRLEN, "/a/b/file.txt", USE_STRLEN);
+		ubf_expect_bool_AND (b, 6 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("/a/123", smb.buf.pcc, 7));
+
+		ln = smb_absolute_path_from_relative_path_fref (&smb, "ABC", USE_STRLEN, "C:\\file", USE_STRLEN);
+		ubf_expect_bool_AND (b, 6 == ln);
+		ubf_change_directory_separators (smb.buf.pch, ln, UBF_WIN_DIR_SEP);
+		ubf_expect_bool_AND (b, !memcmp ("C:\\ABC", smb.buf.pcc, 7));
+
+		// This should abort but at the moment we have no way of testing this
+		//	without aborting.
+		/*
+		ln = smb_absolute_path_from_relative_path_fref (&smb, "ABC", USE_STRLEN, "C:file", USE_STRLEN);
+		ubf_expect_bool_AND (b, 5 == ln);
+		ubf_change_directory_separators (smb.buf.pcc, ln, UBF_WIN_DIR_SEP);
+		ubf_expect_bool_AND (b, !memcmp ("C:ABC", smb.buf.pcc, 6));
+		*/
+
+		ln = smb_absolute_path_from_relative_path_fref (&smb, "0", USE_STRLEN, "C:\\dir\\file.txt.exe.pdf", USE_STRLEN);
+		ubf_expect_bool_AND (b, 8 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("C:\\dir\\0", smb.buf.pcc, 9));
+
+		const char *csz = str_find_path_separator ("home/file", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("/file", csz, 6));
+
+		ln = str_len_without_extension ("123.txt", USE_STRLEN);
+		ubf_expect_bool_AND (b, 3 == ln);
+
+		ln = str_len_without_extension ("A.B.C.D", USE_STRLEN);
+		ubf_expect_bool_AND (b, 5 == ln);
+
+		ln = str_len_without_extension ("...", USE_STRLEN);
+		ubf_expect_bool_AND (b, 2 == ln);
+
+		ln = str_len_without_extension (".x", USE_STRLEN);
+		ubf_expect_bool_AND (b, 0 == ln);
+
+		ln = str_len_without_extension ("x", USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == ln);
+
+		ln = str_len_without_extension ("x.y.z.a", USE_STRLEN);
+		ubf_expect_bool_AND (b, 5 == ln);
+
+		ln = str_filename_from_path (&smb, "/home/file", USE_STRLEN);
+		ubf_expect_bool_AND (b, 4 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("file", smb.buf.pcc, 5));
+
+		ln = str_filename_from_path (&smb, "/home/file/", USE_STRLEN);
+		ubf_expect_bool_AND (b, 0 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("", smb.buf.pcc, 1));
+
+		ln = str_filename_from_path (&smb, "/home///////////////home/home/home/1234", USE_STRLEN);
+		ubf_expect_bool_AND (b, 4 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("1234", smb.buf.pcc, 5));
+
+		ln = str_filename_from_path (&smb, "C:\\dir", USE_STRLEN);
+		ubf_expect_bool_AND (b, 3 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("dir", smb.buf.pcc, 4));
+
+		ln = str_filename_from_path (&smb, "C:dir", USE_STRLEN);
+		ubf_expect_bool_AND (b, 3 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("dir", smb.buf.pcc, 4));
+
+		ln = str_filename_from_path (&smb, "C:.123", USE_STRLEN);
+		ubf_expect_bool_AND (b, 4 == ln);
+		ubf_expect_bool_AND (b, !memcmp (".123", smb.buf.pcc, 5));
+
+		ln = str_filename_from_path (&smb, "/home/file/123.exe.pdf", USE_STRLEN);
+		ubf_expect_bool_AND (b, 7 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("123.exe", smb.buf.pcc, 8));
+
+		ln = str_filename_from_path (&smb, "/dir/.file.txt.exe", USE_STRLEN);
+		ubf_expect_bool_AND (b, 9 == ln);
+		ubf_expect_bool_AND (b, !memcmp (".file.txt", smb.buf.pcc, 10));
+
+		ln = str_filename_from_path (&smb, "/dir/file.txt.exe", USE_STRLEN);
+		ubf_expect_bool_AND (b, 8 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("file.txt", smb.buf.pcc, 10));
+
+		ln = str_filename_from_path (&smb, "/dir/.klm", USE_STRLEN);
+		ubf_expect_bool_AND (b, 4 == ln);
+		ubf_expect_bool_AND (b, !memcmp (".klm", smb.buf.pcc, 5));
+
+		ln = str_filename_from_path (&smb, "", USE_STRLEN);
+		ubf_expect_bool_AND (b, 0 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("", smb.buf.pcc, 1));
+
+		ln = str_filename_from_path (&smb, " ", USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == ln);
+		ubf_expect_bool_AND (b, !memcmp (" ", smb.buf.pcc, 2));
+
+		ln = str_filename_from_path (&smb, "/", USE_STRLEN);
+		ubf_expect_bool_AND (b, 0 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("", smb.buf.pcc, 1));
+
+		ln = str_filename_from_path (&smb, "D:\\1\\\2\\3", USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("3", smb.buf.pcc, 2));
+
+
+		DONESMEMBUF (smb);
+
 		// Return the test result.
 		bRet = b;
 		return bRet;
@@ -18187,6 +18913,14 @@ bool swallowEmptyAndWhiteSpaceLines (const char **pb, size_t *pl, STRLINEINF *pi
 		*pl -= jmp;
 		bRet = true;
 	}
+
+	// We additionally always ignore CR characters, independent of whether support for this
+	//	has been enabled in our build or not.
+	while (*pl && '\r' == **pb)
+	{
+		*pb += 1;
+		*pl -= 1;
+	}
 	return bRet;
 }
 
@@ -18574,7 +19308,7 @@ bool strlineextractKeyOrValue	(
 unsigned int strlineextractKeyAndValues	(
 		const char		**cunilog_restrict	pszKey,		size_t	*plnKey,	// Out.
 		const char		**cunilog_restrict	pszEqual,	size_t	*plnEqual,	// Out.
-		SCUNILOGINIVALUES					*pValues,
+		SCUNILOGINIVALUE					*pValues,
 		unsigned int						nValues,
 		const char		*cunilog_restrict	szLine,	size_t	lnLine,			// In.
 		SCULMLTSTRINGS	*psmlt												// In.
@@ -18708,7 +19442,7 @@ bool strlineextractSection	(
 	unsigned int uQuote = strlineextractIsOpenString (szLine, lnLine, psmlt->nSections, psmlt->ccStrtSections);
 	if (uQuote)
 	{
-		size_t lnStartSection = strlen (psmlt->ccStrtSections [uQuote]);
+		size_t lnStartSection = strlen (psmlt->ccStrtSections [uQuote - 1]);
 		szLine += lnStartSection;
 		lnLine -= lnStartSection;
 		szRet = szLine;
@@ -18717,7 +19451,7 @@ bool strlineextractSection	(
 			size_t uClose = strlineextractIsCloseString (szLine, lnLine, psmlt->ccExitSections, uQuote);
 			if (uClose)
 			{
-				size_t lnExitSection = strlen (psmlt->ccExitSections [uQuote]);
+				size_t lnExitSection = strlen (psmlt->ccExitSections [uClose - 1]);
 				*plnSec = szLine - szRet;
 				*pszSec = szRet;
 				szLine += lnExitSection;
@@ -19195,7 +19929,7 @@ bool strlineextractSection	(
 		ubf_expect_bool_AND (b, 22 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("value = value = value'", szKey, 22));
 
-		SCUNILOGINIVALUES	iv;
+		SCUNILOGINIVALUE	iv;
 		scmul.nEquals = nCulStdEquals;
 		char cBuf [1024];
 
@@ -19384,7 +20118,7 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 
 		#define SCUNILOGINIVALUE_TST_VALUE	(10)
-		SCUNILOGINIVALUES	iva [SCUNILOGINIVALUE_TST_VALUE];
+		SCUNILOGINIVALUE	iva [SCUNILOGINIVALUE_TST_VALUE];
 
 		// Extra white space (comma) only counts if the value is quoted.
 		szKey = NULL;
@@ -22466,11 +23200,12 @@ When		Who				What
 
 #endif
 
-size_t SMEMBUFfromStrReserveBytes (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+size_t SMEMBUFfromStrReserve (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
 {
-	ubf_assert_non_NULL (pmb);
-	ubf_assert_non_NULL (str);
-	ubf_assert_non_0 (len);
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
+	ubf_assert_non_NULL	(str);
+	ubf_assert_non_0	(len);
 
 	size_t l = USE_STRLEN == len ? strlen (str) : len;
 	size_t lstr = l;
@@ -22486,9 +23221,20 @@ size_t SMEMBUFfromStrReserveBytes (SMEMBUF *pmb, const char *str, size_t len, si
 	return 0;
 }
 
+size_t initSMEMBUFfromStrReserve (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+{
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert_non_NULL	(str);
+	ubf_assert_non_0	(len);
+
+	initSMEMBUF (pmb);
+	return SMEMBUFfromStrReserve (pmb, str, len, reserve);
+}
+
 size_t SMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len)
 {
-	ubf_assert_non_NULL (pmb);
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
 	size_t l = USE_STRLEN == len ? strlen (str) : len;
 	growToSizeSMEMBUF (pmb, l + 1);
@@ -22502,10 +23248,37 @@ size_t SMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len)
 	return 0;
 }
 
+size_t initSMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len)
+{
+	ubf_assert_non_NULL	(pmb);
+
+	initSMEMBUF (pmb);
+	return SMEMBUFfromStr (pmb, str, len);
+}
+
 size_t SMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (pmb);
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
+	int i = vsnprintf (NULL, 0, fmt, ap);
+	if (i < 0)
+		return 0;
+
+	size_t l = (size_t) i;
+	if (growToSizeSMEMBUF (pmb, l + 1))
+	{
+		vsnprintf (pmb->buf.pch, l + 1, fmt, ap);
+		return l;
+	}
+	return 0;
+}
+
+size_t initSMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL	(pmb);
+
+	initSMEMBUF (pmb);
 	int i = vsnprintf (NULL, 0, fmt, ap);
 	if (i < 0)
 		return 0;
@@ -22521,7 +23294,8 @@ size_t SMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
 
 size_t SMEMBUFfromStrFmt (SMEMBUF *pmb, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (pmb);
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
 	va_list ap;
 	va_start (ap, fmt);
@@ -22531,9 +23305,71 @@ size_t SMEMBUFfromStrFmt (SMEMBUF *pmb, const char *fmt, ...)
 	return r;
 }
 
+size_t initSMEMBUFfromStrFmt (SMEMBUF *pmb, const char *fmt, ...)
+{
+	ubf_assert_non_NULL	(pmb);
+
+	initSMEMBUF (pmb);
+	va_list ap;
+	va_start (ap, fmt);
+	size_t r = SMEMBUFfromStrFmt_va (pmb, fmt, ap);
+	va_end (ap);
+
+	return r;
+}
+
+size_t SMEMBUFfromStrs (SMEMBUF *pmb, size_t len, size_t nStrs, ...)
+{
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
+
+	va_list args;
+
+	const char	*sz;
+	size_t		l;
+
+	len = USE_STRLEN == len ? strlen (pmb->buf.pcc) : len;
+	size_t		t		= len;
+	size_t		n;
+
+	if (0 == nStrs)
+		return len;
+
+	va_start (args, nStrs);
+	for (n = 0; n < nStrs; ++ n)
+	{
+		sz	= va_arg (args, char *);
+		l	= va_arg (args, size_t);
+		l	= USE_STRLEN == l ? strlen (sz) : l;
+		t += l;
+	}
+	va_end (args);
+
+	growToSizeRetainSMEMBUF (pmb, t + 1);
+	if (isUsableSMEMBUF (pmb))
+	{
+		char *szW = pmb->buf.pch + len;
+
+		va_start (args, nStrs);
+		for (n = 0; n < nStrs; ++ n)
+		{
+			sz	= va_arg (args, char *);
+			l	= va_arg (args, size_t);
+			l	= USE_STRLEN == l ? strlen (sz) : l;
+			memcpy (szW, sz, l);
+			szW += l;
+		}
+		va_end (args);
+		szW [0] = ASCII_NUL;
+		return t;
+	}
+	return 0;
+}
+
 size_t SMEMBUFstrFromUINT64 (SMEMBUF *pmb, uint64_t ui)
 {
-	ubf_assert_non_NULL (pmb);
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 	
 	char asc [UBF_UINT64_SIZE];
 	size_t l = ubf_str_from_uint64 (asc, ui);
@@ -22581,6 +23417,7 @@ size_t SMEMBUFstrconcatReserve (SMEMBUF *pmb, size_t len, char *str, size_t lens
 size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr)
 {
 	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
 	return SMEMBUFstrconcatReserve (pmb, len, str, lenstr, 0);
 }
@@ -22589,13 +23426,14 @@ size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr)
 	size_t SMEMBUFstrconcatW (SMEMBUF *pmb, size_t len, wchar_t *wstr, size_t lenwstr)
 	{
 		ubf_assert_non_NULL	(pmb);
+		ubf_assert			(isInitialisedSMEMBUF (pmb));
 		ubf_assert			(sizeof (WCHAR) == sizeof (wchar_t));
 
 		char	str [WINAPI_U8_HEAP_THRESHOLD];
 		char	*pstr;
 
-		len		= USE_STRLEN ? strlen (pmb->buf.pcc)	: len;
-		lenwstr	= USE_STRLEN ? wcslen (wstr)			: lenwstr;
+		len		= USE_STRLEN == len		? strlen (pmb->buf.pcc)	: len;
+		lenwstr	= USE_STRLEN == lenwstr	? wcslen (wstr)			: lenwstr;
 		ubf_assert (lenwstr < INT_MAX);
 
 		pstr = AllocU8fromWinU16orUseThresholdl (str, wstr, lenwstr);
@@ -22655,6 +23493,7 @@ size_t SMEMBUFstrconcatpaths (SMEMBUF *pmb, size_t len, char *strPath, size_t le
 bool SMEMBUFstrStartsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t lenStr)
 {
 	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
 	len		= USE_STRLEN == len		?	strlen (pmb->buf.pcc)	: len;
 	lenStr	= USE_STRLEN == lenStr	?	strlen (str)			: lenStr;
@@ -22668,6 +23507,7 @@ bool SMEMBUFstrStartsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t 
 bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t lenStr)
 {
 	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
 	len		= USE_STRLEN == len		?	strlen (pmb->buf.pcc)	: len;
 	lenStr	= USE_STRLEN == lenStr	?	strlen (str)			: lenStr;
@@ -22795,6 +23635,9 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 			ubf_expect_bool_AND (b, !memcmp ("p1/p2", smb.buf.pcc, 6));
 		#endif
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		// Function retains the separator found in the buffer.
 		st = SMEMBUFfromStr (&smb, "p1/", 3);
 		ubf_expect_bool_AND (b, 3 == st);
@@ -22802,16 +23645,25 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 		ubf_expect_bool_AND (b, 5 == st);
 		ubf_expect_bool_AND (b, !memcmp ("p1/p2", smb.buf.pcc, 6));
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		st = SMEMBUFfromStr (&smb, "1", 1);
 		ubf_expect_bool_AND (b, 1 == st);
 		st = SMEMBUFstrconcatpaths (&smb, USE_STRLEN, "2", USE_STRLEN);
 		ubf_expect_bool_AND (b, 3 == st);
 		ubf_expect_bool_AND (b, !memcmp ("1\\2", smb.buf.pcc, 4));
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		st = SMEMBUFfromStr (&smb, NULL, 0);
 		ubf_expect_bool_AND (b, 0 == st);
 		st = SMEMBUFstrconcatpaths (&smb, USE_STRLEN, NULL, 0);
 		ubf_expect_bool_AND (b, 0 == st);
+
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
 
 		// Empty UNC path.
 		st = SMEMBUFfromStr (&smb, "\\\\", USE_STRLEN);
@@ -22820,6 +23672,9 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 		ubf_expect_bool_AND (b, 10 == st);
 		ubf_expect_bool_AND (b, !memcmp ("\\\\file.txt", smb.buf.pcc, 11));
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		// Longer UNC path.
 		st = SMEMBUFfromStr (&smb, "\\\\server", USE_STRLEN);
 		ubf_expect_bool_AND (b, 8 == st);
@@ -22827,9 +23682,15 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 		ubf_expect_bool_AND (b, 17 == st);
 		ubf_expect_bool_AND (b, !memcmp ("\\\\server\\file.txt", smb.buf.pcc, 18));
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		st = SMEMBUFfromStrFmt (&smb, "A%sC", "B");
 		ubf_expect_bool_AND (b, 3 == st);
 		ubf_expect_bool_AND (b, !memcmp ("ABC", smb.buf.pcc, 4));
+
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
 
 		st = SMEMBUFfromStr (&smb, "123", 3);
 		ubf_expect_bool_AND (b, 3 == st);
@@ -22838,12 +23699,18 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 		ubf_expect_bool_AND (b, 6 == st);
 		ubf_expect_bool_AND (b, !memcmp ("123456", smb.buf.pcc, 7));
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		st = SMEMBUFfromStr (&smb, NULL, 0);
 		ubf_expect_bool_AND (b, 0 == st);
 		ubf_expect_bool_AND (b, !memcmp ("", smb.buf.pcc, 1));
 		st = SMEMBUFstrconcatW (&smb, USE_STRLEN, L"456", USE_STRLEN);
 		ubf_expect_bool_AND (b, 3 == st);
 		ubf_expect_bool_AND (b, !memcmp ("456", smb.buf.pcc, 4));
+
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
 
 		st = SMEMBUFfromStr (&smb, NULL, 0);
 		ubf_expect_bool_AND (b, 0 == st);
@@ -22872,7 +23739,27 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 		b1 = SMEMBUFstrEndsWithStr (&smb, st, "CD", USE_STRLEN);
 		ubf_expect_bool_AND (b, true == b1);
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
 
+		size_t l1 = SMEMBUFfromStr (&smb, "1", USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == l1);
+		ubf_expect_bool_AND (b, !memcmp (smb.buf.pcc, "1", 2));
+		// Note the cast to size_t.
+		size_t l2 = SMEMBUFfromStrs (&smb, l1, 2, "234567", (size_t) 6, "890", (size_t) 3);
+		ubf_expect_bool_AND (b, 10 == l2);
+		ubf_expect_bool_AND (b, !memcmp (smb.buf.pcc, "1234567890", 11));
+		l1 = SMEMBUFfromStr (&smb, "", 0);
+		// USE_STRLEN is defined with a cast.
+		l2 = SMEMBUFfromStrs (&smb, l1, 2, "234567", USE_STRLEN, "890", USE_STRLEN);
+		ubf_expect_bool_AND (b, 9 == l2);
+		ubf_expect_bool_AND (b, !memcmp (smb.buf.pcc, "234567890", 11));
+		// Overwrite the current buffer.
+		l2 = SMEMBUFfromStrs (&smb, 0, 5, "A", (size_t) 1, "B", (size_t) 1, "C", (size_t) 1, "D", (size_t) 1, "E", (size_t) 1);
+		ubf_expect_bool_AND (b, 5 == l2);
+		ubf_expect_bool_AND (b, !memcmp (smb.buf.pcc, "ABCDE", 6));
+
+		doneSMEMBUF (&smb);
 		return b;
 	}
 #endif
@@ -24082,6 +24969,9 @@ static const char *testProcessHelperGetLine	(
 
 		// Ok, if we're this far, the RNG and seeding it works.
 
+		doneSMEMBUF (&smb);
+		doneSMEMBUF (&smb2);
+
 		return b;
 	}
 #endif
@@ -24788,7 +25678,7 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 		stTotal		=	stSections;
 		stTotal		+=	ALIGNED_SIZE ((sizeof (SCUNILOGINIKEYANDVALUES)	* kvs.nKeys),	8);
 		stKeyAnVls	=	stTotal;
-		stTotal		+=	ALIGNED_SIZE ((sizeof (SCUNILOGINIVALUES)		* kvs.nValues),	8);
+		stTotal		+=	ALIGNED_SIZE ((sizeof (SCUNILOGINIVALUE)		* kvs.nValues),	8);
 		pCunilogIni->buf = ubf_malloc (stTotal);
 
 		if (pCunilogIni->buf)
@@ -24805,7 +25695,7 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 			}
 			if (kvs.nValues)
 			{	// Values are stored after the keys.
-				pCunilogIni->pValues		= (SCUNILOGINIVALUES *)			(pCunilogIni->buf + stKeyAnVls);
+				pCunilogIni->pValues		= (SCUNILOGINIVALUE *)			(pCunilogIni->buf + stKeyAnVls);
 				pCunilogIni->nValues		= kvs.nValues;
 			}
 
@@ -24905,7 +25795,7 @@ static bool areKeyNamesEqual		(
 }
 
 static unsigned int CunilogGetIniValuesFromKey_int	(
-				SCUNILOGINIVALUES				**pValues,
+				SCUNILOGINIVALUE				**pValues,
 				const char						*szSection,		size_t	lnSection,
 				const char						*szKey,			size_t	lnKey,
 				SCUNILOGINI						*pCunilogIni,
@@ -24951,7 +25841,7 @@ static unsigned int CunilogGetIniValuesFromKey_int	(
 }
 
 unsigned int CunilogGetIniValuesFromKey		(
-				SCUNILOGINIVALUES	**pValues,
+				SCUNILOGINIVALUE	**pValues,
 				const char			*szSection,		size_t	lnSection,
 				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
@@ -24969,7 +25859,7 @@ unsigned int CunilogGetIniValuesFromKey		(
 }
 
 unsigned int CunilogGetIniValuesFromKey_ci	(
-				SCUNILOGINIVALUES	**pValues,
+				SCUNILOGINIVALUE	**pValues,
 				const char			*szSection,		size_t	lnSection,
 				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
@@ -24995,7 +25885,7 @@ const char *CunilogGetFirstIniValueFromKey		(
 {
 	ubf_assert_non_NULL	(pCunilogIni);
 
-	SCUNILOGINIVALUES *pvals;
+	SCUNILOGINIVALUE *pvals;
 	unsigned int n = CunilogGetIniValuesFromKey_int	(
 						&pvals,
 						szSection,		lnSection,
@@ -25023,7 +25913,7 @@ const char *CunilogGetFirstIniValueFromKey_ci	(
 {
 	ubf_assert_non_NULL	(pCunilogIni);
 
-	SCUNILOGINIVALUES *pvals;
+	SCUNILOGINIVALUE *pvals;
 	unsigned int n = CunilogGetIniValuesFromKey_int	(
 						&pvals,
 						szSection,		lnSection,
@@ -25171,6 +26061,7 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		ubf_assert_true (b1);
 		ubf_assert_bool_AND (b, 1 == ci.nSections);
 		ubf_assert_bool_AND (b, 1 == ci.nKeyValues);
+		DoneSCUNILOGINI (&ci);
 
 		strcpy (szIni,
 				"[section]   \n"
@@ -25221,8 +26112,8 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValues [0].szKeyName, ci.pKeyValues [0].lnKeyName));
 		unsigned int nVals;
 		unsigned int nVls2;
-		SCUNILOGINIVALUES *pVals;
-		SCUNILOGINIVALUES *pVls2;
+		SCUNILOGINIVALUE *pVals;
+		SCUNILOGINIVALUE *pVls2;
 		nVals = CunilogGetIniValuesFromKey (&pVals, NULL, 0, "mkey", USE_STRLEN, &ci);
 		ubf_expect_bool_AND (b, 0 == nVals);
 		nVals = CunilogGetIniValuesFromKey (&pVals, "Section 03", USE_STRLEN, "mkey", USE_STRLEN, &ci);
@@ -25826,6 +26717,67 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		ubf_expect_bool_AND (b, !CunilogIniKeyExists_ci ("Section", USE_STRLEN, "kEY_1", USE_STRLEN, &ci));
 		DoneSCUNILOGINI (&ci);
 
+		// Example config file for LogPicker.
+		memset (&ci, 255, sizeof (SCUNILOGINI));
+		strcpy (szIni,
+			"/*\n"
+			"	LogPickerServiceConf.txt\n"
+			"\n"
+			"	Example configuration file for Logfile Picker application.\n"
+			"*/\n"
+			"\n"
+			"/*\n"
+			"	The [General] section contains configuration entries for the whole application.\n"
+			"*/\n"
+			"[General]\n"
+			"\n"
+			"/*\n"
+			"	The directory/folder our service writes its logfiles to.\n"
+			"\n"
+			"	If this value is a relative path it is relative to this configuration file.\n"
+			"*/\n"
+			"LogPath					= ..\\Logs\n"
+			"\n"
+				);
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == ci.nSections);
+		ubf_expect_bool_AND (b, 7 == ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("General", ci.pSections [0].szSectionName, ci.pSections [0].lnSectionName));
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 7 == ci.pKeyValues [0].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("..\\Logs", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
+		DoneSCUNILOGINI (&ci);
+
+		// Example config file for LogPicker with a "\r" in the middle.
+		memset (&ci, 255, sizeof (SCUNILOGINI));
+		strcpy (szIni,
+			"/*\n"
+			"	LogPickerServiceConf.txt\n"
+			"\n"
+			"	Example configuration file for Logfile Picker application.\n"
+			"*/\n"
+			"\r"
+			"/*\n"
+			"	The [General] section contains configuration entries for the whole application.\n"
+			"*/\n"
+			"[General]\n"
+			"\n"
+			"/*\n"
+			"	The directory/folder our service writes its logfiles to.\n"
+			"\n"
+			"	If this value is a relative path it is relative to this configuration file.\n"
+			"*/\n"
+			"LogPath					= ..\\Logs\n"
+			"\n"
+				);
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == ci.nSections);
+		ubf_expect_bool_AND (b, 7 == ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("General", ci.pSections [0].szSectionName, ci.pSections [0].lnSectionName));
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 7 == ci.pKeyValues [0].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("..\\Logs", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
+		DoneSCUNILOGINI (&ci);
 
 		return b;
 	}
@@ -26324,9 +27276,9 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 			#endif
 			break;
 		case cunilogCmdConfigCunilognewline:
-			memcpy (&put->unilogNewLine, szData, sizeof (newline_t));
-			ubf_assert (0 <=put->unilogNewLine);
-			ubf_assert (cunilogNewLineAmountEnumValues > put->unilogNewLine);
+			memcpy (&put->culogNewLine, szData, sizeof (newline_t));
+			ubf_assert (0 <=put->culogNewLine);
+			ubf_assert (cunilogNewLineAmountEnumValues > put->culogNewLine);
 			break;
 		case cunilogCmdConfigDisableTaskProcessors:
 			culCmdConfigDisableTaskProcessors (put, szData);
@@ -27151,7 +28103,7 @@ bool CunilogGetAbsPathFromAbsOrRelPath	(
 	{
 		if (!isDirSep (szAbsOrRelPath [ln - 1]))
 		{
-			if (SMEMBUFfromStrReserveBytes (&b, szAbsOrRelPath, ln, 2))
+			if (SMEMBUFfromStrReserve (&b, szAbsOrRelPath, ln, 2))
 			{
 				b.buf.pch [ln] = UBF_DIR_SEP;
 				++ ln;
@@ -28057,7 +29009,7 @@ static inline void initEnumsCUNILOG_TARGET	(
 	put->culogType			= type;
 	put->culogPostfix		= postfix;
 	put->unilogEvtTSformat	= unilogTSformat;
-	put->unilogNewLine		= unilogNewLine;
+	put->culogNewLine		= unilogNewLine;
 }
 
 static inline bool initCommonMembersAndPrepareCUNILOG_TARGET (CUNILOG_TARGET *put)
@@ -28120,6 +29072,29 @@ static inline bool initCommonMembersAndPrepareCUNILOG_TARGET (CUNILOG_TARGET *pu
 #else
 	#define assertSaneParametersCUNILOG_TARGET(rP, tpy, psf, ts, nl, rp)
 #endif
+
+newline_t CunilogAutoNewLine (void)
+{
+	#ifdef PLATFORM_IS_WINDOWS
+		#ifdef CUNILOG_NEWLINE_POSIX_ONLY
+			return cunilogNewLinePOSIX;
+		#elif CUNILOG_NEWLINE_WINDOWS_ONLY
+			return cunilogNewLineWindows;
+		#else
+			if (WinNotepadSupportsLineFeed ())
+				return cunilogNewLinePOSIX;
+			else
+				return cunilogNewLineWindows;
+		#endif
+	#else
+		#ifdef CUNILOG_NEWLINE_WINDOWS_ONLY
+			return cunilogNewLineWindows;
+		#else
+			return cunilogNewLinePOSIX;
+		#endif
+	#endif
+
+};
 
 CUNILOG_TARGET *InitCUNILOG_TARGETex
 (
@@ -28205,7 +29180,7 @@ CUNILOG_TARGET *InitCUNILOG_TARGETex
 				cunilogPostfixDefault,
 				NULL, 0,
 				cunilogEvtTS_Default,
-				cunilogNewLineDefault,
+				CunilogAutoNewLine (),
 				cunilogRunProcessorsOnStartup
 									);
 		return prt;
@@ -28643,7 +29618,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 		ubf_assert			(0 <= nl);
 		ubf_assert			(cunilogNewLineAmountEnumValues > nl);
 
-		put->unilogNewLine = nl;
+		put->culogNewLine = nl;
 	}
 #endif
 
@@ -29187,7 +30162,7 @@ static inline size_t eventLenNewline (CUNILOG_EVENT *pev)
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
 
-	return lnLineEnding (pev->pCUNILOG_TARGET->unilogNewLine);
+	return lnLineEnding (pev->pCUNILOG_TARGET->culogNewLine);
 }
 
 static inline enum enLineEndings eventLineEnding (CUNILOG_EVENT *pev)
@@ -29195,7 +30170,7 @@ static inline enum enLineEndings eventLineEnding (CUNILOG_EVENT *pev)
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
 
-	return pev->pCUNILOG_TARGET->unilogNewLine;
+	return pev->pCUNILOG_TARGET->culogNewLine;
 }
 
 static inline void evtTSFormats_unilogEvtTS_ISO8601 (char *chISO, UBF_TIMESTAMP ts)
@@ -29509,7 +30484,7 @@ static inline size_t requiredEventLineSizeHexDump	(
 	return r;
 }
 
-static size_t createDumpEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
+static size_t createDumpEventLineFromCUNILOG_EVENT (CUNILOG_EVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
@@ -29562,7 +30537,7 @@ static size_t createDumpEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
 		char *szHexDmpOut = szOut;
 		size_t sizHx = hxdmpWriteHexDump	(
 						szHexDmpOut, pDumpData, pev->lenDataToLog,
-						put->dumpWidth, put->unilogNewLine
+						put->dumpWidth, put->culogNewLine
 											);
 		DBG_TRACK_CHECK_CNTTRACKER (pev->pCUNILOG_TARGET->evtLineTracker, sizHx + 1);
 		ubf_assert (CUNILOG_DEFAULT_DBG_CHAR == put->mbLogEventLine.buf.pch [lenTotal]);
@@ -29591,7 +30566,7 @@ static size_t createDumpEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
 	return CUNILOG_SIZE_ERROR;
 }
 
-static size_t createU8EventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
+static size_t createU8EventLineFromCUNILOG_EVENT (CUNILOG_EVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
@@ -29611,7 +30586,7 @@ static size_t createU8EventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
 	return CUNILOG_SIZE_ERROR;
 }
 
-static size_t createEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
+static size_t createEventLineFromCUNILOG_EVENT (CUNILOG_EVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
@@ -29622,7 +30597,7 @@ static size_t createEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
 	switch (pev->evType)
 	{
 		case cunilogEvtTypeNormalText:
-			return createU8EventLineFromSUNILOGEVENT	(pev);
+			return createU8EventLineFromCUNILOG_EVENT	(pev);
 	#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 		case cunilogEvtTypeCommand:
 			ubf_assert_msg (false, "Cunilog bug! This function is not to be called in this case!");
@@ -29632,7 +30607,7 @@ static size_t createEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
 		case cunilogEvtTypeHexDumpWithCaption16:
 		case cunilogEvtTypeHexDumpWithCaption32:
 		case cunilogEvtTypeHexDumpWithCaption64:
-			return createDumpEventLineFromSUNILOGEVENT	(pev);
+			return createDumpEventLineFromCUNILOG_EVENT	(pev);
 		default:
 			break;
 	}
@@ -30325,9 +31300,8 @@ static inline bool requiresOpenLogFile (CUNILOG_TARGET *put)
 				requiresNewLogFile (put)
 #endif
 
-static inline size_t addNewLineToLogEventLine (char *pData, size_t lnData, enum enLineEndings nl)
-{	// At least one octet has been reserved for a newline character, and one
-	//	for NUL, hence we're definitely safe to write 2 more octets.
+static inline size_t addNewLineToLogEventLine (char *pData, size_t lnData, newline_t nl)
+{	// The caller is responsible for providing enough space.
 	size_t len;
 	const char *cc = szLineEnding (nl, &len);
 	ubf_assert (len <= 2);
@@ -30339,9 +31313,12 @@ static bool cunilogWriteDataToLogFile (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
-	char				*pData	= put->mbLogEventLine.buf.pch;
-	size_t				lnData	= put->lnLogEventLine;
-	enum enLineEndings	nl		= put->unilogNewLine;
+	char		*pData	= put->mbLogEventLine.buf.pch;
+	size_t		lnData	= put->lnLogEventLine;
+	newline_t	nl		= put->culogNewLine;
+
+	// We need space for the line ending plus a NUL character.
+	ubf_assert (put->mbLogEventLine.size > lnLineEnding (nl));
 
 	#ifdef OS_IS_WINDOWS
 		DWORD dwWritten;
@@ -32129,7 +33106,7 @@ static bool cunilogProcessEventSingleThreaded (CUNILOG_EVENT *pev)
 			return cunilogProcessEvtCommand (pev);
 	#endif
 
-	size_t	eventLineSize = createEventLineFromSUNILOGEVENT (pev);
+	size_t	eventLineSize = createEventLineFromCUNILOG_EVENT (pev);
 	if (CUNILOG_SIZE_ERROR != eventLineSize)
 	{
 		cunilogProcessProcessors (pev);
@@ -32291,12 +33268,35 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 #endif
 
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	static void dropQueueCUNILOG_TARGET (CUNILOG_TARGET *put)
+	{
+		ubf_assert_non_NULL (put);
+
+		CUNILOG_EVENT *pev = DequeueAllCUNILOG_EVENTs (put);
+		CUNILOG_EVENT *nxt;
+		while (pev)
+		{
+			nxt = pev->next;
+			DoneCUNILOG_EVENT (put, pev);
+			pev = nxt;
+		}
+	}
+#endif
+
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	bool ShutdownCUNILOG_TARGET (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
 		if (HAS_CUNILOG_TARGET_A_QUEUE (put))
 		{
+			if (isQueueOnlyCUNILOG_TARGET (put->culogType))
+			{
+				cunilogTargetSetShutdownInitiatedFlag (put);
+				dropQueueCUNILOG_TARGET (put);
+				cunilogTargetSetShutdownCompleteFlag (put);
+				return true;
+			}
 			if (queueShutdownEvent (put))
 			{
 				WaitForEndOfSeparateLoggingThread (put);
@@ -32326,18 +33326,18 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 		if (HAS_CUNILOG_TARGET_A_QUEUE (put))
 		{
 			cunilogTargetSetShutdownInitiatedFlag (put);
+			if (isQueueOnlyCUNILOG_TARGET (put->culogType))
+			{
+				cunilogTargetSetShutdownInitiatedFlag (put);
+				dropQueueCUNILOG_TARGET (put);
+				cunilogTargetSetShutdownCompleteFlag (put);
+				return true;
+			}
 
 			// Empty the queue. While this would actually not be required here, it can
 			//	speed up things significantly (well, maybe a few cycles) with busy queues as
 			//	it takes some burden off the separate logging thread.
-			CUNILOG_EVENT *pev = DequeueAllCUNILOG_EVENTs (put);
-			CUNILOG_EVENT *nxt;
-			while (pev)
-			{
-				nxt = pev->next;
-				DoneCUNILOG_EVENT (NULL, pev);
-				pev = nxt;
-			}
+			dropQueueCUNILOG_TARGET (put);
 
 			// Queue the shutdown command for the separate logging thread and wait
 			//	for it to end.
@@ -33758,6 +34758,15 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		return -1;
 }
 
+void DoneCunilog ()
+{
+	#ifdef PLATFORM_IS_WINDOWS
+		DoneSystemDirectoryU8 ();
+	#endif
+
+	DoneOurExecutableModule ();
+}
+
 #ifdef CUNILOG_BUILD_TEST_FNCTS
 	bool test_cunilog (void)
 	{
@@ -34128,7 +35137,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 12 == stEvtSev);
 		ubf_expect_bool_AND (bRet, !memcmp ("[WARNING]   ", szEvtSev, 12 + 1));
 
-
 		#ifdef OS_IS_LINUX
 			bool bTrash = MoveFileToTrashPOSIX ("/home/thomas/FS/OAN/Thomas/cunilog/logs/testcunilog_2024-11-05 20_14.log");
 			ubf_assert_false (bTrash);
@@ -34143,7 +35151,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, cunilogSingleThreadedQueueOnly	== pt->culogType);
 		ubf_expect_bool_AND (bRet, cunilogPostfixDay				== pt->culogPostfix);
 		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default				== pt->unilogEvtTSformat);
-		
 		logTextU8 (&cutQueue, "Text.");
 		// Check the first event in the queue.
 		ubf_expect_bool_AND (bRet, 5 == cutQueue.qu.first->lenDataToLog);
@@ -34156,7 +35163,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, !memcmp ("Again.", cutQueue.qu.first->next->szDataToLog, 6));
 		ubf_expect_bool_AND (bRet, 6 == cutQueue.qu.last->lenDataToLog);
 		ubf_expect_bool_AND (bRet, !memcmp ("Again.", cutQueue.qu.last->szDataToLog, 6));
-
+		ShutdownCUNILOG_TARGET (&cutQueue);
 		DoneCUNILOG_TARGET (&cutQueue);
 
 		pt = CreateNewCUNILOG_TARGET	(
@@ -34172,7 +35179,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, cunilogSingleThreadedQueueOnly	== pt->culogType);
 		ubf_expect_bool_AND (bRet, cunilogPostfixDay				== pt->culogPostfix);
 		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default				== pt->unilogEvtTSformat);
-		
 		logTextU8 (pt, "Text.");
 		// Check the first event in the queue.
 		ubf_expect_bool_AND (bRet, NULL != pt->qu.first);
@@ -34197,7 +35203,48 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, !memcmp ("3rd", pt->qu.first->next->next->szDataToLog, 3));
 		ubf_expect_bool_AND (bRet, 3 == pt->qu.last->lenDataToLog);
 		ubf_expect_bool_AND (bRet, !memcmp ("3rd", pt->qu.last->szDataToLog, 3));
+		ShutdownCUNILOG_TARGET (pt);
+		DoneCUNILOG_TARGET (pt);
 
+		// Cancel.
+		pt = CreateNewCUNILOG_TARGET	(
+				NULL, 0, NULL, 0, cunilogPath_isAbsolute, cunilogSingleThreadedQueueOnly,
+				cunilogPostfixDefault,
+				NULL, 0,
+				cunilogEvtTS_Default,
+				cunilogNewLineDefault,
+				cunilogDontRunProcessorsOnStartup
+										);
+		ubf_expect_bool_AND (bRet, 0 < cunilogTargetHasTargetAllocatedFlag (pt));
+		ubf_expect_bool_AND (bRet, NULL != pt);
+		ubf_expect_bool_AND (bRet, cunilogSingleThreadedQueueOnly	== pt->culogType);
+		ubf_expect_bool_AND (bRet, cunilogPostfixDay				== pt->culogPostfix);
+		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default				== pt->unilogEvtTSformat);
+		logTextU8 (pt, "Text.");
+		// Check the first event in the queue.
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first);
+		ubf_expect_bool_AND (bRet, 5 == pt->qu.first->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("Text.", pt->qu.first->szDataToLog, 5));
+		ubf_expect_bool_AND (bRet, 5 == pt->qu.last->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("Text.", pt->qu.last->szDataToLog, 5));
+		logTextU8 (pt, "Again.");
+		// Check the second event in the queue.
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first);
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first->next);
+		ubf_expect_bool_AND (bRet, 6 == pt->qu.first->next->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("Again.", pt->qu.first->next->szDataToLog, 6));
+		ubf_expect_bool_AND (bRet, 6 == pt->qu.last->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("Again.", pt->qu.last->szDataToLog, 6));
+		logTextU8 (pt, "3rd");
+		// Check the second event in the queue.
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first);
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first->next);
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first->next->next);
+		ubf_expect_bool_AND (bRet, 3 == pt->qu.first->next->next->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("3rd", pt->qu.first->next->next->szDataToLog, 3));
+		ubf_expect_bool_AND (bRet, 3 == pt->qu.last->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("3rd", pt->qu.last->szDataToLog, 3));
+		CancelCUNILOG_TARGET (pt);
 		DoneCUNILOG_TARGET (pt);
 
 	#endif
@@ -34222,13 +35269,11 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default	== CUNILOG_TARGETstatic.unilogEvtTSformat);
 		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
 		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName));
-
 		size_t lnAbsLogPath;
 		const char *szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -34252,12 +35297,10 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		#else
 			ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "sub/Unilog", CUNILOG_TARGETstatic.lnAppName));
 		#endif
-
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -34277,12 +35320,10 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default	== CUNILOG_TARGETstatic.unilogEvtTSformat);
 		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
 		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName));
-
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -34325,7 +35366,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -34363,12 +35403,10 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
 		// Should be NUL-terminated.
 		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName + 1));
-
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -34392,7 +35430,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -34416,7 +35453,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		/*
@@ -34456,7 +35492,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGET (pt);
 
 		pt = InitOrCreateCUNILOG_TARGET	(
@@ -34496,7 +35531,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGET (pt);
 
 	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
@@ -34536,6 +35570,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		initSMEMBUF (&mb);
 		ObtainAppNameFromExecutableModule (&mb);
 		ubf_expect_bool_AND (bRet, !memcmp (pt->mbAppName.buf.pch, mb.buf.pch, strlen (mb.buf.pch)));
+		DONESMEMBUF (mb);
 		ubf_assert_non_NULL (pt);
 		ubf_expect_bool_AND (bRet, pt != pCUNILOG_TARGETstatic);
 		ubf_expect_bool_AND (bRet, cunilogSingleThreaded	== pt->culogType);
@@ -34554,8 +35589,37 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGET (pt);
+
+		put = InitCUNILOG_TARGETex	(
+				&cut,
+				"temp", 4,
+				NULL, 0,
+				cunilogPath_relativeToExecutable,
+				cunilogSingleThreaded,
+				cunilogPostfixDay,
+				NULL, 0, cunilogEvtTS_Default, cunilogNewLineWindows,
+				cunilogDontRunProcessorsOnStartup
+									);
+		ubf_expect_bool_AND (bRet, NULL != put);
+		ubf_expect_bool_AND (bRet, &cut == put);
+		CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Text (put, cunilogEvtSeverityNone, "123", 3);
+		ubf_expect_bool_AND (bRet, NULL != pev);
+		ubf_expect_bool_AND (bRet, !memcmp (pev->szDataToLog, "123", 3));
+		ubf_expect_bool_AND (bRet, 3 == pev->lenDataToLog);
+		size_t eventLineSize = createEventLineFromCUNILOG_EVENT (pev);
+		bRet &= 33 == eventLineSize;
+		ubf_assert_true (bRet);
+		size_t st = requiredEvtLineTimestampAndSeverityLength (pev);
+		bRet &= 30 == st;
+		ubf_assert_true (bRet);
+		ubf_expect_bool_AND (bRet, !memcmp (put->mbLogEventLine.buf.pcc + st, "123", 4));
+		size_t ln = addNewLineToLogEventLine (put->mbLogEventLine.buf.pch, put->lnLogEventLine, put->culogNewLine);
+		bRet &= 35 == ln;
+		ubf_assert_true (bRet);
+		ubf_expect_bool_AND (bRet, !memcmp (put->mbLogEventLine.buf.pcc + st, "123\r\n", 6));
+		DoneCUNILOG_EVENT (put, pev);
+		DoneCUNILOG_TARGET (put);
 
 		return bRet;
 	}

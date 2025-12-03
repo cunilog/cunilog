@@ -664,7 +664,7 @@ void ubf_hex_str_blank_from_qword (char *chResult, size_t stWidthResult, uint64_
 	character unless the hexadecimal ASCII input string cchex ends with a character
 	string of "0000", which is a NUL terminator in UCS-2/UTF-16.
 	
-	The function returns TRUE on success, FALSE otherwise. Independent of the function's
+	The function returns true on success, false otherwise. Independent of the function's
 	return value the amount of uint16_t (16 bit) values written to u16result is returned
 	at the address pU16written points to.
 */

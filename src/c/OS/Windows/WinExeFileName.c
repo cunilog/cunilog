@@ -169,6 +169,32 @@ When		Who				What
 		return 0;
 	}
 
+	const char *WinGetExecutableModuleNameStr (void)
+	{
+		if (!isUsableSMEMBUF (&mbOurExecutablePath))
+		{
+			SMEMBUF smb = SMEMBUF_INITIALISER;
+			WinObtainExecutableModuleName (&smb);
+			doneSMEMBUF (&smb);
+		}
+		if (isUsableSMEMBUF (&mbOurExecutablePath))
+			return mbOurExecutablePath.buf.pcc;
+		return NULL;
+	}
+
+	size_t WinGetExecutableModuleNameLen (void)
+	{
+		if (!isUsableSMEMBUF (&mbOurExecutablePath))
+		{
+			SMEMBUF smb = SMEMBUF_INITIALISER;
+			WinObtainExecutableModuleName (&smb);
+			doneSMEMBUF (&smb);
+		}
+		if (isUsableSMEMBUF (&mbOurExecutablePath))
+			return lnOurExectuablePath;
+		return 0;
+	}
+
 	DEFAULT_WARNING_ASSIGNMENT_WITHIN_CONDITIONAL_EXPRESSION ()
 
 	DISABLE_WARNING_ASSIGNMENT_WITHIN_CONDITIONAL_EXPRESSION ()

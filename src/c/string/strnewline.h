@@ -181,7 +181,7 @@ EXTERN_C_BEGIN
 
 	The value cunilogNewLineDefault used to be cunilogNewLineSystem to ensure logfiles
 	could be opened with Notepad on Windows systems, but since newer versions of Notepad
-	(Windows 10 and newer) can perfectly display files that have POSIX line endings, the
+	(Windows 10 and newer) can display files that have POSIX line endings perfectly, the
 	default is now cunilogNewLinePOSIX to save one octet per event line. Use
 	cunilogNewLineWindows or cunilogNewLineSystem if textual logfiles need to be opened/
 	viewed with Notepad for Windows versions before Windows 10, or if they are opened/

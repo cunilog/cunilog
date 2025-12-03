@@ -1626,7 +1626,7 @@ TYPEDEF_FNCT_PTR (void *, setToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 
 	The function returns a pointer to ps->buf.pvoid.
 	
-	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	If the function fails, it calls doneSMEMBUF () on the structure to make it unusable.
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz);
@@ -1643,7 +1643,7 @@ TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF) (SMEMBUF *pb, size_t siz);
 
 	The function returns a pointer to ps->buf.pvoid.
 	
-	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	If the function fails, it calls doneSMEMBUF () on the structure to make it unusable.
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *growToSizeSMEMBUFreserve (SMEMBUF *pb, size_t siz, size_t res);
@@ -1655,7 +1655,7 @@ TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUFreserve) (SMEMBUF *pb, size_t siz, si
 	The function is identical to growToSizeSMEMBUF () but always aligns the size to
 	64 octets/bytes.
 
-	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	If the function fails, it calls doneSMEMBUF () on the structure to make it unusable.
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz);
@@ -1671,7 +1671,7 @@ TYPEDEF_FNCT_PTR (void *, growToSizeSMEMBUF64aligned) (SMEMBUF *pb, size_t siz);
 
 	The buffer never shrinks.
 
-	If the function fails it calls doneSMEMBUF () on the structure to make it unusable.
+	If the function fails, it calls doneSMEMBUF () on the structure to make it unusable.
 	Check with isUsableSMEMBUF() if the structure can be used afterwards.
 */
 void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
@@ -1965,6 +1965,9 @@ When		Who				What
 	#include <assert.h>
 #endif
 
+/*
+	MSVC's linking pragmas.
+*/
 #ifdef HAVE_NETAPI32
 	#include <lmaccess.h>
 	#include <Lm.h>
@@ -1992,7 +1995,11 @@ When		Who				What
 	#include <UserEnv.h>
 	 #pragma comment (lib, "Userenv.lib")
 #endif
-
+#ifdef HAVE_VERSION
+		// See
+		//	https://learn.microsoft.com/en-us/windows/win32/api/winver/nf-winver-verqueryvaluew .
+	 #pragma comment (lib, "Version.lib")
+#endif
 
 #ifndef UBF_MEM_NO_UBFMEM
 	#ifndef CUNILOG_USE_COMBINED_MODULE
@@ -3370,7 +3377,7 @@ TYPEDEF_FNCT_PTR (BOOL, FileEncryptionStatusU8)
 
 	Returns TRUE if the given file exists and returns FALSE
 	if it doesn't. It also returns FALSE if the given file name exists
-	as a directory already.
+	but is a directory.
 	
 	Note that the function cannot determine with absolute certainty that
 	a file does not exists when it returns FALSE. The file could for
@@ -3887,6 +3894,72 @@ TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemType) (const char *chDriveR
 #endif
 
 /*
+	GetFileVersionInfoSizeU8
+
+	UTF-8 version of the Windows API GetFileVersionInfoSizeUW ().
+
+	See
+	https://learn.microsoft.com/en-us/windows/win32/api/winver/nf-winver-getfileversioninfosizew
+	for details.
+
+	To use this function, define HAVE_VERSION and link to Version.lib.
+*/
+#ifdef HAVE_VERSION
+	DWORD GetFileVersionInfoSizeU8(
+	  LPCSTR lpFilenameU8,
+	  LPDWORD lpdwHandle
+	)
+	;
+#endif
+
+/*
+	GetFileVersionNumbers
+
+	This is not a Windows API but a convenience function to obtain the version numbers
+	from a file.
+
+	The version numbers are stored at the addresses the DWORD pointers point to.
+
+	Returns true on success, false otherwise.
+
+	To use this function, define HAVE_VERSION and link to Version.lib.
+*/
+#ifdef HAVE_VERSION
+	bool GetFileVersionNumbers	(
+			DWORD		*pdwMajor,		DWORD *pdwMinor,
+			DWORD		*pdwMinBuild,	DWORD *pdwMinRevision,
+			const char	*szFileNameU8
+	)
+	;
+#endif
+
+/*
+	WinNotepadSupportsLineFeed
+
+	Returns true if Notepad supports linefeed characters without the necessity for
+	carriage returns.
+
+	See https://devblogs.microsoft.com/commandline/extended-eol-in-notepad/ for details.
+	Windows 10 version 1809 is the first version where Notepad doesn't require CR/LF pairs
+	as line endings. Windows versions 10.0.17763 and up can cope with linefeed characters,
+	just like POSIX.
+
+	The function stores its return value in a static variable to avoid having to carry out
+	the expensive check. Call ResetWinNotepadSupportsLineFeed () to reset the static
+	variable.
+
+
+	ResetWinNotepadSupportsLineFeed
+
+	Resets the saved boolean value, resulting in the check being carried out again next
+	time WinNotepadSupportsLineFeed () is called.
+*/
+#ifdef HAVE_VERSION
+	bool WinNotepadSupportsLineFeed (void);
+	void ResetWinNotepadSupportsLineFeed ();
+#endif
+
+/*
 	GetNumberOfProcessesAttachedToConsole
 
 	Returns the amount of processes attached to the current console.
@@ -4036,11 +4109,12 @@ TYPEDEF_FNCT_PTR (UINT, GetSystemDirectoryU8)
 	SystemDirectoryU8len
 	DoneSystemDirectoryU8
 
-	Obtain and keep a copy of the system directory, which is the folder retrieved by
+	Obtains and keeps a copy of the system directory, which is the folder retrieved by
 	GetSystemDirectoryU8 ().
 
 	The function SystemDirectoryU8 () obtains the path of the system directory (excluding
-	a directory separator), while SystemDirectoryU8len () obtains its length.
+	a directory separator), while SystemDirectoryU8len () obtains its length, also
+	excluding a directory separator.
 
 	You may call DoneSystemDirectoryU8 () to free the buffer that holds the path to the
 	system directory. If DoneSystemDirectoryU8 () is not called before the application
@@ -4596,9 +4670,9 @@ TYPEDEF_FNCT_PTR (int, MessageBoxExU8)
 	to maximise it has been posted successfully. It returns FALSE if the message
 	could not be posted or if the current process does not have a console window.
 	
-	To use this function, define HAVE_WINUSER and link to User32.lib.
+	To use this function, define HAVE_USER32 and link to User32.lib.
 */
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL MaxiMiseThisConsoleWindow (void);
 	TYPEDEF_FNCT_PTR (BOOL, MaxiMiseThisConsoleWindow) (void);
 	#define MaxiMizeThisConsoleWindow()						\
@@ -4621,9 +4695,9 @@ TYPEDEF_FNCT_PTR (int, MessageBoxExU8)
 	to minimise it has been posted successfully. It returns FALSE if the message
 	could not be posted or if the current process does not have a console window.
 	
-	To use this function, define HAVE_WINUSER and link to User32.lib.
+	To use this function, define HAVE_USER32 and link to User32.lib.
 */
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL MiniMiseThisConsoleWindow (void);
 	TYPEDEF_FNCT_PTR (BOOL, MiniMiseThisConsoleWindow) (void);
 	#define MiniMizeThisConsoleWindow()						\
@@ -4644,9 +4718,9 @@ TYPEDEF_FNCT_PTR (int, MessageBoxExU8)
 	to restore it has been posted successfully. It returns FALSE if the message
 	could not be posted or if the current process does not have a console window.
 	
-	To use this function, define HAVE_WINUSER and link to User32.lib.
+	To use this function, define HAVE_USER32 and link to User32.lib.
 */
-#ifdef HAVE_WINUSER
+#ifdef HAVE_USER32
 	BOOL RestoreThisConsoleWindow (void);
 	TYPEDEF_FNCT_PTR (BOOL, RestoreThisConsoleWindow) (void);
 #endif
@@ -5427,8 +5501,10 @@ TYPEDEF_FNCT_PTR (DWORD, SetFileAttributesU8long)
 	send CTRL-Break and wait for it to succeed, the function waits up to twice waitTime
 	in case the first attempt (CTRL-C) is unsuccessful.
 */
+#ifdef HAVE_USER32
 bool TerminateProcessControlled (HANDLE hProcess, uint16_t uiFlags, DWORD waitTime);
 TYPEDEF_FNCT_PTR (bool, TerminateProcessControlled) (HANDLE hProcess, uint16_t uiFlags, DWORD waitTime);
+#endif
 
 /*
 	IsFirstArgumentExeArgumentW
@@ -6354,6 +6430,105 @@ enntfscompressresult IsFileNTFSCompressedByHandle (HANDLE hFile);
 #endif															// Of #ifndef COMPRESSNTFS_U8.
 /****************************************************************************************
 
+	File:		WinConfigureISOdate.h
+	Why:		Module to configure date and time format in the Windows registry.
+	OS:			Windows.
+	Author:		Thomas
+	Created:	2025-11-17
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2025-11-17	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024, 2025 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef U_WINCONFIGUREISODATE_H
+#define U_WINCONFIGUREISODATE_H
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include "./WinAPI_U8.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./platform.h"
+	#else
+		#include "./../../pre/platform.h"
+	#endif
+
+	#ifdef BUILD_WINCONFIGUREISODATE_TEST
+		//#include <stdio.h>
+	#endif
+
+#endif
+
+#ifdef PLATFORM_IS_WINDOWS
+
+BEGIN_C_DECLS
+
+enum enISOregistry
+{
+	enISOregistryCurrentUser,
+	enISOregistryAllUsers
+};
+
+/*
+	setISO8601inRegistry
+
+	Sets user or system-wide date and time format in the Windows registry.
+
+	Returns true on success, false otherwise.
+*/
+bool setISO8601inRegistry (enum enISOregistry reg);
+
+/*
+	WinConfigureISOdateTestFnct
+
+	Test function for the module. Not a real test function.
+	Only invokes setISO8601inRegistry (enISOregistryCurrentUser);
+*/
+#ifdef BUILD_WINCONFIGUREISODATE_TEST
+	bool WinConfigureISOdateTestFnct (void)
+#else
+	#define WinConfigureISOdateTestFnct() (true)
+#endif
+
+END_C_DECLS
+
+#endif													// Of #ifdef PLATFORM_IS_WINDOWS.
+
+#endif													// Of #ifndef U_WINCONFIGUREISODATE_H.
+/****************************************************************************************
+
 	File:		WinSharedMutex.h
 	Why:		Implements a mutex for interprocess-locking.
 	OS:			C99
@@ -6552,7 +6727,7 @@ EXTERN_C_BEGIN
 /*
 	WinObtainExecutableModuleName
 
-	Obtains the executables full path including its name. The caller is responsible for
+	Obtains the executable's full path including its name. The caller is responsible for
 	initialising the SMEMBUF structure beforehand.
 
 	The function returns the amount of octets (bytes) written to the SMEMBUF's buf
@@ -6560,6 +6735,20 @@ EXTERN_C_BEGIN
 */
 size_t WinObtainExecutableModuleName (SMEMBUF *mb)
 ;
+
+/*
+	WinGetExecutableModuleNameStr
+
+	Returns the executable's full path including its name as a const char *.
+*/
+const char *WinGetExecutableModuleNameStr (void);
+
+/*
+	WinGetExecutableModuleNameLen
+
+	Returns the length of the exectuable's full path including its name.
+*/
+size_t WinGetExecutableModuleNameLen (void);
 
 /*
 	WinObtainAppNameFromExecutableModule
@@ -6750,6 +6939,20 @@ EXTERN_C_BEGIN
 */
 size_t PsxObtainExecutableModuleName (SMEMBUF *mb)
 ;
+
+/*
+	PsxnGetExecutableModuleNameStr
+
+	Returns the executable's full path including its name as a const char *.
+*/
+const char *PsxnGetExecutableModuleNameStr (void);
+
+/*
+	PsxGetExecutableModuleNameLen
+
+	Returns the length of the exectuable's full path including its name.
+*/
+size_t PsxGetExecutableModuleNameLen (void);
 
 /*
 	PsxObtainAppNameFromExecutableModule
@@ -7647,6 +7850,32 @@ EXTERN_C_BEGIN
 #else
 	#define ObtainExecutableModuleName(mb)				\
 		PsxObtainExecutableModuleName (mb)
+#endif
+
+/*
+	GetExecutableModuleNameStr
+
+	Returns the executable's full path including its name as a const char *.
+*/
+#ifdef OS_IS_WINDOWS
+	#define GetExecutableModuleNameStr()				\
+		WinGetExecutableModuleNameStr ()
+#else
+	#define GetExecutableModuleNameStr()				\
+		PsxGetExecutableModuleNameStr ()
+#endif
+
+/*
+	GetExecutableModuleNameLen
+
+	Returns the length of the exectuable's full path including its name.
+*/
+#ifdef OS_IS_WINDOWS
+	#define GetExecutableModuleNameLen()				\
+		WinGetExecutableModuleNameLen ()
+#else
+	#define GetExecutableModuleNameLen()				\
+		PsxGetExecutableModuleNameLen ()
 #endif
 
 /*
@@ -14730,6 +14959,7 @@ When		Who				What
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <inttypes.h>
 
 #ifndef USE_STRLEN
 #define USE_STRLEN						((size_t) -1)
@@ -14751,9 +14981,46 @@ When		Who				What
 
 EXTERN_C_BEGIN
 
+/*
+	c_check_utf8
+
+	Checks if str points to a valid UTF-8 character set string with length len.
+
+	Returns true if every character in str is a valid
+*/
 bool c_check_utf8(const char *str, size_t len);
 TYPEDEF_FNCT_PTR (bool, c_check_utf8) (const char *str, size_t len);
 
+/*
+	nOctetsInUTF8char
+
+	Returns the amount of octets/bytes the UTF-8 character/code point c
+	requires if c is the first octet/byte of a UTF-8 code point.
+
+	Valid return values are 1, meaning that c is the only octet, 2, 3,
+	and 4.
+
+	The function returns 0 if c is not a valid first octet of a UTF-8
+	code point.
+*/
+unsigned int nOctetsInUTF8char (uint8_t c);
+TYPEDEF_FNCT_PTR (unsigned int, nOctetsInUTF8char) (unsigned int c);
+
+/*
+	nWordsInUTF16char
+
+	Returns the amount of 16 bit words the UTF-16 character/code point
+	c requires if c is the first word/character of a UTF-16 code point.
+
+*/
+unsigned int nWordsInUTF16char (uint16_t c);
+TYPEDEF_FNCT_PTR (unsigned int, nWordsInUTF16char) (uint16_t c);
+
+/*
+	Check_utf8_test_function
+
+	Test function for the module.
+*/
 #ifdef U_CHECK_UTF8_BUILD_TEST_FNCT
 	bool Check_utf8_test_function (void);
 #else
@@ -15018,12 +15285,20 @@ When		Who				What
 		#include "./externC.h"
 		#include "./platform.h"
 		#include "./restrict.h"
+		#include "./membuf.h"
 	#else
 		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
 		#include "./../pre/restrict.h"
+		#include "./../mem/membuf.h"
 	#endif
 
+#endif
+
+// Some functions accept string lengths of (size_t) -1 to obtain a length via a call
+//	to strlen ().
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
 #endif
 
 EXTERN_C_BEGIN
@@ -15053,6 +15328,27 @@ EXTERN_C_BEGIN
 	for the parameter lnString. The length MUST be specified appropriately.
 */
 char *str_find_path_navigator (char *szString, size_t lnString)
+;
+
+/*
+	str_len_without_extension
+
+	Returns the length of szPath if the filename extension is removed.
+	For instance "file.txt" returns 4 ("file"), "file.pdf.exe" returns 8
+	("file.pdf), and "." returns 0.
+
+	The function returns lnPath if no filename extension is found.
+*/
+size_t str_len_without_extension (const char *szPath, size_t lnPath)
+;
+
+/*
+	str_find_path_separator
+
+	Returns a pointer to the first path separator in szPath, or NULL if no
+	path separator could be found.
+*/
+const char *str_find_path_separator (const char *szPath, size_t lnPath)
 ;
 
 /*
@@ -15190,6 +15486,110 @@ size_t str_correct_dir_separators (char *str, size_t len)
 	The function does not expect (or remove) more than one path separator at the end of str.
 */
 size_t str_remove_last_dir_separator (const char *str, size_t len)
+;
+
+/*
+	smb_absolute_path_from_relative_path
+
+	Stores the absolute path of the relative path szRelative points to by using the reference
+	path szReference points to as the starting point. The length parameters lnRelative and
+	lnReference can be USE_STRLEN, which is defined as (size_t) (-1).
+
+	The absolute path is stored in the buffer of the SMEMBUF structure pmbAbsolute points to.
+	This structure must have been initialised before the function is called. The caller is
+	responsible for releasing the memory allocated by the structure again, for instance
+	by calling doneSMEMBUF () on it.
+
+	The function reduces the amount of path navigators ("../" or "..\") as much as possible.
+
+	Note that the function is a pure memory/string implementation. No file system checks are
+	performed. It neither checks whether the paths exist nor if the paths are valid on the
+	target platform.
+
+	Parameters
+	----------
+
+	pmAbsolute		A pointer to an initialised SMEMBUF structure that receives the
+					absolute path in its buffer.
+
+	szRelative		A pointer to a relative path. If this is an absolute path, the
+					parameter szReference is ignored, and szRelative is placed in
+					pmAbsolute as the result of the functions, and the function's
+					return value is its length.
+					If this parameter points to a relative path, the function
+					calculates its absolute path relative to szReference, with as many path
+					navigators removed as possible, if there are any.
+
+	lnRelative		Its length. This can be USE_STRLEN, in which case szRelative
+					requires to be NUL-terminated.
+
+	szReference		A pointer to an absolute reference path. The function assumes that
+					szRelative is relative to this path. Debug versions assert that
+					szReference is absolute.
+
+	lnReference		Its length. This can be USE_STRLEN, in which case szReference
+					requires to be NUL-terminated.
+					If you happen to have a reference path that also includes a filename,
+					you can call the function with
+					ubf_len_with_last_directory_separator (szReference, lnReference)
+					as its parameter lnReference.
+
+	The function returns the amount of octets/bytes written to the SMEMBUF structure's buffer,
+	not including a terminating NUL character, which the function also stores.
+*/
+size_t smb_absolute_path_from_relative_path	(
+			SMEMBUF							*pmbAbsolute,
+			const char *cunilog_restrict	szRelative,		size_t	lnRelative,
+			const char *cunilog_restrict	szReference,	size_t	lnReference
+											)
+;
+
+/*
+	smb_absolute_path_from_relative_path_fref
+
+	The function is identical smb_absolute_path_from_relative_path () but expects an
+	absolute path to a file as reference instead of a directory/folder. Its path without
+	the filename is then used to invoke smb_absolute_path_from_relative_path ().
+*/
+size_t smb_absolute_path_from_relative_path_fref	(
+			SMEMBUF							*pmbAbsolute,
+			const char *cunilog_restrict	szRelative,			size_t	lnRelative,
+			const char *cunilog_restrict	szReferenceFile,	size_t	lnReferenceFile
+													)
+;
+
+/*
+	str_filename_from_path
+
+	Obtains the filename from a given path. The returned filename is without
+	filename extension.
+
+	The function expects an initialised SMEMBUF structure in which it places
+	the extracted filename.
+
+	The path is expected in szPath with a length of lnPath. If lnPath is USE_STRLEN,
+	the function calls strlen (szPath) to obtain it. If lnPath is the correct length,
+	szPath does not have to be NUL-terminated.
+
+	There's no difference between platforms. The function works the same on POSIX
+	as it does on Windows.
+
+	szPath									pmb				return value
+	"/home/file/"						->	""				0
+	"C:\dir"							->	"dir"			3
+	"C:dir"								->	"dir"			3
+	"C:\dir.txt"						->	"dir"			3
+	"/dir/.file"						->	".file"			5
+	"/dir/file.txt"						->	"file"			5
+	"/dir/.file.txt.exe"				->	".file.txt"		9
+	"/dir/file.txt.exe"					->	"file.txt"		8
+	""									->	""				0
+	"/"									->	""				0
+
+	The function returns the amount of octets/bytes it has placed in pmb, not
+	counting the terminating NUL terminator.
+*/
+size_t str_filename_from_path (SMEMBUF *pmb, const char *szPath, size_t lnPath)
 ;
 
 /*
@@ -15872,7 +16272,7 @@ void ubf_hex_str_blank_from_qword (char *chResult, size_t stWidthResult, uint64_
 	character unless the hexadecimal ASCII input string cchex ends with a character
 	string of "0000", which is a NUL terminator in UCS-2/UTF-16.
 	
-	The function returns TRUE on success, FALSE otherwise. Independent of the function's
+	The function returns true on success, false otherwise. Independent of the function's
 	return value the amount of uint16_t (16 bit) values written to u16result is returned
 	at the address pU16written points to.
 */
@@ -16002,11 +16402,11 @@ EXTERN_C_BEGIN
 	The structures for ini files.
 */
 // An array of ini values. Each key can have several values.
-typedef struct scuniloginivalues
+typedef struct scuniloginivalue
 {
 	const char				*szValue;						// Value of a multi-value key.
 	size_t					lnValue;						// Its length.
-} SCUNILOGINIVALUES;
+} SCUNILOGINIVALUE;
 
 // A key with its values.
 typedef struct scuniloginikeyandvalues
@@ -16014,7 +16414,7 @@ typedef struct scuniloginikeyandvalues
 	const char				*szKeyName;
 	size_t					lnKeyName;
 
-	SCUNILOGINIVALUES		*pValues;						// A key can have multiple values.
+	SCUNILOGINIVALUE		*pValues;						// A key can have multiple values.
 	unsigned int			nValues;
 
 	const char				*szEqualsSign;
@@ -16042,7 +16442,7 @@ typedef struct scunilogini
 															//	are possible.
 	unsigned int			nKeyValues;
 
-	SCUNILOGINIVALUES		*pValues;						// All values that belong to keys.
+	SCUNILOGINIVALUE		*pValues;						// All values that belong to keys.
 	unsigned int			nValues;
 
 	// Parse error.
@@ -16599,7 +16999,7 @@ bool strlineextractKeyOrValue	(
 unsigned int strlineextractKeyAndValues	(
 		const char		**cunilog_restrict	pszKey,		size_t	*plnKey,	// Out.
 		const char		**cunilog_restrict	pszEqual,	size_t	*plnEqual,	// Out.
-		SCUNILOGINIVALUES					*pValues,
+		SCUNILOGINIVALUE					*pValues,
 		unsigned int						nValues,
 		const char		*cunilog_restrict	szLine,	size_t	lnLine,			// In.
 		SCULMLTSTRINGS	*psmlt												// In.
@@ -16899,7 +17299,7 @@ EXTERN_C_BEGIN
 
 	The value cunilogNewLineDefault used to be cunilogNewLineSystem to ensure logfiles
 	could be opened with Notepad on Windows systems, but since newer versions of Notepad
-	(Windows 10 and newer) can perfectly display files that have POSIX line endings, the
+	(Windows 10 and newer) can display files that have POSIX line endings perfectly, the
 	default is now cunilogNewLinePOSIX to save one octet per event line. Use
 	cunilogNewLineWindows or cunilogNewLineSystem if textual logfiles need to be opened/
 	viewed with Notepad for Windows versions before Windows 10, or if they are opened/
@@ -18728,7 +19128,7 @@ When		Who				What
 EXTERN_C_BEGIN
 
 /*
-	SMEMBUFfromStrReserveBytes
+	SMEMBUFfromStrReserve
 	
 	Duplicates str and fills the SMEMBUF structure pmb points to accordingly.
 	If len is (size_t) -1, the function strlen () is used to obtain the length of str.
@@ -18736,13 +19136,39 @@ EXTERN_C_BEGIN
 	The buffer the function allocates is len + reserve octets (bytes).
 	The string in the buffer is always NUL-terminated.
 
+	The SMEMBUF structure pmb points to is expected to be initialised before the function
+	is called. To initialise the structure implicitely, use initSMEMBUFfromStrReserve ()
+	instead.
+
 	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
 	structure, which is len on success, or 0 when the heap allocation fails. The NUL
 	terminator the function always writes is not included in the return value.
 */
-size_t SMEMBUFfromStrReserveBytes (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+size_t SMEMBUFfromStrReserve (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
 ;
-TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrReserveBytes) (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrReserve) (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+;
+
+/*
+	initSMEMBUFfromStrReserveBytes
+
+	Initialises the SMEMBUF structure pmb points to, then duplicates str and fills the
+	structure accordingly.
+	If len is (size_t) -1, the function strlen () is used to obtain the length of str.
+	The macro USE_STRLEN is defined as ((size_t) -1).
+	The buffer the function allocates is len + reserve octets (bytes).
+	The string in the buffer is always NUL-terminated.
+
+	If the SMEMBUF structure pmb points to is initialised already, use
+	SMEMBUFfromStrReserve () instead.
+
+	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
+	structure, which is len on success, or 0 when the heap allocation fails. The NUL
+	terminator the function always writes is not included in the return value.
+*/
+size_t initSMEMBUFfromStrReserve (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+;
+TYPEDEF_FNCT_PTR (size_t, initSMEMBUFfromStrReserve) (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
 ;
 
 /*
@@ -18755,6 +19181,9 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrReserveBytes) (SMEMBUF *pmb, const char 
 	If str is NULL, len must be 0. If len is 0, the function writes out a NUL-terminator
 	only
 
+	The SMEMBUF structure pmb points to must have been initialised before the function
+	is called. To initialise the structure implicitely, use initSMEMBUFfromStr () instead.
+
 	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
 	structure, not counting the NUL terminator the function writes, which is len on success,
 	or 0 when the heap allocation fails.
@@ -18763,15 +19192,52 @@ size_t SMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len);
 TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStr) (SMEMBUF *pmb, const char *str, size_t len);
 
 /*
+	initSMEMBUFfromStr
+
+	Initialises the SMEMBUF structure pmb points to, then duplicates str and fills the
+	structure accordingly.
+
+	If str is NULL, len must be 0. If len is 0, the function writes out a NUL-terminator
+	only
+
+	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
+	structure, not counting the NUL terminator the function writes, which is len on success,
+	or 0 when the heap allocation fails.
+*/
+size_t initSMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len)
+;
+TYPEDEF_FNCT_PTR (size_t, initSMEMBUFfromStr) (SMEMBUF *pmb, const char *str, size_t len)
+;
+
+/*
 	SMEMBUFfromStrFmt_va
 
 	Variadic version of SMEMBUFfromStr () that expects a va_list argument.
+
+	The SMEMBUF structure pmb points to must have been initialised before the function
+	is called. To initialise the structure implicitely, use initSMEMBUFfromStrFmt_va ()
+	instead.
 
 	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
 	structure, not counting the NUL terminator the function writes. It returns 0 when the
 	heap allocation fails.
 */
-size_t SMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
+size_t SMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap);
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrFmt_va) (SMEMBUF *pmb, const char *fmt, va_list ap);
+
+/*
+	initSMEMBUFfromStrFmt_va
+
+	Variadic version of SMEMBUFfromStr () that expects a va_list argument. The SMEMBUF
+	structure pmb points to is initialised by this function.
+
+	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
+	structure, not counting the NUL terminator the function writes. It returns 0 when the
+	heap allocation fails.
+*/
+size_t initSMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
+;
+TYPEDEF_FNCT_PTR (size_t, initSMEMBUFfromStrFmt_va) (SMEMBUF *pmb, const char *fmt, va_list ap)
 ;
 
 /*
@@ -18779,11 +19245,78 @@ size_t SMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
 
 	Variadic version of SMEMBUFfromStr ().
 
+	The SMEMBUF structure pmb points to must have been initialised before the function
+	is called. To initialise the structure implicitely, use initSMEMBUFfromStrFmt ()
+	instead.
+
 	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
 	structure, not counting the NUL terminator the function writes. It returns 0 when the
 	heap allocation fails.
 */
 size_t SMEMBUFfromStrFmt (SMEMBUF *pmb, const char *fmt, ...)
+;
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrFmt) (SMEMBUF *pmb, const char *fmt, ...)
+;
+
+/*
+	initSMEMBUFfromStrFmt
+
+	Variadic version of SMEMBUFfromStr () that implicitely initialises the SMEMBUF structure
+	pmb points to.
+
+	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
+	structure, not counting the NUL terminator the function writes. It returns 0 when the
+	heap allocation fails.
+*/
+size_t initSMEMBUFfromStrFmt (SMEMBUF *pmb, const char *fmt, ...)
+;
+TYPEDEF_FNCT_PTR (size_t, initSMEMBUFfromStrFmt) (SMEMBUF *pmb, const char *fmt, ...)
+;
+
+/*
+	SMEMBUFfromStrs
+
+	Concatenates the buffer of the SMEMBUF structure pmb points to and a number of strings.
+
+	pmb			Pointer to an initialised SMEMBUF structure. The function creates or extends
+				the buffer of this structure to return the concatenated string.
+
+	len			The length of the string already in pmb's buffer. Set this parameter to 0
+				to overwrite the buffer. This parameter can also be USE_STRLEN. In this case
+				the function calls strlen (pmb->buf->pcc) to obtain its length.
+
+	sStrs		The amount of const char * and size_t pairs following as variadic arguments.
+
+				const char *	A pointer to a string.
+
+				size_t			Its length. This can be USE_STRLEN, in which case the function
+								calls strlen () on the string. Note that the compiler would
+								interpret most numbers as integers, while the function expects
+								a size_t here. Type-cast the length, as shown in the example
+								below and in the tests. The value USE_STRLEN is already defined
+								with the correct cast.
+
+	It's the caller's responsibility to free the buffer the function has created or extended
+	when it is no longer needed to avoid memory leaks by calling freeSMEMBUF (),
+	doneSMEMBUF (), or the unconditional versions of these functions/macros.
+	
+	The function returns the new length of the string in the buffer of the SMEMBUF structure,
+	not counting the NUl terminator the function also writes.
+
+	Example:
+
+	SMEMBUF smb = SMEMBUF_INITIALISER;
+	SMEMBUF *pmb = &smb;
+	size_t len = SMEMBUFfromStr (pmb, "123", 3);
+	// len should be 3 now.
+	size_t newlen = SMEMBUFfromStrs (pmb, len, 2, "AB", (size_t) 2, "CDE", (size_t) 3);
+	size_t newlen = SMEMBUFfromStrs (pmb, newlen, 1, " Another string", USE_STRLEN);
+
+	See tests in code file for more examples.
+*/
+size_t SMEMBUFfromStrs (SMEMBUF *pmb, size_t len, size_t nStrs, ...)
+;
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrs) (SMEMBUF *pmb, size_t len, size_t nStrs, ...)
 ;
 
 /*
@@ -18827,7 +19360,8 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrFromUINT64) (SMEMBUF *pmb, uint64_t ui)
 */
 size_t SMEMBUFstrconcatReserve (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve)
 ;
-TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatReserve) (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve);
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatReserve) (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve)
+;
 
 /*
 	SMEMBUFstrconcat
@@ -18851,7 +19385,8 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatReserve) (SMEMBUF *pmb, size_t len, ch
 */
 size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr)
 ;
-TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcat) (SMEMBUF *pmb, size_t len, char *str, size_t lenstr);
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcat) (SMEMBUF *pmb, size_t len, char *str, size_t lenstr)
+;
 
 /*
 	SMEMBUFstrconcatW
@@ -18916,7 +19451,8 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcat) (SMEMBUF *pmb, size_t len, char *str
 */
 size_t SMEMBUFstrconcatpaths (SMEMBUF *pmb, size_t len, char *strPath, size_t lenPath)
 ;
-TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatpaths) (SMEMBUF *pmb, size_t len, char *strPath, size_t lenPath);
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatpaths) (SMEMBUF *pmb, size_t len, char *strPath, size_t lenPath)
+;
 
 /*
 	SMEMBUFstrStartsWithStr
@@ -19460,6 +19996,18 @@ When		Who				What
 #ifndef U_MERSENNE_TWISTER_H
 #define U_MERSENNE_TWISTER_H
 
+#if		defined	(TEST_PROCESS_HELPER_BUILD_TEST_FNCT)	\
+	||	defined	(U_TEST_PROCESS_HELPER_BUILD_MAIN)		\
+	||	defined	(PROCESS_HELPERS_BUILD_TEST_FNCT)		\
+	||	!defined (CUNILOG_BUILD_WITHOUT_PROCESS_HELPERS)
+
+	#ifndef BUILD_MERSENNE_TWISTER_FOR_TESTS
+	#define BUILD_MERSENNE_TWISTER_FOR_TESTS
+	#endif
+#endif
+
+#ifdef BUILD_MERSENNE_TWISTER_FOR_TESTS
+
 /*
 	The following code has been taken, with little modifications, from
 	https://en.wikipedia.org/wiki/Mersenne_Twister in 2025-07.
@@ -19565,6 +20113,8 @@ static uint32_t random_uint32(mersenne_twister_state* state)
 #undef b
 #undef c
 #undef f
+
+#endif														// Of #ifdef BUILD_MERSENNE_TWISTER_FOR_TESTS.
 
 #endif														// Of #ifndef U_MERSENNE_TWISTER_H.
 /****************************************************************************************
@@ -19925,8 +20475,9 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 /*
 	CunilogGetIniValuesFromKey
 
-	pValues			A pointer to an array of SCUNILOGINIVALUES structures that receives
-					the values of szKey.
+	pValues			A pointer that receives a pointer to an array of SCUNILOGINIVALUES
+					structures. The function's return value provides the amount of
+					elements in the array.
 
 	szSection		The name of the section the key belongs to. Keys do not necessarily
 					belong to a section. To obtain a key that is not part of a section,
@@ -19947,9 +20498,19 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 
 	The function returns the amount of values the key szKey of section szSection contains.
 	If the section or key cannot be found, the function returns 0.
+
+	Example:
+
+	SCUNILOGINIVALUES *pValues;
+	unsigned int uiVals = CunilogGetIniValuesFromKey_ci	(
+							&pValues,
+							"Section",	USE_STRLEN,
+							"Key",		USE_STRLEN,
+							pCunilogIni
+														);
 */
 unsigned int CunilogGetIniValuesFromKey		(
-				SCUNILOGINIVALUES	**pValues,
+				SCUNILOGINIVALUE	**pValues,
 				const char			*szSection,		size_t	lnSection,
 				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
@@ -19963,7 +20524,7 @@ unsigned int CunilogGetIniValuesFromKey		(
 	for the parameters szSection and szKey.
 */
 unsigned int CunilogGetIniValuesFromKey_ci	(
-				SCUNILOGINIVALUES	**pValues,
+				SCUNILOGINIVALUE	**pValues,
 				const char			*szSection,		size_t	lnSection,
 				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
@@ -21323,7 +21884,7 @@ typedef struct CUNILOG_TARGET
 	#endif
 
 	enum cunilogeventTSformat		unilogEvtTSformat;		// The format of an event timestamp.
-	newline_t						unilogNewLine;
+	newline_t						culogNewLine;
 	CUNILOG_LOGFILE					logfile;
 	SBULKMEM						sbm;					// Bulk memory block.
 	vec_cunilog_fls					fls;					// The vector with str pointers to
@@ -22673,6 +23234,16 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 )
 
 /*
+	CunilogAutoNewLine
+
+	On POSIX, this function always returns cunilogNewLinePOSIX.
+
+	On Windows, this function returns either cunilogNewLinePOSIX or cunilogNewLineWindows,
+	depending on whether Notepad supports POSIX line endings or not.
+*/
+enum enLineEndings CunilogAutoNewLine (void);
+
+/*
 	InitCUNILOG_TARGETex
 
 	Initialises an existing CUNILOG_TARGET structure.
@@ -22745,7 +23316,8 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 
 	unilogNewLine		The representation of a new line character to write into the logfile.
 						A value of unilogNewLineSystem picks a default representation for the
-						operating system.
+						operating system. However, it is recommended to use the value returned
+						by CunilogAutoNewLine () for this parameter.
 
 	rp					Can be either cunilogRunProcessorsOnStartup or
 						cunilogDontRunProcessorsOnStartup to run or not run all processors the
@@ -22831,7 +23403,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 					cunilogPostfixDefault,				\
 					NULL, 0,							\
 					cunilogEvtTS_Default,				\
-					cunilogNewLineDefault,				\
+					CunilogAutoNewLine (),				\
 					cunilogRunProcessorsOnStartup		\
 										)
 #endif
@@ -22902,7 +23474,8 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 
 	unilogNewLine		The representation of a new line character to write into the logfile.
 						A value of unilogNewLineSystem picks a default representation for the
-						operating system.
+						operating system. However, it is recommended to use the value returned
+						by CunilogAutoNewLine () for this parameter.
 
 	rp					Can be either unilogRunProcessorsOnStartup or
 						unilogDontRunProcessorsOnStartup to run or not run all processors the
@@ -23073,7 +23646,8 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitOrCreateCUNILOG_TARGET)
 
 	unilogNewLine		The representation of a new line character to write into the logfile.
 						A value of unilogNewLineSystem picks a default representation for the
-						operating system.
+						operating system. However, it is recommended to use the value returned
+						by CunilogAutoNewLine () for this parameter.
 
 	rp					Can be either cunilogRunProcessorsOnStartup or
 						cunilogDontRunProcessorsOnStartup to run or not run all processors the
@@ -23594,6 +24168,10 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, DoneCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, meaning that only further logging is blocked and logging functions called
 	afterwards return false.
+
+	Because the final target is not known for the types cunilogSingleThreadedQueueOnly and
+	cunilogMultiThreadedQueueOnly, events cannot be written out. Instead, the queue is emptied
+	by this function, meaning that queued events are simply dropped.
 
 	This function should be called just before DoneCUNILOG_TARGET ().
 
@@ -24462,6 +25040,20 @@ extern const uint64_t	uiCunilogVersion;
 )
 int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion);
 #define cunilogCheckVersion() cunilogCheckVersionIntChk (CUNILOG_VERSION_HDR)
+
+/*
+	DoneCunilog
+
+	Releases all resources of global scope used by Cunilog.
+
+	Calling this function is usually not necessary because the operating system reclaims
+	these resources implicitely when an application exits. However, if an application is
+	built with a memory leak detector, these resources are flagged as memory leaks. Calling
+	DoneCunilog () just before the memory leak detector produces its result excludes the
+	Cunilog resources from the report.
+*/
+void DoneCunilog ()
+;
 
 /*
 	Tests

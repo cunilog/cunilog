@@ -45,8 +45,16 @@ When		Who				What
 #include <stddef.h>
 #include <string.h>
 
-#ifndef USE_STRLEN
-#define USE_STRLEN						((size_t) -1)
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#include "./check_utf8.h"
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+		#include "./ubfdebug.h"
+	#else
+		#include "./../dbg/ubfdebug.h"
+	#endif
+
 #endif
 
 bool c_check_utf8(const char *str, size_t len)
@@ -94,6 +102,34 @@ bool c_check_utf8(const char *str, size_t len)
 }
 
 /*
+	See https://en.wikipedia.org/wiki/UTF-8 :
+	Byte 1:
+	0yyyzzzz	01111111	127		< 128		-> 1 octet/byte
+	110xxxyy	11011111	223		< 224		-> 2 octets/bytes
+	1110wwww	11101111	239		< 240		-> 3 octets/bytes
+	11110uvv	11110111	247		< 248		-> 4 octets/bytes
+*/
+unsigned int nOctetsInUTF8char (uint8_t c)
+{
+	if (c < 128) return 1;
+	if (c < 224) return 2;
+	if (c < 240) return 3;
+	if (c < 248) return 4;
+	return 0;
+}
+
+/*
+	See https://en.wikipedia.org/wiki/UTF-16 .
+*/
+unsigned int nWordsInUTF16char (uint16_t c)
+{
+	// Not sure.
+	//if (c >= 0xD800 && c <= 0xDBFF) return 2;
+	if (c >= 0xD800 && c <= 0xDFFF) return 2;
+	return 1;
+}
+
+/*
 	https://github.com/yasuoka/check_utf8/blob/main/check_utf8_test.c
 */
 #ifdef U_CHECK_UTF8_BUILD_TEST_FNCT
@@ -102,21 +138,43 @@ bool c_check_utf8(const char *str, size_t len)
 		bool b = true;
 
 		b &= c_check_utf8("ほげほげ", 12);
+		ubf_assert_true (b);
 		//ほげほげ in Shift-JIS
 		b &= c_check_utf8("\x82\xd9\x82\xb0\x82\xd9\x82\xb0", 8) == false;
+		ubf_assert_true (b);
 		//copyright mark in UTF-8
 		b &= c_check_utf8 ("\xC2\xA9", 2);
+		ubf_assert_true (b);
 		b &= c_check_utf8("©", 2) == true;
+		ubf_assert_true (b);
 		// face in medical mask in UTF-8
 		b &= c_check_utf8("\xF0\x9F\x98\xB7", 4) == true;
+		ubf_assert_true (b);
 		// length invalid
 		b &= c_check_utf8("ふがふが", 11) == false;
+		ubf_assert_true (b);
 		// ascii
 		b &= c_check_utf8("Hello world.", 12) == true;
+		ubf_assert_true (b);
 		// empty
 		b &= c_check_utf8("", 1) == true;
+		ubf_assert_true (b);
 		// specials
 		b &= c_check_utf8("\t\b", 2) == true;
+		ubf_assert_true (b);
+
+		unsigned int n = nOctetsInUTF8char ((uint8_t) '\xF0');
+		b &= 4 == n;
+		ubf_assert_true (b);
+		n = nOctetsInUTF8char ((uint8_t) '\xC2');
+		b &= 2 == n;
+		ubf_assert_true (b);
+		n = nOctetsInUTF8char ((uint8_t) 'a');
+		b &= 1 == n;
+		ubf_assert_true (b);
+		n = nOctetsInUTF8char ((uint8_t) 250);
+		b &= 0 == n;
+		ubf_assert_true (b);
 
 		return b;
 	}

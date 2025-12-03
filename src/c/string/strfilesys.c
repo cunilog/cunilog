@@ -57,12 +57,14 @@ When		Who				What
 		#include "./platform.h"
 		#include "./Warnings.h"
 		#include "./strisabsolutepath.h"
+		#include "./strmembuf.h"
 	#else
 		#include "./../mem/memstrstr.h"
 		#include "./../dbg/ubfdebug.h"
 		#include "./../pre/platform.h"
 		#include "./../pre/Warnings.h"
 		#include "./../string/strisabsolutepath.h"
+		#include "./../string/strmembuf.h"
 	#endif
 
 #endif
@@ -72,7 +74,7 @@ size_t str_correct_dir_separators (char *str, size_t len)
 	size_t	n;
 	size_t	r	= 0;
 	
-	len = (size_t) -1 == len ? strlen (str) : len;
+	len = USE_STRLEN == len ? strlen (str) : len;
 	for (n = 0; n < len; ++ n)
 	{
 		if (isWrongDirectorySeparator (str [n]))
@@ -122,6 +124,39 @@ char *str_find_path_navigator (char *szString, size_t lnString)
 			-- lnString;
 		} else
 			return NULL;
+	}
+	return NULL;
+}
+
+size_t str_len_without_extension (const char *szPath, size_t lnPath)
+{
+	lnPath = USE_STRLEN == lnPath ? strlen (szPath) : lnPath;
+	size_t ln = lnPath;
+	if (szPath)
+	{
+		while (lnPath)
+		{
+			if ('.' == szPath [lnPath - 1])
+				return lnPath - 1;
+			-- lnPath;
+		}
+	}
+	return ln;
+}
+
+const char *str_find_path_separator (const char *szPath, size_t lnPath)
+{
+	lnPath = USE_STRLEN == lnPath ? strlen (szPath) : lnPath;
+	if (szPath)
+	{
+		size_t o = 0;
+		while (o < lnPath)
+		{
+			if (is_path_separator (szPath [0]))
+				return szPath;
+			++ szPath;
+			++ o;
+		}
 	}
 	return NULL;
 }
@@ -246,7 +281,7 @@ DEFAULT_WARNING_ASSIGNMENT_WITHIN_CONDITIONAL_EXPRESSION ()
 
 void ubf_change_directory_separators (char *szPath, size_t len, const char newSeparator)
 {
-	size_t	l = (size_t) -1 == len ? strlen (szPath) : len;
+	size_t	l = USE_STRLEN == len ? strlen (szPath) : len;
 	size_t	i;
 	
 	for (i = 0; i < l; ++i)
@@ -258,7 +293,7 @@ void ubf_change_directory_separators (char *szPath, size_t len, const char newSe
 
 size_t ubf_len_with_last_directory_separator (const char *szPath, size_t len)
 {
-	size_t	l = (size_t) -1 == len ? strlen (szPath) : len;
+	size_t	l = USE_STRLEN == len ? strlen (szPath) : len;
 	
 	if (szPath)
 	{
@@ -290,7 +325,7 @@ size_t str_remove_last_dir_separator (const char *str, size_t len)
 }
 
 size_t smb_absolute_path_from_relative_path	(
-			SMEMBUF		*pmbAbsolute,
+			SMEMBUF							*pmbAbsolute,
 			const char *cunilog_restrict	szRelative,		size_t	lnRelative,
 			const char *cunilog_restrict	szReference,	size_t	lnReference
 											)
@@ -304,11 +339,7 @@ size_t smb_absolute_path_from_relative_path	(
 	lnReference	= USE_STRLEN == lnReference	? strlen (szReference)	: lnReference;
 	ubf_assert_non_0	(lnRelative);
 	ubf_assert_non_0	(lnReference);
-
-	/*
-	ubf_assert (!isDirectorySeparator (szRelative [0]));
-	ubf_assert (!is_absolute_path_l (szRelative, lnRelative));
-	*/
+	ubf_assert			(is_absolute_path_l (szReference, lnReference));
 
 	size_t ln = 0;
 	if (is_absolute_path_l (szRelative, lnRelative))
@@ -338,6 +369,79 @@ size_t smb_absolute_path_from_relative_path	(
 	return ln;
 }
 
+size_t smb_absolute_path_from_relative_path_fref	(
+			SMEMBUF							*pmbAbsolute,
+			const char *cunilog_restrict	szRelative,			size_t	lnRelative,
+			const char *cunilog_restrict	szReferenceFile,	size_t	lnReferenceFile
+													)
+{
+	ubf_assert_non_NULL	(pmbAbsolute);
+	ubf_assert			(isInitialisedSMEMBUF (pmbAbsolute));
+	ubf_assert_non_NULL	(szRelative);
+	ubf_assert_non_NULL	(szReferenceFile);
+
+	lnReferenceFile = USE_STRLEN == lnReferenceFile ? strlen (szReferenceFile) : lnReferenceFile;
+	ubf_assert			(is_absolute_path_l (szReferenceFile, lnReferenceFile));
+
+	size_t ln = ubf_len_with_last_directory_separator (szReferenceFile, lnReferenceFile);
+	return smb_absolute_path_from_relative_path (
+				pmbAbsolute,
+				szRelative,			lnRelative,
+				szReferenceFile,	ln
+												);
+}
+
+size_t str_filename_from_path (SMEMBUF *pmb, const char *szPath, size_t lnPath)
+{
+	ubf_assert_non_NULL (pmb);
+
+	size_t	rLen = 0;
+
+	if (szPath)
+	{
+		lnPath = USE_STRLEN == lnPath ? strlen (szPath) : lnPath;
+		size_t	ln = lnPath;
+
+		// Find last directory separator.
+		const char	*szToSearch = szPath;
+		const char	*sz;
+		do
+		{
+			sz	= str_find_path_separator (szToSearch, lnPath);
+			if (sz)
+			{	// First character after last directory separator.
+				++ sz;
+				// "home/file"
+				lnPath -= sz - szToSearch;
+				szToSearch = sz;
+			}
+		} while (NULL != sz);
+
+		if (szPath == szToSearch)
+		{	// "C:file"
+			sz = memstrchr (szToSearch, ln, ':');
+			if (sz)
+			{
+				++ sz;
+				ln -= sz - szToSearch;
+				szToSearch = sz;
+				lnPath = ln;
+			}
+		}
+
+		if (lnPath)
+		{
+			ln = str_len_without_extension (szToSearch, lnPath);
+			if (ln)
+				lnPath = ln;
+		}
+		SMEMBUFfromStr (pmb, szToSearch, lnPath);
+		if (isUsableSMEMBUF (pmb))
+			rLen = lnPath;
+	}
+
+	return rLen;
+}
 
 #ifdef BUILD_DEBUG_UBF_STRFILESYS_TESTS
 	bool ubf_test_ubf_strfilesys (void)
@@ -353,6 +457,7 @@ size_t smb_absolute_path_from_relative_path	(
 	
 		ubf_assert ((size_t) -1 == SUBF_STRING_UNKNOWN_LENGTH);
 		ubf_assert ((size_t) -1 == SUBF_STRING_USE_STRLEN);
+		ubf_assert ((size_t) -1 == USE_STRLEN);
 
 		// Function str_find_path_navigator ().
 		strcpy (chPath, "..");
@@ -640,6 +745,119 @@ size_t smb_absolute_path_from_relative_path	(
 
 		ln = smb_absolute_path_from_relative_path (&smb, "/home", USE_STRLEN, "C:/folder/", USE_STRLEN);
 		ubf_expect_bool_AND (b, !memcmp ("/home", smb.buf.pcc, 6));
+
+		// Absolute path instead of relative one.
+		ln = smb_absolute_path_from_relative_path (&smb, "/../x", USE_STRLEN, "/a/b/c/d", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("/../x", smb.buf.pcc, 6));
+
+		ln = smb_absolute_path_from_relative_path (&smb, "../x", USE_STRLEN, "/a/b/c/d", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("/a/b/c/x", smb.buf.pcc, 6));
+
+		ln = smb_absolute_path_from_relative_path_fref (&smb, "../123", USE_STRLEN, "/a/b/file", USE_STRLEN);
+		ubf_expect_bool_AND (b, 6 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("/a/123", smb.buf.pcc, 7));
+
+		ln = smb_absolute_path_from_relative_path_fref (&smb, "../123", USE_STRLEN, "/a/b/file.txt", USE_STRLEN);
+		ubf_expect_bool_AND (b, 6 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("/a/123", smb.buf.pcc, 7));
+
+		ln = smb_absolute_path_from_relative_path_fref (&smb, "ABC", USE_STRLEN, "C:\\file", USE_STRLEN);
+		ubf_expect_bool_AND (b, 6 == ln);
+		ubf_change_directory_separators (smb.buf.pch, ln, UBF_WIN_DIR_SEP);
+		ubf_expect_bool_AND (b, !memcmp ("C:\\ABC", smb.buf.pcc, 7));
+
+		// This should abort but at the moment we have no way of testing this
+		//	without aborting.
+		/*
+		ln = smb_absolute_path_from_relative_path_fref (&smb, "ABC", USE_STRLEN, "C:file", USE_STRLEN);
+		ubf_expect_bool_AND (b, 5 == ln);
+		ubf_change_directory_separators (smb.buf.pcc, ln, UBF_WIN_DIR_SEP);
+		ubf_expect_bool_AND (b, !memcmp ("C:ABC", smb.buf.pcc, 6));
+		*/
+
+		ln = smb_absolute_path_from_relative_path_fref (&smb, "0", USE_STRLEN, "C:\\dir\\file.txt.exe.pdf", USE_STRLEN);
+		ubf_expect_bool_AND (b, 8 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("C:\\dir\\0", smb.buf.pcc, 9));
+
+		const char *csz = str_find_path_separator ("home/file", USE_STRLEN);
+		ubf_expect_bool_AND (b, !memcmp ("/file", csz, 6));
+
+		ln = str_len_without_extension ("123.txt", USE_STRLEN);
+		ubf_expect_bool_AND (b, 3 == ln);
+
+		ln = str_len_without_extension ("A.B.C.D", USE_STRLEN);
+		ubf_expect_bool_AND (b, 5 == ln);
+
+		ln = str_len_without_extension ("...", USE_STRLEN);
+		ubf_expect_bool_AND (b, 2 == ln);
+
+		ln = str_len_without_extension (".x", USE_STRLEN);
+		ubf_expect_bool_AND (b, 0 == ln);
+
+		ln = str_len_without_extension ("x", USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == ln);
+
+		ln = str_len_without_extension ("x.y.z.a", USE_STRLEN);
+		ubf_expect_bool_AND (b, 5 == ln);
+
+		ln = str_filename_from_path (&smb, "/home/file", USE_STRLEN);
+		ubf_expect_bool_AND (b, 4 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("file", smb.buf.pcc, 5));
+
+		ln = str_filename_from_path (&smb, "/home/file/", USE_STRLEN);
+		ubf_expect_bool_AND (b, 0 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("", smb.buf.pcc, 1));
+
+		ln = str_filename_from_path (&smb, "/home///////////////home/home/home/1234", USE_STRLEN);
+		ubf_expect_bool_AND (b, 4 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("1234", smb.buf.pcc, 5));
+
+		ln = str_filename_from_path (&smb, "C:\\dir", USE_STRLEN);
+		ubf_expect_bool_AND (b, 3 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("dir", smb.buf.pcc, 4));
+
+		ln = str_filename_from_path (&smb, "C:dir", USE_STRLEN);
+		ubf_expect_bool_AND (b, 3 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("dir", smb.buf.pcc, 4));
+
+		ln = str_filename_from_path (&smb, "C:.123", USE_STRLEN);
+		ubf_expect_bool_AND (b, 4 == ln);
+		ubf_expect_bool_AND (b, !memcmp (".123", smb.buf.pcc, 5));
+
+		ln = str_filename_from_path (&smb, "/home/file/123.exe.pdf", USE_STRLEN);
+		ubf_expect_bool_AND (b, 7 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("123.exe", smb.buf.pcc, 8));
+
+		ln = str_filename_from_path (&smb, "/dir/.file.txt.exe", USE_STRLEN);
+		ubf_expect_bool_AND (b, 9 == ln);
+		ubf_expect_bool_AND (b, !memcmp (".file.txt", smb.buf.pcc, 10));
+
+		ln = str_filename_from_path (&smb, "/dir/file.txt.exe", USE_STRLEN);
+		ubf_expect_bool_AND (b, 8 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("file.txt", smb.buf.pcc, 10));
+
+		ln = str_filename_from_path (&smb, "/dir/.klm", USE_STRLEN);
+		ubf_expect_bool_AND (b, 4 == ln);
+		ubf_expect_bool_AND (b, !memcmp (".klm", smb.buf.pcc, 5));
+
+		ln = str_filename_from_path (&smb, "", USE_STRLEN);
+		ubf_expect_bool_AND (b, 0 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("", smb.buf.pcc, 1));
+
+		ln = str_filename_from_path (&smb, " ", USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == ln);
+		ubf_expect_bool_AND (b, !memcmp (" ", smb.buf.pcc, 2));
+
+		ln = str_filename_from_path (&smb, "/", USE_STRLEN);
+		ubf_expect_bool_AND (b, 0 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("", smb.buf.pcc, 1));
+
+		ln = str_filename_from_path (&smb, "D:\\1\\\2\\3", USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == ln);
+		ubf_expect_bool_AND (b, !memcmp ("3", smb.buf.pcc, 2));
+
+
+		DONESMEMBUF (smb);
 
 		// Return the test result.
 		bRet = b;

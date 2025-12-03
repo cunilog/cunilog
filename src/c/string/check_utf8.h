@@ -44,6 +44,7 @@ When		Who				What
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <inttypes.h>
 
 #ifndef USE_STRLEN
 #define USE_STRLEN						((size_t) -1)
@@ -65,9 +66,46 @@ When		Who				What
 
 EXTERN_C_BEGIN
 
+/*
+	c_check_utf8
+
+	Checks if str points to a valid UTF-8 character set string with length len.
+
+	Returns true if every character in str is a valid
+*/
 bool c_check_utf8(const char *str, size_t len);
 TYPEDEF_FNCT_PTR (bool, c_check_utf8) (const char *str, size_t len);
 
+/*
+	nOctetsInUTF8char
+
+	Returns the amount of octets/bytes the UTF-8 character/code point c
+	requires if c is the first octet/byte of a UTF-8 code point.
+
+	Valid return values are 1, meaning that c is the only octet, 2, 3,
+	and 4.
+
+	The function returns 0 if c is not a valid first octet of a UTF-8
+	code point.
+*/
+unsigned int nOctetsInUTF8char (uint8_t c);
+TYPEDEF_FNCT_PTR (unsigned int, nOctetsInUTF8char) (unsigned int c);
+
+/*
+	nWordsInUTF16char
+
+	Returns the amount of 16 bit words the UTF-16 character/code point
+	c requires if c is the first word/character of a UTF-16 code point.
+
+*/
+unsigned int nWordsInUTF16char (uint16_t c);
+TYPEDEF_FNCT_PTR (unsigned int, nWordsInUTF16char) (uint16_t c);
+
+/*
+	Check_utf8_test_function
+
+	Test function for the module.
+*/
 #ifdef U_CHECK_UTF8_BUILD_TEST_FNCT
 	bool Check_utf8_test_function (void);
 #else

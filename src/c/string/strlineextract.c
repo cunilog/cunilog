@@ -496,6 +496,14 @@ bool swallowEmptyAndWhiteSpaceLines (const char **pb, size_t *pl, STRLINEINF *pi
 		*pl -= jmp;
 		bRet = true;
 	}
+
+	// We additionally always ignore CR characters, independent of whether support for this
+	//	has been enabled in our build or not.
+	while (*pl && '\r' == **pb)
+	{
+		*pb += 1;
+		*pl -= 1;
+	}
 	return bRet;
 }
 
@@ -883,7 +891,7 @@ bool strlineextractKeyOrValue	(
 unsigned int strlineextractKeyAndValues	(
 		const char		**cunilog_restrict	pszKey,		size_t	*plnKey,	// Out.
 		const char		**cunilog_restrict	pszEqual,	size_t	*plnEqual,	// Out.
-		SCUNILOGINIVALUES					*pValues,
+		SCUNILOGINIVALUE					*pValues,
 		unsigned int						nValues,
 		const char		*cunilog_restrict	szLine,	size_t	lnLine,			// In.
 		SCULMLTSTRINGS	*psmlt												// In.
@@ -1017,7 +1025,7 @@ bool strlineextractSection	(
 	unsigned int uQuote = strlineextractIsOpenString (szLine, lnLine, psmlt->nSections, psmlt->ccStrtSections);
 	if (uQuote)
 	{
-		size_t lnStartSection = strlen (psmlt->ccStrtSections [uQuote]);
+		size_t lnStartSection = strlen (psmlt->ccStrtSections [uQuote - 1]);
 		szLine += lnStartSection;
 		lnLine -= lnStartSection;
 		szRet = szLine;
@@ -1026,7 +1034,7 @@ bool strlineextractSection	(
 			size_t uClose = strlineextractIsCloseString (szLine, lnLine, psmlt->ccExitSections, uQuote);
 			if (uClose)
 			{
-				size_t lnExitSection = strlen (psmlt->ccExitSections [uQuote]);
+				size_t lnExitSection = strlen (psmlt->ccExitSections [uClose - 1]);
 				*plnSec = szLine - szRet;
 				*pszSec = szRet;
 				szLine += lnExitSection;
@@ -1504,7 +1512,7 @@ bool strlineextractSection	(
 		ubf_expect_bool_AND (b, 22 == lnKey);
 		ubf_expect_bool_AND (b, !memcmp ("value = value = value'", szKey, 22));
 
-		SCUNILOGINIVALUES	iv;
+		SCUNILOGINIVALUE	iv;
 		scmul.nEquals = nCulStdEquals;
 		char cBuf [1024];
 
@@ -1693,7 +1701,7 @@ bool strlineextractSection	(
 		ubf_assert_true (b);
 
 		#define SCUNILOGINIVALUE_TST_VALUE	(10)
-		SCUNILOGINIVALUES	iva [SCUNILOGINIVALUE_TST_VALUE];
+		SCUNILOGINIVALUE	iva [SCUNILOGINIVALUE_TST_VALUE];
 
 		// Extra white space (comma) only counts if the value is quoted.
 		szKey = NULL;

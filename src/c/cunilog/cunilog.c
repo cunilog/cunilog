@@ -802,7 +802,7 @@ bool CunilogGetAbsPathFromAbsOrRelPath	(
 	{
 		if (!isDirSep (szAbsOrRelPath [ln - 1]))
 		{
-			if (SMEMBUFfromStrReserveBytes (&b, szAbsOrRelPath, ln, 2))
+			if (SMEMBUFfromStrReserve (&b, szAbsOrRelPath, ln, 2))
 			{
 				b.buf.pch [ln] = UBF_DIR_SEP;
 				++ ln;
@@ -1708,7 +1708,7 @@ static inline void initEnumsCUNILOG_TARGET	(
 	put->culogType			= type;
 	put->culogPostfix		= postfix;
 	put->unilogEvtTSformat	= unilogTSformat;
-	put->unilogNewLine		= unilogNewLine;
+	put->culogNewLine		= unilogNewLine;
 }
 
 static inline bool initCommonMembersAndPrepareCUNILOG_TARGET (CUNILOG_TARGET *put)
@@ -1771,6 +1771,29 @@ static inline bool initCommonMembersAndPrepareCUNILOG_TARGET (CUNILOG_TARGET *pu
 #else
 	#define assertSaneParametersCUNILOG_TARGET(rP, tpy, psf, ts, nl, rp)
 #endif
+
+newline_t CunilogAutoNewLine (void)
+{
+	#ifdef PLATFORM_IS_WINDOWS
+		#ifdef CUNILOG_NEWLINE_POSIX_ONLY
+			return cunilogNewLinePOSIX;
+		#elif CUNILOG_NEWLINE_WINDOWS_ONLY
+			return cunilogNewLineWindows;
+		#else
+			if (WinNotepadSupportsLineFeed ())
+				return cunilogNewLinePOSIX;
+			else
+				return cunilogNewLineWindows;
+		#endif
+	#else
+		#ifdef CUNILOG_NEWLINE_WINDOWS_ONLY
+			return cunilogNewLineWindows;
+		#else
+			return cunilogNewLinePOSIX;
+		#endif
+	#endif
+
+};
 
 CUNILOG_TARGET *InitCUNILOG_TARGETex
 (
@@ -1856,7 +1879,7 @@ CUNILOG_TARGET *InitCUNILOG_TARGETex
 				cunilogPostfixDefault,
 				NULL, 0,
 				cunilogEvtTS_Default,
-				cunilogNewLineDefault,
+				CunilogAutoNewLine (),
 				cunilogRunProcessorsOnStartup
 									);
 		return prt;
@@ -2294,7 +2317,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 		ubf_assert			(0 <= nl);
 		ubf_assert			(cunilogNewLineAmountEnumValues > nl);
 
-		put->unilogNewLine = nl;
+		put->culogNewLine = nl;
 	}
 #endif
 
@@ -2838,7 +2861,7 @@ static inline size_t eventLenNewline (CUNILOG_EVENT *pev)
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
 
-	return lnLineEnding (pev->pCUNILOG_TARGET->unilogNewLine);
+	return lnLineEnding (pev->pCUNILOG_TARGET->culogNewLine);
 }
 
 static inline enum enLineEndings eventLineEnding (CUNILOG_EVENT *pev)
@@ -2846,7 +2869,7 @@ static inline enum enLineEndings eventLineEnding (CUNILOG_EVENT *pev)
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
 
-	return pev->pCUNILOG_TARGET->unilogNewLine;
+	return pev->pCUNILOG_TARGET->culogNewLine;
 }
 
 static inline void evtTSFormats_unilogEvtTS_ISO8601 (char *chISO, UBF_TIMESTAMP ts)
@@ -3160,7 +3183,7 @@ static inline size_t requiredEventLineSizeHexDump	(
 	return r;
 }
 
-static size_t createDumpEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
+static size_t createDumpEventLineFromCUNILOG_EVENT (CUNILOG_EVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
@@ -3213,7 +3236,7 @@ static size_t createDumpEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
 		char *szHexDmpOut = szOut;
 		size_t sizHx = hxdmpWriteHexDump	(
 						szHexDmpOut, pDumpData, pev->lenDataToLog,
-						put->dumpWidth, put->unilogNewLine
+						put->dumpWidth, put->culogNewLine
 											);
 		DBG_TRACK_CHECK_CNTTRACKER (pev->pCUNILOG_TARGET->evtLineTracker, sizHx + 1);
 		ubf_assert (CUNILOG_DEFAULT_DBG_CHAR == put->mbLogEventLine.buf.pch [lenTotal]);
@@ -3242,7 +3265,7 @@ static size_t createDumpEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
 	return CUNILOG_SIZE_ERROR;
 }
 
-static size_t createU8EventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
+static size_t createU8EventLineFromCUNILOG_EVENT (CUNILOG_EVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
@@ -3262,7 +3285,7 @@ static size_t createU8EventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
 	return CUNILOG_SIZE_ERROR;
 }
 
-static size_t createEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
+static size_t createEventLineFromCUNILOG_EVENT (CUNILOG_EVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
@@ -3273,7 +3296,7 @@ static size_t createEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
 	switch (pev->evType)
 	{
 		case cunilogEvtTypeNormalText:
-			return createU8EventLineFromSUNILOGEVENT	(pev);
+			return createU8EventLineFromCUNILOG_EVENT	(pev);
 	#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 		case cunilogEvtTypeCommand:
 			ubf_assert_msg (false, "Cunilog bug! This function is not to be called in this case!");
@@ -3283,7 +3306,7 @@ static size_t createEventLineFromSUNILOGEVENT (CUNILOG_EVENT *pev)
 		case cunilogEvtTypeHexDumpWithCaption16:
 		case cunilogEvtTypeHexDumpWithCaption32:
 		case cunilogEvtTypeHexDumpWithCaption64:
-			return createDumpEventLineFromSUNILOGEVENT	(pev);
+			return createDumpEventLineFromCUNILOG_EVENT	(pev);
 		default:
 			break;
 	}
@@ -3976,9 +3999,8 @@ static inline bool requiresOpenLogFile (CUNILOG_TARGET *put)
 				requiresNewLogFile (put)
 #endif
 
-static inline size_t addNewLineToLogEventLine (char *pData, size_t lnData, enum enLineEndings nl)
-{	// At least one octet has been reserved for a newline character, and one
-	//	for NUL, hence we're definitely safe to write 2 more octets.
+static inline size_t addNewLineToLogEventLine (char *pData, size_t lnData, newline_t nl)
+{	// The caller is responsible for providing enough space.
 	size_t len;
 	const char *cc = szLineEnding (nl, &len);
 	ubf_assert (len <= 2);
@@ -3990,9 +4012,12 @@ static bool cunilogWriteDataToLogFile (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL (put);
 
-	char				*pData	= put->mbLogEventLine.buf.pch;
-	size_t				lnData	= put->lnLogEventLine;
-	enum enLineEndings	nl		= put->unilogNewLine;
+	char		*pData	= put->mbLogEventLine.buf.pch;
+	size_t		lnData	= put->lnLogEventLine;
+	newline_t	nl		= put->culogNewLine;
+
+	// We need space for the line ending plus a NUL character.
+	ubf_assert (put->mbLogEventLine.size > lnLineEnding (nl));
 
 	#ifdef OS_IS_WINDOWS
 		DWORD dwWritten;
@@ -5780,7 +5805,7 @@ static bool cunilogProcessEventSingleThreaded (CUNILOG_EVENT *pev)
 			return cunilogProcessEvtCommand (pev);
 	#endif
 
-	size_t	eventLineSize = createEventLineFromSUNILOGEVENT (pev);
+	size_t	eventLineSize = createEventLineFromCUNILOG_EVENT (pev);
 	if (CUNILOG_SIZE_ERROR != eventLineSize)
 	{
 		cunilogProcessProcessors (pev);
@@ -5942,12 +5967,35 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 #endif
 
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
+	static void dropQueueCUNILOG_TARGET (CUNILOG_TARGET *put)
+	{
+		ubf_assert_non_NULL (put);
+
+		CUNILOG_EVENT *pev = DequeueAllCUNILOG_EVENTs (put);
+		CUNILOG_EVENT *nxt;
+		while (pev)
+		{
+			nxt = pev->next;
+			DoneCUNILOG_EVENT (put, pev);
+			pev = nxt;
+		}
+	}
+#endif
+
+#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 	bool ShutdownCUNILOG_TARGET (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 
 		if (HAS_CUNILOG_TARGET_A_QUEUE (put))
 		{
+			if (isQueueOnlyCUNILOG_TARGET (put->culogType))
+			{
+				cunilogTargetSetShutdownInitiatedFlag (put);
+				dropQueueCUNILOG_TARGET (put);
+				cunilogTargetSetShutdownCompleteFlag (put);
+				return true;
+			}
 			if (queueShutdownEvent (put))
 			{
 				WaitForEndOfSeparateLoggingThread (put);
@@ -5977,18 +6025,18 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 		if (HAS_CUNILOG_TARGET_A_QUEUE (put))
 		{
 			cunilogTargetSetShutdownInitiatedFlag (put);
+			if (isQueueOnlyCUNILOG_TARGET (put->culogType))
+			{
+				cunilogTargetSetShutdownInitiatedFlag (put);
+				dropQueueCUNILOG_TARGET (put);
+				cunilogTargetSetShutdownCompleteFlag (put);
+				return true;
+			}
 
 			// Empty the queue. While this would actually not be required here, it can
 			//	speed up things significantly (well, maybe a few cycles) with busy queues as
 			//	it takes some burden off the separate logging thread.
-			CUNILOG_EVENT *pev = DequeueAllCUNILOG_EVENTs (put);
-			CUNILOG_EVENT *nxt;
-			while (pev)
-			{
-				nxt = pev->next;
-				DoneCUNILOG_EVENT (NULL, pev);
-				pev = nxt;
-			}
+			dropQueueCUNILOG_TARGET (put);
 
 			// Queue the shutdown command for the separate logging thread and wait
 			//	for it to end.
@@ -7409,6 +7457,15 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		return -1;
 }
 
+void DoneCunilog ()
+{
+	#ifdef PLATFORM_IS_WINDOWS
+		DoneSystemDirectoryU8 ();
+	#endif
+
+	DoneOurExecutableModule ();
+}
+
 #ifdef CUNILOG_BUILD_TEST_FNCTS
 	bool test_cunilog (void)
 	{
@@ -7779,7 +7836,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 12 == stEvtSev);
 		ubf_expect_bool_AND (bRet, !memcmp ("[WARNING]   ", szEvtSev, 12 + 1));
 
-
 		#ifdef OS_IS_LINUX
 			bool bTrash = MoveFileToTrashPOSIX ("/home/thomas/FS/OAN/Thomas/cunilog/logs/testcunilog_2024-11-05 20_14.log");
 			ubf_assert_false (bTrash);
@@ -7794,7 +7850,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, cunilogSingleThreadedQueueOnly	== pt->culogType);
 		ubf_expect_bool_AND (bRet, cunilogPostfixDay				== pt->culogPostfix);
 		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default				== pt->unilogEvtTSformat);
-		
 		logTextU8 (&cutQueue, "Text.");
 		// Check the first event in the queue.
 		ubf_expect_bool_AND (bRet, 5 == cutQueue.qu.first->lenDataToLog);
@@ -7807,7 +7862,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, !memcmp ("Again.", cutQueue.qu.first->next->szDataToLog, 6));
 		ubf_expect_bool_AND (bRet, 6 == cutQueue.qu.last->lenDataToLog);
 		ubf_expect_bool_AND (bRet, !memcmp ("Again.", cutQueue.qu.last->szDataToLog, 6));
-
+		ShutdownCUNILOG_TARGET (&cutQueue);
 		DoneCUNILOG_TARGET (&cutQueue);
 
 		pt = CreateNewCUNILOG_TARGET	(
@@ -7823,7 +7878,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, cunilogSingleThreadedQueueOnly	== pt->culogType);
 		ubf_expect_bool_AND (bRet, cunilogPostfixDay				== pt->culogPostfix);
 		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default				== pt->unilogEvtTSformat);
-		
 		logTextU8 (pt, "Text.");
 		// Check the first event in the queue.
 		ubf_expect_bool_AND (bRet, NULL != pt->qu.first);
@@ -7848,7 +7902,48 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, !memcmp ("3rd", pt->qu.first->next->next->szDataToLog, 3));
 		ubf_expect_bool_AND (bRet, 3 == pt->qu.last->lenDataToLog);
 		ubf_expect_bool_AND (bRet, !memcmp ("3rd", pt->qu.last->szDataToLog, 3));
+		ShutdownCUNILOG_TARGET (pt);
+		DoneCUNILOG_TARGET (pt);
 
+		// Cancel.
+		pt = CreateNewCUNILOG_TARGET	(
+				NULL, 0, NULL, 0, cunilogPath_isAbsolute, cunilogSingleThreadedQueueOnly,
+				cunilogPostfixDefault,
+				NULL, 0,
+				cunilogEvtTS_Default,
+				cunilogNewLineDefault,
+				cunilogDontRunProcessorsOnStartup
+										);
+		ubf_expect_bool_AND (bRet, 0 < cunilogTargetHasTargetAllocatedFlag (pt));
+		ubf_expect_bool_AND (bRet, NULL != pt);
+		ubf_expect_bool_AND (bRet, cunilogSingleThreadedQueueOnly	== pt->culogType);
+		ubf_expect_bool_AND (bRet, cunilogPostfixDay				== pt->culogPostfix);
+		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default				== pt->unilogEvtTSformat);
+		logTextU8 (pt, "Text.");
+		// Check the first event in the queue.
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first);
+		ubf_expect_bool_AND (bRet, 5 == pt->qu.first->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("Text.", pt->qu.first->szDataToLog, 5));
+		ubf_expect_bool_AND (bRet, 5 == pt->qu.last->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("Text.", pt->qu.last->szDataToLog, 5));
+		logTextU8 (pt, "Again.");
+		// Check the second event in the queue.
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first);
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first->next);
+		ubf_expect_bool_AND (bRet, 6 == pt->qu.first->next->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("Again.", pt->qu.first->next->szDataToLog, 6));
+		ubf_expect_bool_AND (bRet, 6 == pt->qu.last->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("Again.", pt->qu.last->szDataToLog, 6));
+		logTextU8 (pt, "3rd");
+		// Check the second event in the queue.
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first);
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first->next);
+		ubf_expect_bool_AND (bRet, NULL != pt->qu.first->next->next);
+		ubf_expect_bool_AND (bRet, 3 == pt->qu.first->next->next->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("3rd", pt->qu.first->next->next->szDataToLog, 3));
+		ubf_expect_bool_AND (bRet, 3 == pt->qu.last->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp ("3rd", pt->qu.last->szDataToLog, 3));
+		CancelCUNILOG_TARGET (pt);
 		DoneCUNILOG_TARGET (pt);
 
 	#endif
@@ -7873,13 +7968,11 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default	== CUNILOG_TARGETstatic.unilogEvtTSformat);
 		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
 		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName));
-
 		size_t lnAbsLogPath;
 		const char *szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -7903,12 +7996,10 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		#else
 			ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "sub/Unilog", CUNILOG_TARGETstatic.lnAppName));
 		#endif
-
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -7928,12 +8019,10 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, cunilogEvtTS_Default	== CUNILOG_TARGETstatic.unilogEvtTSformat);
 		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
 		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName));
-
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -7976,7 +8065,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -8014,12 +8102,10 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_expect_bool_AND (bRet, 6 == CUNILOG_TARGETstatic.lnAppName);
 		// Should be NUL-terminated.
 		ubf_expect_bool_AND (bRet, !memcmp (CUNILOG_TARGETstatic.mbAppName.buf.pch, "Unilog", CUNILOG_TARGETstatic.lnAppName + 1));
-
 		szAbsLogPath = GetAbsoluteLogPathCUNILOG_TARGET (pt, &lnAbsLogPath);
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -8043,7 +8129,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		pt = InitCUNILOG_TARGETstaticEx	(
@@ -8067,7 +8152,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGETstatic ();
 
 		/*
@@ -8107,7 +8191,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGET (pt);
 
 		pt = InitOrCreateCUNILOG_TARGET	(
@@ -8147,7 +8230,6 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGET (pt);
 
 	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
@@ -8187,6 +8269,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		initSMEMBUF (&mb);
 		ObtainAppNameFromExecutableModule (&mb);
 		ubf_expect_bool_AND (bRet, !memcmp (pt->mbAppName.buf.pch, mb.buf.pch, strlen (mb.buf.pch)));
+		DONESMEMBUF (mb);
 		ubf_assert_non_NULL (pt);
 		ubf_expect_bool_AND (bRet, pt != pCUNILOG_TARGETstatic);
 		ubf_expect_bool_AND (bRet, cunilogSingleThreaded	== pt->culogType);
@@ -8205,8 +8288,37 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion)
 		ubf_assert_non_NULL (szAbsLogPath);
 		ubf_assert_non_0 (lnAbsLogPath);
 		ubf_assert_0 (szAbsLogPath [lnAbsLogPath]);
-
 		DoneCUNILOG_TARGET (pt);
+
+		put = InitCUNILOG_TARGETex	(
+				&cut,
+				"temp", 4,
+				NULL, 0,
+				cunilogPath_relativeToExecutable,
+				cunilogSingleThreaded,
+				cunilogPostfixDay,
+				NULL, 0, cunilogEvtTS_Default, cunilogNewLineWindows,
+				cunilogDontRunProcessorsOnStartup
+									);
+		ubf_expect_bool_AND (bRet, NULL != put);
+		ubf_expect_bool_AND (bRet, &cut == put);
+		CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Text (put, cunilogEvtSeverityNone, "123", 3);
+		ubf_expect_bool_AND (bRet, NULL != pev);
+		ubf_expect_bool_AND (bRet, !memcmp (pev->szDataToLog, "123", 3));
+		ubf_expect_bool_AND (bRet, 3 == pev->lenDataToLog);
+		size_t eventLineSize = createEventLineFromCUNILOG_EVENT (pev);
+		bRet &= 33 == eventLineSize;
+		ubf_assert_true (bRet);
+		size_t st = requiredEvtLineTimestampAndSeverityLength (pev);
+		bRet &= 30 == st;
+		ubf_assert_true (bRet);
+		ubf_expect_bool_AND (bRet, !memcmp (put->mbLogEventLine.buf.pcc + st, "123", 4));
+		size_t ln = addNewLineToLogEventLine (put->mbLogEventLine.buf.pch, put->lnLogEventLine, put->culogNewLine);
+		bRet &= 35 == ln;
+		ubf_assert_true (bRet);
+		ubf_expect_bool_AND (bRet, !memcmp (put->mbLogEventLine.buf.pcc + st, "123\r\n", 6));
+		DoneCUNILOG_EVENT (put, pev);
+		DoneCUNILOG_TARGET (put);
 
 		return bRet;
 	}

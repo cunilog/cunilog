@@ -108,6 +108,9 @@ When		Who				What
 	#include <assert.h>
 #endif
 
+/*
+	MSVC's linking pragmas.
+*/
 #ifdef HAVE_NETAPI32
 	#include <lmaccess.h>
 	#include <Lm.h>
@@ -135,7 +138,11 @@ When		Who				What
 	#include <UserEnv.h>
 	 #pragma comment (lib, "Userenv.lib")
 #endif
-
+#ifdef HAVE_VERSION
+		// See
+		//	https://learn.microsoft.com/en-us/windows/win32/api/winver/nf-winver-verqueryvaluew .
+	 #pragma comment (lib, "Version.lib")
+#endif
 
 #ifndef UBF_MEM_NO_UBFMEM
 	#ifndef CUNILOG_USE_COMBINED_MODULE
@@ -1513,7 +1520,7 @@ TYPEDEF_FNCT_PTR (BOOL, FileEncryptionStatusU8)
 
 	Returns TRUE if the given file exists and returns FALSE
 	if it doesn't. It also returns FALSE if the given file name exists
-	as a directory already.
+	but is a directory.
 	
 	Note that the function cannot determine with absolute certainty that
 	a file does not exists when it returns FALSE. The file could for
@@ -2030,6 +2037,72 @@ TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemType) (const char *chDriveR
 #endif
 
 /*
+	GetFileVersionInfoSizeU8
+
+	UTF-8 version of the Windows API GetFileVersionInfoSizeUW ().
+
+	See
+	https://learn.microsoft.com/en-us/windows/win32/api/winver/nf-winver-getfileversioninfosizew
+	for details.
+
+	To use this function, define HAVE_VERSION and link to Version.lib.
+*/
+#ifdef HAVE_VERSION
+	DWORD GetFileVersionInfoSizeU8(
+	  LPCSTR lpFilenameU8,
+	  LPDWORD lpdwHandle
+	)
+	;
+#endif
+
+/*
+	GetFileVersionNumbers
+
+	This is not a Windows API but a convenience function to obtain the version numbers
+	from a file.
+
+	The version numbers are stored at the addresses the DWORD pointers point to.
+
+	Returns true on success, false otherwise.
+
+	To use this function, define HAVE_VERSION and link to Version.lib.
+*/
+#ifdef HAVE_VERSION
+	bool GetFileVersionNumbers	(
+			DWORD		*pdwMajor,		DWORD *pdwMinor,
+			DWORD		*pdwMinBuild,	DWORD *pdwMinRevision,
+			const char	*szFileNameU8
+	)
+	;
+#endif
+
+/*
+	WinNotepadSupportsLineFeed
+
+	Returns true if Notepad supports linefeed characters without the necessity for
+	carriage returns.
+
+	See https://devblogs.microsoft.com/commandline/extended-eol-in-notepad/ for details.
+	Windows 10 version 1809 is the first version where Notepad doesn't require CR/LF pairs
+	as line endings. Windows versions 10.0.17763 and up can cope with linefeed characters,
+	just like POSIX.
+
+	The function stores its return value in a static variable to avoid having to carry out
+	the expensive check. Call ResetWinNotepadSupportsLineFeed () to reset the static
+	variable.
+
+
+	ResetWinNotepadSupportsLineFeed
+
+	Resets the saved boolean value, resulting in the check being carried out again next
+	time WinNotepadSupportsLineFeed () is called.
+*/
+#ifdef HAVE_VERSION
+	bool WinNotepadSupportsLineFeed (void);
+	void ResetWinNotepadSupportsLineFeed ();
+#endif
+
+/*
 	GetNumberOfProcessesAttachedToConsole
 
 	Returns the amount of processes attached to the current console.
@@ -2179,11 +2252,12 @@ TYPEDEF_FNCT_PTR (UINT, GetSystemDirectoryU8)
 	SystemDirectoryU8len
 	DoneSystemDirectoryU8
 
-	Obtain and keep a copy of the system directory, which is the folder retrieved by
+	Obtains and keeps a copy of the system directory, which is the folder retrieved by
 	GetSystemDirectoryU8 ().
 
 	The function SystemDirectoryU8 () obtains the path of the system directory (excluding
-	a directory separator), while SystemDirectoryU8len () obtains its length.
+	a directory separator), while SystemDirectoryU8len () obtains its length, also
+	excluding a directory separator.
 
 	You may call DoneSystemDirectoryU8 () to free the buffer that holds the path to the
 	system directory. If DoneSystemDirectoryU8 () is not called before the application

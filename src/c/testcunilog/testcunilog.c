@@ -101,5 +101,8 @@ int main (int argc, char *argv [])
 			ccLogsFolder, lnLogsFolder, STR_HELLO_FROM_EXE
 							);
 
+	DoneCunilog ();
+	_CrtDumpMemoryLeaks ();
+
 	return b ? EXIT_SUCCESS : EXIT_FAILURE;	
 }

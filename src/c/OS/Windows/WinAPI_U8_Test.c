@@ -22,6 +22,7 @@ When		Who				What
 	#include "./WinAPI_U8.h"
 	#include "./WinAPI_U8_Test.h"
 	#include "./WinAPI_ReadDirFncts.h"
+	#include "./WinExeFileName.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./ubfdebug.h"
@@ -214,6 +215,17 @@ When		Who				What
 		printf (" Processes attached to current console: %u ", dw);
 		bool bOnlyConsole = IsOnlyProcessAttachedToConsole ();
 		UNREFERENCED_PARAMETER (bOnlyConsole);
+
+		#ifdef HAVE_VERSION
+			DWORD dwMaj;
+			DWORD dwMin;
+			DWORD dwBld;
+			DWORD dwRev;
+			//b &= GetFileVersionNumbers (&dwMaj, &dwMin, &dwBld, &dwRev, WinGetExecutableModuleNameStr ());
+			b &= GetFileVersionNumbers (&dwMaj, &dwMin, &dwBld, &dwRev, "C:\\Windows\\System32\\notepad.exe");
+			bool bs = WinNotepadSupportsLineFeed ();
+			UNREFERENCED_PARAMETER (bs);
+		#endif
 
 		return b;
 	}

@@ -599,7 +599,7 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 		stTotal		=	stSections;
 		stTotal		+=	ALIGNED_SIZE ((sizeof (SCUNILOGINIKEYANDVALUES)	* kvs.nKeys),	8);
 		stKeyAnVls	=	stTotal;
-		stTotal		+=	ALIGNED_SIZE ((sizeof (SCUNILOGINIVALUES)		* kvs.nValues),	8);
+		stTotal		+=	ALIGNED_SIZE ((sizeof (SCUNILOGINIVALUE)		* kvs.nValues),	8);
 		pCunilogIni->buf = ubf_malloc (stTotal);
 
 		if (pCunilogIni->buf)
@@ -616,7 +616,7 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 			}
 			if (kvs.nValues)
 			{	// Values are stored after the keys.
-				pCunilogIni->pValues		= (SCUNILOGINIVALUES *)			(pCunilogIni->buf + stKeyAnVls);
+				pCunilogIni->pValues		= (SCUNILOGINIVALUE *)			(pCunilogIni->buf + stKeyAnVls);
 				pCunilogIni->nValues		= kvs.nValues;
 			}
 
@@ -716,7 +716,7 @@ static bool areKeyNamesEqual		(
 }
 
 static unsigned int CunilogGetIniValuesFromKey_int	(
-				SCUNILOGINIVALUES				**pValues,
+				SCUNILOGINIVALUE				**pValues,
 				const char						*szSection,		size_t	lnSection,
 				const char						*szKey,			size_t	lnKey,
 				SCUNILOGINI						*pCunilogIni,
@@ -762,7 +762,7 @@ static unsigned int CunilogGetIniValuesFromKey_int	(
 }
 
 unsigned int CunilogGetIniValuesFromKey		(
-				SCUNILOGINIVALUES	**pValues,
+				SCUNILOGINIVALUE	**pValues,
 				const char			*szSection,		size_t	lnSection,
 				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
@@ -780,7 +780,7 @@ unsigned int CunilogGetIniValuesFromKey		(
 }
 
 unsigned int CunilogGetIniValuesFromKey_ci	(
-				SCUNILOGINIVALUES	**pValues,
+				SCUNILOGINIVALUE	**pValues,
 				const char			*szSection,		size_t	lnSection,
 				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
@@ -806,7 +806,7 @@ const char *CunilogGetFirstIniValueFromKey		(
 {
 	ubf_assert_non_NULL	(pCunilogIni);
 
-	SCUNILOGINIVALUES *pvals;
+	SCUNILOGINIVALUE *pvals;
 	unsigned int n = CunilogGetIniValuesFromKey_int	(
 						&pvals,
 						szSection,		lnSection,
@@ -834,7 +834,7 @@ const char *CunilogGetFirstIniValueFromKey_ci	(
 {
 	ubf_assert_non_NULL	(pCunilogIni);
 
-	SCUNILOGINIVALUES *pvals;
+	SCUNILOGINIVALUE *pvals;
 	unsigned int n = CunilogGetIniValuesFromKey_int	(
 						&pvals,
 						szSection,		lnSection,
@@ -982,6 +982,7 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		ubf_assert_true (b1);
 		ubf_assert_bool_AND (b, 1 == ci.nSections);
 		ubf_assert_bool_AND (b, 1 == ci.nKeyValues);
+		DoneSCUNILOGINI (&ci);
 
 		strcpy (szIni,
 				"[section]   \n"
@@ -1032,8 +1033,8 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		ubf_expect_bool_AND (b, !memcmp ("mkey", ci.pKeyValues [0].szKeyName, ci.pKeyValues [0].lnKeyName));
 		unsigned int nVals;
 		unsigned int nVls2;
-		SCUNILOGINIVALUES *pVals;
-		SCUNILOGINIVALUES *pVls2;
+		SCUNILOGINIVALUE *pVals;
+		SCUNILOGINIVALUE *pVls2;
 		nVals = CunilogGetIniValuesFromKey (&pVals, NULL, 0, "mkey", USE_STRLEN, &ci);
 		ubf_expect_bool_AND (b, 0 == nVals);
 		nVals = CunilogGetIniValuesFromKey (&pVals, "Section 03", USE_STRLEN, "mkey", USE_STRLEN, &ci);
@@ -1637,6 +1638,67 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 		ubf_expect_bool_AND (b, !CunilogIniKeyExists_ci ("Section", USE_STRLEN, "kEY_1", USE_STRLEN, &ci));
 		DoneSCUNILOGINI (&ci);
 
+		// Example config file for LogPicker.
+		memset (&ci, 255, sizeof (SCUNILOGINI));
+		strcpy (szIni,
+			"/*\n"
+			"	LogPickerServiceConf.txt\n"
+			"\n"
+			"	Example configuration file for Logfile Picker application.\n"
+			"*/\n"
+			"\n"
+			"/*\n"
+			"	The [General] section contains configuration entries for the whole application.\n"
+			"*/\n"
+			"[General]\n"
+			"\n"
+			"/*\n"
+			"	The directory/folder our service writes its logfiles to.\n"
+			"\n"
+			"	If this value is a relative path it is relative to this configuration file.\n"
+			"*/\n"
+			"LogPath					= ..\\Logs\n"
+			"\n"
+				);
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == ci.nSections);
+		ubf_expect_bool_AND (b, 7 == ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("General", ci.pSections [0].szSectionName, ci.pSections [0].lnSectionName));
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 7 == ci.pKeyValues [0].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("..\\Logs", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
+		DoneSCUNILOGINI (&ci);
+
+		// Example config file for LogPicker with a "\r" in the middle.
+		memset (&ci, 255, sizeof (SCUNILOGINI));
+		strcpy (szIni,
+			"/*\n"
+			"	LogPickerServiceConf.txt\n"
+			"\n"
+			"	Example configuration file for Logfile Picker application.\n"
+			"*/\n"
+			"\r"
+			"/*\n"
+			"	The [General] section contains configuration entries for the whole application.\n"
+			"*/\n"
+			"[General]\n"
+			"\n"
+			"/*\n"
+			"	The directory/folder our service writes its logfiles to.\n"
+			"\n"
+			"	If this value is a relative path it is relative to this configuration file.\n"
+			"*/\n"
+			"LogPath					= ..\\Logs\n"
+			"\n"
+				);
+		b1 = CreateSCUNILOGINI (&ci, szIni, USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == ci.nSections);
+		ubf_expect_bool_AND (b, 7 == ci.pSections [0].lnSectionName);
+		ubf_expect_bool_AND (b, !memcmp ("General", ci.pSections [0].szSectionName, ci.pSections [0].lnSectionName));
+		ubf_expect_bool_AND (b, 1 == ci.nKeyValues);
+		ubf_expect_bool_AND (b, 7 == ci.pKeyValues [0].pValues [0].lnValue);
+		ubf_expect_bool_AND (b, !memcmp ("..\\Logs", ci.pKeyValues [0].pValues [0].szValue, ci.pKeyValues [0].pValues [0].lnValue));
+		DoneSCUNILOGINI (&ci);
 
 		return b;
 	}

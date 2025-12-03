@@ -70,7 +70,7 @@ When		Who				What
 EXTERN_C_BEGIN
 
 /*
-	SMEMBUFfromStrReserveBytes
+	SMEMBUFfromStrReserve
 	
 	Duplicates str and fills the SMEMBUF structure pmb points to accordingly.
 	If len is (size_t) -1, the function strlen () is used to obtain the length of str.
@@ -78,13 +78,39 @@ EXTERN_C_BEGIN
 	The buffer the function allocates is len + reserve octets (bytes).
 	The string in the buffer is always NUL-terminated.
 
+	The SMEMBUF structure pmb points to is expected to be initialised before the function
+	is called. To initialise the structure implicitely, use initSMEMBUFfromStrReserve ()
+	instead.
+
 	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
 	structure, which is len on success, or 0 when the heap allocation fails. The NUL
 	terminator the function always writes is not included in the return value.
 */
-size_t SMEMBUFfromStrReserveBytes (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+size_t SMEMBUFfromStrReserve (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
 ;
-TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrReserveBytes) (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrReserve) (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+;
+
+/*
+	initSMEMBUFfromStrReserveBytes
+
+	Initialises the SMEMBUF structure pmb points to, then duplicates str and fills the
+	structure accordingly.
+	If len is (size_t) -1, the function strlen () is used to obtain the length of str.
+	The macro USE_STRLEN is defined as ((size_t) -1).
+	The buffer the function allocates is len + reserve octets (bytes).
+	The string in the buffer is always NUL-terminated.
+
+	If the SMEMBUF structure pmb points to is initialised already, use
+	SMEMBUFfromStrReserve () instead.
+
+	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
+	structure, which is len on success, or 0 when the heap allocation fails. The NUL
+	terminator the function always writes is not included in the return value.
+*/
+size_t initSMEMBUFfromStrReserve (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+;
+TYPEDEF_FNCT_PTR (size_t, initSMEMBUFfromStrReserve) (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
 ;
 
 /*
@@ -97,6 +123,9 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrReserveBytes) (SMEMBUF *pmb, const char 
 	If str is NULL, len must be 0. If len is 0, the function writes out a NUL-terminator
 	only
 
+	The SMEMBUF structure pmb points to must have been initialised before the function
+	is called. To initialise the structure implicitely, use initSMEMBUFfromStr () instead.
+
 	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
 	structure, not counting the NUL terminator the function writes, which is len on success,
 	or 0 when the heap allocation fails.
@@ -105,15 +134,52 @@ size_t SMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len);
 TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStr) (SMEMBUF *pmb, const char *str, size_t len);
 
 /*
+	initSMEMBUFfromStr
+
+	Initialises the SMEMBUF structure pmb points to, then duplicates str and fills the
+	structure accordingly.
+
+	If str is NULL, len must be 0. If len is 0, the function writes out a NUL-terminator
+	only
+
+	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
+	structure, not counting the NUL terminator the function writes, which is len on success,
+	or 0 when the heap allocation fails.
+*/
+size_t initSMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len)
+;
+TYPEDEF_FNCT_PTR (size_t, initSMEMBUFfromStr) (SMEMBUF *pmb, const char *str, size_t len)
+;
+
+/*
 	SMEMBUFfromStrFmt_va
 
 	Variadic version of SMEMBUFfromStr () that expects a va_list argument.
+
+	The SMEMBUF structure pmb points to must have been initialised before the function
+	is called. To initialise the structure implicitely, use initSMEMBUFfromStrFmt_va ()
+	instead.
 
 	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
 	structure, not counting the NUL terminator the function writes. It returns 0 when the
 	heap allocation fails.
 */
-size_t SMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
+size_t SMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap);
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrFmt_va) (SMEMBUF *pmb, const char *fmt, va_list ap);
+
+/*
+	initSMEMBUFfromStrFmt_va
+
+	Variadic version of SMEMBUFfromStr () that expects a va_list argument. The SMEMBUF
+	structure pmb points to is initialised by this function.
+
+	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
+	structure, not counting the NUL terminator the function writes. It returns 0 when the
+	heap allocation fails.
+*/
+size_t initSMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
+;
+TYPEDEF_FNCT_PTR (size_t, initSMEMBUFfromStrFmt_va) (SMEMBUF *pmb, const char *fmt, va_list ap)
 ;
 
 /*
@@ -121,11 +187,78 @@ size_t SMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
 
 	Variadic version of SMEMBUFfromStr ().
 
+	The SMEMBUF structure pmb points to must have been initialised before the function
+	is called. To initialise the structure implicitely, use initSMEMBUFfromStrFmt ()
+	instead.
+
 	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
 	structure, not counting the NUL terminator the function writes. It returns 0 when the
 	heap allocation fails.
 */
 size_t SMEMBUFfromStrFmt (SMEMBUF *pmb, const char *fmt, ...)
+;
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrFmt) (SMEMBUF *pmb, const char *fmt, ...)
+;
+
+/*
+	initSMEMBUFfromStrFmt
+
+	Variadic version of SMEMBUFfromStr () that implicitely initialises the SMEMBUF structure
+	pmb points to.
+
+	The function returns the amount of bytes (octets) copied to the buffer of the SMEMBUF
+	structure, not counting the NUL terminator the function writes. It returns 0 when the
+	heap allocation fails.
+*/
+size_t initSMEMBUFfromStrFmt (SMEMBUF *pmb, const char *fmt, ...)
+;
+TYPEDEF_FNCT_PTR (size_t, initSMEMBUFfromStrFmt) (SMEMBUF *pmb, const char *fmt, ...)
+;
+
+/*
+	SMEMBUFfromStrs
+
+	Concatenates the buffer of the SMEMBUF structure pmb points to and a number of strings.
+
+	pmb			Pointer to an initialised SMEMBUF structure. The function creates or extends
+				the buffer of this structure to return the concatenated string.
+
+	len			The length of the string already in pmb's buffer. Set this parameter to 0
+				to overwrite the buffer. This parameter can also be USE_STRLEN. In this case
+				the function calls strlen (pmb->buf->pcc) to obtain its length.
+
+	sStrs		The amount of const char * and size_t pairs following as variadic arguments.
+
+				const char *	A pointer to a string.
+
+				size_t			Its length. This can be USE_STRLEN, in which case the function
+								calls strlen () on the string. Note that the compiler would
+								interpret most numbers as integers, while the function expects
+								a size_t here. Type-cast the length, as shown in the example
+								below and in the tests. The value USE_STRLEN is already defined
+								with the correct cast.
+
+	It's the caller's responsibility to free the buffer the function has created or extended
+	when it is no longer needed to avoid memory leaks by calling freeSMEMBUF (),
+	doneSMEMBUF (), or the unconditional versions of these functions/macros.
+	
+	The function returns the new length of the string in the buffer of the SMEMBUF structure,
+	not counting the NUl terminator the function also writes.
+
+	Example:
+
+	SMEMBUF smb = SMEMBUF_INITIALISER;
+	SMEMBUF *pmb = &smb;
+	size_t len = SMEMBUFfromStr (pmb, "123", 3);
+	// len should be 3 now.
+	size_t newlen = SMEMBUFfromStrs (pmb, len, 2, "AB", (size_t) 2, "CDE", (size_t) 3);
+	size_t newlen = SMEMBUFfromStrs (pmb, newlen, 1, " Another string", USE_STRLEN);
+
+	See tests in code file for more examples.
+*/
+size_t SMEMBUFfromStrs (SMEMBUF *pmb, size_t len, size_t nStrs, ...)
+;
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrs) (SMEMBUF *pmb, size_t len, size_t nStrs, ...)
 ;
 
 /*
@@ -169,7 +302,8 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrFromUINT64) (SMEMBUF *pmb, uint64_t ui)
 */
 size_t SMEMBUFstrconcatReserve (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve)
 ;
-TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatReserve) (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve);
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatReserve) (SMEMBUF *pmb, size_t len, char *str, size_t lenstr, size_t reserve)
+;
 
 /*
 	SMEMBUFstrconcat
@@ -193,7 +327,8 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatReserve) (SMEMBUF *pmb, size_t len, ch
 */
 size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr)
 ;
-TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcat) (SMEMBUF *pmb, size_t len, char *str, size_t lenstr);
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcat) (SMEMBUF *pmb, size_t len, char *str, size_t lenstr)
+;
 
 /*
 	SMEMBUFstrconcatW
@@ -258,7 +393,8 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcat) (SMEMBUF *pmb, size_t len, char *str
 */
 size_t SMEMBUFstrconcatpaths (SMEMBUF *pmb, size_t len, char *strPath, size_t lenPath)
 ;
-TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatpaths) (SMEMBUF *pmb, size_t len, char *strPath, size_t lenPath);
+TYPEDEF_FNCT_PTR (size_t, SMEMBUFstrconcatpaths) (SMEMBUF *pmb, size_t len, char *strPath, size_t lenPath)
+;
 
 /*
 	SMEMBUFstrStartsWithStr

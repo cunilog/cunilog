@@ -1975,6 +1975,166 @@ enum en_wapi_fs_type GetFileSystemType (const char *chDriveRoot)
 	}
 #endif
 
+#ifdef HAVE_VERSION
+	DWORD GetFileVersionInfoSizeU8(
+	  LPCSTR lpFilenameU8,
+	  LPDWORD lpdwHandle
+	)
+	{
+		WCHAR	wcFileName [WINAPI_U8_HEAP_THRESHOLD];
+		WCHAR	*pwcFileName;
+		DWORD	dwRet;
+
+		pwcFileName = AllocWinU16fromU8orUseThreshold (wcFileName, lpFilenameU8);
+		dwRet = GetFileVersionInfoSizeW (pwcFileName, lpdwHandle);
+		DoneWinU16fromU8orUseThreshold (pwcFileName, wcFileName);
+		return dwRet;
+	}
+#endif
+
+#ifdef HAVE_VERSION
+	bool GetFileVersionNumbers	(
+			DWORD		*pdwMajor,		DWORD *pdwMinor,
+			DWORD		*pdwMinBuild,	DWORD *pdwMinRevision,
+			const char	*szFileNameU8
+								)
+	{
+		WCHAR	wcFileName [WINAPI_U8_HEAP_THRESHOLD];
+		WCHAR	*pwcFileName;
+		bool	bRet = false;
+
+		pwcFileName = AllocWinU16fromU8orUseThreshold (wcFileName, szFileNameU8);
+		if (NULL == pwcFileName)
+			return false;
+
+		void *buf = NULL;
+		DWORD dwHandle	= 0;
+		DWORD dwSize	= GetFileVersionInfoSizeW (pwcFileName, &dwHandle);
+		if (0 == dwSize)
+			goto Escape;
+
+		buf = malloc (dwSize);
+		if (!buf)
+			goto Escape;
+		bool b = GetFileVersionInfoW (pwcFileName, 0, dwSize, buf);
+		if (!b)
+			goto Escape;
+
+		typedef struct sLANGANDCODEPAGE
+		{
+			WORD wLanguage;
+			WORD wCodePage;
+		} SLANGANDCODEPAGE;
+		SLANGANDCODEPAGE	*lpTranslate;
+
+		lpTranslate = buf;
+		unsigned int uiLen;
+		if (VerQueryValueW (buf, L"\\VarFileInfo\\Translation", &lpTranslate, &uiLen))
+		{
+			for (unsigned int ui=0; ui < (uiLen / sizeof (SLANGANDCODEPAGE)); ui ++)
+			{
+				/*
+				if	(
+						// Retrieve file description for language and code page "ui". 
+						msnprintf (SubBlock, 50,
+							TEXT("\\StringFileInfo\\%04x%04x\\FileDescription"),
+							lpTranslate[ui].wLanguage,
+							lpTranslate[ui].wCodePage)
+						> 0
+					)
+				*/
+				WCHAR cSubBlock [1024];
+				_snwprintf	(
+					cSubBlock, 1024, L"\\StringFileInfo\\%04x%04x\\FileVersion",
+					lpTranslate [ui].wLanguage, lpTranslate[ui].wCodePage
+							);
+				cSubBlock [1024 - 1] = L'\0';
+				void *pb;
+				VerQueryValueW (buf, cSubBlock, &pb, &uiLen);
+				if (uiLen)
+				{
+					// Version comes as "1, 8, 0, 0".
+					unsigned int	uiMa, uiMi, uiSu, uiBu;
+					/*
+					int s = swscanf	(
+										pb, L"%u, %u, %u, %u",
+										&uiMa, &uiMi, &uiSu, &uiBu
+									);
+					*/
+					int s = swscanf	(
+										pb, L"%u.%u.%u.%u",
+										&uiMa, &uiMi, &uiSu, &uiBu
+									);
+					if (s)
+						;
+					{	// Return the values to the caller.
+						*pdwMajor		= (WORD) uiMa;
+						*pdwMinor		= (WORD) uiMi;
+						*pdwMinBuild	= (WORD) uiSu;
+						*pdwMinRevision	= (WORD) uiBu;
+						bRet = true;
+					}
+				}
+			}
+		}
+
+		Escape:
+		DoneWinU16fromU8orUseThreshold (pwcFileName, wcFileName);
+		if (buf)
+			free (buf);
+		return bRet;
+	}
+#endif
+
+#ifdef HAVE_VERSION
+	#define npexe	"notepad.exe"
+
+	static bool	bWinNotepadSupportsLineFeed;
+	static bool bWinNotepadSupportsLineFeedCalled;
+
+	bool WinNotepadSupportsLineFeed (void)
+	{
+		if (bWinNotepadSupportsLineFeedCalled)
+			return bWinNotepadSupportsLineFeed;
+
+		bool br = false;
+		size_t ln = SystemDirectoryU8len ();
+		ln += 1;											// Directory separator.
+		ln += sizeof (npexe);
+		char *sz = malloc (ln);
+		if (sz)
+		{
+			memcpy (sz, SystemDirectoryU8 (), SystemDirectoryU8len ());
+			sz [SystemDirectoryU8len ()] = UBF_DIR_SEP;
+			memcpy (sz + SystemDirectoryU8len () + 1, npexe, sizeof (npexe));
+			DWORD maj, min, mbl, mrv;
+			if (GetFileVersionNumbers (&maj, &min, &mbl, &mrv, sz))
+			{
+				if (maj > 10)
+					br = true;
+				else if (maj == 10)
+				{
+					if (min > 0)
+						br = true;
+					else if (mbl >= 17763)
+						br = true;
+				}
+			}
+			free (sz);
+		}
+		// There's no need to perform this expensive check again. It is very unlikely
+		//	that the version of Notepad changes during the runtime of our app.
+		bWinNotepadSupportsLineFeed			= br;
+		bWinNotepadSupportsLineFeedCalled	= true;
+		return br;
+	}
+
+	void ResetWinNotepadSupportsLineFeed ()
+	{
+		bWinNotepadSupportsLineFeedCalled	= false;
+	}
+#endif
+
 DWORD GetNumberOfProcessesAttachedToConsole (void)
 {
 	DWORD dwLst [1];

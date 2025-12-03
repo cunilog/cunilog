@@ -1,17 +1,17 @@
 /****************************************************************************************
 
-	File:		ExeFileName.c
-	Why:		Obtains the name of the executable.
-	OS:			C99.
+	File:		WinConfigureISOdate.h
+	Why:		Module to configure date and time format in the Windows registry.
+	OS:			Windows.
 	Author:		Thomas
-	Created:	2024-05-21
+	Created:	2025-11-17
 
 History
 -------
 
 When		Who				What
 -----------------------------------------------------------------------------------------
-2024-05-21	Thomas			Created.
+2025-11-17	Thomas			Created.
 
 ****************************************************************************************/
 
@@ -42,41 +42,58 @@ When		Who				What
 	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include <malloc.h>
+#ifndef U_WINCONFIGUREISODATE_H
+#define U_WINCONFIGUREISODATE_H
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
-	#include "./ExeFileName.h"
+	#include "./WinAPI_U8.h"
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
-		#include "./ubfdebug.h"
+		#include "./platform.h"
 	#else
-		#include "./../dbg/ubfdebug.h"
+		#include "./../../pre/platform.h"
+	#endif
+
+	#ifdef BUILD_WINCONFIGUREISODATE_TEST
+		//#include <stdio.h>
 	#endif
 
 #endif
 
-#ifdef CUNILOG_BUILD_EXEFILENAME_TEST_FNCT
-	bool TestExeFileNameFnct (void)
-	{
-		bool b = true;
+#ifdef PLATFORM_IS_WINDOWS
 
-		// Do we get something at all?
-		SMEMBUF smbE = SMEMBUF_INITIALISER;
-		size_t stE = ObtainExecutableModuleName (&smbE);
-		ubf_assert_bool_AND (b, 0 < stE);
-		DONESMEMBUF (smbE);
+BEGIN_C_DECLS
 
-		SMEMBUF smbA = SMEMBUF_INITIALISER;
-		size_t stA = ObtainAppNameFromExecutableModule (&smbA);
-		ubf_assert_bool_AND (b, 0 < stA);
-		DONESMEMBUF (smbA);
+enum enISOregistry
+{
+	enISOregistryCurrentUser,
+	enISOregistryAllUsers
+};
 
-		SMEMBUF smbP = SMEMBUF_INITIALISER;
-		size_t stP = ObtainPathFromExecutableModule (&smbP);
-		ubf_assert_bool_AND (b, 0 < stP);
-		DONESMEMBUF (smbP);
+/*
+	setISO8601inRegistry
 
-		return b;
-	}
+	Sets user or system-wide date and time format in the Windows registry.
+
+	Returns true on success, false otherwise.
+*/
+bool setISO8601inRegistry (enum enISOregistry reg);
+
+/*
+	WinConfigureISOdateTestFnct
+
+	Test function for the module. Not a real test function.
+	Only invokes setISO8601inRegistry (enISOregistryCurrentUser);
+*/
+#ifdef BUILD_WINCONFIGUREISODATE_TEST
+	bool WinConfigureISOdateTestFnct (void)
+#else
+	#define WinConfigureISOdateTestFnct() (true)
 #endif
+
+END_C_DECLS
+
+#endif													// Of #ifdef PLATFORM_IS_WINDOWS.
+
+#endif													// Of #ifndef U_WINCONFIGUREISODATE_H.

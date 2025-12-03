@@ -260,8 +260,9 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 /*
 	CunilogGetIniValuesFromKey
 
-	pValues			A pointer to an array of SCUNILOGINIVALUES structures that receives
-					the values of szKey.
+	pValues			A pointer that receives a pointer to an array of SCUNILOGINIVALUES
+					structures. The function's return value provides the amount of
+					elements in the array.
 
 	szSection		The name of the section the key belongs to. Keys do not necessarily
 					belong to a section. To obtain a key that is not part of a section,
@@ -282,9 +283,19 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 
 	The function returns the amount of values the key szKey of section szSection contains.
 	If the section or key cannot be found, the function returns 0.
+
+	Example:
+
+	SCUNILOGINIVALUES *pValues;
+	unsigned int uiVals = CunilogGetIniValuesFromKey_ci	(
+							&pValues,
+							"Section",	USE_STRLEN,
+							"Key",		USE_STRLEN,
+							pCunilogIni
+														);
 */
 unsigned int CunilogGetIniValuesFromKey		(
-				SCUNILOGINIVALUES	**pValues,
+				SCUNILOGINIVALUE	**pValues,
 				const char			*szSection,		size_t	lnSection,
 				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni
@@ -298,7 +309,7 @@ unsigned int CunilogGetIniValuesFromKey		(
 	for the parameters szSection and szKey.
 */
 unsigned int CunilogGetIniValuesFromKey_ci	(
-				SCUNILOGINIVALUES	**pValues,
+				SCUNILOGINIVALUE	**pValues,
 				const char			*szSection,		size_t	lnSection,
 				const char			*szKey,			size_t	lnKey,
 				SCUNILOGINI			*pCunilogIni

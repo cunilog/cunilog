@@ -99,6 +99,7 @@ HEADERS += \
     ../../src/c/OS/Windows/WinAPI_ReadDirFncts.h \
     ../../src/c/OS/Windows/WinAPI_U8.h \
     ../../src/c/OS/Windows/WinAPI_U8_Test.h \
+    ../../src/c/OS/Windows/WinConfigureISOdate.h \
     ../../src/c/OS/Windows/WinExeFileName.h \
     ../../src/c/OS/Windows/WinSharedMutex.h \
     ../../src/c/cunilog/cunilog.h \
@@ -164,6 +165,7 @@ SOURCES += \
     ../../src/c/OS/Windows/WinAPI_ReadDirFncts.c \
     ../../src/c/OS/Windows/WinAPI_U8.c \
     ../../src/c/OS/Windows/WinAPI_U8_Test.c \
+    ../../src/c/OS/Windows/WinConfigureISOdate.c \
     ../../src/c/OS/Windows/WinExeFileName.c \
     ../../src/c/OS/Windows/WinSharedMutex.c \
     ../../src/c/cunilog/cunilog.c \

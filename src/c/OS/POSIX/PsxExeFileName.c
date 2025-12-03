@@ -242,6 +242,32 @@ static unsigned int		uiDetExeMethod;						// The strategy used to
 	}
 #endif
 
+	const char *PsxnGetExecutableModuleNameStr (void)
+	{
+		if (!isUsableSMEMBUF (&mbOurExecutablePath))
+		{
+			SMEMBUF smb = SMEMBUF_INITIALISER;
+			PsxObtainExecutableModuleName (&smb);
+			doneSMEMBUF (&smb);
+		}
+		if (isUsableSMEMBUF (&mbOurExecutablePath))
+			return mbOurExecutablePath.buf.pcc;
+		return NULL;
+	}
+
+	size_t PsxGetExecutableModuleNameLen (void)
+	{
+		if (!isUsableSMEMBUF (&mbOurExecutablePath))
+		{
+			SMEMBUF smb = SMEMBUF_INITIALISER;
+			PsxObtainExecutableModuleName (&smb);
+			doneSMEMBUF (&smb);
+		}
+		if (isUsableSMEMBUF (&mbOurExecutablePath))
+			return lnOurExectuablePath;
+		return 0;
+	}
+
 size_t PsxObtainAppNameFromExecutableModule (SMEMBUF *mb)
 {
 	ubf_assert_non_NULL (mb);

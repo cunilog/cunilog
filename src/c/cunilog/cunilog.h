@@ -511,6 +511,16 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 )
 
 /*
+	CunilogAutoNewLine
+
+	On POSIX, this function always returns cunilogNewLinePOSIX.
+
+	On Windows, this function returns either cunilogNewLinePOSIX or cunilogNewLineWindows,
+	depending on whether Notepad supports POSIX line endings or not.
+*/
+enum enLineEndings CunilogAutoNewLine (void);
+
+/*
 	InitCUNILOG_TARGETex
 
 	Initialises an existing CUNILOG_TARGET structure.
@@ -583,7 +593,8 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 
 	unilogNewLine		The representation of a new line character to write into the logfile.
 						A value of unilogNewLineSystem picks a default representation for the
-						operating system.
+						operating system. However, it is recommended to use the value returned
+						by CunilogAutoNewLine () for this parameter.
 
 	rp					Can be either cunilogRunProcessorsOnStartup or
 						cunilogDontRunProcessorsOnStartup to run or not run all processors the
@@ -669,7 +680,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 					cunilogPostfixDefault,				\
 					NULL, 0,							\
 					cunilogEvtTS_Default,				\
-					cunilogNewLineDefault,				\
+					CunilogAutoNewLine (),				\
 					cunilogRunProcessorsOnStartup		\
 										)
 #endif
@@ -740,7 +751,8 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 
 	unilogNewLine		The representation of a new line character to write into the logfile.
 						A value of unilogNewLineSystem picks a default representation for the
-						operating system.
+						operating system. However, it is recommended to use the value returned
+						by CunilogAutoNewLine () for this parameter.
 
 	rp					Can be either unilogRunProcessorsOnStartup or
 						unilogDontRunProcessorsOnStartup to run or not run all processors the
@@ -911,7 +923,8 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitOrCreateCUNILOG_TARGET)
 
 	unilogNewLine		The representation of a new line character to write into the logfile.
 						A value of unilogNewLineSystem picks a default representation for the
-						operating system.
+						operating system. However, it is recommended to use the value returned
+						by CunilogAutoNewLine () for this parameter.
 
 	rp					Can be either cunilogRunProcessorsOnStartup or
 						cunilogDontRunProcessorsOnStartup to run or not run all processors the
@@ -1432,6 +1445,10 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, DoneCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	If CUNILOG_BUILD_SINGLE_THREADED_ONLY is defined there is no queue to shut down or
 	to cancel, meaning that only further logging is blocked and logging functions called
 	afterwards return false.
+
+	Because the final target is not known for the types cunilogSingleThreadedQueueOnly and
+	cunilogMultiThreadedQueueOnly, events cannot be written out. Instead, the queue is emptied
+	by this function, meaning that queued events are simply dropped.
 
 	This function should be called just before DoneCUNILOG_TARGET ().
 
@@ -2300,6 +2317,20 @@ extern const uint64_t	uiCunilogVersion;
 )
 int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion);
 #define cunilogCheckVersion() cunilogCheckVersionIntChk (CUNILOG_VERSION_HDR)
+
+/*
+	DoneCunilog
+
+	Releases all resources of global scope used by Cunilog.
+
+	Calling this function is usually not necessary because the operating system reclaims
+	these resources implicitely when an application exits. However, if an application is
+	built with a memory leak detector, these resources are flagged as memory leaks. Calling
+	DoneCunilog () just before the memory leak detector produces its result excludes the
+	Cunilog resources from the report.
+*/
+void DoneCunilog ()
+;
 
 /*
 	Tests

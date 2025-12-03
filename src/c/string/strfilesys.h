@@ -64,6 +64,12 @@ When		Who				What
 
 #endif
 
+// Some functions accept string lengths of (size_t) -1 to obtain a length via a call
+//	to strlen ().
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
 EXTERN_C_BEGIN
 
 /*
@@ -91,6 +97,27 @@ EXTERN_C_BEGIN
 	for the parameter lnString. The length MUST be specified appropriately.
 */
 char *str_find_path_navigator (char *szString, size_t lnString)
+;
+
+/*
+	str_len_without_extension
+
+	Returns the length of szPath if the filename extension is removed.
+	For instance "file.txt" returns 4 ("file"), "file.pdf.exe" returns 8
+	("file.pdf), and "." returns 0.
+
+	The function returns lnPath if no filename extension is found.
+*/
+size_t str_len_without_extension (const char *szPath, size_t lnPath)
+;
+
+/*
+	str_find_path_separator
+
+	Returns a pointer to the first path separator in szPath, or NULL if no
+	path separator could be found.
+*/
+const char *str_find_path_separator (const char *szPath, size_t lnPath)
 ;
 
 /*
@@ -244,6 +271,10 @@ size_t str_remove_last_dir_separator (const char *str, size_t len)
 
 	The function reduces the amount of path navigators ("../" or "..\") as much as possible.
 
+	Note that the function is a pure memory/string implementation. No file system checks are
+	performed. It neither checks whether the paths exist nor if the paths are valid on the
+	target platform.
+
 	Parameters
 	----------
 
@@ -255,26 +286,79 @@ size_t str_remove_last_dir_separator (const char *str, size_t len)
 					pmAbsolute as the result of the functions, and the function's
 					return value is its length.
 					If this parameter points to a relative path, the function
-					calculates its absolute path relative to szReference, with path
-					navigators removed.
+					calculates its absolute path relative to szReference, with as many path
+					navigators removed as possible, if there are any.
 
 	lnRelative		Its length. This can be USE_STRLEN, in which case szRelative
 					requires to be NUL-terminated.
 
 	szReference		A pointer to an absolute reference path. The function assumes that
-					szRelative is relative to this path.
+					szRelative is relative to this path. Debug versions assert that
+					szReference is absolute.
 
 	lnReference		Its length. This can be USE_STRLEN, in which case szReference
 					requires to be NUL-terminated.
+					If you happen to have a reference path that also includes a filename,
+					you can call the function with
+					ubf_len_with_last_directory_separator (szReference, lnReference)
+					as its parameter lnReference.
 
 	The function returns the amount of octets/bytes written to the SMEMBUF structure's buffer,
 	not including a terminating NUL character, which the function also stores.
 */
 size_t smb_absolute_path_from_relative_path	(
-			SMEMBUF		*pmbAbsolute,
+			SMEMBUF							*pmbAbsolute,
 			const char *cunilog_restrict	szRelative,		size_t	lnRelative,
 			const char *cunilog_restrict	szReference,	size_t	lnReference
 											)
+;
+
+/*
+	smb_absolute_path_from_relative_path_fref
+
+	The function is identical smb_absolute_path_from_relative_path () but expects an
+	absolute path to a file as reference instead of a directory/folder. Its path without
+	the filename is then used to invoke smb_absolute_path_from_relative_path ().
+*/
+size_t smb_absolute_path_from_relative_path_fref	(
+			SMEMBUF							*pmbAbsolute,
+			const char *cunilog_restrict	szRelative,			size_t	lnRelative,
+			const char *cunilog_restrict	szReferenceFile,	size_t	lnReferenceFile
+													)
+;
+
+/*
+	str_filename_from_path
+
+	Obtains the filename from a given path. The returned filename is without
+	filename extension.
+
+	The function expects an initialised SMEMBUF structure in which it places
+	the extracted filename.
+
+	The path is expected in szPath with a length of lnPath. If lnPath is USE_STRLEN,
+	the function calls strlen (szPath) to obtain it. If lnPath is the correct length,
+	szPath does not have to be NUL-terminated.
+
+	There's no difference between platforms. The function works the same on POSIX
+	as it does on Windows.
+
+	szPath									pmb				return value
+	"/home/file/"						->	""				0
+	"C:\dir"							->	"dir"			3
+	"C:dir"								->	"dir"			3
+	"C:\dir.txt"						->	"dir"			3
+	"/dir/.file"						->	".file"			5
+	"/dir/file.txt"						->	"file"			5
+	"/dir/.file.txt.exe"				->	".file.txt"		9
+	"/dir/file.txt.exe"					->	"file.txt"		8
+	""									->	""				0
+	"/"									->	""				0
+
+	The function returns the amount of octets/bytes it has placed in pmb, not
+	counting the terminating NUL terminator.
+*/
+size_t str_filename_from_path (SMEMBUF *pmb, const char *szPath, size_t lnPath)
 ;
 
 /*

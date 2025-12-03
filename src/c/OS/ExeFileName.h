@@ -128,6 +128,32 @@ EXTERN_C_BEGIN
 #endif
 
 /*
+	GetExecutableModuleNameStr
+
+	Returns the executable's full path including its name as a const char *.
+*/
+#ifdef OS_IS_WINDOWS
+	#define GetExecutableModuleNameStr()				\
+		WinGetExecutableModuleNameStr ()
+#else
+	#define GetExecutableModuleNameStr()				\
+		PsxGetExecutableModuleNameStr ()
+#endif
+
+/*
+	GetExecutableModuleNameLen
+
+	Returns the length of the exectuable's full path including its name.
+*/
+#ifdef OS_IS_WINDOWS
+	#define GetExecutableModuleNameLen()				\
+		WinGetExecutableModuleNameLen ()
+#else
+	#define GetExecutableModuleNameLen()				\
+		PsxGetExecutableModuleNameLen ()
+#endif
+
+/*
 	ObtainAppNameFromExecutableModule
 
 	Obtains the application's name only, i.e. without path or ".exe" filename extension.

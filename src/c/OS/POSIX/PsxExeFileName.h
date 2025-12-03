@@ -82,6 +82,20 @@ size_t PsxObtainExecutableModuleName (SMEMBUF *mb)
 ;
 
 /*
+	PsxnGetExecutableModuleNameStr
+
+	Returns the executable's full path including its name as a const char *.
+*/
+const char *PsxnGetExecutableModuleNameStr (void);
+
+/*
+	PsxGetExecutableModuleNameLen
+
+	Returns the length of the exectuable's full path including its name.
+*/
+size_t PsxGetExecutableModuleNameLen (void);
+
+/*
 	PsxObtainAppNameFromExecutableModule
 
 	Obtains the application's name only, i.e. without path.

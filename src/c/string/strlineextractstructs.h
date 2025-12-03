@@ -70,11 +70,11 @@ EXTERN_C_BEGIN
 	The structures for ini files.
 */
 // An array of ini values. Each key can have several values.
-typedef struct scuniloginivalues
+typedef struct scuniloginivalue
 {
 	const char				*szValue;						// Value of a multi-value key.
 	size_t					lnValue;						// Its length.
-} SCUNILOGINIVALUES;
+} SCUNILOGINIVALUE;
 
 // A key with its values.
 typedef struct scuniloginikeyandvalues
@@ -82,7 +82,7 @@ typedef struct scuniloginikeyandvalues
 	const char				*szKeyName;
 	size_t					lnKeyName;
 
-	SCUNILOGINIVALUES		*pValues;						// A key can have multiple values.
+	SCUNILOGINIVALUE		*pValues;						// A key can have multiple values.
 	unsigned int			nValues;
 
 	const char				*szEqualsSign;
@@ -110,7 +110,7 @@ typedef struct scunilogini
 															//	are possible.
 	unsigned int			nKeyValues;
 
-	SCUNILOGINIVALUES		*pValues;						// All values that belong to keys.
+	SCUNILOGINIVALUE		*pValues;						// All values that belong to keys.
 	unsigned int			nValues;
 
 	// Parse error.

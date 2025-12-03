@@ -74,11 +74,12 @@ When		Who				What
 
 #endif
 
-size_t SMEMBUFfromStrReserveBytes (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+size_t SMEMBUFfromStrReserve (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
 {
-	ubf_assert_non_NULL (pmb);
-	ubf_assert_non_NULL (str);
-	ubf_assert_non_0 (len);
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
+	ubf_assert_non_NULL	(str);
+	ubf_assert_non_0	(len);
 
 	size_t l = USE_STRLEN == len ? strlen (str) : len;
 	size_t lstr = l;
@@ -94,9 +95,20 @@ size_t SMEMBUFfromStrReserveBytes (SMEMBUF *pmb, const char *str, size_t len, si
 	return 0;
 }
 
+size_t initSMEMBUFfromStrReserve (SMEMBUF *pmb, const char *str, size_t len, size_t reserve)
+{
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert_non_NULL	(str);
+	ubf_assert_non_0	(len);
+
+	initSMEMBUF (pmb);
+	return SMEMBUFfromStrReserve (pmb, str, len, reserve);
+}
+
 size_t SMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len)
 {
-	ubf_assert_non_NULL (pmb);
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
 	size_t l = USE_STRLEN == len ? strlen (str) : len;
 	growToSizeSMEMBUF (pmb, l + 1);
@@ -110,10 +122,37 @@ size_t SMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len)
 	return 0;
 }
 
+size_t initSMEMBUFfromStr (SMEMBUF *pmb, const char *str, size_t len)
+{
+	ubf_assert_non_NULL	(pmb);
+
+	initSMEMBUF (pmb);
+	return SMEMBUFfromStr (pmb, str, len);
+}
+
 size_t SMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (pmb);
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
+	int i = vsnprintf (NULL, 0, fmt, ap);
+	if (i < 0)
+		return 0;
+
+	size_t l = (size_t) i;
+	if (growToSizeSMEMBUF (pmb, l + 1))
+	{
+		vsnprintf (pmb->buf.pch, l + 1, fmt, ap);
+		return l;
+	}
+	return 0;
+}
+
+size_t initSMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
+{
+	ubf_assert_non_NULL	(pmb);
+
+	initSMEMBUF (pmb);
 	int i = vsnprintf (NULL, 0, fmt, ap);
 	if (i < 0)
 		return 0;
@@ -129,7 +168,8 @@ size_t SMEMBUFfromStrFmt_va (SMEMBUF *pmb, const char *fmt, va_list ap)
 
 size_t SMEMBUFfromStrFmt (SMEMBUF *pmb, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (pmb);
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
 	va_list ap;
 	va_start (ap, fmt);
@@ -139,9 +179,71 @@ size_t SMEMBUFfromStrFmt (SMEMBUF *pmb, const char *fmt, ...)
 	return r;
 }
 
+size_t initSMEMBUFfromStrFmt (SMEMBUF *pmb, const char *fmt, ...)
+{
+	ubf_assert_non_NULL	(pmb);
+
+	initSMEMBUF (pmb);
+	va_list ap;
+	va_start (ap, fmt);
+	size_t r = SMEMBUFfromStrFmt_va (pmb, fmt, ap);
+	va_end (ap);
+
+	return r;
+}
+
+size_t SMEMBUFfromStrs (SMEMBUF *pmb, size_t len, size_t nStrs, ...)
+{
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
+
+	va_list args;
+
+	const char	*sz;
+	size_t		l;
+
+	len = USE_STRLEN == len ? strlen (pmb->buf.pcc) : len;
+	size_t		t		= len;
+	size_t		n;
+
+	if (0 == nStrs)
+		return len;
+
+	va_start (args, nStrs);
+	for (n = 0; n < nStrs; ++ n)
+	{
+		sz	= va_arg (args, char *);
+		l	= va_arg (args, size_t);
+		l	= USE_STRLEN == l ? strlen (sz) : l;
+		t += l;
+	}
+	va_end (args);
+
+	growToSizeRetainSMEMBUF (pmb, t + 1);
+	if (isUsableSMEMBUF (pmb))
+	{
+		char *szW = pmb->buf.pch + len;
+
+		va_start (args, nStrs);
+		for (n = 0; n < nStrs; ++ n)
+		{
+			sz	= va_arg (args, char *);
+			l	= va_arg (args, size_t);
+			l	= USE_STRLEN == l ? strlen (sz) : l;
+			memcpy (szW, sz, l);
+			szW += l;
+		}
+		va_end (args);
+		szW [0] = ASCII_NUL;
+		return t;
+	}
+	return 0;
+}
+
 size_t SMEMBUFstrFromUINT64 (SMEMBUF *pmb, uint64_t ui)
 {
-	ubf_assert_non_NULL (pmb);
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 	
 	char asc [UBF_UINT64_SIZE];
 	size_t l = ubf_str_from_uint64 (asc, ui);
@@ -189,6 +291,7 @@ size_t SMEMBUFstrconcatReserve (SMEMBUF *pmb, size_t len, char *str, size_t lens
 size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr)
 {
 	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
 	return SMEMBUFstrconcatReserve (pmb, len, str, lenstr, 0);
 }
@@ -197,13 +300,14 @@ size_t SMEMBUFstrconcat (SMEMBUF *pmb, size_t len, char *str, size_t lenstr)
 	size_t SMEMBUFstrconcatW (SMEMBUF *pmb, size_t len, wchar_t *wstr, size_t lenwstr)
 	{
 		ubf_assert_non_NULL	(pmb);
+		ubf_assert			(isInitialisedSMEMBUF (pmb));
 		ubf_assert			(sizeof (WCHAR) == sizeof (wchar_t));
 
 		char	str [WINAPI_U8_HEAP_THRESHOLD];
 		char	*pstr;
 
-		len		= USE_STRLEN ? strlen (pmb->buf.pcc)	: len;
-		lenwstr	= USE_STRLEN ? wcslen (wstr)			: lenwstr;
+		len		= USE_STRLEN == len		? strlen (pmb->buf.pcc)	: len;
+		lenwstr	= USE_STRLEN == lenwstr	? wcslen (wstr)			: lenwstr;
 		ubf_assert (lenwstr < INT_MAX);
 
 		pstr = AllocU8fromWinU16orUseThresholdl (str, wstr, lenwstr);
@@ -263,6 +367,7 @@ size_t SMEMBUFstrconcatpaths (SMEMBUF *pmb, size_t len, char *strPath, size_t le
 bool SMEMBUFstrStartsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t lenStr)
 {
 	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
 	len		= USE_STRLEN == len		?	strlen (pmb->buf.pcc)	: len;
 	lenStr	= USE_STRLEN == lenStr	?	strlen (str)			: lenStr;
@@ -276,6 +381,7 @@ bool SMEMBUFstrStartsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t 
 bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t lenStr)
 {
 	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
 
 	len		= USE_STRLEN == len		?	strlen (pmb->buf.pcc)	: len;
 	lenStr	= USE_STRLEN == lenStr	?	strlen (str)			: lenStr;
@@ -403,6 +509,9 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 			ubf_expect_bool_AND (b, !memcmp ("p1/p2", smb.buf.pcc, 6));
 		#endif
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		// Function retains the separator found in the buffer.
 		st = SMEMBUFfromStr (&smb, "p1/", 3);
 		ubf_expect_bool_AND (b, 3 == st);
@@ -410,16 +519,25 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 		ubf_expect_bool_AND (b, 5 == st);
 		ubf_expect_bool_AND (b, !memcmp ("p1/p2", smb.buf.pcc, 6));
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		st = SMEMBUFfromStr (&smb, "1", 1);
 		ubf_expect_bool_AND (b, 1 == st);
 		st = SMEMBUFstrconcatpaths (&smb, USE_STRLEN, "2", USE_STRLEN);
 		ubf_expect_bool_AND (b, 3 == st);
 		ubf_expect_bool_AND (b, !memcmp ("1\\2", smb.buf.pcc, 4));
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		st = SMEMBUFfromStr (&smb, NULL, 0);
 		ubf_expect_bool_AND (b, 0 == st);
 		st = SMEMBUFstrconcatpaths (&smb, USE_STRLEN, NULL, 0);
 		ubf_expect_bool_AND (b, 0 == st);
+
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
 
 		// Empty UNC path.
 		st = SMEMBUFfromStr (&smb, "\\\\", USE_STRLEN);
@@ -428,6 +546,9 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 		ubf_expect_bool_AND (b, 10 == st);
 		ubf_expect_bool_AND (b, !memcmp ("\\\\file.txt", smb.buf.pcc, 11));
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		// Longer UNC path.
 		st = SMEMBUFfromStr (&smb, "\\\\server", USE_STRLEN);
 		ubf_expect_bool_AND (b, 8 == st);
@@ -435,9 +556,15 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 		ubf_expect_bool_AND (b, 17 == st);
 		ubf_expect_bool_AND (b, !memcmp ("\\\\server\\file.txt", smb.buf.pcc, 18));
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		st = SMEMBUFfromStrFmt (&smb, "A%sC", "B");
 		ubf_expect_bool_AND (b, 3 == st);
 		ubf_expect_bool_AND (b, !memcmp ("ABC", smb.buf.pcc, 4));
+
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
 
 		st = SMEMBUFfromStr (&smb, "123", 3);
 		ubf_expect_bool_AND (b, 3 == st);
@@ -446,12 +573,18 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 		ubf_expect_bool_AND (b, 6 == st);
 		ubf_expect_bool_AND (b, !memcmp ("123456", smb.buf.pcc, 7));
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
+
 		st = SMEMBUFfromStr (&smb, NULL, 0);
 		ubf_expect_bool_AND (b, 0 == st);
 		ubf_expect_bool_AND (b, !memcmp ("", smb.buf.pcc, 1));
 		st = SMEMBUFstrconcatW (&smb, USE_STRLEN, L"456", USE_STRLEN);
 		ubf_expect_bool_AND (b, 3 == st);
 		ubf_expect_bool_AND (b, !memcmp ("456", smb.buf.pcc, 4));
+
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
 
 		st = SMEMBUFfromStr (&smb, NULL, 0);
 		ubf_expect_bool_AND (b, 0 == st);
@@ -480,7 +613,27 @@ bool SMEMBUFstrEndsWithStr (SMEMBUF *pmb, size_t len, const char *str, size_t le
 		b1 = SMEMBUFstrEndsWithStr (&smb, st, "CD", USE_STRLEN);
 		ubf_expect_bool_AND (b, true == b1);
 
+		doneSMEMBUF (&smb);
+		initSMEMBUF (&smb);
 
+		size_t l1 = SMEMBUFfromStr (&smb, "1", USE_STRLEN);
+		ubf_expect_bool_AND (b, 1 == l1);
+		ubf_expect_bool_AND (b, !memcmp (smb.buf.pcc, "1", 2));
+		// Note the cast to size_t.
+		size_t l2 = SMEMBUFfromStrs (&smb, l1, 2, "234567", (size_t) 6, "890", (size_t) 3);
+		ubf_expect_bool_AND (b, 10 == l2);
+		ubf_expect_bool_AND (b, !memcmp (smb.buf.pcc, "1234567890", 11));
+		l1 = SMEMBUFfromStr (&smb, "", 0);
+		// USE_STRLEN is defined with a cast.
+		l2 = SMEMBUFfromStrs (&smb, l1, 2, "234567", USE_STRLEN, "890", USE_STRLEN);
+		ubf_expect_bool_AND (b, 9 == l2);
+		ubf_expect_bool_AND (b, !memcmp (smb.buf.pcc, "234567890", 11));
+		// Overwrite the current buffer.
+		l2 = SMEMBUFfromStrs (&smb, 0, 5, "A", (size_t) 1, "B", (size_t) 1, "C", (size_t) 1, "D", (size_t) 1, "E", (size_t) 1);
+		ubf_expect_bool_AND (b, 5 == l2);
+		ubf_expect_bool_AND (b, !memcmp (smb.buf.pcc, "ABCDE", 6));
+
+		doneSMEMBUF (&smb);
 		return b;
 	}
 #endif

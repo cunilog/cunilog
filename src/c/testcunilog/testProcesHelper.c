@@ -189,6 +189,9 @@ static const char *testProcessHelperGetLine	(
 
 		// Ok, if we're this far, the RNG and seeding it works.
 
+		doneSMEMBUF (&smb);
+		doneSMEMBUF (&smb2);
+
 		return b;
 	}
 #endif

@@ -1041,7 +1041,7 @@ typedef struct CUNILOG_TARGET
 	#endif
 
 	enum cunilogeventTSformat		unilogEvtTSformat;		// The format of an event timestamp.
-	newline_t						unilogNewLine;
+	newline_t						culogNewLine;
 	CUNILOG_LOGFILE					logfile;
 	SBULKMEM						sbm;					// Bulk memory block.
 	vec_cunilog_fls					fls;					// The vector with str pointers to

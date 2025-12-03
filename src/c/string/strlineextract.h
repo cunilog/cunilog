@@ -535,7 +535,7 @@ bool strlineextractKeyOrValue	(
 unsigned int strlineextractKeyAndValues	(
 		const char		**cunilog_restrict	pszKey,		size_t	*plnKey,	// Out.
 		const char		**cunilog_restrict	pszEqual,	size_t	*plnEqual,	// Out.
-		SCUNILOGINIVALUES					*pValues,
+		SCUNILOGINIVALUE					*pValues,
 		unsigned int						nValues,
 		const char		*cunilog_restrict	szLine,	size_t	lnLine,			// In.
 		SCULMLTSTRINGS	*psmlt												// In.

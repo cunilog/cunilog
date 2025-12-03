@@ -79,10 +79,12 @@ void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz)
 			{
 				ubf_free (pb->buf.puc);
 				pb->buf.puc = NULL;
+				//if (143 == siz) ubf_assert (false);
 				p = ubf_malloc (siz);
 			}
 		} else
 		{
+			//if (81 == siz) ubf_assert (false);
 			p = ubf_malloc (siz);
 		}
 		if (p)
