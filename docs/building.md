@@ -42,7 +42,7 @@ In Visual Studio, the character set used to built an application can be found un
 
 ### Building Cunilog as a Windows static or dynamic (shared) library (DLL)
 
-Open the MSVC solution __libcunilog.sln__ in folder __proj\msvc2019\libcunilog__ with MSVC 2019 and build it. There's currently only solution/project files for MSVC 2019.
+Open the MSVC solution __libcunilog.sln__ in folder __proj\msvc2019\libcunilog__ with MSVC 2019 or in folder __proj\msvc2022\libcunilog__ with MSVC 2022 and build it. There's currently only solution/project files for MSVC 2019 and 2022.
 
 In Visual Studio, go to __Build__, then __Batch Build...__*. Select the versions of the static or shared (dynamic) libraries you intend to use (see below) or press __Select All__, then __Rebuild__. You should get a completion message for the amount of project configurations you selected:
 ```

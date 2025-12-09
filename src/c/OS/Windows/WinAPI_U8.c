@@ -1480,6 +1480,24 @@ BOOL FileExistsU8 (const char *lpszFilenameU8)
 	return FALSE;
 }
 
+BOOL FileExistsWU16 (const WCHAR *lpszFilenameU16)
+{
+	HANDLE hFile = CreateFileW		(
+						lpszFilenameU16, 0,
+						FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+						NULL, OPEN_EXISTING, 0, NULL
+									);
+	if (hFile != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(hFile);
+		if (GetFileAttributesW (lpszFilenameU16) & FILE_ATTRIBUTE_DIRECTORY)
+			return FALSE;
+		else
+			return TRUE;
+	}
+	return FALSE;
+}
+
 BOOL FileExistsU8long (const char *lpszFilenameU8)
 {
 	HANDLE hFile = CreateFileU8long	(

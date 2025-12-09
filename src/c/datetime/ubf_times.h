@@ -1,6 +1,6 @@
 /****************************************************************************************
 
-	File:		ubf_time.h
+	File:		ubf_times.h
 	Why:		Contains structures and functions to work with UBF_TIMESTAMP
 				and SUBF_TIMESTRUCT structures.
 	OS:			C99.

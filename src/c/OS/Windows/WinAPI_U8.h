@@ -1524,10 +1524,24 @@ TYPEDEF_FNCT_PTR (BOOL, FileEncryptionStatusU8)
 	
 	Note that the function cannot determine with absolute certainty that
 	a file does not exists when it returns FALSE. The file could for
-	instance be a network resource that is only temporarily not available.
+	instance be a network resource that is not available temporarily.
 */
 BOOL FileExistsU8 (const char *lpszFilenameU8);
 TYPEDEF_FNCT_PTR (BOOL, FileExistsU8) (const char *lpszFilenameU8);
+
+/*
+	FileExistsWU16
+
+	Returns TRUE if the given file exists and returns FALSE
+	if it doesn't. It also returns FALSE if the given file name exists
+	but is a directory.
+	
+	Note that the function cannot determine with absolute certainty that
+	a file does not exists when it returns FALSE. The file could for
+	instance be a network resource that is not available temporarily.
+*/
+BOOL FileExistsWU16 (const WCHAR *lpszFilenameU16);
+TYPEDEF_FNCT_PTR (BOOL, FileExistsWU16) (const WCHAR *lpszFilenameU16);
 
 /*
 	FileExistsU8long
@@ -1559,6 +1573,18 @@ TYPEDEF_FNCT_PTR (BOOL, FileExistsU8long) (const char *lpszFilenameU8);
 BOOL FileOrPathExistsU8 (const char *lpszFilenameU8);
 TYPEDEF_FNCT_PTR (BOOL, FileOrPathExistsU8) (const char *lpszFilenameU8);
 #define FileOrDirExistsU8(fn)	FileOrPathExistsU8 (fn)
+
+/*
+	FileOrPathExistsU8long
+
+	Returns TRUE if the given file or path exists and returns FALSE
+	if it doesn't.
+	
+	Since the function prepends the filename with a long filename prefix ("\\?\"),
+	this version does not support paths that contain "." or ".." path components.
+*/
+BOOL FileOrPathExistsU8long (const char *lpszFilenameU8);
+TYPEDEF_FNCT_PTR (BOOL, FileOrPathExistsU8long) (const char *lpszFilenameU8);
 
 /*
 	FindFirstChangeNotificationU8

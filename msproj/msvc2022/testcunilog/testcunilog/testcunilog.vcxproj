@@ -1,0 +1,313 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{f7db3194-6ffc-49ae-b85a-30450916cc0f}</ProjectGuid>
+    <RootNamespace>testcunilog</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>false</EnableASAN>
+    <EnableUnitySupport>false</EnableUnitySupport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>false</EnableASAN>
+    <EnableUnitySupport>false</EnableUnitySupport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>false</EnableASAN>
+    <EnableUnitySupport>false</EnableUnitySupport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>false</EnableASAN>
+    <EnableUnitySupport>false</EnableUnitySupport>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32;HAVE_VERSION</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <SmallerTypeCheck>true</SmallerTypeCheck>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32;HAVE_VERSION</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;HAVE_STRWILDCARDS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;UBF_HEX_BUILD_TEST_FUNCTION;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32;HAVE_VERSION</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <SmallerTypeCheck>true</SmallerTypeCheck>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);HAVE_STRWILDCARDS;_CRT_SECURE_NO_WARNINGS;HAVE_SHELLAPI;STRNEWLINE_BUILD_TEST;HAVE_USERENV;BUILD_DEBUG_UBF_STRFILESYS_TESTS;CUNILOG_BUILD_CFG_PARSER;CUNILOG_BUILD_CFG_PARSER_TEST_FNCT;CUNILOG_BUILD_TEST_FNCTS;CUNILOG_DEBUG_USE_TEST_ROTATOR_VALUES;CUNILOG_BUILD_WITH_TEST_ERRORCB;STRNEWLINE_BUILD_TEST;STRNEWLINE_BUILD_TEST;BUILD_BULKMALLOC_TEST_FUNCTIONS;UBF_BUILD_STRINTUINT_TEST;STRCUSTOMFMT_BUILD_TEST_FNCTS;STRWILDCARDS_BUILD_TEST_FNCT;UBF_TIME_BUILD_UBF_TIMES_TEST_FUNCTION;U_CHECK_UTF8_BUILD_TEST_FNCT;;HAVE_MEMBUF;CUNILOG_BUILD_READDIR_TESTFNCT;ISO_DATE_BUILD_TEST_FNCT;PROCESS_HELPERS_BUILD_TEST_FNCT;STRANSI_BUILD_TEST_FNCT;BUILD_TEST_WINAPI_U8_FNCT;HAVE_ADVAPI32;STRLINEEXTRACT_BUILD_TEST_FNCT;TEST_PROCESS_HELPER_BUILD_TEST_FNCT;STRMEMBUF_BUILD_TEST_FNCT;CUNILOG_BUILD_EXEFILENAME_TEST_FNCT;FILEMEMBUF_BUILD_TEST_FNCT;_CRTDBG_MAP_ALLOC;HAVE_USER32;HAVE_VERSION</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <EnableParallelCodeGeneration>false</EnableParallelCodeGeneration>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilog.c" />
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogcfgparser.c" />
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogerrors.c" />
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogevtcmds.c" />
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogevtcmdsstructs.c" />
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogprocess.c" />
+    <ClCompile Include="..\..\..\..\src\c\cunilog\cunilogstructs.c" />
+    <ClCompile Include="..\..\..\..\src\c\datetime\ISO__DATE__.c" />
+    <ClCompile Include="..\..\..\..\src\c\datetime\shortmonths.c" />
+    <ClCompile Include="..\..\..\..\src\c\datetime\timespecfncts.c" />
+    <ClCompile Include="..\..\..\..\src\c\datetime\ubf_date_and_time.c" />
+    <ClCompile Include="..\..\..\..\src\c\datetime\ubf_times.c" />
+    <ClCompile Include="..\..\..\..\src\c\dbg\dbgcountandtrack.c" />
+    <ClCompile Include="..\..\..\..\src\c\dbg\ubfdebug.c" />
+    <ClCompile Include="..\..\..\..\src\c\extern\ExtCompressors.c" />
+    <ClCompile Include="..\..\..\..\src\c\mem\bulkmalloc.c" />
+    <ClCompile Include="..\..\..\..\src\c\mem\membuf.c" />
+    <ClCompile Include="..\..\..\..\src\c\mem\memstrstr.c" />
+    <ClCompile Include="..\..\..\..\src\c\mem\ubfmem.c" />
+    <ClCompile Include="..\..\..\..\src\c\mem\VectorC.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\Apple\TrashCan.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\CompressFile.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\ExeFileName.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\FileMembuf.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxCompressFile.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxExeFileName.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxHome.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxReadDirFncts.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxTrash.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\POSIX\PsxSharedMutex.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\ProcessHelpers.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\SharedMutex.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\UserHome.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\Windows\CompressNTFS_U8.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinConfigureISOdate.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8_Test.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinSharedMutex.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinExeFileName.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinAPI_ReadDirFncts.c" />
+    <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\check_utf8.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\stransi.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strcustomfmt.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strfilesys.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strhex.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strhexdump.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strhexdumpstructs.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strintuint.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strisabsolutepath.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strisdotordotdot.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strlineextract.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strlineextractstructs.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strmembuf.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strnewline.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\struri.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\strwildcards.c" />
+    <ClCompile Include="..\..\..\..\src\c\string\ubfcharscountsandchecks.c" />
+    <ClCompile Include="..\..\..\..\src\c\testcunilog\CunilogTestFncts.c" />
+    <ClCompile Include="..\..\..\..\src\c\testcunilog\mersenne.c" />
+    <ClCompile Include="..\..\..\..\src\c\testcunilog\testcunilog.c" />
+    <ClCompile Include="..\..\..\..\src\c\testcunilog\testProcesHelper.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilog.h" />
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogcfgparser.h" />
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogdefs.h" />
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogerrors.h" />
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogevtcmds.h" />
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogevtcmdsstructs.h" />
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogprocess.h" />
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogstructs.h" />
+    <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogversion.h" />
+    <ClInclude Include="..\..\..\..\src\c\datetime\ISO__DATE__.h" />
+    <ClInclude Include="..\..\..\..\src\c\datetime\shortmonths.h" />
+    <ClInclude Include="..\..\..\..\src\c\datetime\timespecfncts.h" />
+    <ClInclude Include="..\..\..\..\src\c\datetime\ubf_date_and_time.h" />
+    <ClInclude Include="..\..\..\..\src\c\datetime\ubf_times.h" />
+    <ClInclude Include="..\..\..\..\src\c\dbg\dbgcountandtrack.h" />
+    <ClInclude Include="..\..\..\..\src\c\dbg\ubfdebug.h" />
+    <ClInclude Include="..\..\..\..\src\c\extern\ExtCompressors.h" />
+    <ClInclude Include="..\..\..\..\src\c\mem\bulkmalloc.h" />
+    <ClInclude Include="..\..\..\..\src\c\mem\membuf.h" />
+    <ClInclude Include="..\..\..\..\src\c\mem\memstrstr.h" />
+    <ClInclude Include="..\..\..\..\src\c\mem\ubfmem.h" />
+    <ClInclude Include="..\..\..\..\src\c\mem\VectorC.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\Apple\TrashCan.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\CompressFile.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\ExeFileName.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\FileMembuf.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxCompressFile.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxExeFileName.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxHome.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxReadDirFncts.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxTrash.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\POSIX\PsxSharedMutex.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\ProcessHelpers.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\SharedMutex.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\UserHome.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\Windows\CompressNTFS_U8.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinConfigureISOdate.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8_Test.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinSharedMutex.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinExeFileName.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinAPI_ReadDirFncts.h" />
+    <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinAPI_U8.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\ArrayMacros.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\DLLimport.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\externC.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\functionptrtpydef.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\platform.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\restrict.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\SingleBits.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\unref.h" />
+    <ClInclude Include="..\..\..\..\src\c\pre\Warnings.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\check_utf8.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\stransi.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strcustomfmt.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strfilesys.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strhex.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strhexdump.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strhexdumpstructs.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strintuint.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strisabsolutepath.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strisdotordotdot.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strlineextract.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strlineextractstructs.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strmembuf.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strnewline.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\struri.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\strwildcards.h" />
+    <ClInclude Include="..\..\..\..\src\c\string\ubfcharscountsandchecks.h" />
+    <ClInclude Include="..\..\..\..\src\c\testcunilog\CunilogTestFncts.h" />
+    <ClInclude Include="..\..\..\..\src\c\testcunilog\mersenne.h" />
+    <ClInclude Include="..\..\..\..\src\c\testcunilog\testcunilog.h" />
+    <ClInclude Include="..\..\..\..\src\c\testcunilog\testProcesHelper.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

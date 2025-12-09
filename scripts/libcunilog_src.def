@@ -131,7 +131,7 @@ EXPORTS
 	copySMEMBUFsiz									@nnn
 
 	; strmembuf
-	SMEMBUFfromStrReserveBytes						@nnn
+	SMEMBUFfromStrReserve							@nnn
 	SMEMBUFfromStr									@nnn
 	SMEMBUFstrFromUINT64							@nnn
 

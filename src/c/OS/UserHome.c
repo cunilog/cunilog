@@ -125,7 +125,7 @@ size_t ObtainUserHomeDirectoy (SMEMBUF *mb)
 		//	but we're going to play safe here.
 		if (lnH && '/' != szH [lnH])
 		{
-			r = SMEMBUFfromStrReserveBytes (mb, szH, lnH + 1, 1) - 1;
+			r = SMEMBUFfromStrReserve (mb, szH, lnH + 1, 1) - 1;
 			if (r)
 			{
 				mb->buf.pch [lnH]		= '/';

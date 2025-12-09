@@ -3381,10 +3381,24 @@ TYPEDEF_FNCT_PTR (BOOL, FileEncryptionStatusU8)
 	
 	Note that the function cannot determine with absolute certainty that
 	a file does not exists when it returns FALSE. The file could for
-	instance be a network resource that is only temporarily not available.
+	instance be a network resource that is not available temporarily.
 */
 BOOL FileExistsU8 (const char *lpszFilenameU8);
 TYPEDEF_FNCT_PTR (BOOL, FileExistsU8) (const char *lpszFilenameU8);
+
+/*
+	FileExistsWU16
+
+	Returns TRUE if the given file exists and returns FALSE
+	if it doesn't. It also returns FALSE if the given file name exists
+	but is a directory.
+	
+	Note that the function cannot determine with absolute certainty that
+	a file does not exists when it returns FALSE. The file could for
+	instance be a network resource that is not available temporarily.
+*/
+BOOL FileExistsWU16 (const WCHAR *lpszFilenameU16);
+TYPEDEF_FNCT_PTR (BOOL, FileExistsWU16) (const WCHAR *lpszFilenameU16);
 
 /*
 	FileExistsU8long
@@ -3416,6 +3430,18 @@ TYPEDEF_FNCT_PTR (BOOL, FileExistsU8long) (const char *lpszFilenameU8);
 BOOL FileOrPathExistsU8 (const char *lpszFilenameU8);
 TYPEDEF_FNCT_PTR (BOOL, FileOrPathExistsU8) (const char *lpszFilenameU8);
 #define FileOrDirExistsU8(fn)	FileOrPathExistsU8 (fn)
+
+/*
+	FileOrPathExistsU8long
+
+	Returns TRUE if the given file or path exists and returns FALSE
+	if it doesn't.
+	
+	Since the function prepends the filename with a long filename prefix ("\\?\"),
+	this version does not support paths that contain "." or ".." path components.
+*/
+BOOL FileOrPathExistsU8long (const char *lpszFilenameU8);
+TYPEDEF_FNCT_PTR (BOOL, FileOrPathExistsU8long) (const char *lpszFilenameU8);
 
 /*
 	FindFirstChangeNotificationU8
@@ -11357,7 +11383,7 @@ CUNILOG_DLL_IMPORT extern const char ccdtMnths [12][4];
 #endif														// Of #ifdef U_SHORTMONTHS_H.
 /****************************************************************************************
 
-	File:		ubf_time.h
+	File:		ubf_times.h
 	Why:		Contains structures and functions to work with UBF_TIMESTAMP
 				and SUBF_TIMESTRUCT structures.
 	OS:			C99.
@@ -13504,6 +13530,8 @@ void ISO8601_from_UBF_TIMESTAMP_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts);
 
 	The buffer szncsadtim points to must be at least SIZ_NCSA_COMMON_LOG_DATETIME long, which
 	includes a terminating NUL character.
+
+	The function does not check if the UBF_TIMESTAMP ts contains a valid date.
 
 	"[10/Oct/2000:13:55:36 -0700]"
 */

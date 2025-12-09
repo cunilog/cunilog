@@ -172,6 +172,7 @@ size_t ReadFileSMEMBUF (SMEMBUF *pmb, const char *szFileName)
 		// We expect this to fail.
 		size_t st = ReadFileSMEMBUF (&smb, "asfasdfasdfasfasdfasdfsaf");
 		ubf_assert_bool_AND (b, READFILESMEMBUF_ERROR == st);
+		DONESMEMBUF (smb);
 
 		return b;
 	}

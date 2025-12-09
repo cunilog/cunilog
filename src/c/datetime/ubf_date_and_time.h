@@ -1383,6 +1383,8 @@ void ISO8601_from_UBF_TIMESTAMP_no_ms_Holocene (char *chISO, UBF_TIMESTAMP ts);
 	The buffer szncsadtim points to must be at least SIZ_NCSA_COMMON_LOG_DATETIME long, which
 	includes a terminating NUL character.
 
+	The function does not check if the UBF_TIMESTAMP ts contains a valid date.
+
 	"[10/Oct/2000:13:55:36 -0700]"
 */
 void NCSADATETIME_from_UBF_TIMESTAMP (char *szncsadtim, UBF_TIMESTAMP ts)

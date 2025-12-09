@@ -47,6 +47,8 @@ In addition to the standard semicolon single line comment, Cunilog recognises se
 | --                  | Common double dash line comment      |
 | !                   | Cisco routers and Fortran 90         |
 
+Likewise, multi-line comments are accepted too:
+
 | Multi-line comment | Notes                          |
 | ------------------ | ------------------------------ |
 | /* Comment */      | C/C++ style multi-line comment |
@@ -154,7 +156,12 @@ Multiple values are only recognised when each single value is within quotation m
 key  = value1, value2, value3
 key2 = value1, value2, value3
 ```
-The value of each key is ***value1, value2, value3***.
+The value of each key (***key*** and ***key2***) is ***value1, value2, value3***. This identical to:
+```ini
+[section]
+key  = "value1, value2, value3"
+key2 = "value1, value2, value3"
+```
 
 ### Equality signs
 

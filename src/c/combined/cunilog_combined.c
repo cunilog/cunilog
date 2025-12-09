@@ -1767,6 +1767,24 @@ BOOL FileExistsU8 (const char *lpszFilenameU8)
 	return FALSE;
 }
 
+BOOL FileExistsWU16 (const WCHAR *lpszFilenameU16)
+{
+	HANDLE hFile = CreateFileW		(
+						lpszFilenameU16, 0,
+						FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+						NULL, OPEN_EXISTING, 0, NULL
+									);
+	if (hFile != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(hFile);
+		if (GetFileAttributesW (lpszFilenameU16) & FILE_ATTRIBUTE_DIRECTORY)
+			return FALSE;
+		else
+			return TRUE;
+	}
+	return FALSE;
+}
+
 BOOL FileExistsU8long (const char *lpszFilenameU8)
 {
 	HANDLE hFile = CreateFileU8long	(
@@ -7898,6 +7916,7 @@ size_t ReadFileSMEMBUF (SMEMBUF *pmb, const char *szFileName)
 		// We expect this to fail.
 		size_t st = ReadFileSMEMBUF (&smb, "asfasdfasdfasfasdfasdfsaf");
 		ubf_assert_bool_AND (b, READFILESMEMBUF_ERROR == st);
+		DONESMEMBUF (smb);
 
 		return b;
 	}
@@ -9444,7 +9463,7 @@ size_t ObtainUserHomeDirectoy (SMEMBUF *mb)
 		//	but we're going to play safe here.
 		if (lnH && '/' != szH [lnH])
 		{
-			r = SMEMBUFfromStrReserveBytes (mb, szH, lnH + 1, 1) - 1;
+			r = SMEMBUFfromStrReserve (mb, szH, lnH + 1, 1) - 1;
 			if (r)
 			{
 				mb->buf.pch [lnH]		= '/';
@@ -10979,7 +10998,7 @@ const char ccdtMnths [12][4] =
 		{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 /****************************************************************************************
 
-	File:		ubf_time.c
+	File:		ubf_times.c
 	Why:		Contains structures and functions to work with UBF_TIMESTAMP
 				and SUBF_TIMESTRUCT structures.
 	OS:			C99.
@@ -13165,29 +13184,28 @@ void NCSADATETIME_from_UBF_TIMESTAMP (char *szncsadtim, UBF_TIMESTAMP ts)
 	szncsadtim += 2;
 	*szncsadtim ++ = '/';
 	unsigned int uidxMnth = (unsigned int) UBF_TIMESTAMP_MONTH (ts);
-	// Handle malformed bits.
-	uidxMnth &= 0x3F;
-	ubf_assert (12 > uidxMnth);
-	uidxMnth = 12 <= uidxMnth ? 11 : uidxMnth;
+	ubf_assert (0 < uidxMnth);
+	ubf_assert (12 + 1 > uidxMnth);
+	uidxMnth = 0 == uidxMnth ? uidxMnth : uidxMnth - 1;
 	memcpy (szncsadtim, ccdtMnths [uidxMnth], 3);
 	szncsadtim += 3;
 	*szncsadtim ++ = '/';
-	ubf_str0_from_uint16 (szncsadtim, 4, (unsigned int) UBF_TIMESTAMP_YEAR (ts));
+	ubf_str0_from_uint16 (szncsadtim, 4, (uint16_t) UBF_TIMESTAMP_YEAR (ts));
 	szncsadtim += 4;
 	*szncsadtim ++ = ':';
-	ubf_str0_from_59max (szncsadtim, (unsigned int) UBF_TIMESTAMP_HOUR (ts));
+	ubf_str0_from_59max (szncsadtim, (uint8_t) UBF_TIMESTAMP_HOUR (ts));
 	szncsadtim += 2;
 	*szncsadtim ++ = ':';
-	ubf_str0_from_59max (szncsadtim, (unsigned int) UBF_TIMESTAMP_MINUTE (ts));
+	ubf_str0_from_59max (szncsadtim, (uint8_t) UBF_TIMESTAMP_MINUTE (ts));
 	szncsadtim += 2;
 	*szncsadtim ++ = ':';
-	ubf_str0_from_59max (szncsadtim, (unsigned int) UBF_TIMESTAMP_SECOND (ts));
+	ubf_str0_from_59max (szncsadtim, (uint8_t) UBF_TIMESTAMP_SECOND (ts));
 	szncsadtim += 2;
 	*szncsadtim ++ = ' ';
 	*szncsadtim ++ = UBF_TIMESTAMP_OFFSETNEGATIVE (ts) ? '-' : '+';
-	ubf_str0_from_59max (szncsadtim, (unsigned int) UBF_TIMESTAMP_OFFSETHOURS (ts));
+	ubf_str0_from_59max (szncsadtim, (uint8_t) UBF_TIMESTAMP_OFFSETHOURS (ts));
 	szncsadtim += 2;
-	ubf_str0_from_59max (szncsadtim, (unsigned int) UBF_TIMESTAMP_OFFSETMINUTES (ts));
+	ubf_str0_from_59max (szncsadtim, (uint8_t) UBF_TIMESTAMP_OFFSETMINUTES (ts));
 	szncsadtim += 2;
 	*szncsadtim ++ = ']';
 	*szncsadtim = '\0';
