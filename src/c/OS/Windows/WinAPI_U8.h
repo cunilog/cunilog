@@ -1671,8 +1671,8 @@ TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileExU8)
 	To continue with the next directory entry, call FindNextFileW (). There is no
 	UTF-8 version called FindNextFileU8 ().
 
-	Before calling FindFirstFileExW () the function prepends a long filename
-	prefix ("\\?\") if lpFileNameU8 doesn't start with one already. This means the function
+	Before calling FindFirstFileExW (), the function prepends a long filename
+	prefix ("\\?\"), if lpFileNameU8 doesn't start with one already. This means the function
 	does not support relative paths.
 */
 HANDLE FindFirstFileExU8long(
@@ -1708,6 +1708,7 @@ TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileExU8long)
 	The function actually calls FindFirstFileExU8 (). See
 	https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfileexw
 	for details. The search is case-sensitive and does not return 8.3 filenames.
+	For more information on how this functions calls FindFirstFileExU8 (), see the code file.
 */
 HANDLE FindFirstFileU8(
   LPCSTR             lpFileNameU8,
@@ -1724,15 +1725,20 @@ TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileU8)
 /*
 	FindFirstFileU8long
 	
+	A UTF-8 version of FindFirstFileW (). See
+	https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfilew
+	for more information.
+	
 	To continue with the next directory entry, call FindNextFileW (). There is no
 	UTF-8 version called FindNextFileU8 ().
 
-	To continue with the next directory entry, call FindNextFileW (). There is no
-	UTF-8 version called FindNextFileU8 ().
-
-	Before calling FindFirstFileU8 () the function prepends a long filename
-	prefix ("\\?\") if lpFileNameU8 doesn't start with one already. This means the function
-	does not support relative paths.
+	The function actually calls FindFirstFileExU8long (). See
+	https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfileexw
+	for details. Before calling FindFirstFileExU8long (), the function prepends a long filename
+	prefix ("\\?\"), if lpFileNameU8 doesn't start with one already. This means the function
+	does not support relative paths. The search is case-sensitive and does not return 8.3
+	filenames. For details on how this functions calls FindFirstFileExU8long (), see the code
+	file.
 */
 HANDLE FindFirstFileU8long(
   LPCSTR             lpFileNameU8,
