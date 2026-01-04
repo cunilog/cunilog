@@ -4950,12 +4950,18 @@ SDIRW *ReadDirectoryEntriesSDIRW_WU8_ex	(
 	switch (u)
 	{
 		case EN_READ_DIR_ENTS_SDIRW_UTF8:
-			pwstrPath = (WCHAR *) strPathWorU8;
-			hFind = FindFirstFileW (pwstrPath, &wfdLocal);
-			break;
-		case EN_READ_DIR_ENTS_SDIRW_UTF16:
 			pstrPath = (char *) strPathWorU8;
 			hFind = FindFirstFileU8 (pstrPath, &wfdLocal);
+			break;
+		case EN_READ_DIR_ENTS_SDIRW_UTF16:
+			pwstrPath = (WCHAR *) strPathWorU8;
+			hFind = FindFirstFileExW	(
+				pwstrPath, FindExInfoBasic, &wfdLocal,
+				FindExSearchNameMatch, NULL, FIND_FIRST_EX_CASE_SENSITIVE
+										);
+			/*
+			hFind = FindFirstFileW (pwstrPath, &wfdLocal);
+			*/
 			break;
 	}
 
@@ -5042,7 +5048,11 @@ SDIRW *ReleaseDirectoryEntriesSDIRW (SDIRW *swd)
 	while (swd)
 	{
 		swdNext = swd->_next;
-		ubf_free (swd);
+		#ifdef UBF_MEM_DEBUG_USE_OUR_DEBUG_FUNCS
+			ubf_free (swd);
+		#else
+			free (swd);
+		#endif
 		swd = swdNext;
 	}
 	return NULL;
@@ -5591,6 +5601,51 @@ size_t ForEachDirectoryEntryMaskU8_dev	(
 	bool ForEachDirectoryEntryMaskU8TestFnct (void)
 	{
 		bool b = true;
+
+		/*
+			Test for ReadDirectoryEntriesSDIRW_WU8_ex ().
+		*/
+		// ReadDirectoryEntriesSDIRW_WU8_ex () UTF-16.
+		DWORD dwNum;
+		SDIRW *sd = ReadDirectoryEntriesSDIRW_WU8_ex	(
+			L"C:\\temp\\*", EN_READ_DIR_ENTS_SDIRW_UTF16, &dwNum, NULL, NULL, NULL
+														);
+		DWORD dw = 0;
+		SDIRW *sd2 = sd;
+		while (sd2)
+		{
+			b &= 0 != sd2->wfdW.cFileName [0];
+			ubf_assert (b);
+			++ dw;
+			sd2 = sd2->_next;
+		}
+		ubf_expect_bool_AND (b, NULL == sd2);
+		ubf_expect_bool_AND (b, dw == dwNum);
+		ReleaseDirectoryEntriesSDIRW (sd);
+
+		// ReadDirectoryEntriesSDIRW_WU8_ex () UTF-8.
+		DWORD dw2;
+		sd = ReadDirectoryEntriesSDIRW_WU8_ex	(
+			"C:\\temp\\*", EN_READ_DIR_ENTS_SDIRW_UTF8, &dw2, NULL, NULL, NULL
+												);
+		DWORD dw3 = 0;
+		sd2 = sd;
+		while (sd2)
+		{
+			b &= 0 != sd2->wfdW.cFileName [0];
+			ubf_assert (b);
+			++ dw3;
+			sd2 = sd2->_next;
+		}
+		ubf_expect_bool_AND (b, NULL == sd2);
+		ubf_expect_bool_AND (b, dw == dwNum);
+		ubf_expect_bool_AND (b, dw2 == dw);
+		ubf_expect_bool_AND (b, dw2 == dwNum);
+		ubf_expect_bool_AND (b, dw3 == dw2);
+		ReleaseDirectoryEntriesSDIRW (sd);
+		/*
+			End of test for ReadDirectoryEntriesSDIRW_WU8_ex ().
+		*/
 
 		size_t	ui	= SIZE_MAX;
 		size_t	n;
@@ -17374,7 +17429,7 @@ void asc_bin_from_octet (char *pc, uint8_t ui)
 	ubf_assert_non_NULL (pc);
 
 	memcpy (pc, &binASCII [4 * (((ui & 0xF0) >> 4) & 0x0F)],		4);		pc += 4;
-	memcpy (pc, &binASCII [4 * (((ui & 0x0F)))], 4);
+	memcpy (pc, &binASCII [4 * (((ui & 0x0F)))],					4);
 }
 
 void asc_bin_from_word (char *pc, uint16_t ui)
@@ -25697,6 +25752,14 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 	return false;
 }
 
+void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
+{
+	ubf_assert_non_NULL (pCunilogIni);
+
+	if (pCunilogIni->buf)
+		ubf_free (pCunilogIni->buf);
+}
+
 /*
 	Compares the section names szA and szB and returns true, if they're identical.
 	Also returns true if both are NULL.
@@ -25979,14 +26042,6 @@ bool CunilogIniKeyExists_ci	(
 			szSection, lnSection, szKey, lnKey, pCunilogIni,
 			enVlsCaseInsensitive
 									);
-}
-
-void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
-{
-	ubf_assert_non_NULL (pCunilogIni);
-
-	if (pCunilogIni->buf)
-		ubf_free (pCunilogIni->buf);
 }
 
 #ifdef CUNILOG_BUILD_CFG_PARSER_TEST_FNCT
@@ -32576,8 +32631,9 @@ static bool cunilogProcessTargetRedirectorFnct (CUNILOG_PROCESSOR *cup, CUNILOG_
 
 	if (put)
 	{
+		ubf_assert (cunilogIsTargetInitialised (put));
 		logEv (put, pev);
-		return false;
+		return false;										// Ignore remaining processors.
 	}
 	return true;
 }

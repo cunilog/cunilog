@@ -3528,8 +3528,8 @@ TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileExU8)
 	To continue with the next directory entry, call FindNextFileW (). There is no
 	UTF-8 version called FindNextFileU8 ().
 
-	Before calling FindFirstFileExW () the function prepends a long filename
-	prefix ("\\?\") if lpFileNameU8 doesn't start with one already. This means the function
+	Before calling FindFirstFileExW (), the function prepends a long filename
+	prefix ("\\?\"), if lpFileNameU8 doesn't start with one already. This means the function
 	does not support relative paths.
 */
 HANDLE FindFirstFileExU8long(
@@ -3565,6 +3565,7 @@ TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileExU8long)
 	The function actually calls FindFirstFileExU8 (). See
 	https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfileexw
 	for details. The search is case-sensitive and does not return 8.3 filenames.
+	For more information on how this functions calls FindFirstFileExU8 (), see the code file.
 */
 HANDLE FindFirstFileU8(
   LPCSTR             lpFileNameU8,
@@ -3581,15 +3582,20 @@ TYPEDEF_FNCT_PTR (HANDLE, FindFirstFileU8)
 /*
 	FindFirstFileU8long
 	
+	A UTF-8 version of FindFirstFileW (). See
+	https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfilew
+	for more information.
+	
 	To continue with the next directory entry, call FindNextFileW (). There is no
 	UTF-8 version called FindNextFileU8 ().
 
-	To continue with the next directory entry, call FindNextFileW (). There is no
-	UTF-8 version called FindNextFileU8 ().
-
-	Before calling FindFirstFileU8 () the function prepends a long filename
-	prefix ("\\?\") if lpFileNameU8 doesn't start with one already. This means the function
-	does not support relative paths.
+	The function actually calls FindFirstFileExU8long (). See
+	https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfileexw
+	for details. Before calling FindFirstFileExU8long (), the function prepends a long filename
+	prefix ("\\?\"), if lpFileNameU8 doesn't start with one already. This means the function
+	does not support relative paths. The search is case-sensitive and does not return 8.3
+	filenames. For details on how this functions calls FindFirstFileExU8long (), see the code
+	file.
 */
 HANDLE FindFirstFileU8long(
   LPCSTR             lpFileNameU8,
@@ -5969,7 +5975,14 @@ typedef void *(*RDEMallocCB)(size_t);
 	Windows UTF-16.
 
 	strPathWorU8	The path whose directory entries are to be retrieved. Can be
-					UTF-8 or Windows UTF-16, depending on the paramter u.
+					UTF-8 or Windows UTF-16, depending on the paramter u. This
+					parameter must match the criteria for the lpFileName parameter
+					of the FindFirstFileExW () or FindFirstFileExA () function.
+					See
+					https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfileexw
+					or
+					https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfileexa
+					for details.
 
 	u				Specifies the character set of the parameter strPathWorU8
 					(read as "string Path W or U8").
@@ -5997,8 +6010,9 @@ typedef void *(*RDEMallocCB)(size_t);
 					if it is not required.
 
 	pMalloc			A custom memory allocation function. Basically a replacement
-					for malloc () or ubf_malloc (). If this parameter is NULL
-					ubf_malloc () is used for allocating list elements.
+					for malloc () or ubf_malloc (). If this parameter is NULL,
+					either ubf_malloc () or malloc () is used for allocating list
+					elements.
 
 	The function returns NULL if the directory is empty or if there is not enough
 	space on the heap to allocate memory for all directory entries.
@@ -20504,8 +20518,8 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 	CunilogGetIniValuesFromKey
 
 	pValues			A pointer that receives a pointer to an array of SCUNILOGINIVALUES
-					structures. The function's return value provides the amount of
-					elements in the array.
+					structures. The function's return value provides the number of
+					elements in this array.
 
 	szSection		The name of the section the key belongs to. Keys do not necessarily
 					belong to a section. To obtain a key that is not part of a section,
@@ -21401,10 +21415,13 @@ typedef struct cunilog_rotation_data
 															//	file name). Only used when
 															//	CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE
 															//	set. See option flags below.
-	CUNILOG_TARGET				*plogCUNILOG_TARGET;		// Pointer to a logging target.
-															//	If this is NULL, the processor's
-															//	target is logged to, without
-															//	rotation.
+
+	// Pointer to a logging target used for rotational (internal) events.
+	CUNILOG_TARGET				*plogCUNILOG_TARGET;		//	If this is NULL, the processor's
+															//	own target is logged to, without
+															//	rotation. Should not point to the
+															//	processor's own target.
+
 	uint64_t					uiFlgs;						// Option flags. See below.
 } CUNILOG_ROTATION_DATA;
 

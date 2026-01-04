@@ -530,10 +530,13 @@ typedef struct cunilog_rotation_data
 															//	file name). Only used when
 															//	CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE
 															//	set. See option flags below.
-	CUNILOG_TARGET				*plogCUNILOG_TARGET;		// Pointer to a logging target.
-															//	If this is NULL, the processor's
-															//	target is logged to, without
-															//	rotation.
+
+	// Pointer to a logging target used for rotational (internal) events.
+	CUNILOG_TARGET				*plogCUNILOG_TARGET;		//	If this is NULL, the processor's
+															//	own target is logged to, without
+															//	rotation. Should not point to the
+															//	processor's own target.
+
 	uint64_t					uiFlgs;						// Option flags. See below.
 } CUNILOG_ROTATION_DATA;
 

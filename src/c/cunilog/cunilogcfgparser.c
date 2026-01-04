@@ -634,6 +634,14 @@ bool CreateSCUNILOGINI (SCUNILOGINI *pCunilogIni, const char *szIniBuf, size_t l
 	return false;
 }
 
+void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
+{
+	ubf_assert_non_NULL (pCunilogIni);
+
+	if (pCunilogIni->buf)
+		ubf_free (pCunilogIni->buf);
+}
+
 /*
 	Compares the section names szA and szB and returns true, if they're identical.
 	Also returns true if both are NULL.
@@ -916,14 +924,6 @@ bool CunilogIniKeyExists_ci	(
 			szSection, lnSection, szKey, lnKey, pCunilogIni,
 			enVlsCaseInsensitive
 									);
-}
-
-void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
-{
-	ubf_assert_non_NULL (pCunilogIni);
-
-	if (pCunilogIni->buf)
-		ubf_free (pCunilogIni->buf);
 }
 
 #ifdef CUNILOG_BUILD_CFG_PARSER_TEST_FNCT

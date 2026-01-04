@@ -261,8 +261,8 @@ void DoneSCUNILOGINI (SCUNILOGINI *pCunilogIni)
 	CunilogGetIniValuesFromKey
 
 	pValues			A pointer that receives a pointer to an array of SCUNILOGINIVALUES
-					structures. The function's return value provides the amount of
-					elements in the array.
+					structures. The function's return value provides the number of
+					elements in this array.
 
 	szSection		The name of the section the key belongs to. Keys do not necessarily
 					belong to a section. To obtain a key that is not part of a section,

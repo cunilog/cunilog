@@ -203,7 +203,14 @@ typedef void *(*RDEMallocCB)(size_t);
 	Windows UTF-16.
 
 	strPathWorU8	The path whose directory entries are to be retrieved. Can be
-					UTF-8 or Windows UTF-16, depending on the paramter u.
+					UTF-8 or Windows UTF-16, depending on the paramter u. This
+					parameter must match the criteria for the lpFileName parameter
+					of the FindFirstFileExW () or FindFirstFileExA () function.
+					See
+					https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfileexw
+					or
+					https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfileexa
+					for details.
 
 	u				Specifies the character set of the parameter strPathWorU8
 					(read as "string Path W or U8").
@@ -231,8 +238,9 @@ typedef void *(*RDEMallocCB)(size_t);
 					if it is not required.
 
 	pMalloc			A custom memory allocation function. Basically a replacement
-					for malloc () or ubf_malloc (). If this parameter is NULL
-					ubf_malloc () is used for allocating list elements.
+					for malloc () or ubf_malloc (). If this parameter is NULL,
+					either ubf_malloc () or malloc () is used for allocating list
+					elements.
 
 	The function returns NULL if the directory is empty or if there is not enough
 	space on the heap to allocate memory for all directory entries.

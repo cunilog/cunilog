@@ -5291,8 +5291,9 @@ static bool cunilogProcessTargetRedirectorFnct (CUNILOG_PROCESSOR *cup, CUNILOG_
 
 	if (put)
 	{
+		ubf_assert (cunilogIsTargetInitialised (put));
 		logEv (put, pev);
-		return false;
+		return false;										// Ignore remaining processors.
 	}
 	return true;
 }

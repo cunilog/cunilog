@@ -506,7 +506,7 @@ void asc_bin_from_octet (char *pc, uint8_t ui)
 	ubf_assert_non_NULL (pc);
 
 	memcpy (pc, &binASCII [4 * (((ui & 0xF0) >> 4) & 0x0F)],		4);		pc += 4;
-	memcpy (pc, &binASCII [4 * (((ui & 0x0F)))], 4);
+	memcpy (pc, &binASCII [4 * (((ui & 0x0F)))],					4);
 }
 
 void asc_bin_from_word (char *pc, uint16_t ui)
