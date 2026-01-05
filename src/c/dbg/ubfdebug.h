@@ -647,6 +647,20 @@ EXTERN_C_BEGIN
 	#define ONLY_IN_DEBUG(code)
 #endif
 
+/*
+	ubf_assert_size_t
+
+	Macro to check common debug initialisation values.
+
+	Define CUNILOG_IGNORE_VALID_SIZE_T_CHECKS to suppress.
+*/
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_size_t(s)							\
+		ubf_assert (0xCDCDCDCDCDCDCDCD != s)					// MSVC.
+#else
+	#define ubf_assert_size_t(s)
+#endif
+
 EXTERN_C_END
 
 #endif															// Of U_UBF_DEBUG_DEB_H_INCLUDED.

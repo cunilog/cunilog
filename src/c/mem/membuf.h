@@ -96,6 +96,10 @@ When		Who				What
 		(((sizeToAlign) + (PowerOfTwo) - 1) & ~((PowerOfTwo) - 1))
 #endif
 
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
 EXTERN_C_BEGIN
 
 /*

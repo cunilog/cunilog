@@ -92,7 +92,7 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrReserve) (SMEMBUF *pmb, const char *str,
 ;
 
 /*
-	initSMEMBUFfromStrReserveBytes
+	initSMEMBUFfromStrReserve
 
 	Initialises the SMEMBUF structure pmb points to, then duplicates str and fills the
 	structure accordingly.

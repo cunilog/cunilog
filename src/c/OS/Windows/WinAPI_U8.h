@@ -2123,15 +2123,23 @@ TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemType) (const char *chDriveR
 	the expensive check. Call ResetWinNotepadSupportsLineFeed () to reset the static
 	variable.
 
+	To build this function, define HAVE_VERSION. If HAVE_VERSION is not defined, this is
+	a macro that evaluates to true.
+
 
 	ResetWinNotepadSupportsLineFeed
 
 	Resets the saved boolean value, resulting in the check being carried out again next
 	time WinNotepadSupportsLineFeed () is called.
+
+	If HAVE_VERSION is not defined, this is a macro that evaluates to nothing.
 */
 #ifdef HAVE_VERSION
 	bool WinNotepadSupportsLineFeed (void);
 	void ResetWinNotepadSupportsLineFeed ();
+#else
+	#define WinNotepadSupportsLineFeed() (true)
+	#define ResetWinNotepadSupportsLineFeed ()
 #endif
 
 /*

@@ -78,7 +78,9 @@ When		Who				What
 
 void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz)
 {
-	ubf_assert_non_NULL (pb);
+	ubf_assert_non_NULL	(pb);
+	ubf_assert			(USE_STRLEN != siz);
+	ubf_assert_size_t	(siz);
 
 	if (siz != pb->size)
 	{
@@ -122,7 +124,9 @@ void *setToSizeSMEMBUF (SMEMBUF *pb, size_t siz)
 
 void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz)
 {
-	ubf_assert_non_NULL (pb);
+	ubf_assert_non_NULL	(pb);
+	ubf_assert			(USE_STRLEN != siz);
+	ubf_assert_size_t	(siz);
 
 	if (siz > pb->size)
 	{
@@ -134,6 +138,10 @@ void *growToSizeSMEMBUF (SMEMBUF *pb, size_t siz)
 void *growToSizeSMEMBUFreserve (SMEMBUF *pb, size_t siz, size_t res)
 {
 	ubf_assert_non_NULL (pb);
+	ubf_assert			(USE_STRLEN != siz);
+	ubf_assert_size_t	(siz);
+	ubf_assert			(USE_STRLEN != res);
+	ubf_assert_size_t	(res);
 
 	if (siz > pb->size)
 	{
@@ -145,6 +153,8 @@ void *growToSizeSMEMBUFreserve (SMEMBUF *pb, size_t siz, size_t res)
 void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 {
 	ubf_assert_non_NULL (pb);
+	ubf_assert			(USE_STRLEN != siz);
+	ubf_assert_size_t	(siz);
 
 	siz = ALIGN_SIZE (siz, 64);
 	if (siz > pb->size)
@@ -156,7 +166,9 @@ void *growToSizeSMEMBUF64aligned (SMEMBUF *pb, size_t siz)
 
 void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz)
 {
-	ubf_assert_non_NULL (pb);
+	ubf_assert_non_NULL	(pb);
+	ubf_assert			(USE_STRLEN != siz);
+	ubf_assert_size_t	(siz);
 
 	if (siz > pb->size)
 	{
@@ -258,6 +270,8 @@ void copySMEMBUFsiz (SMEMBUF *cunilog_restrict dst, SMEMBUF *cunilog_restrict sr
 	ubf_assert			(isInitialisedSMEMBUF (dst));
 	ubf_assert			(isInitialisedSMEMBUF (src));
 	ubf_assert			(dst != src);
+	ubf_assert			(USE_STRLEN != siz);
+	ubf_assert_size_t	(siz);
 	ubf_assert			(siz <= src->size);
 
 	growToSizeSMEMBUF (dst, siz);
@@ -278,6 +292,8 @@ void copySMEMBUFreserve	(
 	ubf_assert			(isInitialisedSMEMBUF (dst));
 	ubf_assert			(isInitialisedSMEMBUF (src));
 	ubf_assert			(dst != src);
+	ubf_assert			(USE_STRLEN != reserve);
+	ubf_assert_size_t	(reserve);
 
 	growToSizeSMEMBUF (dst, src->size + reserve);
 	if (isUsableSMEMBUF (dst))

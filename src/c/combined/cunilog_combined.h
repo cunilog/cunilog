@@ -1485,6 +1485,10 @@ When		Who				What
 		(((sizeToAlign) + (PowerOfTwo) - 1) & ~((PowerOfTwo) - 1))
 #endif
 
+#ifndef USE_STRLEN
+#define USE_STRLEN						((size_t) -1)
+#endif
+
 EXTERN_C_BEGIN
 
 /*
@@ -3980,15 +3984,23 @@ TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemType) (const char *chDriveR
 	the expensive check. Call ResetWinNotepadSupportsLineFeed () to reset the static
 	variable.
 
+	To build this function, define HAVE_VERSION. If HAVE_VERSION is not defined, this is
+	a macro that evaluates to true.
+
 
 	ResetWinNotepadSupportsLineFeed
 
 	Resets the saved boolean value, resulting in the check being carried out again next
 	time WinNotepadSupportsLineFeed () is called.
+
+	If HAVE_VERSION is not defined, this is a macro that evaluates to nothing.
 */
 #ifdef HAVE_VERSION
 	bool WinNotepadSupportsLineFeed (void);
 	void ResetWinNotepadSupportsLineFeed ();
+#else
+	#define WinNotepadSupportsLineFeed() (true)
+	#define ResetWinNotepadSupportsLineFeed ()
 #endif
 
 /*
@@ -9468,6 +9480,20 @@ EXTERN_C_BEGIN
 	#define ONLY_IN_DEBUG(code)
 #endif
 
+/*
+	ubf_assert_size_t
+
+	Macro to check common debug initialisation values.
+
+	Define CUNILOG_IGNORE_VALID_SIZE_T_CHECKS to suppress.
+*/
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_size_t(s)							\
+		ubf_assert (0xCDCDCDCDCDCDCDCD != s)
+#else
+	#define ubf_assert_size_t(s)
+#endif
+
 EXTERN_C_END
 
 #endif															// Of U_UBF_DEBUG_DEB_H_INCLUDED.
@@ -14670,6 +14696,20 @@ EXTERN_C_BEGIN
 	#define ONLY_IN_DEBUG(code)
 #endif
 
+/*
+	ubf_assert_size_t
+
+	Macro to check common debug initialisation values.
+
+	Define CUNILOG_IGNORE_VALID_SIZE_T_CHECKS to suppress.
+*/
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_size_t(s)							\
+		ubf_assert (0xCDCDCDCDCDCDCDCD != s)
+#else
+	#define ubf_assert_size_t(s)
+#endif
+
 EXTERN_C_END
 
 #endif															// Of U_UBF_DEBUG_DEB_H_INCLUDED.
@@ -19192,7 +19232,7 @@ TYPEDEF_FNCT_PTR (size_t, SMEMBUFfromStrReserve) (SMEMBUF *pmb, const char *str,
 ;
 
 /*
-	initSMEMBUFfromStrReserveBytes
+	initSMEMBUFfromStrReserve
 
 	Initialises the SMEMBUF structure pmb points to, then duplicates str and fills the
 	structure accordingly.
