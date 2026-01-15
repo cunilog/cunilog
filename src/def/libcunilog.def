@@ -9,7 +9,7 @@
 ;
 ;	Purpose:	Provides ordinals for functions and variables for Windows DLL.
 ;	OS:			Windows
-;	Created:	2025-12-15 16:43:46 (by script CreateWindowsDLLDef)
+;	Created:	2026-01-14 12:21:56 (by script CreateWindowsDLLDef)
 ;
 ;	License:	Public domain.
 ;
@@ -104,7 +104,7 @@ EXPORTS
 	logHexDumpq										@170
 	logHexOrText									@171
 	logHexOrTextq									@172
-	logHexOrTextU8									@173
+	logHexOrTextU8l									@173
 
 	logTextWU16sevl									@174
 	logTextWU16sev									@175

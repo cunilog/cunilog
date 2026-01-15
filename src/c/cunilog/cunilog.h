@@ -67,7 +67,7 @@ DoneCUNILOG_TARGETstatic ();
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -1832,7 +1832,7 @@ bool logHexDump				(CUNILOG_TARGET *put, const void *pBlob, size_t size);
 bool logHexDumpq			(CUNILOG_TARGET *put, const void *pBlob, size_t size);
 bool logHexOrText			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
 bool logHexOrTextq			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
-bool logHexOrTextU8			(CUNILOG_TARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
+bool logHexOrTextU8l		(CUNILOG_TARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
 
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWU16sevl		(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len);
@@ -1884,7 +1884,7 @@ bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 			l)							logHexDumpU8l		(pCUNILOG_TARGETstatic, (d), (n), (c), (l))
 #define logHexDump_static(d, s)			logHexDump			(pCUNILOG_TARGETstatic, (d), (s))
 #define logHexOrText_static(d, s)		logHexOrText		(pCUNILOG_TARGETstatic, (d), (s))
-#define logHexOrTextU8_static(d, s)		logHexOrTextU8		(pCUNILOG_TARGETstatic, (d), (s))
+#define logHexOrTextU8_static(d, s)		logHexOrTextU8l		(pCUNILOG_TARGETstatic, (d), (s))
 
 #ifdef PLATFORM_IS_WINDOWS
 #define logTextWU16sevl_static(v, t, l)	logTextWU16sevl		(pCUNILOG_TARGETstatic, (v), (t), (l))

@@ -88,7 +88,7 @@ EXPORTS
 	logHexDumpq										@nnn
 	logHexOrText									@nnn
 	logHexOrTextq									@nnn
-	logHexOrTextU8									@nnn
+	logHexOrTextU8l									@nnn
 
 	logTextWU16sevl									@nnn
 	logTextWU16sev									@nnn

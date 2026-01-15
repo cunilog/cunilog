@@ -85,7 +85,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -186,7 +186,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -284,7 +284,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -407,7 +407,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -516,7 +516,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -919,7 +919,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -1018,7 +1018,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -1221,7 +1221,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -1331,7 +1331,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -1414,7 +1414,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -1693,6 +1693,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 
 	This function/macro is probably a few CPU cycles faster than doneSMEMBUF ()
 	for structures that won't be re-used.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUF (SMEMBUF *pb);
@@ -1714,6 +1716,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 
 	This function/macro is probably a few CPU cycles faster than doneSMEMBUF ()
 	for structures that won't be re-used.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUFuncond (SMEMBUF *pb);
@@ -1731,6 +1735,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	with initSMEMBUF() so that it can/could be re-used.
 
 	Not to be called on structures that do not have any buffer allocated.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb);
@@ -1767,6 +1773,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 
 	This function or macro does not abort in debug versions if the SMEMBUF structure
 	doesn't have an allocated buffer.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUFuncond (SMEMBUF *pb);
@@ -1775,6 +1783,23 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	#define doneSMEMBUFuncond(p)						\
 		freeSMEMBUFuncond (p);							\
 		initSMEMBUF (p)
+#endif
+
+/*
+	DONESMEMBUFUNCOND
+
+	Deallocates the memory used by the SMEMBUF structure's buffer and initialises it
+	with initSMEMBUF() so that it can/could be re-used.
+
+	This function or macro does not abort in debug versions if the SMEMBUF structure
+	doesn't have an allocated buffer.
+*/
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	#define DONESMEMBUFUNCOND(s) doneSMEMBUFuncond (&(s))
+#else
+	#define DONESMEMBUFUNCOND(s)						\
+		freeSMEMBUFuncond (&(s));						\
+		INITSMEMBUF (s)
 #endif
 
 /*
@@ -1907,7 +1932,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -5805,7 +5830,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -6339,7 +6364,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -6504,7 +6529,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -6723,7 +6748,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -6864,7 +6889,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -6933,7 +6958,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -7069,7 +7094,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -7185,7 +7210,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -7335,7 +7360,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -7567,7 +7592,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -7679,7 +7704,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -7820,7 +7845,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -8047,7 +8072,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -8159,7 +8184,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -8689,7 +8714,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -8778,7 +8803,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -8858,7 +8883,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -9484,15 +9509,40 @@ EXTERN_C_BEGIN
 	ubf_assert_size_t
 
 	Macro to check common debug initialisation values.
+	The macro asserts that the provided size_t s is not equal to one of these
+	debug initialisation values. If it aborts, the caller almost certainly
+	has not initialised s.
+
+	The macro ubf_assert_pchar() is meant for a char *, and ubf_assert_uint64_t()
+	for a uint64_t.
 
 	Define CUNILOG_IGNORE_VALID_SIZE_T_CHECKS to suppress.
 */
 #if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
-	#define ubf_assert_size_t(s)							\
-		ubf_assert (0xCDCDCDCDCDCDCDCD != s)
+	#define ubf_assert_size_t(s)						\
+		ubf_assert (0xCDCDCDCDCDCDCDCD != s)					// MSVC.
 #else
 	#define ubf_assert_size_t(s)
 #endif
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_pchar(p)							\
+		ubf_assert_size_t ((size_t) p)
+#else
+	#define ubf_assert_pchar(p)
+#endif
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_pvoid(p)							\
+		ubf_assert_size_t ((size_t) p)
+#else
+	#define ubf_assert_pvoid(p)
+#endif
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_uint64_t(u)							\
+		ubf_assert_size_t ((size_t) u)
+#else
+	#define ubf_assert_pchar(p)
+#endif
+
 
 EXTERN_C_END
 
@@ -9525,7 +9575,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -9812,7 +9862,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -10228,7 +10278,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -10786,7 +10836,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -11378,7 +11428,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -11459,7 +11509,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -12079,10 +12129,17 @@ UBF_TIMESTAMP UBF_TIMESTAMP_OFFSET_BITS (SUBF_TIMESTRUCT *ts);
 	The macro UBF_TIMESTAMP_from_SUBF_TIMESTRUCT() is provided for parameter
 	consistency with its name, which is function (target, source).
 */
-void SUBF_TIMESTRUCT_to_UBF_TIMESTAMP (UBF_TIMESTAMP * t, SUBF_TIMESTRUCT * ts);
+void SUBF_TIMESTRUCT_to_UBF_TIMESTAMP (UBF_TIMESTAMP *t, SUBF_TIMESTRUCT *ts);
 
 #define UBF_TIMESTAMP_from_SUBF_TIMESTRUCT(ut, ts)		\
 			SUBF_TIMESTRUCT_to_UBF_TIMESTAMP ((ut), (ts))
+
+/*
+	isSaneUBF_TIMESTAMP
+
+	Returns true if the UBF_TIMESTAMP up points to seems reasonably valid.
+*/
+bool isSaneUBF_TIMESTAMP (UBF_TIMESTAMP ut);
 
 /*
 	GetSystemTime_SUBF_TIMESTRUCT
@@ -12213,7 +12270,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -13749,7 +13806,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -13913,7 +13970,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -14074,7 +14131,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -14700,15 +14757,40 @@ EXTERN_C_BEGIN
 	ubf_assert_size_t
 
 	Macro to check common debug initialisation values.
+	The macro asserts that the provided size_t s is not equal to one of these
+	debug initialisation values. If it aborts, the caller almost certainly
+	has not initialised s.
+
+	The macro ubf_assert_pchar() is meant for a char *, and ubf_assert_uint64_t()
+	for a uint64_t.
 
 	Define CUNILOG_IGNORE_VALID_SIZE_T_CHECKS to suppress.
 */
 #if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
-	#define ubf_assert_size_t(s)							\
-		ubf_assert (0xCDCDCDCDCDCDCDCD != s)
+	#define ubf_assert_size_t(s)						\
+		ubf_assert (0xCDCDCDCDCDCDCDCD != s)					// MSVC.
 #else
 	#define ubf_assert_size_t(s)
 #endif
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_pchar(p)							\
+		ubf_assert_size_t ((size_t) p)
+#else
+	#define ubf_assert_pchar(p)
+#endif
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_pvoid(p)							\
+		ubf_assert_size_t ((size_t) p)
+#else
+	#define ubf_assert_pvoid(p)
+#endif
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_uint64_t(u)							\
+		ubf_assert_size_t ((size_t) u)
+#else
+	#define ubf_assert_pchar(p)
+#endif
+
 
 EXTERN_C_END
 
@@ -14737,7 +14819,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -15068,7 +15150,7 @@ EXTERN_C_BEGIN
 
 	Checks if str points to a valid UTF-8 character set string with length len.
 
-	Returns true if every character in str is a valid
+	Returns true if every code point in str is a valid UTF-8 character.
 */
 bool c_check_utf8(const char *str, size_t len);
 TYPEDEF_FNCT_PTR (bool, c_check_utf8) (const char *str, size_t len);
@@ -15136,7 +15218,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -15335,7 +15417,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -15713,7 +15795,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -16440,7 +16522,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -16572,7 +16654,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -17254,7 +17336,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -17675,7 +17757,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -17978,7 +18060,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -18235,7 +18317,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -18774,7 +18856,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -18988,7 +19070,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -19070,7 +19152,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -19162,7 +19244,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -19590,7 +19672,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -19805,7 +19887,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -20227,7 +20309,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -20367,7 +20449,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -20733,7 +20815,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -20947,7 +21029,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -22579,7 +22661,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -22661,7 +22743,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -22875,7 +22957,7 @@ DoneCUNILOG_TARGETstatic ();
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -24640,7 +24722,7 @@ bool logHexDump				(CUNILOG_TARGET *put, const void *pBlob, size_t size);
 bool logHexDumpq			(CUNILOG_TARGET *put, const void *pBlob, size_t size);
 bool logHexOrText			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
 bool logHexOrTextq			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt);
-bool logHexOrTextU8			(CUNILOG_TARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
+bool logHexOrTextU8l		(CUNILOG_TARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8);
 
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWU16sevl		(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len);
@@ -24692,7 +24774,7 @@ bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 			l)							logHexDumpU8l		(pCUNILOG_TARGETstatic, (d), (n), (c), (l))
 #define logHexDump_static(d, s)			logHexDump			(pCUNILOG_TARGETstatic, (d), (s))
 #define logHexOrText_static(d, s)		logHexOrText		(pCUNILOG_TARGETstatic, (d), (s))
-#define logHexOrTextU8_static(d, s)		logHexOrTextU8		(pCUNILOG_TARGETstatic, (d), (s))
+#define logHexOrTextU8_static(d, s)		logHexOrTextU8l		(pCUNILOG_TARGETstatic, (d), (s))
 
 #ifdef PLATFORM_IS_WINDOWS
 #define logTextWU16sevl_static(v, t, l)	logTextWU16sevl		(pCUNILOG_TARGETstatic, (v), (t), (l))
@@ -25181,7 +25263,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software

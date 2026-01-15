@@ -36,7 +36,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -656,10 +656,17 @@ UBF_TIMESTAMP UBF_TIMESTAMP_OFFSET_BITS (SUBF_TIMESTRUCT *ts);
 	The macro UBF_TIMESTAMP_from_SUBF_TIMESTRUCT() is provided for parameter
 	consistency with its name, which is function (target, source).
 */
-void SUBF_TIMESTRUCT_to_UBF_TIMESTAMP (UBF_TIMESTAMP * t, SUBF_TIMESTRUCT * ts);
+void SUBF_TIMESTRUCT_to_UBF_TIMESTAMP (UBF_TIMESTAMP *t, SUBF_TIMESTRUCT *ts);
 
 #define UBF_TIMESTAMP_from_SUBF_TIMESTRUCT(ut, ts)		\
 			SUBF_TIMESTRUCT_to_UBF_TIMESTAMP ((ut), (ts))
+
+/*
+	isSaneUBF_TIMESTAMP
+
+	Returns true if the UBF_TIMESTAMP up points to seems reasonably valid.
+*/
+bool isSaneUBF_TIMESTAMP (UBF_TIMESTAMP ut);
 
 /*
 	GetSystemTime_SUBF_TIMESTRUCT

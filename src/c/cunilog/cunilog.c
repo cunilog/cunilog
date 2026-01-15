@@ -22,7 +22,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -5544,10 +5544,10 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *p
 			CUNILOG_EVENT *pnx;
 			while (pev)
 			{	// Remember the next pointer because pev is going to be destroyed
-				//	by DoneSUNILOGEVENT ().
+				//	by DoneSUNILOGEVENT (), which is called by
+				//	cunilogProcessEventSingleThreaded ().
 				pnx = pev->next;
 				cunilogProcessEventSingleThreaded (pev);
-				DoneCUNILOG_EVENT (put, pev);
 				pev = pnx;
 			}
 			if (cunilogTargetHasShutdownInitiatedFlag (put) && 0 == put->nPendingNoRotEvts )
@@ -6096,9 +6096,10 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 
 bool logEv (CUNILOG_TARGET *put, CUNILOG_EVENT *pev)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 	ubf_assert_non_NULL (pev);
-	ubf_assert (cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6109,7 +6110,9 @@ bool logEv (CUNILOG_TARGET *put, CUNILOG_EVENT *pev)
 
 bool logTextU8sevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6120,7 +6123,9 @@ bool logTextU8sevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccTe
 
 bool logTextU8sevlts		(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len, UBF_TIMESTAMP ts)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6131,7 +6136,9 @@ bool logTextU8sevlts		(CUNILOG_TARGET *put, cueventseverity sev, const char *ccT
 
 bool logTextU8sevlq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6147,7 +6154,9 @@ bool logTextU8sevlq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccT
 
 bool logTextU8sevlqts		(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len, UBF_TIMESTAMP ts)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6163,17 +6172,27 @@ bool logTextU8sevlqts		(CUNILOG_TARGET *put, cueventseverity sev, const char *cc
 
 bool logTextU8sev			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText)
 {
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
+
 	return logTextU8sevl (put, sev, ccText, USE_STRLEN);
 }
 
 bool logTextU8sevq			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText)
 {
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
+
 	return logTextU8sevlq (put, sev, ccText, USE_STRLEN);
 }
 
 bool logTextU8l				(CUNILOG_TARGET *put, const char *ccText, size_t len)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6184,7 +6203,9 @@ bool logTextU8l				(CUNILOG_TARGET *put, const char *ccText, size_t len)
 
 bool logTextU8lts			(CUNILOG_TARGET *put, const char *ccText, size_t len, UBF_TIMESTAMP ts)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6195,7 +6216,9 @@ bool logTextU8lts			(CUNILOG_TARGET *put, const char *ccText, size_t len, UBF_TI
 
 bool logTextU8lq			(CUNILOG_TARGET *put, const char *ccText, size_t len)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6211,7 +6234,9 @@ bool logTextU8lq			(CUNILOG_TARGET *put, const char *ccText, size_t len)
 
 bool logTextU8lqts			(CUNILOG_TARGET *put, const char *ccText, size_t len, UBF_TIMESTAMP ts)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6227,17 +6252,27 @@ bool logTextU8lqts			(CUNILOG_TARGET *put, const char *ccText, size_t len, UBF_T
 
 bool logTextU8				(CUNILOG_TARGET *put, const char *ccText)
 {
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
+
 	return logTextU8l (put, ccText, USE_STRLEN);
 }
 
 bool logTextU8q				(CUNILOG_TARGET *put, const char *ccText)
 {
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
+
 	return logTextU8lq (put, ccText, USE_STRLEN);
 }
 
 bool logTextU8vfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6258,7 +6293,9 @@ bool logTextU8vfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 
 bool logTextU8fmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6275,7 +6312,9 @@ bool logTextU8fmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 
 bool logTextU8qvfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6296,7 +6335,9 @@ bool logTextU8qvfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 
 bool logTextU8qfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6313,7 +6354,9 @@ bool logTextU8qfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 
 bool logTextU8svfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6339,7 +6382,9 @@ bool logTextU8svfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 
 bool logTextU8sfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6356,7 +6401,9 @@ bool logTextU8sfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 
 bool logTextU8sqvfmt		(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6381,7 +6428,9 @@ bool logTextU8sqvfmt		(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 
 bool logTextU8sqfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6398,7 +6447,9 @@ bool logTextU8sqfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 
 bool logTextU8svfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6424,7 +6475,9 @@ bool logTextU8svfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 
 bool logTextU8sfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6441,8 +6494,10 @@ bool logTextU8sfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fm
 
 bool logTextU8smbvfmtsev	(CUNILOG_TARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (put);
-	ubf_assert (isInitialisedSMEMBUF (smb));
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
+	ubf_assert			(isInitialisedSMEMBUF (smb));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6466,8 +6521,10 @@ bool logTextU8smbvfmtsev	(CUNILOG_TARGET *put, SMEMBUF *smb, cueventseverity sev
 
 bool logTextU8smbfmtsev		(CUNILOG_TARGET *put, SMEMBUF *smb, cueventseverity sev, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (put);
-	ubf_assert (isInitialisedSMEMBUF (smb));
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
+	ubf_assert			(isInitialisedSMEMBUF (smb));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6484,8 +6541,10 @@ bool logTextU8smbfmtsev		(CUNILOG_TARGET *put, SMEMBUF *smb, cueventseverity sev
 
 bool logTextU8smbvfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (put);
-	ubf_assert (isInitialisedSMEMBUF (smb));
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
+	ubf_assert			(isInitialisedSMEMBUF (smb));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6495,8 +6554,10 @@ bool logTextU8smbvfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, va_l
 
 bool logTextU8smbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (put);
-	ubf_assert (isInitialisedSMEMBUF (smb));
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
+	ubf_assert			(isInitialisedSMEMBUF (smb));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6513,7 +6574,9 @@ bool logTextU8smbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...)
 
 bool logHexDumpU8sevl		(CUNILOG_TARGET *put, cueventseverity sev, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6524,7 +6587,9 @@ bool logHexDumpU8sevl		(CUNILOG_TARGET *put, cueventseverity sev, const void *pB
 
 bool logHexDumpU8l			(CUNILOG_TARGET *put, const void *pBlob, size_t size, const char *ccCaption, size_t lenCaption)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6538,7 +6603,9 @@ bool logHexDumpU8l			(CUNILOG_TARGET *put, const void *pBlob, size_t size, const
 
 bool logHexDump				(CUNILOG_TARGET *put, const void *pBlob, size_t size)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6552,7 +6619,9 @@ bool logHexDump				(CUNILOG_TARGET *put, const void *pBlob, size_t size)
 
 bool logHexDumpq			(CUNILOG_TARGET *put, const void *pBlob, size_t size)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6571,7 +6640,9 @@ bool logHexDumpq			(CUNILOG_TARGET *put, const void *pBlob, size_t size)
 
 bool logHexOrText			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6584,7 +6655,9 @@ bool logHexOrText			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHexO
 
 bool logHexOrTextq			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHexOrTxt)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6595,9 +6668,11 @@ bool logHexOrTextq			(CUNILOG_TARGET *put, const void *szHexOrTxt, size_t lenHex
 	return logHexDumpq (put, szHexOrTxt, lenHexOrTxt);
 }
 
-bool logHexOrTextU8			(CUNILOG_TARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8)
+bool logHexOrTextU8l			(CUNILOG_TARGET *put, const void *szHexOrTxtU8, size_t lenHexOrTxtU8)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6611,7 +6686,9 @@ bool logHexOrTextU8			(CUNILOG_TARGET *put, const void *szHexOrTxtU8, size_t len
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWU16sevl			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *cwText, size_t len)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 	
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6655,7 +6732,9 @@ bool logTextWU16sevl			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t 
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWU16sev			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *cwText)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 	
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6667,7 +6746,9 @@ bool logTextWU16sev			(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWU16l				(CUNILOG_TARGET *put, const wchar_t *cwText, size_t len)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 	
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6679,7 +6760,9 @@ bool logTextWU16l				(CUNILOG_TARGET *put, const wchar_t *cwText, size_t len)
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWU16				(CUNILOG_TARGET *put, const wchar_t *cwText)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 	
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6691,7 +6774,9 @@ bool logTextWU16				(CUNILOG_TARGET *put, const wchar_t *cwText)
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWU16svfmtsev	(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *wcFmt, va_list ap)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6719,7 +6804,9 @@ bool logTextWU16svfmtsev	(CUNILOG_TARGET *put, cueventseverity sev, const wchar_
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWU16sfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const wchar_t *wcFmt, ...)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6738,7 +6825,9 @@ bool logTextWU16sfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const wchar_
 #ifdef PLATFORM_IS_WINDOWS
 bool logTextWU16fmt			(CUNILOG_TARGET *put, const wchar_t *wcFmt, ...)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6756,7 +6845,9 @@ bool logTextWU16fmt			(CUNILOG_TARGET *put, const wchar_t *wcFmt, ...)
 
 bool logTextU8csevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText, size_t len)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6772,28 +6863,36 @@ bool logTextU8csevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccT
 
 bool logTextU8csev			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccText)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	return logTextU8csevl (put, sev, ccText, USE_STRLEN);
 }
 
 bool logTextU8cl			(CUNILOG_TARGET *put, const char *ccText, size_t len)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	return logTextU8csevl (put, cunilogEvtSeverityNone, ccText, len);
 }
 
 bool logTextU8c				(CUNILOG_TARGET *put, const char *ccText)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	return logTextU8csevl (put, cunilogEvtSeverityNone, ccText, USE_STRLEN);
 }
 
 bool logTextU8cvfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6814,7 +6913,9 @@ bool logTextU8cvfmt			(CUNILOG_TARGET *put, const char *fmt, va_list ap)
 
 bool logTextU8cfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6831,7 +6932,9 @@ bool logTextU8cfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 
 bool logTextU8csfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6862,8 +6965,10 @@ bool logTextU8csfmt			(CUNILOG_TARGET *put, const char *fmt, ...)
 
 bool logTextU8csmbvfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (put);
-	ubf_assert (isInitialisedSMEMBUF (smb));
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(isInitialisedSMEMBUF (smb));
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6888,8 +6993,10 @@ bool logTextU8csmbvfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, va_
 
 bool logTextU8csmbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (put);
-	ubf_assert (isInitialisedSMEMBUF (smb));
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(isInitialisedSMEMBUF (smb));
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6919,7 +7026,9 @@ bool logTextU8csmbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...)
 
 bool logTextU8csvfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, va_list ap)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;
@@ -6945,7 +7054,9 @@ bool logTextU8csvfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *
 
 bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, ...)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
 
 	if (cunilogTargetHasShutdownInitiatedFlag (put))
 		return false;

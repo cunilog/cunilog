@@ -69,7 +69,9 @@ bool c_check_utf8(const char *str, size_t len)
 	end = str + len;
 	while (pos < end) {
 		oct = *pos;
-		if ((oct & 0x80) == 0) {
+		if (0 == oct) {	// Addition Thomas: We do not accept 0 as valid UTF-8.
+			return false;
+		} else if ((oct & 0x80) == 0) {
 			bytes = 1;
 			ch = oct & 0x7f;
 		} else if ((oct & 0xe0) == 0xc0) {
@@ -137,6 +139,11 @@ unsigned int nWordsInUTF16char (uint16_t c)
 	{
 		bool b = true;
 
+		b &= c_check_utf8 ("ABC", 3);
+		ubf_assert_true (b);
+		// NUL in string is not accepted.
+		b &= !c_check_utf8 ("ABC\0\3", 5);
+		ubf_assert_true (b);
 		b &= c_check_utf8("ほげほげ", 12);
 		ubf_assert_true (b);
 		//ほげほげ in Shift-JIS
@@ -157,7 +164,7 @@ unsigned int nWordsInUTF16char (uint16_t c)
 		b &= c_check_utf8("Hello world.", 12) == true;
 		ubf_assert_true (b);
 		// empty
-		b &= c_check_utf8("", 1) == true;
+		b &= c_check_utf8("", 0) == true;
 		ubf_assert_true (b);
 		// specials
 		b &= c_check_utf8("\t\b", 2) == true;

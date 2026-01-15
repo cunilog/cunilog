@@ -71,7 +71,7 @@ EXTERN_C_BEGIN
 
 	Checks if str points to a valid UTF-8 character set string with length len.
 
-	Returns true if every character in str is a valid
+	Returns true if every code point in str is a valid UTF-8 character.
 */
 bool c_check_utf8(const char *str, size_t len);
 TYPEDEF_FNCT_PTR (bool, c_check_utf8) (const char *str, size_t len);

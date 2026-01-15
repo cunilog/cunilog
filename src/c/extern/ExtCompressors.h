@@ -28,7 +28,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software

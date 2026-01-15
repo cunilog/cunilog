@@ -26,7 +26,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -150,6 +150,19 @@ void SUBF_TIMESTRUCT_to_UBF_TIMESTAMP (UBF_TIMESTAMP *t, SUBF_TIMESTRUCT *ts)
 	s |= UBF_TIMESTAMP_MONTH_BITS (ts);
 	s |= UBF_TIMESTAMP_YEAR_BITS (ts);
 	*t = s;
+}
+
+bool isSaneUBF_TIMESTAMP (UBF_TIMESTAMP ut)
+{
+	bool r = true;
+	r &= 10000 > UBF_TIMESTAMP_YEAR			(ut);
+	r &=    13 > UBF_TIMESTAMP_MONTH		(ut);
+	r &=    32 > UBF_TIMESTAMP_DAY			(ut);
+	r &=    24 > UBF_TIMESTAMP_HOUR			(ut);
+	r &=    60 > UBF_TIMESTAMP_MINUTE		(ut);
+	r &=    60 > UBF_TIMESTAMP_SECOND		(ut);
+	r &=  1000 > UBF_TIMESTAMP_MILLISECOND	(ut);
+	return r;
 }
 
 #ifdef OS_IS_ANDROID

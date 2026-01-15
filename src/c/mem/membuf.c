@@ -21,7 +21,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -177,8 +177,9 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz)
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUF (SMEMBUF *pb)
 	{
-		ubf_assert_non_NULL (pb);
-		ubf_assert_non_NULL (pb->buf.pvoid);
+		ubf_assert_non_NULL	(pb);
+		ubf_assert_non_NULL	(pb->buf.pvoid);
+		ubf_assert			(isInitialisedSMEMBUF (pb));
 
 		if (pb->buf.pvoid)
 		{
@@ -196,7 +197,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz)
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUFuncond (SMEMBUF *pb)
 	{
-		ubf_assert_non_NULL (pb);
+		ubf_assert_non_NULL	(pb);
+		//ubf_assert			(isInitialisedSMEMBUF (pb));
 
 		if (pb->buf.pvoid)
 			freeSMEMBUF (pb);
@@ -206,22 +208,19 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz)
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb)
 	{
-		ubf_assert_non_NULL (pb);
+		ubf_assert_non_NULL	(pb);
+		ubf_assert			(isInitialisedSMEMBUF (pb));
 
-		if (pb->buf.pvoid)
-		{
-			ubf_assert (0 < pb->size);
-
-			ubf_free (pb->buf.pvoid);
-			initSMEMBUF (pb);
-		}
+		freeSMEMBUF (pb);
+		initSMEMBUF (pb);
 	}
 #endif
 
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUFuncond (SMEMBUF *pb)
 	{
-		ubf_assert_non_NULL (pb);
+		ubf_assert_non_NULL	(pb);
+		//ubf_assert			(isInitialisedSMEMBUF (pb));
 
 		freeSMEMBUFuncond (pb);
 		initSMEMBUF (pb);

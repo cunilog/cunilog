@@ -25,7 +25,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -304,6 +304,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 
 	This function/macro is probably a few CPU cycles faster than doneSMEMBUF ()
 	for structures that won't be re-used.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUF (SMEMBUF *pb);
@@ -325,6 +327,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 
 	This function/macro is probably a few CPU cycles faster than doneSMEMBUF ()
 	for structures that won't be re-used.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void freeSMEMBUFuncond (SMEMBUF *pb);
@@ -342,6 +346,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	with initSMEMBUF() so that it can/could be re-used.
 
 	Not to be called on structures that do not have any buffer allocated.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb);
@@ -378,6 +384,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 
 	This function or macro does not abort in debug versions if the SMEMBUF structure
 	doesn't have an allocated buffer.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUFuncond (SMEMBUF *pb);
@@ -386,6 +394,23 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	#define doneSMEMBUFuncond(p)						\
 		freeSMEMBUFuncond (p);							\
 		initSMEMBUF (p)
+#endif
+
+/*
+	DONESMEMBUFUNCOND
+
+	Deallocates the memory used by the SMEMBUF structure's buffer and initialises it
+	with initSMEMBUF() so that it can/could be re-used.
+
+	This function or macro does not abort in debug versions if the SMEMBUF structure
+	doesn't have an allocated buffer.
+*/
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	#define DONESMEMBUFUNCOND(s) doneSMEMBUFuncond (&(s))
+#else
+	#define DONESMEMBUFUNCOND(s)						\
+		freeSMEMBUFuncond (&(s));						\
+		INITSMEMBUF (s)
 #endif
 
 /*

@@ -25,7 +25,7 @@ When		Who				What
 /*
 	This code is covered by the MIT License. See https://opensource.org/license/mit .
 
-	Copyright (c) 2024, 2025 Thomas
+	Copyright (c) 2024-2026 Thomas
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy of this
 	software and associated documentation files (the "Software"), to deal in the Software
@@ -651,15 +651,40 @@ EXTERN_C_BEGIN
 	ubf_assert_size_t
 
 	Macro to check common debug initialisation values.
+	The macro asserts that the provided size_t s is not equal to one of these
+	debug initialisation values. If it aborts, the caller almost certainly
+	has not initialised s.
+
+	The macro ubf_assert_pchar() is meant for a char *, and ubf_assert_uint64_t()
+	for a uint64_t.
 
 	Define CUNILOG_IGNORE_VALID_SIZE_T_CHECKS to suppress.
 */
 #if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
-	#define ubf_assert_size_t(s)							\
+	#define ubf_assert_size_t(s)						\
 		ubf_assert (0xCDCDCDCDCDCDCDCD != s)					// MSVC.
 #else
 	#define ubf_assert_size_t(s)
 #endif
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_pchar(p)							\
+		ubf_assert_size_t ((size_t) p)
+#else
+	#define ubf_assert_pchar(p)
+#endif
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_pvoid(p)							\
+		ubf_assert_size_t ((size_t) p)
+#else
+	#define ubf_assert_pvoid(p)
+#endif
+#if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
+	#define ubf_assert_uint64_t(u)							\
+		ubf_assert_size_t ((size_t) u)
+#else
+	#define ubf_assert_pchar(p)
+#endif
+
 
 EXTERN_C_END
 
