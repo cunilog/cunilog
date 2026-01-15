@@ -1,4 +1,3 @@
-
 # Building Cunilog
 
 There's several options to build Cunilog. It can be built as part of your application or as a static or dynamically linked (shared) library.
@@ -38,7 +37,7 @@ So far, Cunilog neither builds nor works on Linux. Stay tuned.
 Apart from the correct character set there's nothing special to consider for Windows. Either include the combined source code files or add every single file to your project.
 
 On Windows, Cunilog requires to be built with __Character Set__ set to __Use Unicode Character Set__. This means it can only be compiled as part of your application if your application is compiled with the same character set. Note that __Unicode Character Set__ on Windows means UTF-16, not UTF-8, which is fine because Cunilog converts all strings/texts to UTF-16 before it calls any Windows API.  It converts strings/texts coming back from Windows APIs to UTF-8 before returning them to the caller.
-In Visual Studio, the character set used to built an application can be found under __Project__, __Properties__, __Configuration Properties__, then __Advanced__. If your application needs to be built differently, consider building Cunilog as a statically or dynamically linked library.
+In Visual Studio, the character set used to build an application can be found under __Project__, __Properties__, __Configuration Properties__, then __Advanced__. If your application needs to be built differently, consider building Cunilog as a statically or dynamically linked library.
 
 ### Building Cunilog as a Windows static or dynamic (shared) library (DLL)
 
