@@ -4981,7 +4981,7 @@ SDIRW *ReadDirectoryEntriesSDIRW_WU8_ex	(
 	}
 
 	// Parameter for the ignore callback funciton.
-	sicData.UTF8orUTF16.strPathWorU8	= strPathWorU8;
+	sicData.UTF8orUTF16.strOrgPathWorU8	= strPathWorU8;
 	sicData.pwfd						= &wfdLocal;
 	sicData.u							= u;
 	sicData.pCustom						= pCustom;
@@ -5103,7 +5103,7 @@ uint64_t ReleaseDirectoryEntriesSDIRW_cnt (SDIRW *swd)
 		SRDIRONEENTRYSTRUCT	sdOneEntry;
 		DWORD				dwErrToReturn;
 
-		sdOneEntry.UTF8orUTF16.strPathWorU8	= strPathU8;
+		sdOneEntry.UTF8orUTF16.strOrgPathWorU8	= strPathU8;
 		sdOneEntry.pwfd							= &wfdW;
 		sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
 		sdOneEntry.pCustom						= pCustom;
@@ -5160,71 +5160,6 @@ uint64_t ReleaseDirectoryEntriesSDIRW_cnt (SDIRW *swd)
 	}
 #endif
 
-size_t ForEachDirectoryEntryU8		(
-				const char				*strPathU8,
-				pForEachDirEntryU8		fedEnt,
-				void					*pCustom,
-				size_t					*pnSubLevels
-									)
-{
-	HANDLE				hFind;
-	WIN32_FIND_DATAW	wfdW;
-	size_t				uiEnts				= 0;			// The return value.
-	SRDIRONEENTRYSTRUCT	sdOneEntry;
-	DWORD				dwErrToReturn;
-
-	sdOneEntry.UTF8orUTF16.strPathWorU8	= strPathU8;
-	sdOneEntry.pwfd							= &wfdW;
-	sdOneEntry.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
-	sdOneEntry.pCustom						= pCustom;
-	hFind = FindFirstFileU8 (strPathU8, &wfdW);
-	if (INVALID_HANDLE_VALUE == hFind)
-	{	// Maybe no files or whatever.
-		return uiEnts;
-	}
-	do
-	{
-		// Go through the folder and pick up each entry.
-		if (!isDotOrDotDotW (wfdW.cFileName))
-		{
-			++ uiEnts;
-			if (fedEnt)
-			{
-				if (!fedEnt (&sdOneEntry))
-					break;
-			}
-			if	(
-						wfdW.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY
-					&&	pnSubLevels
-					&&	*pnSubLevels
-				)
-			{
-				*pnSubLevels -= 1;
-				char *subPath = AllocU8path_from_U8path_and_WinU16FileName (strPathU8, wfdW.cFileName);
-				if (subPath)
-				{	// Recursively invoke us again.
-					uiEnts += ForEachDirectoryEntryU8	(
-									subPath,
-									fedEnt,
-									pCustom,
-									pnSubLevels
-														);
-					DoneU8 (subPath);
-				}
-				*pnSubLevels += 1;
-			}
-		}
-	} while (FindNextFileW (hFind, &wfdW) != 0);
-
-	// We want the caller to be able to obtain the last error produced by FindNextFileW ()
-	//	instead of FindClose ().
-	dwErrToReturn = GetLastError ();
-	FindClose (hFind);
-
-	SetLastError (dwErrToReturn);
-	return uiEnts;
-}
-
 static const char	ccCoverAllMask []	= "\\*";
 #define SIZCOVERALLMSK	(sizeof (ccCoverAllMask))
 #define LENCOVERALLMSK	(sizeof (ccCoverAllMask) - 1)
@@ -5234,76 +5169,58 @@ static const char	ccCoverAllMask []	= "\\*";
 	Requires correct lengths.
 	No NULL checks.
 */
-size_t ForEachDirEntryMaskU8intern	(
-				const char				*szFolderU8,
-				size_t					lnFolderU8,
+size_t ForEachDirEntryMaskU8intern		(
+				size_t					lenFolderU8,
 				pForEachDirEntryU8		fedEntCB,
-				void					*pCustom,
+				SRDIRONEENTRYSTRUCT		*psdE,
 				size_t					*pnSubLevels,
-				SRDIRONEENTRYSTRUCT		*psdE
+				void					*pCustom
 									)
 {
 	ubf_assert_non_NULL	(psdE);
-	ubf_assert_non_NULL	(psdE->mbSearchPathU8.buf.pcc);
+	ubf_assert_non_NULL (psdE->mbPathBuf.buf.pcc);
+	ubf_assert			(isInitialisedSMEMBUF (&psdE->mbPathBuf));
 	ubf_assert			(EN_READ_DIR_ENTS_SDIRW_UTF8 == psdE->u);
-	ubf_assert			(USE_STRLEN != psdE->lnSearchPathU8);
 	ubf_assert			(USE_STRLEN != psdE->lnMaskU8);
-	ubf_assert			(psdE->mbSearchPathU8.buf.pcc == szFolderU8);
 
 	size_t				uiEnts			= 0;				// The return value.
-	DWORD				dwErrToReturn	= ERROR_SUCCESS;
 	bool				bContinue		= true;
-
-	UNUSED (szFolderU8);
-	//cunilog_puts_l (psdE->mbSearchPathU8.buf.pcc, lnFolderU8);
-
-	// The search path + mask, for instance "C:\temp\*.*".
-	size_t stToReserve	= lnFolderU8
-						+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
-						+ SIZCOVERALLMSK				// Starts with a dir separator.
-						+ 1;							// NUL terminator.
-	growToSizeRetainSMEMBUF (&psdE->mbSearchPathU8, stToReserve);
-	if (!isUsableSMEMBUF (&psdE->mbSearchPathU8))
-	{
-		SetLastError (ERROR_NOT_ENOUGH_MEMORY);
+	
+	// Here we only take care of the current folder level.
+	size_t stPathBuf		= lenFolderU8
+							+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
+							+ 1;							// NUL terminator.
+	stPathBuf				+= LENCOVERALLMSK;
+	growToSizeRetainSMEMBUF (&psdE->mbPathBuf,		stPathBuf);
+	if (!isUsableSMEMBUF (&psdE->mbPathBuf))
 		return uiEnts;
-	}
-	memcpy (psdE->mbSearchPathU8.buf.pch + psdE->lnSearchPathU8, ccCoverAllMask, SIZCOVERALLMSK);
-	psdE->szFullPathU8	= psdE->mbSearchPathU8.buf.pch;
-	psdE->szPathU8		= psdE->mbSearchPathU8.buf.pch + psdE->lnOrgSeaPathU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR);
-	psdE->szFileNameU8	= psdE->mbSearchPathU8.buf.pch + psdE->lnSearchPathU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR);
 
-	HANDLE hFind = FindFirstFileU8long (psdE->mbSearchPathU8.buf.pch, psdE->pwfd);
+	memcpy (psdE->mbPathBuf.buf.pch + lenFolderU8, ccCoverAllMask, SIZCOVERALLMSK);
+
+	HANDLE hFind = FindFirstFileU8long (psdE->mbPathBuf.buf.pch, psdE->pwfd);
 	if (INVALID_HANDLE_VALUE == hFind)
-	{	// Maybe no files or whatever. We do not call SetLastError (), because Windows
-		//	will have set an appropriate error already for us.
 		return uiEnts;
-	}
+
 	do
-	{	// Go through the folder and pick up each entry.
+	{
 		if (isDotOrDotDotW (psdE->pwfd->cFileName))
 			continue;
 
-		++ uiEnts;
+		// The buffer already contains a backslash because ccCoverAllMask starts with one.
+		psdE->szFullPathU8	= psdE->mbPathBuf.buf.pcc;
+		psdE->szPathU8		= psdE->mbPathBuf.buf.pcc + psdE->lnOrgPathU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR);
+
+		psdE->szFileNameU8	= psdE->mbPathBuf.buf.pcc + lenFolderU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR);
 		size_t stFileNameU8 = UTF8_from_WinU16	(
-									psdE->szFileNameU8, UTF8_MAX_PATH,
+									(char *) psdE->szFileNameU8, UTF8_MAX_PATH,
 									psdE->pwfd->cFileName
 												);
-		// We expect a NUL terminator.
-		ubf_assert (0 <stFileNameU8);
 		psdE->lnFileNameU8 = stFileNameU8 - 1;
+		ubf_assert (0 < stFileNameU8);
 		ubf_assert (ASCII_NUL == psdE->szFileNameU8 [psdE->lnFileNameU8]);
-		// Must be part of the whole path.
-		ubf_assert (psdE->szFileNameU8 > psdE->mbSearchPathU8.buf.pch);
 
-		psdE->lnFullPathU8 = lnFolderU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR) + psdE->lnFileNameU8;
-		ubf_assert (ASCII_NUL == psdE->szFullPathU8 [psdE->lnFullPathU8]);
-		ubf_assert (strlen (psdE->szFullPathU8) == psdE->lnFullPathU8);
-
-		psdE->lnPathU8 = psdE->lnFileNameU8;
-		ubf_assert (lnFolderU8 >= psdE->lnOrgSeaPathU8);
-		if (lnFolderU8 - psdE->lnOrgSeaPathU8)
-			psdE->lnPathU8 += lnFolderU8 - psdE->lnOrgSeaPathU8;
+		psdE->lnFullPathU8	= lenFolderU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR) + psdE->lnFileNameU8;
+		psdE->lnPathU8		= lenFolderU8 + psdE->lnFileNameU8 - psdE->lnOrgPathU8;
 		ubf_assert (ASCII_NUL == psdE->szPathU8 [psdE->lnPathU8]);
 
 		bool bMatch = matchWildcardPattern	(
@@ -5312,12 +5229,20 @@ size_t ForEachDirEntryMaskU8intern	(
 											);
 
 		// Ensure that everything's fine for the callback function.
+		ubf_assert (ASCII_NUL == psdE->szFullPathU8 [psdE->lnFullPathU8]);
 		ubf_assert (strlen (psdE->szFullPathU8)		== psdE->lnFullPathU8);
 		ubf_assert (strlen (psdE->szPathU8)			== psdE->lnPathU8);
 		ubf_assert (strlen (psdE->szFileNameU8)		== psdE->lnFileNameU8);
 
-		bContinue = fedEntCB && bMatch ? fedEntCB (psdE) : true;
-		if (
+		if (psdE->pwfd->dwFileAttributes & psdE->dwExcludeAttrs)
+			bContinue = true;
+		else
+		{
+			++ uiEnts;
+			bContinue = fedEntCB && bMatch ? fedEntCB (psdE) : true;
+		}
+		
+		if	(
 					bContinue
 				&&	pnSubLevels
 				&&	*pnSubLevels
@@ -5325,31 +5250,45 @@ size_t ForEachDirEntryMaskU8intern	(
 			)
 		{
 			*pnSubLevels -= 1;
-			ubf_assert (strlen (psdE->szFullPathU8) == psdE->lnFullPathU8);
-			size_t lnSearchPathU8	= psdE->lnOrgSeaPathU8;
-			size_t lnPathU8			= psdE->lnPathU8;
-			psdE->lnSearchPathU8 += LENOFSTR (UBF_WIN_DIR_SEP_STR) + psdE->lnFileNameU8;
 			uiEnts = ForEachDirEntryMaskU8intern	(
-							psdE->mbSearchPathU8.buf.pcc,
-							psdE->lnSearchPathU8,
-							fedEntCB, pCustom, pnSubLevels, psdE
+							psdE->lnFullPathU8, fedEntCB, psdE, pnSubLevels, pCustom
 													);
-			psdE->lnSearchPathU8	= lnSearchPathU8;
-			psdE->szFullPathU8		= psdE->mbSearchPathU8.buf.pch;
-			psdE->szPathU8			= psdE->mbSearchPathU8.buf.pch + LENOFSTR (UBF_WIN_DIR_SEP_STR) + lnSearchPathU8;
-			psdE->lnPathU8			= lnPathU8;
-			psdE->szFileNameU8		= psdE->mbSearchPathU8.buf.pch + psdE->lnSearchPathU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR);
 			*pnSubLevels += 1;
 		}
 	} while (bContinue && FindNextFileW (hFind, psdE->pwfd));
 
-	// We want the caller to be able to obtain the last error produced by FindNextFileW ()
-	//	instead of FindClose ().
-	dwErrToReturn = GetLastError ();
 	FindClose (hFind);
-
-	SetLastError (dwErrToReturn);
 	return uiEnts;
+}
+
+static void prepareInitialPathBuf (SMEMBUF *pmb, const char *strPath, size_t lnPath)
+{
+	ubf_assert_non_NULL	(pmb);
+	ubf_assert			(isInitialisedSMEMBUF (pmb));
+	ubf_assert			(isUsableSMEMBUF (pmb));
+	ubf_assert_non_NULL	(strPath);
+	ubf_assert_non_0	(lnPath);
+
+	memcpy (pmb->buf.pch, strPath, lnPath);
+	pmb->buf.pch [lnPath] = ASCII_NUL;
+	str_correct_dir_separators (pmb->buf.pch, lnPath);
+	str_remove_path_navigators (pmb->buf.pch, &lnPath);
+}
+
+static DWORD obtainExcludeAttrsFromExcludeFlags (uint32_t uiExcludeFlags)
+{
+	DWORD dwAttrs = 0;
+
+	dwAttrs |= FEDEMDIRENT_NO_DIRECTORY		& uiExcludeFlags ? FILE_ATTRIBUTE_DIRECTORY		: 0;
+	dwAttrs |= FEDEMDIRENT_NO_SYSTEM		& uiExcludeFlags ? FILE_ATTRIBUTE_SYSTEM		: 0;
+	dwAttrs |= FEDEMDIRENT_NO_READONLY		& uiExcludeFlags ? FILE_ATTRIBUTE_READONLY		: 0;
+	dwAttrs |= FEDEMDIRENT_NO_HIDDEN		& uiExcludeFlags ? FILE_ATTRIBUTE_HIDDEN		: 0;
+	dwAttrs |= FEDEMDIRENT_NO_TEMPORARY		& uiExcludeFlags ? FILE_ATTRIBUTE_TEMPORARY		: 0;
+	dwAttrs |= FEDEMDIRENT_NO_ARCHIVE		& uiExcludeFlags ? FILE_ATTRIBUTE_ARCHIVE		: 0;
+	dwAttrs |= FEDEMDIRENT_NO_NORMAL		& uiExcludeFlags ? FILE_ATTRIBUTE_NORMAL		: 0;
+	dwAttrs |= FEDEMDIRENT_NO_COMPRESSED	& uiExcludeFlags ? FILE_ATTRIBUTE_COMPRESSED	: 0;
+	dwAttrs |= FEDEMDIRENT_NO_LINKS			& uiExcludeFlags ? FILE_ATTRIBUTE_REPARSE_POINT	: 0;
+	return dwAttrs;
 }
 
 size_t ForEachDirectoryEntryMaskU8	(
@@ -5358,238 +5297,55 @@ size_t ForEachDirectoryEntryMaskU8	(
 				const char				*strMaskU8,
 				size_t					lenMaskU8,
 				pForEachDirEntryU8		fedEntCB,
-				void					*pCustom,
-				size_t					*pnSubLevels
+				size_t					*pnSubLevels,
+				uint32_t				uiExcludeFlags,
+				void					*pCustom
 									)
 {
 	ubf_assert_non_NULL	(strFolderU8);
 	ubf_assert_non_0	(lenFolderU8);
 
 	size_t	uiEnts		= 0;
-	size_t	folderU8len	= str_remove_last_dir_separator (strFolderU8, lenFolderU8);
-	if (folderU8len)
+	lenFolderU8	= str_remove_last_dir_separator (strFolderU8, lenFolderU8);
+	if (lenFolderU8)
 	{
 		lenMaskU8 = strMaskU8 ? (USE_STRLEN == lenMaskU8 ? strlen (strMaskU8) : lenMaskU8) : 0;
 
-		WIN32_FIND_DATAW	wfdW;
-		SRDIRONEENTRYSTRUCT	sdOneEntry;
-		memset (&sdOneEntry, 0, sizeof (SRDIRONEENTRYSTRUCT));
-		sdOneEntry.UTF8orUTF16.strPathWorU8	= strFolderU8;
-		sdOneEntry.u						= EN_READ_DIR_ENTS_SDIRW_UTF8;
-		sdOneEntry.pwfd						= &wfdW;
-		sdOneEntry.pCustom					= pCustom;
-		sdOneEntry.szMaskU8					= strMaskU8;
-		sdOneEntry.lnMaskU8					= lenMaskU8;
-		INITSMEMBUF (sdOneEntry.mbSearchPathU8);
+		WIN32_FIND_DATAW		wfdW;
+		SRDIRONEENTRYSTRUCT		sdE;
+		memset (&sdE, 0, sizeof (SRDIRONEENTRYSTRUCT));
+		sdE.UTF8orUTF16.strOrgPathWorU8	= strFolderU8;
+		sdE.lnOrgPathU8					= lenFolderU8;
+		sdE.u							= EN_READ_DIR_ENTS_SDIRW_UTF8;
+		sdE.pwfd						= &wfdW;
+		sdE.dwExcludeAttrs				= obtainExcludeAttrsFromExcludeFlags (uiExcludeFlags);
+		sdE.pCustom						= pCustom;
+		sdE.szMaskU8					= strMaskU8;
+		sdE.lnMaskU8					= lenMaskU8;
+		INITSMEMBUF (sdE.mbPathBuf);
 
-		size_t stToReserve	= folderU8len
-							+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
-							// We allow for a minimum of 2 levels deep beforehand.
-							+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
-							+ SIZCOVERALLMSK				// Starts with a dir separator.
-							+ 1;							// NUL terminator.
-		growToSizeSMEMBUF (&sdOneEntry.mbSearchPathU8, stToReserve);
-		// Windows is going to set the last error here.
-		if (!isUsableSMEMBUF (&sdOneEntry.mbSearchPathU8))
+		size_t stPathBuf		= lenFolderU8
+								+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
+								+ 1;							// NUL terminator.
+
+		// If we're allowed to dig into sublevels, allow for at least one more level beforehand.
+		if (pnSubLevels && *pnSubLevels)
+			stPathBuf			+= LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH;
+		
+		// Plus the length of the actual mask ("\*") to use it for FindFirstFile ().
+		stPathBuf				+= LENCOVERALLMSK;
+
+		growToSizeSMEMBUF (&sdE.mbPathBuf,		stPathBuf);
+		// Windows is going to set the last error here for us.
+		if (!isUsableSMEMBUF (&sdE.mbPathBuf))
 			return uiEnts;
 
-		memcpy (sdOneEntry.mbSearchPathU8.buf.pch, strFolderU8, folderU8len);
-		sdOneEntry.mbSearchPathU8.buf.pch [folderU8len] = ASCII_NUL;
-		str_correct_dir_separators (sdOneEntry.mbSearchPathU8.buf.pch, folderU8len);
-		str_remove_path_navigators (sdOneEntry.mbSearchPathU8.buf.pch, &folderU8len);
-		sdOneEntry.lnSearchPathU8	= folderU8len;
-		sdOneEntry.lnOrgSeaPathU8	= folderU8len;
+		prepareInitialPathBuf (&sdE.mbPathBuf,		strFolderU8, lenFolderU8);
 
 		uiEnts = ForEachDirEntryMaskU8intern	(
-					sdOneEntry.mbSearchPathU8.buf.pch,
-					sdOneEntry.lnSearchPathU8,
-					fedEntCB, pCustom, pnSubLevels, &sdOneEntry
+					lenFolderU8, fedEntCB, &sdE, pnSubLevels, pCustom
 												);
-		DONESMEMBUF (sdOneEntry.mbSearchPathU8);
-
-	} else
-		SetLastError (ERROR_INVALID_PARAMETER);
-	return uiEnts;
-}
-
-/*
-	Under development.
-*/
-size_t ForEachDirEntryMaskU8intern_dev	(
-				const char				*szFolderU8,
-				size_t					lnFolderU8,
-				pForEachDirEntryU8		fedEntCB,
-				void					*pCustom,
-				size_t					*pnSubLevels,
-				SRDIRONEENTRYSTRUCT		*psdE
-									)
-{
-	ubf_assert_non_NULL	(psdE);
-	ubf_assert_non_NULL	(psdE->mbSearchPathU8.buf.pcc);
-	ubf_assert			(EN_READ_DIR_ENTS_SDIRW_UTF8 == psdE->u);
-	ubf_assert			(USE_STRLEN != psdE->lnSearchPathU8);
-	ubf_assert			(USE_STRLEN != psdE->lnMaskU8);
-	ubf_assert			(psdE->mbSearchPathU8.buf.pcc == szFolderU8);
-
-	size_t				uiEnts			= 0;				// The return value.
-	DWORD				dwErrToReturn	= ERROR_SUCCESS;
-	bool				bContinue		= true;
-
-	UNUSED (szFolderU8);
-	//cunilog_puts_l (psdE->mbSearchPathU8.buf.pcc, lnFolderU8);
-
-	// The search path + mask, for instance "C:\temp\*.*".
-	size_t stToReserve	= lnFolderU8
-						+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
-						+ SIZCOVERALLMSK				// Starts with a dir separator.
-						+ 1;							// NUL terminator.
-	growToSizeRetainSMEMBUF (&psdE->mbSearchPathU8, stToReserve);
-	if (!isUsableSMEMBUF (&psdE->mbSearchPathU8))
-	{
-		SetLastError (ERROR_NOT_ENOUGH_MEMORY);
-		return uiEnts;
-	}
-	memcpy (psdE->mbSearchPathU8.buf.pch + psdE->lnSearchPathU8, ccCoverAllMask, SIZCOVERALLMSK);
-	psdE->szFullPathU8	= psdE->mbSearchPathU8.buf.pch;
-	psdE->szPathU8		= psdE->mbSearchPathU8.buf.pch + psdE->lnOrgSeaPathU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR);
-	psdE->szFileNameU8	= psdE->mbSearchPathU8.buf.pch + psdE->lnSearchPathU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR);
-
-	HANDLE hFind = FindFirstFileU8long (psdE->mbSearchPathU8.buf.pch, psdE->pwfd);
-	if (INVALID_HANDLE_VALUE == hFind)
-	{	// Maybe no files or whatever. We do not call SetLastError (), because Windows
-		//	will have set an appropriate error already for us.
-		return uiEnts;
-	}
-	do
-	{	// Go through the folder and pick up each entry.
-		if (isDotOrDotDotW (psdE->pwfd->cFileName))
-			continue;
-
-		++ uiEnts;
-		size_t stFileNameU8 = UTF8_from_WinU16	(
-									psdE->szFileNameU8, UTF8_MAX_PATH,
-									psdE->pwfd->cFileName
-												);
-		// We expect a NUL terminator.
-		ubf_assert (0 <stFileNameU8);
-		psdE->lnFileNameU8 = stFileNameU8 - 1;
-		ubf_assert (ASCII_NUL == psdE->szFileNameU8 [psdE->lnFileNameU8]);
-		// Must be part of the whole path.
-		ubf_assert (psdE->szFileNameU8 > psdE->mbSearchPathU8.buf.pch);
-
-		psdE->lnFullPathU8 = lnFolderU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR) + psdE->lnFileNameU8;
-		ubf_assert (ASCII_NUL == psdE->szFullPathU8 [psdE->lnFullPathU8]);
-		ubf_assert (strlen (psdE->szFullPathU8) == psdE->lnFullPathU8);
-
-		psdE->lnPathU8 = psdE->lnFileNameU8;
-		ubf_assert (lnFolderU8 >= psdE->lnOrgSeaPathU8);
-		if (lnFolderU8 - psdE->lnOrgSeaPathU8)
-			psdE->lnPathU8 += lnFolderU8 - psdE->lnOrgSeaPathU8;
-		ubf_assert (ASCII_NUL == psdE->szPathU8 [psdE->lnPathU8]);
-
-		bool bMatch = matchWildcardPattern	(
-						psdE->szPathU8,	psdE->lnPathU8,
-						psdE->szMaskU8,	psdE->lnMaskU8
-											);
-
-		// Ensure that everything's fine for the callback function.
-		ubf_assert (strlen (psdE->szFullPathU8)		== psdE->lnFullPathU8);
-		ubf_assert (strlen (psdE->szPathU8)			== psdE->lnPathU8);
-		ubf_assert (strlen (psdE->szFileNameU8)		== psdE->lnFileNameU8);
-
-		bContinue = fedEntCB && bMatch ? fedEntCB (psdE) : true;
-		if (
-					bContinue
-				&&	pnSubLevels
-				&&	*pnSubLevels
-				&&	psdE->pwfd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY
-			)
-		{
-			*pnSubLevels -= 1;
-			ubf_assert (strlen (psdE->szFullPathU8) == psdE->lnFullPathU8);
-			size_t lnSearchPathU8	= psdE->lnOrgSeaPathU8;
-			size_t lnPathU8			= psdE->lnPathU8;
-			psdE->lnSearchPathU8 += LENOFSTR (UBF_WIN_DIR_SEP_STR) + psdE->lnFileNameU8;
-			uiEnts = ForEachDirEntryMaskU8intern	(
-							psdE->mbSearchPathU8.buf.pcc,
-							psdE->lnSearchPathU8,
-							fedEntCB, pCustom, pnSubLevels, psdE
-													);
-			psdE->lnSearchPathU8	= lnSearchPathU8;
-			psdE->szFullPathU8		= psdE->mbSearchPathU8.buf.pch;
-			psdE->szPathU8			= psdE->mbSearchPathU8.buf.pch + LENOFSTR (UBF_WIN_DIR_SEP_STR) + lnSearchPathU8;
-			psdE->lnPathU8			= lnPathU8;
-			psdE->szFileNameU8		= psdE->mbSearchPathU8.buf.pch + psdE->lnSearchPathU8 + LENOFSTR (UBF_WIN_DIR_SEP_STR);
-			*pnSubLevels += 1;
-		}
-	} while (bContinue && FindNextFileW (hFind, psdE->pwfd));
-
-	// We want the caller to be able to obtain the last error produced by FindNextFileW ()
-	//	instead of FindClose ().
-	dwErrToReturn = GetLastError ();
-	FindClose (hFind);
-
-	SetLastError (dwErrToReturn);
-	return uiEnts;
-}
-
-/*
-	Under development.
-*/
-size_t ForEachDirectoryEntryMaskU8_dev	(
-				const char				*strFolderU8,
-				size_t					lenFolderU8,
-				const char				*strMaskU8,
-				size_t					lenMaskU8,
-				pForEachDirEntryU8		fedEntCB,
-				void					*pCustom,
-				size_t					*pnSubLevels
-									)
-{
-	ubf_assert_non_NULL	(strFolderU8);
-	ubf_assert_non_0	(lenFolderU8);
-
-	size_t	uiEnts		= 0;
-	size_t	folderU8len	= str_remove_last_dir_separator (strFolderU8, lenFolderU8);
-	if (folderU8len)
-	{
-		lenMaskU8 = strMaskU8 ? (USE_STRLEN == lenMaskU8 ? strlen (strMaskU8) : lenMaskU8) : 0;
-
-		WIN32_FIND_DATAW	wfdW;
-		SRDIRONEENTRYSTRUCT	sdOneEntry;
-		memset (&sdOneEntry, 0, sizeof (SRDIRONEENTRYSTRUCT));
-		sdOneEntry.UTF8orUTF16.strPathWorU8	= strFolderU8;
-		sdOneEntry.u						= EN_READ_DIR_ENTS_SDIRW_UTF8;
-		sdOneEntry.pwfd						= &wfdW;
-		sdOneEntry.pCustom					= pCustom;
-		sdOneEntry.szMaskU8					= strMaskU8;
-		sdOneEntry.lnMaskU8					= lenMaskU8;
-		INITSMEMBUF (sdOneEntry.mbSearchPathU8);
-
-		size_t stToReserve	= folderU8len
-							+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
-							// We allow for a minimum of 2 levels deep beforehand.
-							+ LENOFSTR (UBF_WIN_DIR_SEP_STR) + UTF8_MAX_PATH
-							+ SIZCOVERALLMSK				// Starts with a dir separator.
-							+ 1;							// NUL terminator.
-		growToSizeSMEMBUF (&sdOneEntry.mbSearchPathU8, stToReserve);
-		// Windows is going to set the last error here.
-		if (!isUsableSMEMBUF (&sdOneEntry.mbSearchPathU8))
-			return uiEnts;
-
-		memcpy (sdOneEntry.mbSearchPathU8.buf.pch, strFolderU8, folderU8len);
-		sdOneEntry.mbSearchPathU8.buf.pch [folderU8len] = ASCII_NUL;
-		str_correct_dir_separators (sdOneEntry.mbSearchPathU8.buf.pch, folderU8len);
-		str_remove_path_navigators (sdOneEntry.mbSearchPathU8.buf.pch, &folderU8len);
-		sdOneEntry.lnSearchPathU8	= folderU8len;
-		sdOneEntry.lnOrgSeaPathU8	= folderU8len;
-
-		uiEnts = ForEachDirEntryMaskU8intern_dev	(
-					sdOneEntry.mbSearchPathU8.buf.pch,
-					sdOneEntry.lnSearchPathU8,
-					fedEntCB, pCustom, pnSubLevels, &sdOneEntry
-													);
-		DONESMEMBUF (sdOneEntry.mbSearchPathU8);
+		DONESMEMBUF (sdE.mbPathBuf);
 
 	} else
 		SetLastError (ERROR_INVALID_PARAMETER);
@@ -5604,12 +5360,26 @@ size_t ForEachDirectoryEntryMaskU8_dev	(
 		ubf_assert_non_NULL (psdE);
 		ubf_assert (EN_READ_DIR_ENTS_SDIRW_UTF8 == psdE->u);
 
-		char cFilename [UTF8_MAX_PATH];
+		char cFilename [4 * UTF8_MAX_PATH];
 		UTF8_from_WinU16 (cFilename, UTF8_MAX_PATH, psdE->pwfd->cFileName);
-		//printf ("P: %s, %s\n", psdE->UTF8orUTF16.chPathU8, cFilename);
+		/*
+		puts ("");
+		printf ("Org:  %s,\t%s\n", psdE->UTF8orUTF16.chOrgPathU8, cFilename);
+		printf ("Full: %s,\t%s\n", psdE->szFullPathU8, cFilename);
+		printf ("Path: %s,\t%s\n", psdE->szPathU8, cFilename);
+		printf ("File: %s,\t%s\n", psdE->szFileNameU8, cFilename);
+		*/
+		/*
+		puts ("");
+		puts (psdE->szFullPathU8);
+		puts (psdE->szPathU8);
+		puts (psdE->szFileNameU8);
+		*/
 		++ uiTstGlob;
+		/*
 		if (uiTstGlob >= 100)
 			ubf_assert (false);
+		*/
 		return true;
 	}
 
@@ -5665,11 +5435,32 @@ size_t ForEachDirectoryEntryMaskU8_dev	(
 		size_t	ui	= SIZE_MAX;
 		size_t	n;
 
-		n = ForEachDirectoryEntryMaskU8_dev	(
+		//puts ("");
+		n = ForEachDirectoryEntryMaskU8	(
 				"C:\\temp",		USE_STRLEN,
 				//"*.txt",		USE_STRLEN,
 				"**",			USE_STRLEN,
-				perFile, NULL, &ui
+				perFile, &ui, 0, NULL
+										);
+		//puts ("Done.");
+
+		uint32_t	uiDontList	=		FEDEMDIRENT_NO_DIRECTORY
+									|	FEDEMDIRENT_NO_SYSTEM
+									|	FEDEMDIRENT_NO_HIDDEN;
+
+		n = ForEachDirectoryEntryMaskU8	(
+				"C:\\temp",		USE_STRLEN,
+				//"*.txt",		USE_STRLEN,
+				"**",			USE_STRLEN,
+				perFile, &ui, uiDontList, NULL
+										);
+		//puts ("Done.");
+
+		n = ForEachDirectoryEntryMaskU8	(
+				"C:\\Windows",		USE_STRLEN,
+				//"*.txt",		USE_STRLEN,
+				"**",			USE_STRLEN,
+				perFile, &ui, uiDontList, NULL
 										);
 		UNREFERENCED_PARAMETER (n);
 		/*
@@ -8581,7 +8372,7 @@ void DoneArgsList (char *szArgsList)
 
 	static bool HandleCommPipes	(
 			SRUNCMDCBINF		*pinf,
-			PROCESS_INFORMATION	*pi,
+			HANDLE				hProcess,
 			PH_SCHILDHANDLES	*pph,
 			SRCMDCBS			*pCBs,
 			enRCmdCBhow			cbHow,
@@ -8589,8 +8380,7 @@ void DoneArgsList (char *szArgsList)
 			void				*pCustom
 								)
 	{
-		ubf_assert_non_NULL (pi);
-		ubf_assert_non_NULL (pi->hProcess);
+		ubf_assert_non_NULL	(hProcess);
 		ubf_assert_non_NULL (pph);
 
 		bool		bRet				= false;
@@ -8692,7 +8482,7 @@ void DoneArgsList (char *szArgsList)
 			if (sbOut.bNeedsWait) h [0] = sbOut.hEvent; else h [0] = sbOut.hDEvent;
 			if (sbErr.bNeedsWait) h [1] = sbErr.hEvent; else h [1] = sbErr.hDEvent;
 			if (sbInp.bNeedsWait) h [2] = sbInp.hEvent; else h [2] = sbInp.hDEvent;
-			h [3] = pi->hProcess;
+			h [3] = hProcess;
 			DWORD dw = WaitForMultipleObjects (PHNHDLS, h, false, dwHeartbeatTimeOut);
 			//printf ("Wait complete with %d.\n", dw);
 			if (WAIT_TIMEOUT == dw)
@@ -8735,7 +8525,7 @@ void DoneArgsList (char *szArgsList)
 				)
 			{
 				if (!bChldExited)
-					bChldExited = TerminateProcessControlled (pi->hProcess, 0, dwChildExitTimeout);
+					bChldExited = TerminateProcessControlled (hProcess, 0, dwChildExitTimeout);
 
 				if	(
 							enRunCmdRet_TerminateFail	== sbOut.cbretval
@@ -8775,7 +8565,7 @@ void DoneArgsList (char *szArgsList)
 
 	static bool HandleCommunication	(
 			SRUNCMDCBINF			*pinf,
-			PROCESS_INFORMATION		*pi,
+			HANDLE					hProcess,
 			PH_SCHILDHANDLES		*pph,
 			SRCMDCBS				*pCBs,
 			enRCmdCBhow				cbHow,
@@ -8783,8 +8573,7 @@ void DoneArgsList (char *szArgsList)
 			void					*pCustom
 									)
 	{
-		ubf_assert_non_NULL (pi);
-		ubf_assert_non_NULL (pi->hProcess);
+		ubf_assert_non_NULL (hProcess);
 		ubf_assert_non_NULL (pph);
 
 		SRCMDCBS cbs;
@@ -8794,7 +8583,7 @@ void DoneArgsList (char *szArgsList)
 			pCBs = &cbs;
 		}
 
-		bool b = HandleCommPipes (pinf, pi, pph, pCBs, cbHow, uiCBflags, pCustom);
+		bool b = HandleCommPipes (pinf, hProcess, pph, pCBs, cbHow, uiCBflags, pCustom);
 
 		return b;
 	}
@@ -8870,10 +8659,10 @@ void DoneArgsList (char *szArgsList)
 					DWORD dwErr = GetLastError ();
 					if (dwErr) {}
 				#endif
-				inf.childProcessId	= pi.dwProcessId;
+				//inf.childProcessId	= pi.dwProcessId;
 
 				// This function returns false if a callback funciton returned enRunCmdRet_TerminateFail.
-				b &= b ? HandleCommunication (&inf, &pi, &ph, pCBsHB, cbHow, uiRCflags, pCustom) : false;
+				b &= b ? HandleCommunication (&inf, pi.hProcess, &ph, pCBsHB, cbHow, uiRCflags, pCustom) : false;
 
 				if (pExitCode)
 				{
@@ -27213,7 +27002,7 @@ void culCmdStoreCmdConfigEnableTaskProcessors (unsigned char *szOut, enum cunilo
 	memcpy (szOut + sizeof (enum cunilogEvtCmd), &task, sizeof (task));
 }
 
-void culCmdConfigDisableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szData)
+void culCmdConfigDisableTaskProcessors (CUNILOG_TARGET *put, const unsigned char *szData)
 {
 	enum cunilogprocesstask task;
 
@@ -27224,7 +27013,7 @@ void culCmdConfigDisableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szDa
 	ConfigCUNILOG_TARGETdisableTaskProcessors (put, task);
 }
 
-void culCmdConfigEnableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szData)
+void culCmdConfigEnableTaskProcessors (CUNILOG_TARGET *put, const unsigned char *szData)
 {
 	enum cunilogprocesstask task;
 
@@ -27296,7 +27085,7 @@ bool culCmdSetCurrentThreadPriority (cunilogprio prio)
 	#endif
 }
 
-void culCmdConfigSetLogPriority (unsigned char *szData)
+void culCmdConfigSetLogPriority (const unsigned char *szData)
 {
 	ubf_assert_non_NULL (szData);
 
@@ -27323,7 +27112,7 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 	CUNILOG_TARGET *put = pev->pCUNILOG_TARGET;
 	ubf_assert_non_NULL (put);
 
-	unsigned char		*szData = pev->szDataToLog;
+	const unsigned char	*szData = pev->szDataToLog;
 	enum cunilogEvtCmd	cmd;
 
 	memcpy (&cmd, szData, sizeof (enum cunilogEvtCmd));
@@ -30453,7 +30242,7 @@ static inline size_t widthOfCaptionLengthFromCunilogEventType (cueventtype type)
 	}
 }
 
-static size_t readCaptionLengthFromData (unsigned char *pData, size_t ui)
+static size_t readCaptionLengthFromData (const unsigned char *pData, size_t ui)
 {
 	uint8_t			ui8;
 	uint16_t		ui16;
@@ -30514,7 +30303,7 @@ static inline size_t requiredEventLineSizeHexDump	(
 	size_t ui			= widthOfCaptionLengthFromCunilogEventType (pev->evType);
 	// Its actual length. This needs to be added to our return value.
 	size_t lenCaption	= readCaptionLengthFromData (pev->szDataToLog, ui);
-	*pDumpData			= pev->szDataToLog + ui + lenCaption;
+	*pDumpData			= (unsigned char *) pev->szDataToLog + ui + lenCaption;
 	*width				= ui;
 	*len				= lenCaption;
 	r += lenCaption;
@@ -30660,6 +30449,23 @@ static size_t createU8EventLineFromCUNILOG_EVENT (CUNILOG_EVENT *pev)
 	return CUNILOG_SIZE_ERROR;
 }
 
+static size_t createCCEventLineFromCUNILOG_EVENT (CUNILOG_EVENT *pev)
+{
+	ubf_assert_non_NULL	(pev);
+	ubf_assert_non_NULL	(pev->pCUNILOG_TARGET);
+	ubf_assert			(isInitialisedSMEMBUF (&pev->pCUNILOG_TARGET->mbLogEventLine));
+	ubf_assert			(cunilogEvtTypeControlCode == pev->evType);
+
+	growToSizeSMEMBUF64aligned (&pev->pCUNILOG_TARGET->mbLogEventLine, pev->lenDataToLog);
+	if (isUsableSMEMBUF (&pev->pCUNILOG_TARGET->mbLogEventLine))
+	{
+		memcpy (pev->pCUNILOG_TARGET->mbLogEventLine.buf.pch, pev->szDataToLog, pev->lenDataToLog + 1);
+		pev->pCUNILOG_TARGET->lnLogEventLine = pev->lenDataToLog;
+		return pev->pCUNILOG_TARGET->lnLogEventLine;
+	}
+	return CUNILOG_SIZE_ERROR;
+}
+
 static size_t createEventLineFromCUNILOG_EVENT (CUNILOG_EVENT *pev)
 {
 	ubf_assert_non_NULL (pev);
@@ -30672,6 +30478,8 @@ static size_t createEventLineFromCUNILOG_EVENT (CUNILOG_EVENT *pev)
 	{
 		case cunilogEvtTypeNormalText:
 			return createU8EventLineFromCUNILOG_EVENT	(pev);
+		case cunilogEvtTypeControlCode:
+			return createCCEventLineFromCUNILOG_EVENT	(pev);
 	#ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 		case cunilogEvtTypeCommand:
 			ubf_assert_msg (false, "Cunilog bug! This function is not to be called in this case!");
@@ -30993,7 +30801,7 @@ CUNILOG_EVENT *DoneCUNILOG_EVENT (CUNILOG_TARGET *put, CUNILOG_EVENT *pev)
 	{
 		if (pev->szDataToLog && cunilogIsEventDataAllocated (pev))
 		{
-			ubf_free (pev->szDataToLog);
+			ubf_free ((char *) pev->szDataToLog);
 		}
 		if (cunilogIsEventAllocated (pev))
 		{
@@ -31218,6 +31026,31 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 	}
 #endif
 
+static bool cunilogProcessCCechoFnct	(
+				const char					*szToOutput,
+				size_t						lnToOutput,
+				CUNILOG_PROCESSOR			*cup,
+				CUNILOG_EVENT				*pev
+										)
+{
+	int		ips;
+
+	#ifdef PLATFORM_IS_WINDOWS
+			ips = cunilogPrintWin (szToOutput, lnToOutput);
+	#else
+		if (cunilogEvtTypeControlCode == pev->evType)
+			ips = printf (szToOutput, lnToOutput);
+	#endif
+
+	if (0 > ips)
+	{	// "Bad file descriptor" might not be the best error here but what's better?
+		ubf_assert_msg (false, "Error writing to stdout with printf ().");
+		cunilogSetTargetErrorAndInvokeErrorCallback (EBADF, cup, pev);
+		return false;
+	}
+	return true;
+}
+
 static bool cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 {
 	UNREFERENCED_PARAMETER (cup);
@@ -31234,7 +31067,6 @@ static bool cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 	//		- The length of the event line has been stored correctly.
 	//		- If we require a lock, we have it already.
 
-	int		ips;
 	char	*szToOutput;
 	size_t	lnToOutput;
 
@@ -31245,6 +31077,11 @@ static bool cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 		lnToOutput = pev->pCUNILOG_TARGET->lnLogEventLine;
 	#endif
 
+	if (cunilogEvtTypeControlCode == pev->evType)
+		return cunilogProcessCCechoFnct (szToOutput, lnToOutput, cup, pev);
+
+	int		ips;
+
 	#ifdef PLATFORM_IS_WINDOWS
 		ips = cunilogPutsWin (szToOutput, lnToOutput);
 	#else
@@ -31253,10 +31090,12 @@ static bool cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 		else
 			ips = puts ("");
 	#endif
+
 	if (EOF == ips)
 	{	// "Bad file descriptor" might not be the best error here but what's better?
-		ubf_assert_msg (false, "Error writing to stdout.");
+		ubf_assert_msg (false, "Error writing to stdout with puts ().");
 		cunilogSetTargetErrorAndInvokeErrorCallback (EBADF, cup, pev);
+		return false;
 	}
 	return true;
 }
@@ -31383,20 +31222,24 @@ static inline size_t addNewLineToLogEventLine (char *pData, size_t lnData, newli
 	return lnData + len;
 }
 
-static bool cunilogWriteDataToLogFile (CUNILOG_TARGET *put)
+static bool cunilogWriteDataToLogFile (CUNILOG_TARGET *put, CUNILOG_EVENT *pev)
 {
-	ubf_assert_non_NULL (put);
+	ubf_assert_non_NULL	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
+	ubf_assert_non_NULL	(pev);
 
 	char		*pData	= put->mbLogEventLine.buf.pch;
 	size_t		lnData	= put->lnLogEventLine;
 	newline_t	nl		= put->culogNewLine;
 
 	// We need space for the line ending plus a NUL character.
-	ubf_assert (put->mbLogEventLine.size > lnLineEnding (nl));
+	ubf_assert (put->mbLogEventLine.size > put->lnLogEventLine + lnLineEnding (nl));
 
 	#ifdef OS_IS_WINDOWS
 		DWORD dwWritten;
-		DWORD toWrite = addNewLineToLogEventLine (pData, lnData, nl) & 0xFFFFFFFF;
+		DWORD toWrite	= (cunilogEvtTypeControlCode == pev->evType)
+						? put->lnLogEventLine & 0xFFFFFFFF
+						: addNewLineToLogEventLine (pData, lnData, nl) & 0xFFFFFFFF;
 		// The file has been opened with FILE_APPEND_DATA, i.e. we don't need to
 		//	seek ourselves.
 		//	LARGE_INTEGER	z = {0, 0};
@@ -31405,7 +31248,9 @@ static bool cunilogWriteDataToLogFile (CUNILOG_TARGET *put)
 		pData [lnData] = ASCII_NUL;
 		return b;
 	#else
-		long lToWrite = (long) addNewLineToLogEventLine (pData, lnData, nl);
+		long lToWrite	= (cunilogEvtTypeControlCode == pev->evType)
+						? put->lnLogEventLine & 0xFFFFFFFF;
+						: (long) addNewLineToLogEventLine (pData, lnData, nl);
 		// See https://www.man7.org/linux/man-pages/man3/fopen.3.html .
 		//	A call "fseek (pl->fLogFile, (long) 0, SEEK_END);" is not required
 		//	because we opened the file in append mode.
@@ -31444,7 +31289,7 @@ static bool cunilogProcessWriteToLogFileFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EV
 			if (!cunilogOpenNewLogFile (put))
 				cunilogSetTargetErrorAndInvokeErrorCallback (CUNILOG_ERROR_OPENING_LOGFILE, cup, pev);
 		}
-		if (!cunilogWriteDataToLogFile (put))
+		if (!cunilogWriteDataToLogFile (put, pev))
 				cunilogSetTargetErrorAndInvokeErrorCallback (CUNILOG_ERROR_WRITING_LOGFILE, cup, pev);
 	}
 	return true;
@@ -31475,21 +31320,21 @@ static bool enqueueAndTriggerSeparateLoggingThread (CUNILOG_EVENT *pev);
 
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 
-	static inline void IncrementPendingNoRotationEvents (CUNILOG_TARGET *put)
+	static inline void IncrementPendingIntNoRotationEvents (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 		++ put->nPendingNoRotEvts;
 		//printf ("%" PRIu64 "\n", put->nPendingNoRotEvts);
 	}
-	static inline void DecrementPendingNoRotationEvents (CUNILOG_TARGET *put)
+	static inline void DecrementPendingIntNoRotationEvents (CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL (put);
 		-- put->nPendingNoRotEvts;
 		//printf ("%" PRIu64 "\n", put->nPendingNoRotEvts);
 	}
 #else
-	#define IncrementPendingNoRotationEvents(put)
-	#define DecrementPendingNoRotationEvents(put)
+	#define IncrementPendingIntNoRotationEvents(put)
+	#define DecrementPendingIntNoRotationEvents(put)
 #endif
 
 static bool logFromInsideRotatorTextU8fmt (CUNILOG_TARGET *put, const char *fmt, ...)
@@ -31551,7 +31396,7 @@ static bool logFromInsideRotatorTextU8fmt (CUNILOG_TARGET *put, const char *fmt,
 			#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 				if (HAS_CUNILOG_TARGET_A_QUEUE (put))
 				{
-					IncrementPendingNoRotationEvents (put);
+					IncrementPendingIntNoRotationEvents (put);
 					enqueueAndTriggerSeparateLoggingThread (pev);
 					bRet = true;
 				} else
@@ -31659,10 +31504,10 @@ static inline void renameDotNumberPostfixInFLS (CUNILOG_TARGET *put, size_t nLen
 
 	if (nLen > oLen)
 	{
-		char	*sz	= put->fls.data [prg->idx].chFilename;
-		size_t	ln	= put->fls.data [prg->idx].stFilename - oLen + nLen;
+		const char	*sz	= put->fls.data [prg->idx].chFilename;
+		size_t		ln	= put->fls.data [prg->idx].stFilename - oLen + nLen;
 		put->fls.data [prg->idx].chFilename = GetAlignedMemFromSBULKMEMgrow (&put->sbm, ln);
-		char *szFls = put->fls.data [prg->idx].chFilename;
+		char *szFls = (char *) put->fls.data [prg->idx].chFilename;
 		if (NULL == szFls)
 		{	// Bulk memory allocation failed. There's not much we can do.
 			ubf_assert_msg (false, "Bulk memory allocation failed");
@@ -31675,7 +31520,7 @@ static inline void renameDotNumberPostfixInFLS (CUNILOG_TARGET *put, size_t nLen
 		++ nLen;
 	}
 
-	szDst	=	put->fls.data [prg->idx].chFilename
+	szDst	=	(char *) put->fls.data [prg->idx].chFilename
 			+	put->lnAppName
 			+	lenCunilogLogFileNameExtension;
 
@@ -31704,7 +31549,7 @@ static inline void renameLogPostfixInFLS (CUNILOG_TARGET *put, const char *szNew
 	put->fls.data [prg->idx].chFilename = GetAlignedMemFromSBULKMEMgrow (&put->sbm, siz);
 	if (put->fls.data [prg->idx].chFilename)
 	{
-		memcpy (put->fls.data [prg->idx].chFilename, szNew, siz);
+		memcpy ((char *) put->fls.data [prg->idx].chFilename, szNew, siz);
 		put->fls.data [prg->idx].stFilename = siz;
 		return;
 	}
@@ -31741,8 +31586,8 @@ static inline void cunilogAddActiveLogfile (bool bIsActiveLogfile, bool i, CUNIL
 		currFls.chFilename = GetAlignedMemFromSBULKMEMgrow (&put->sbm, currFls.stFilename);
 		if (currFls.chFilename)
 		{
-			memcpy (currFls.chFilename, put->mbAppName.buf.pcc, put->lnAppName);
-			memcpy (currFls.chFilename + put->lnAppName, szCunilogLogFileNameExtension,
+			memcpy ((char *) currFls.chFilename, put->mbAppName.buf.pcc, put->lnAppName);
+			memcpy ((char *) currFls.chFilename + put->lnAppName, szCunilogLogFileNameExtension,
 						sizCunilogLogFileNameExtension);
 			if (i)
 			{
@@ -32183,8 +32028,8 @@ static inline void prepareU8fullFileNameToRotate (CUNILOG_TARGET *put, size_t id
 {
 	ubf_assert_non_NULL (put);
 
-	char	*strNam = put->fls.data [idx].chFilename;
-	size_t	sizName = put->fls.data [idx].stFilename;
+	const char	*strNam = put->fls.data [idx].chFilename;
+	size_t		sizName = put->fls.data [idx].stFilename;
 
 	growToSizeSMEMBUF (&put->mbFilToRotate, put->lnLogPath + sizName);
 	if (isUsableSMEMBUF (&put->mbFilToRotate))
@@ -32443,7 +32288,7 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 			-- o;
 			++ d;
 		}
-		char *szfn = pfls->chFilename + pfls->stFilename - sizCunilogLogFileNameExtension - d;
+		const char *szfn = pfls->chFilename + pfls->stFilename - sizCunilogLogFileNameExtension - d;
 		if (o > lenCunilogLogFileNameExtension)
 		{
 			return	0 == memcmp	(
@@ -32473,7 +32318,7 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 		ubf_assert_non_NULL (fls.chFilename);
 		if (fls.chFilename)
 		{
-			memcpy (fls.chFilename, psdE->szFileNameU8, fls.stFilename);
+			memcpy ((char *) fls.chFilename, psdE->szFileNameU8, fls.stFilename);
 			if (0 == put->fls.capacity)
 			{
 				if (-1 == vec_reserve (&put->fls, CUNILOG_STD_VECT_EXP_SIZE))
@@ -32528,8 +32373,9 @@ static inline bool endsLogFileNameWithDotNumber (CUNILOG_FLS *pfls)
 				put->mbLogPath.buf.pcc,			put->lnLogPath,
 				put->mbLogFileMask.buf.pcc,		put->lnLogFileMask,
 				obtainLogfilesListToRotateCallbackWin,
-				put,
-				NULL
+				NULL,
+				0,
+				put
 										);
 		UNUSED (n);
 	}
@@ -32925,7 +32771,8 @@ static void cunilogProcessNotSupported (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *p
 				cunilogProcessEventSingleThreaded (pev);
 				pev = pnx;
 			}
-			if (cunilogTargetHasShutdownInitiatedFlag (put) && 0 == put->nPendingNoRotEvts )
+			ubf_assert_size_t (put->nPendingNoRotEvts);
+			if (cunilogTargetHasShutdownInitiatedFlag (put) && 0 == put->nPendingNoRotEvts)
 				goto ExitSeparateLoggingThread;
 		}
 	ExitSeparateLoggingThread:
@@ -33185,8 +33032,8 @@ static bool cunilogProcessEventSingleThreaded (CUNILOG_EVENT *pev)
 	if (CUNILOG_SIZE_ERROR != eventLineSize)
 	{
 		cunilogProcessProcessors (pev);
-		if (cunilogHasEventNoRotation (pev))
-			DecrementPendingNoRotationEvents (pev->pCUNILOG_TARGET);
+		if (cunilogIsEventInternal (pev) && cunilogHasEventNoRotation (pev))
+			DecrementPendingIntNoRotationEvents (pev->pCUNILOG_TARGET);
 		DoneCUNILOG_EVENT (pev->pCUNILOG_TARGET, pev);
 		return true;
 	}
@@ -34460,6 +34307,52 @@ bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *f
 	return false;
 }
 
+static CUNILOG_EVENT *createOutputControlCodeCUNILOG_EVENT	(
+						CUNILOG_TARGET		*put,
+						unsigned char		*szControlCode,
+						size_t				lnControlCode
+															)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
+
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
+		return false;
+
+	CUNILOG_EVENT *pev = ubf_malloc (sizeof (CUNILOG_EVENT));
+	if (pev)
+	{
+		FillCUNILOG_EVENT	(
+			pev,
+			put,
+			CUNILOGEVENT_ALLOCATED | CUNILOGEVENT_NOROTATION,
+			LocalTime_UBF_TIMESTAMP (),
+			cunilogEvtSeverityNone,
+			cunilogEvtTypeControlCode,
+			szControlCode,
+			lnControlCode,
+			0
+							);
+	}
+	return pev;
+}
+
+bool logEmptyLine			(CUNILOG_TARGET *put)
+{
+	ubf_assert_non_NULL	(put);
+	ubf_assert_pvoid	(put);
+	ubf_assert			(cunilogIsTargetInitialised (put));
+
+	if (cunilogTargetHasShutdownInitiatedFlag (put))
+		return false;
+
+	size_t			lnNL;
+	unsigned char	*szNL = (unsigned char *) szLineEnding (put->culogNewLine, &lnNL);
+	CUNILOG_EVENT *pev = createOutputControlCodeCUNILOG_EVENT (put, szNL, lnNL);
+	return pev && cunilogProcessOrQueueEvent (pev);
+}
+
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 	static inline CUNILOG_EVENT *CreateCUNILOG_EVENTforCommand (CUNILOG_TARGET *put, enum cunilogEvtCmd cmd)
 	{
@@ -35349,6 +35242,15 @@ void DoneCunilog ()
 		ubf_expect_bool_AND (bRet, !memcmp ("Again.", cutQueue.qu.first->next->szDataToLog, 6));
 		ubf_expect_bool_AND (bRet, 6 == cutQueue.qu.last->lenDataToLog);
 		ubf_expect_bool_AND (bRet, !memcmp ("Again.", cutQueue.qu.last->szDataToLog, 6));
+
+		logEmptyLine (&cutQueue);
+		const char *cNL;
+		size_t ln;
+		cNL = szLineEnding (cutQueue.culogNewLine, &ln);
+		// Check the third event in the queue.
+		ubf_expect_bool_AND (bRet, ln == cutQueue.qu.first->next->next->lenDataToLog);
+		ubf_expect_bool_AND (bRet, !memcmp (cNL, cutQueue.qu.first->next->next->szDataToLog, ln));
+
 		ShutdownCUNILOG_TARGET (&cutQueue);
 		DoneCUNILOG_TARGET (&cutQueue);
 
@@ -35800,7 +35702,7 @@ void DoneCunilog ()
 		bRet &= 30 == st;
 		ubf_assert_true (bRet);
 		ubf_expect_bool_AND (bRet, !memcmp (put->mbLogEventLine.buf.pcc + st, "123", 4));
-		size_t ln = addNewLineToLogEventLine (put->mbLogEventLine.buf.pch, put->lnLogEventLine, put->culogNewLine);
+		ln = addNewLineToLogEventLine (put->mbLogEventLine.buf.pch, put->lnLogEventLine, put->culogNewLine);
 		bRet &= 35 == ln;
 		ubf_assert_true (bRet);
 		ubf_expect_bool_AND (bRet, !memcmp (put->mbLogEventLine.buf.pcc + st, "123\r\n", 6));

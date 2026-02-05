@@ -95,6 +95,8 @@ EXTERN_C_BEGIN
 size_t ProcessHelpersSetBufferSize (size_t bufsize);
 
 /*
+	CreateArgsList
+
 	Squeezes the executable's name plus all arguments in a single string.
 	The executable's name is going to be the first argument.
 
@@ -102,8 +104,34 @@ size_t ProcessHelpersSetBufferSize (size_t bufsize);
 	While pretty much standard in POSIX, some Windows applications don't like it when
 	their first argument is the name of the executable. Set bNoExeArg to true for
 	those applications; otherwise set it to false.
+
+	To deallocate the buffer returned by this function, call DoneArgsList ().
 */
 char *CreateArgsList (const char *szExecutable, int argc, const char *argv [], bool bNoExeArg)
+;
+
+/*
+	CreateArgsListFromString
+
+	Squeezes the executable's name plus all arguments in a single string.
+	The executable's name is going to be the first argument.
+
+	If bNoExeArg is true, no executable argument is written to the returned string.
+	While pretty much standard in POSIX, some Windows applications don't like it when
+	their first argument is the name of the executable. Set bNoExeArg to true for
+	those applications; otherwise set it to false.
+
+	To deallocate the buffer returned by this function, call DoneArgsList ().
+*/
+char *CreateArgsListFromString (const char *szExecutable, const char *szCmdLine, bool bNoExeArg)
+;
+
+/*
+	DoneArgsList
+
+	Deallocates the memory buffer allocated by CreateArgsList () or CreateArgsListFromString ().
+*/
+void DoneArgsList (char *szArgsList)
 ;
 
 /*
@@ -141,7 +169,7 @@ typedef struct sruncmdcbinf
 	size_t				lnArgsList;							// Its length.
 	const char			*szWorkingDir;
 	size_t				lnWorkingDir;
-	cunilog_pid_t		childProcessId;						// PID of the child.
+	//cunilog_pid_t		childProcessId;						// PID of the child.
 	enRCmdCBval			rvHtb;								// Return value of heartbeat CB.
 	uint64_t			uiChildExitTimeout;					// Time in ms to wait for the
 															//	child to exit.
@@ -289,7 +317,7 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 						the function. See the enum enRunCmdHowToCallCB for a list of possible
 						options.
 
-	uiRCflags			Option flags.
+	uiRCflags			Option flags. See RUNCMDPROC_ option flags above.
 
 	pCustom				An arbitrary pointer or value that is passed on to the callback
 						functions.

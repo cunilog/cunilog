@@ -662,7 +662,13 @@ EXTERN_C_BEGIN
 */
 #if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
 	#define ubf_assert_size_t(s)						\
-		ubf_assert (0xCDCDCDCDCDCDCDCD != s)					// MSVC.
+		ubf_assert	(									\
+						/* MSVC */						\
+							0xCCCCCCCCCCCCCCCC != (s)	\
+						&&	0xCDCDCDCDCDCDCDCD != (s)	\
+						&&	0xDDDDDDDDDDDDDDDD != (s)	\
+						&&	0xFDFDFDFDFDFDFDFD != (s)	\
+					)
 #else
 	#define ubf_assert_size_t(s)
 #endif

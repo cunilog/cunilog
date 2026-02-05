@@ -833,8 +833,8 @@ typedef struct scunilogdump
 */
 typedef struct cunilog_fls
 {
-	char	*chFilename;
-	size_t	stFilename;
+	const char	*chFilename;
+	size_t		stFilename;
 } CUNILOG_FLS;
 typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 
@@ -1036,8 +1036,8 @@ typedef struct CUNILOG_TARGET
 		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.
 		CUNILOG_THREAD				th;						// The separate logging thread.
 
-		size_t						nPendingNoRotEvts;		// Amount of currently pending non-
-															//	rotation events.
+		size_t						nPendingNoRotEvts;		// Amount of currently pending
+															//	internal non-rotation events.
 
 		size_t						nPausedEvents;			// Amount of events queued because
 															//	the logging thread is/was paused.
@@ -1360,6 +1360,7 @@ typedef enum cunilogeventseverity cueventseverity;
 enum cunilogeventtype
 {
 		cunilogEvtTypeNormalText							// Normal UTF-8 text.
+	,	cunilogEvtTypeControlCode							// Code only, no timestamp etc.
 	,	cunilogEvtTypeCommand								// Event is config/command event.
 
 		/*
@@ -1596,7 +1597,7 @@ typedef struct cunilog_rotator_args
 {
 	CUNILOG_PROCESSOR		*cup;
 	CUNILOG_EVENT			*pev;
-	char					*nam;							// Name of file to rotate.
+	const char				*nam;							// Name of file to rotate.
 	size_t					siz;							// Its size, incl. NUL.
 	size_t					idx;							// Vector index of curr file.
 } CUNILOG_ROTATOR_ARGS;

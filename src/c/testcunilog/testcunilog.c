@@ -61,7 +61,6 @@ int main (int argc, char *argv [])
 	cunilog_puts ("Testing Cunilog...");
 	cunilog_puts ("");
 
-	CunilogTestFnctStartTestToConsole ("Basic internal tests...");
 	b &= test_cunilog ();
 	#ifdef CUNILOG_BUILD_TEST_FNCTS
 		ubf_assert_true (b);
@@ -69,6 +68,8 @@ int main (int argc, char *argv [])
 	#else
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
+
+	CunilogTestFnctStartTestToConsole ("Basic internal tests...");
 
 
 	/*

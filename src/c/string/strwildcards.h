@@ -140,7 +140,7 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	i.e. are not USE_STRLEN.
 
 	Unless a length is USE_STRLEN, the function does not read from the buffers beyond their
-	length parameters. This means that if a length value is 0 nothing will ever be read from
+	length parameters. This means that if a length value is 0, nothing will ever be read from
 	the string buffer. In the examples below the buffer in these cases is shown as "" but
 	could as well be NULL or any other arbitrary value.
 
@@ -156,13 +156,13 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 
 	Match rules for the glob pattern ccGlob:
 	- The comparison is case-sensitive. "A" does not match "a" and vice versa.
+	- The path separators (forward and backward, "/" and "\") are treated as equal and
+		therefore match each other.
 	- A single question mark ("?") matches a single octet in ccStri including path
 		separators ("/" or "\").
 	- An asterisk ("*") matches zero or more octets but not path separators ("/" or "\").
 	- Two or more asterisks ("**", "***", "****", etc.) match zero or more octets including
 		path separators ("/" or "\").
-	- The path separators (forward and backward, "/" and "\") are treated as equal and
-		therefore match each other.
 	- A question mark ("?") after two or more asterisks ("**", "***", "****", etc.) never
 		matches, because the asterisks will have consumed the string entirely. To match
 		a minimum amount of characters, place the question mark(s) first. For instance,

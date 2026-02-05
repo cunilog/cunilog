@@ -5863,9 +5863,11 @@ When		Who				What
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 		#include "./externC.h"
 		#include "./membuf.h"
+		#include "./SingleBits.h"
 	#else
 		#include "./../../pre/externC.h"
 		#include "./../../mem/membuf.h"
+		#include "./../../pre/SingleBits.h"
 	#endif
 
 #endif
@@ -5926,51 +5928,56 @@ typedef struct sDirWplinth
 	enum enrdirentssdirw	u;
 } SDIRWPLINTH;
 
-/*
-	SRDIRONEENTRYSTRUCT
 
-	The structure passed on to the ignore callback function.
-*/
 typedef struct srdirOneEntryStruct
 {
 	union
 	{
 		// Unchanged path provided by the caller.
-		const void			*strPathWorU8;					// UTF-8 or UTF-16;
-		const char			*chPathU8;						// UTF-8.
-		const unsigned char	*ucPathU8;						// Unsigned UTF-8.
-		const WCHAR			*wcPathU8;						// UTF-16.
+		const void			*strOrgPathWorU8;				// UTF-8 or UTF-16;
+		const char			*chOrgPathU8;					// UTF-8.
+		const unsigned char	*ucOrgPathU8;					// Unsigned UTF-8.
+		const WCHAR			*wcOrgPathU8;					// UTF-16.
 	} UTF8orUTF16;
 	enum enrdirentssdirw	u;								// Which union member?
-	//size_t					
+
+	// Length of chOrgPathU8 in characters (not octets/bytes), excluding terminating
+	//	NUL character (if any), and excluding trailing slashes (if any). This means
+	//	that with lnOrgPathU8 as its length, strOrgPathU8 is not necessarily NUL-
+	//	terminated.
+	//	Since we treat UTF-8 like ASCII, for a UTF-8 character string this is the length
+	//	in octets/bytes.
+	size_t					lnOrgPathU8;
 
 	WIN32_FIND_DATAW		*pwfd;
-	void					*pCustom;
+	void					*pCustom;						// Provided by the caller.
 
 	// The file mask/pattern as provided by the caller.
 	const char				*szMaskU8;
 	size_t					lnMaskU8;						// Its length.
 
-	// The current folder plus search mask/pattern for FindFirstFileU8long ().
-	SMEMBUF					mbSearchPathU8;					// "C:\\dir\*"
-	size_t					lnSearchPathU8;
-	size_t					lnOrgSeaPathU8;					// Original length.
+	// Buffer for the char pointers below.
+	SMEMBUF					mbPathBuf;
 
 	// The full path, starting with the path originally provided by the caller,
-	//	and its length. This points to the first character in mbSearchPath.
-	char					*szFullPathU8;
+	//	and its length. This points to the first character in mbPathBuf. Its
+	//	offset to mbPathBuf.buf.pch is always 0, i.e.
+	//	szFullPathU8 == mbPathBuf.buf.pcc.
+	const char				*szFullPathU8;
 	size_t					lnFullPathU8;
 
 	// Everything between szFullPathU8 and szFileNameU8, i.e, excluding the start
 	//	of the path, which was originally provided by the caller. This is the path
 	//	the pattern/mask is matched against.
-	char					*szPathU8;
+	const char				*szPathU8;
 	size_t					lnPathU8;
 
 	// The filename alone converted to UTF-8. Not all functions set these members.
 	//	The function ForEachDirectoryEntryMaskU8 () sets both members.
-	char					*szFileNameU8;
+	const char				*szFileNameU8;
 	size_t					lnFileNameU8;
+
+	DWORD					dwExcludeAttrs;
 } SRDIRONEENTRYSTRUCT;
 
 /*
@@ -6009,7 +6016,8 @@ typedef void *(*RDEMallocCB)(size_t);
 	entries are to be enumerated and that this parameter can either be in UTF-8 or
 	UTF-16, depending on the parameter u, but the returned SDIRW elements hold
 	the filenames in the WIN32_FIND_DATAW structure wfdW, which is always in
-	Windows UTF-16.
+	Windows UTF-16. For a function that works entirely with UTF-8 characters,
+	see ForEachDirectoryEntryMaskU8 ().
 
 	strPathWorU8	The path whose directory entries are to be retrieved. Can be
 					UTF-8 or Windows UTF-16, depending on the paramter u. This
@@ -6178,11 +6186,10 @@ typedef bool (*pForEachDirEntryU8) (SRDIRONEENTRYSTRUCT *psdE);
 						each subfolder level. Make sure the value is correct each
 						time before the function is called.
 
-	pmb                 Function ForEachDirectoryEntryU8_Ex () only: A pointer to an
-                        initialised SMEMBUF structure the function uses as a buffer
-						to store the path of the directory to process when it calls
-						itself recursively (when pnSubLevels is neihter NULL nor points
-						to a value of 0).
+	pmb                 A pointer to an initialised SMEMBUF structure the function uses
+						as a buffer to store the path of the directory to process when it
+						calls itself recursively (when pnSubLevels is neihter NULL nor
+						points to a value of 0).
                         If there are many subfolders to process, this can reduce the
 						amount of required heap allocations significantly. The caller is
 						responsible for initialising the structure before the call and
@@ -6218,7 +6225,6 @@ typedef bool (*pForEachDirEntryU8) (SRDIRONEENTRYSTRUCT *psdE);
 	ERROR_FILE_NOT_FOUND, which would indicate that no files were found, and for
 	ERROR_NO_MORE_FILES, indicating success.
 */
-#ifdef HAVE_MEMBUF
 size_t ForEachDirectoryEntryU8_Ex	(
 				const char				*strPathU8,
 				pForEachDirEntryU8		fedEnt,
@@ -6227,29 +6233,32 @@ size_t ForEachDirectoryEntryU8_Ex	(
 				SMEMBUF                 *pmb
 									)
 ;
-#endif
-size_t	ForEachDirectoryEntryU8		(
-				const char				*strPathU8,
-				pForEachDirEntryU8		fedEnt,
-				void					*pCustom,
-				size_t					*pnSubLevels
-									)
-;
+
+/*
+	Flags for the parameter uiExcludeFlags of the function ForEachDirectoryEntryMaskU8 ().
+*/
+#define FEDEMDIRENT_NO_DIRECTORY	SINGLE_BIT_UINT32 (0)
+#define FEDEMDIRENT_NO_SYSTEM		SINGLE_BIT_UINT32 (1)
+#define FEDEMDIRENT_NO_READONLY		SINGLE_BIT_UINT32 (2)
+#define FEDEMDIRENT_NO_HIDDEN		SINGLE_BIT_UINT32 (3)
+#define FEDEMDIRENT_NO_TEMPORARY	SINGLE_BIT_UINT32 (4)
+#define FEDEMDIRENT_NO_ARCHIVE		SINGLE_BIT_UINT32 (5)
+#define FEDEMDIRENT_NO_NORMAL		SINGLE_BIT_UINT32 (6)
+#define FEDEMDIRENT_NO_COMPRESSED	SINGLE_BIT_UINT32 (7)
+#define FEDEMDIRENT_NO_LINKS		SINGLE_BIT_UINT32 (8)
 
 /*
 	ForEachDirectoryEntryMaskU8
-
-	Does not work! Do not use!
 
 	This function exists to provide better compatibilibty between Windows and POSIX.
 	Folder and file mask are split into two parameters.
 
 	strFolderU8			The folder for which the function is to retrieve the directory
-						listing. The folder name may end with a forward or backslash.
+						listing. The folder name may end with a forward or backwards slash.
 						This must be an absolute path. The folder cannot be relative, i.e.
 						cannot contain path navigators ("..\") unless they can be resolved
-						entirely, i.e it is someting like "/dir/dir/../file", which would
-						resolve to "/dir/file".
+						entirely so that the result is an absolute path.
+						For instance, "C:/dir/dir/../file", would resolve to "C:/dir/file".
 
 	lenFolderU8			The length of strFolderU8, excluding a terminating NUL character.
 						This parameter can be USE_STRLEN, which causes the function to invoke
@@ -6257,28 +6266,24 @@ size_t	ForEachDirectoryEntryU8		(
 						provided instead of USE_STRLEN, the string does not have to be
 						NUL-terminated.
 
-	strMaskU8			The ask for the files or folders to call the callback
-						function. It can contain wildcard characters to match the files for
-						whom the callback function will be called.
+	strMaskU8			The mask for the files or folders the callback function is invoked
+						for. It can contain wildcard characters.
 						This parameter can be NULL, in which case the function calls the
 						callback function on every single file found.
 						This is not a simple "*" or "*.*" file mask as known from
 						Windows or POSIX. See remarks below the parameter descriptions.
 
-	lenMaskU8			The length of strFileMask, excluding a terminating NUL character.
-						This parameter can be USE_STRLEN, which causes the function to invoke
-						strlen () on strFileMask to obtain its length.
-						The parameter is ignored if strFileMaskU8 is NULL.
+	lenMaskU8			The length of strMaskU8, excluding a terminating NUL character.
+						This parameter can be USE_STRLEN, which causes the function to
+						invoke strlen () on strMaskU8 to obtain its length.
+						The parameter is ignored if strMaskU8 is NULL.
 
 	fedEntCB			Pointer to the callback function. The function is called
-						for each found entry.
-
-	pCustom				Pointer to custom data that is passed on to the callback
-						function.
+						for each found and accepted entry.
 
 	*pnSubLevels		A pointer to an unsigned int variable that contains the
 						amount of subfolder levels to enumerate. If this parameter
-						is NULL or points to a value of 0, only the folder in strPathU8
+						is NULL or points to a value of 0, only the folder in strFolderU8
 						is processed. Any other number specifies the amount of
 						subfolder levels to be enumerated by recursively calling this
 						function. The function uses the variable to count its
@@ -6287,9 +6292,17 @@ size_t	ForEachDirectoryEntryU8		(
 						each subfolder level. Make sure the value is correct each
 						time before the function is called.
 
+	uiExcludeFlags		One or more of the FEDEMDIRENT_ flags (see above) to filter the
+						returned file system objects, like no system files, no directories,
+						etc.
+						A value of 0 returns all possible files including directories.
+
+	pCustom				Pointer to custom data that is passed on to the callback
+						function.
+
 	The function reads a base directory, which is strFolderU8. It ignores the "." and ".."
-	folders returned by the file system but matches any other file or directory
-	against strFileMaskU8. Matching starts with file or directory objects inside the folder
+	folders/files returned by the file system but matches any other file or directory
+	against strMaskU8. Matching starts with file or directory objects inside the folder
 	strFolderU8, which is different from how operating systems and system utilities usually
 	match wildcards and files or directories.
 
@@ -6302,12 +6315,12 @@ size_t	ForEachDirectoryEntryU8		(
 	<strFolderU8>/<objects in strFolderU8>/<more objects>
 	.             ^
 	.             !
-	.             +-------- Matching against strFileMaskU8 starts here.
+	.             +-------- Matching against strMaskU8 starts here.
 
 	If strFolderU8 is "/home/user", and the function should return text files in
-	"/home/user/Downloads", strFileMaskU8 needs to be "Downloads/*.txt".
+	"/home/user/Downloads", strMaskU8 needs to be "Downloads/*.txt".
 	If the function should return text files in any folder inside or below "/home/usr",
-	strFileMaskU8 needs to be "**.txt".
+	strMaskU8 needs to be "**.txt".
 
 	See description of the functions matchWildcardPattern () and/or matchWildcardPatternW ()
 	in strwildcards.h on how patterns are created and matched.
@@ -6318,12 +6331,11 @@ size_t ForEachDirectoryEntryMaskU8	(
 				const char				*strMaskU8,
 				size_t					lenMaskU8,
 				pForEachDirEntryU8		fedEntCB,
-				void					*pCustom,
-				size_t					*pnSubLevels
+				size_t					*pnSubLevels,
+				uint32_t				uiExcludeFlags,
+				void					*pCustom
 									)
 ;
-
-EXTERN_C_END
 
 #ifndef CUNILOG_BUILD_READDIR_TESTFNCT
 //#define CUNILOG_BUILD_READDIR_TESTFNCT
@@ -6339,6 +6351,8 @@ EXTERN_C_END
 #endif
 
 #endif														// Of #ifdef _WIN32.
+
+EXTERN_C_END
 
 #endif														// Of #ifndef WINAPI_READDIRFNCTS_H.
 /****************************************************************************************
@@ -8257,6 +8271,8 @@ EXTERN_C_BEGIN
 size_t ProcessHelpersSetBufferSize (size_t bufsize);
 
 /*
+	CreateArgsList
+
 	Squeezes the executable's name plus all arguments in a single string.
 	The executable's name is going to be the first argument.
 
@@ -8264,8 +8280,34 @@ size_t ProcessHelpersSetBufferSize (size_t bufsize);
 	While pretty much standard in POSIX, some Windows applications don't like it when
 	their first argument is the name of the executable. Set bNoExeArg to true for
 	those applications; otherwise set it to false.
+
+	To deallocate the buffer returned by this function, call DoneArgsList ().
 */
 char *CreateArgsList (const char *szExecutable, int argc, const char *argv [], bool bNoExeArg)
+;
+
+/*
+	CreateArgsListFromString
+
+	Squeezes the executable's name plus all arguments in a single string.
+	The executable's name is going to be the first argument.
+
+	If bNoExeArg is true, no executable argument is written to the returned string.
+	While pretty much standard in POSIX, some Windows applications don't like it when
+	their first argument is the name of the executable. Set bNoExeArg to true for
+	those applications; otherwise set it to false.
+
+	To deallocate the buffer returned by this function, call DoneArgsList ().
+*/
+char *CreateArgsListFromString (const char *szExecutable, const char *szCmdLine, bool bNoExeArg)
+;
+
+/*
+	DoneArgsList
+
+	Deallocates the memory buffer allocated by CreateArgsList () or CreateArgsListFromString ().
+*/
+void DoneArgsList (char *szArgsList)
 ;
 
 /*
@@ -8303,7 +8345,7 @@ typedef struct sruncmdcbinf
 	size_t				lnArgsList;							// Its length.
 	const char			*szWorkingDir;
 	size_t				lnWorkingDir;
-	cunilog_pid_t		childProcessId;						// PID of the child.
+	//cunilog_pid_t		childProcessId;						// PID of the child.
 	enRCmdCBval			rvHtb;								// Return value of heartbeat CB.
 	uint64_t			uiChildExitTimeout;					// Time in ms to wait for the
 															//	child to exit.
@@ -8451,7 +8493,7 @@ typedef enum enRunCmdHowToCallCB enRCmdCBhow;
 						the function. See the enum enRunCmdHowToCallCB for a list of possible
 						options.
 
-	uiRCflags			Option flags.
+	uiRCflags			Option flags. See RUNCMDPROC_ option flags above.
 
 	pCustom				An arbitrary pointer or value that is passed on to the callback
 						functions.
@@ -9520,7 +9562,13 @@ EXTERN_C_BEGIN
 */
 #if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
 	#define ubf_assert_size_t(s)						\
-		ubf_assert (0xCDCDCDCDCDCDCDCD != s)					// MSVC.
+		ubf_assert	(									\
+						/* MSVC */						\
+							0xCCCCCCCCCCCCCCCC != (s)	\
+						&&	0xCDCDCDCDCDCDCDCD != (s)	\
+						&&	0xDDDDDDDDDDDDDDDD != (s)	\
+						&&	0xFDFDFDFDFDFDFDFD != (s)	\
+					)
 #else
 	#define ubf_assert_size_t(s)
 #endif
@@ -14768,7 +14816,13 @@ EXTERN_C_BEGIN
 */
 #if defined (DEBUG) && !defined (CUNILOG_IGNORE_VALID_SIZE_T_CHECKS)
 	#define ubf_assert_size_t(s)						\
-		ubf_assert (0xCDCDCDCDCDCDCDCD != s)					// MSVC.
+		ubf_assert	(									\
+						/* MSVC */						\
+							0xCCCCCCCCCCCCCCCC != (s)	\
+						&&	0xCDCDCDCDCDCDCDCD != (s)	\
+						&&	0xDDDDDDDDDDDDDDDD != (s)	\
+						&&	0xFDFDFDFDFDFDFDFD != (s)	\
+					)
 #else
 	#define ubf_assert_size_t(s)
 #endif
@@ -19790,7 +19844,7 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 	i.e. are not USE_STRLEN.
 
 	Unless a length is USE_STRLEN, the function does not read from the buffers beyond their
-	length parameters. This means that if a length value is 0 nothing will ever be read from
+	length parameters. This means that if a length value is 0, nothing will ever be read from
 	the string buffer. In the examples below the buffer in these cases is shown as "" but
 	could as well be NULL or any other arbitrary value.
 
@@ -19806,13 +19860,13 @@ size_t lenPathWithoutWildcardFileName (const char *ccPath)
 
 	Match rules for the glob pattern ccGlob:
 	- The comparison is case-sensitive. "A" does not match "a" and vice versa.
+	- The path separators (forward and backward, "/" and "\") are treated as equal and
+		therefore match each other.
 	- A single question mark ("?") matches a single octet in ccStri including path
 		separators ("/" or "\").
 	- An asterisk ("*") matches zero or more octets but not path separators ("/" or "\").
 	- Two or more asterisks ("**", "***", "****", etc.) match zero or more octets including
 		path separators ("/" or "\").
-	- The path separators (forward and backward, "/" and "\") are treated as equal and
-		therefore match each other.
 	- A question mark ("?") after two or more asterisks ("**", "***", "****", etc.) never
 		matches, because the asterisks will have consumed the string entirely. To match
 		a minimum amount of characters, place the question mark(s) first. For instance,
@@ -21840,8 +21894,8 @@ typedef struct scunilogdump
 */
 typedef struct cunilog_fls
 {
-	char	*chFilename;
-	size_t	stFilename;
+	const char	*chFilename;
+	size_t		stFilename;
 } CUNILOG_FLS;
 typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 
@@ -22043,8 +22097,8 @@ typedef struct CUNILOG_TARGET
 		CUNILOG_QUEUE_BASE			qu;						// The actual event queue.
 		CUNILOG_THREAD				th;						// The separate logging thread.
 
-		size_t						nPendingNoRotEvts;		// Amount of currently pending non-
-															//	rotation events.
+		size_t						nPendingNoRotEvts;		// Amount of currently pending
+															//	internal non-rotation events.
 
 		size_t						nPausedEvents;			// Amount of events queued because
 															//	the logging thread is/was paused.
@@ -22367,6 +22421,7 @@ typedef enum cunilogeventseverity cueventseverity;
 enum cunilogeventtype
 {
 		cunilogEvtTypeNormalText							// Normal UTF-8 text.
+	,	cunilogEvtTypeControlCode							// Code only, no timestamp etc.
 	,	cunilogEvtTypeCommand								// Event is config/command event.
 
 		/*
@@ -22603,7 +22658,7 @@ typedef struct cunilog_rotator_args
 {
 	CUNILOG_PROCESSOR		*cup;
 	CUNILOG_EVENT			*pev;
-	char					*nam;							// Name of file to rotate.
+	const char				*nam;							// Name of file to rotate.
 	size_t					siz;							// Its size, incl. NUL.
 	size_t					idx;							// Vector index of curr file.
 } CUNILOG_ROTATOR_ARGS;
@@ -24746,6 +24801,13 @@ bool logTextU8csmbvfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, va_
 bool logTextU8csmbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...);
 bool logTextU8csvfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, va_list ap);
 bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, ...);
+
+/*
+	logEmptyLine
+	
+	Writes an empty line to the target. No rotation takes place.
+*/
+bool logEmptyLine			(CUNILOG_TARGET *put);
 
 #define logTextU8sevl_static(v, t, l)	logTextU8sevl		(pCUNILOG_TARGETstatic, (v), (t), (l))
 #define logTextU8sevlts_static(v, t, l, ts)				\

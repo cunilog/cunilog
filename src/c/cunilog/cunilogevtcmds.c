@@ -170,7 +170,7 @@ void culCmdStoreCmdConfigEnableTaskProcessors (unsigned char *szOut, enum cunilo
 	memcpy (szOut + sizeof (enum cunilogEvtCmd), &task, sizeof (task));
 }
 
-void culCmdConfigDisableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szData)
+void culCmdConfigDisableTaskProcessors (CUNILOG_TARGET *put, const unsigned char *szData)
 {
 	enum cunilogprocesstask task;
 
@@ -181,7 +181,7 @@ void culCmdConfigDisableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szDa
 	ConfigCUNILOG_TARGETdisableTaskProcessors (put, task);
 }
 
-void culCmdConfigEnableTaskProcessors (CUNILOG_TARGET *put, unsigned char *szData)
+void culCmdConfigEnableTaskProcessors (CUNILOG_TARGET *put, const unsigned char *szData)
 {
 	enum cunilogprocesstask task;
 
@@ -253,7 +253,7 @@ bool culCmdSetCurrentThreadPriority (cunilogprio prio)
 	#endif
 }
 
-void culCmdConfigSetLogPriority (unsigned char *szData)
+void culCmdConfigSetLogPriority (const unsigned char *szData)
 {
 	ubf_assert_non_NULL (szData);
 
@@ -280,7 +280,7 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 	CUNILOG_TARGET *put = pev->pCUNILOG_TARGET;
 	ubf_assert_non_NULL (put);
 
-	unsigned char		*szData = pev->szDataToLog;
+	const unsigned char	*szData = pev->szDataToLog;
 	enum cunilogEvtCmd	cmd;
 
 	memcpy (&cmd, szData, sizeof (enum cunilogEvtCmd));

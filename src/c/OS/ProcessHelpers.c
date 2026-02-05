@@ -588,7 +588,7 @@ void DoneArgsList (char *szArgsList)
 
 	static bool HandleCommPipes	(
 			SRUNCMDCBINF		*pinf,
-			PROCESS_INFORMATION	*pi,
+			HANDLE				hProcess,
 			PH_SCHILDHANDLES	*pph,
 			SRCMDCBS			*pCBs,
 			enRCmdCBhow			cbHow,
@@ -596,8 +596,7 @@ void DoneArgsList (char *szArgsList)
 			void				*pCustom
 								)
 	{
-		ubf_assert_non_NULL (pi);
-		ubf_assert_non_NULL (pi->hProcess);
+		ubf_assert_non_NULL	(hProcess);
 		ubf_assert_non_NULL (pph);
 
 		bool		bRet				= false;
@@ -699,7 +698,7 @@ void DoneArgsList (char *szArgsList)
 			if (sbOut.bNeedsWait) h [0] = sbOut.hEvent; else h [0] = sbOut.hDEvent;
 			if (sbErr.bNeedsWait) h [1] = sbErr.hEvent; else h [1] = sbErr.hDEvent;
 			if (sbInp.bNeedsWait) h [2] = sbInp.hEvent; else h [2] = sbInp.hDEvent;
-			h [3] = pi->hProcess;
+			h [3] = hProcess;
 			DWORD dw = WaitForMultipleObjects (PHNHDLS, h, false, dwHeartbeatTimeOut);
 			//printf ("Wait complete with %d.\n", dw);
 			if (WAIT_TIMEOUT == dw)
@@ -742,7 +741,7 @@ void DoneArgsList (char *szArgsList)
 				)
 			{
 				if (!bChldExited)
-					bChldExited = TerminateProcessControlled (pi->hProcess, 0, dwChildExitTimeout);
+					bChldExited = TerminateProcessControlled (hProcess, 0, dwChildExitTimeout);
 
 				if	(
 							enRunCmdRet_TerminateFail	== sbOut.cbretval
@@ -782,7 +781,7 @@ void DoneArgsList (char *szArgsList)
 
 	static bool HandleCommunication	(
 			SRUNCMDCBINF			*pinf,
-			PROCESS_INFORMATION		*pi,
+			HANDLE					hProcess,
 			PH_SCHILDHANDLES		*pph,
 			SRCMDCBS				*pCBs,
 			enRCmdCBhow				cbHow,
@@ -790,8 +789,7 @@ void DoneArgsList (char *szArgsList)
 			void					*pCustom
 									)
 	{
-		ubf_assert_non_NULL (pi);
-		ubf_assert_non_NULL (pi->hProcess);
+		ubf_assert_non_NULL (hProcess);
 		ubf_assert_non_NULL (pph);
 
 		SRCMDCBS cbs;
@@ -801,7 +799,7 @@ void DoneArgsList (char *szArgsList)
 			pCBs = &cbs;
 		}
 
-		bool b = HandleCommPipes (pinf, pi, pph, pCBs, cbHow, uiCBflags, pCustom);
+		bool b = HandleCommPipes (pinf, hProcess, pph, pCBs, cbHow, uiCBflags, pCustom);
 
 		return b;
 	}
@@ -877,10 +875,10 @@ void DoneArgsList (char *szArgsList)
 					DWORD dwErr = GetLastError ();
 					if (dwErr) {}
 				#endif
-				inf.childProcessId	= pi.dwProcessId;
+				//inf.childProcessId	= pi.dwProcessId;
 
 				// This function returns false if a callback funciton returned enRunCmdRet_TerminateFail.
-				b &= b ? HandleCommunication (&inf, &pi, &ph, pCBsHB, cbHow, uiRCflags, pCustom) : false;
+				b &= b ? HandleCommunication (&inf, pi.hProcess, &ph, pCBsHB, cbHow, uiRCflags, pCustom) : false;
 
 				if (pExitCode)
 				{

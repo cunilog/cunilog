@@ -1857,6 +1857,13 @@ bool logTextU8csmbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...)
 bool logTextU8csvfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, va_list ap);
 bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, ...);
 
+/*
+	logEmptyLine
+	
+	Writes an empty line to the target. No rotation takes place.
+*/
+bool logEmptyLine			(CUNILOG_TARGET *put);
+
 #define logTextU8sevl_static(v, t, l)	logTextU8sevl		(pCUNILOG_TARGETstatic, (v), (t), (l))
 #define logTextU8sevlts_static(v, t, l, ts)				\
 										logTextU8sevlts		(pCUNILOG_TARGETstatic, (v), (t), (l), (ts))
