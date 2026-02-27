@@ -17,7 +17,7 @@ type __enum cunilogprocesstask__.
 | member __task__ | |
 | :------------------- | --- |
 | cunilogProcessNoOperation | Does nothing, obviously |
-| cunilogProcessEchoToConsole | Console/terminal output |
+| cunilogProcessOutputToConsole | Console/terminal output |
 | cunilogProcessUpdateLogFileName | If the logfile's name requires changing, this processor takes on this task |
 | cunilogProcessWriteToLogFile | Writes the event to the logfile |
 | cunilogProcessFlushLogFile | Flushes the logfile to disk |
