@@ -352,9 +352,9 @@ typedef bool (*pForEachDirEntryU8) (SRDIRONEENTRYSTRUCT *psdE);
 	Enumerates the UTF-8 directory strPathU8 points to and calls the callback
 	function fedEnt for each found file or folder entry.
 
-	The function ForEachDirectoryEntryU8_Ex () uses a re-usable SMEMBUF structure for its
-	internal heap allocations while ForEachDirectoryEntryU8 () does not, which makes
-	ForEachDirectoryEntryU8_Ex () slightly faster when a directory contains many subfolders.
+	The function ForEachDirectoryEntryU8_Ex () uses a re-usable SMEMBUF structure that is
+	provided by the user for its internal heap allocations while ForEachDirectoryEntryU8 ()
+	creates its own before it calls ForEachDirectoryEntryU8_Ex ().
 
 	strPathU8			The path as a UTF-8 string. This parameter is passed on to
 						the Windows API FindFirstFileW () as parameter lpFileName and can
@@ -416,14 +416,26 @@ typedef bool (*pForEachDirEntryU8) (SRDIRONEENTRYSTRUCT *psdE);
 	ERROR_FILE_NOT_FOUND, which would indicate that no files were found, and for
 	ERROR_NO_MORE_FILES, indicating success.
 */
-size_t ForEachDirectoryEntryU8_Ex	(
-				const char				*strPathU8,
-				pForEachDirEntryU8		fedEnt,
-				void					*pCustom,
-				size_t					*pnSubLevels,
-				SMEMBUF                 *pmb
-									)
-;
+#ifdef HAVE_MEMBUF
+	size_t ForEachDirectoryEntryU8_Ex	(
+					const char				*strPathU8,
+					pForEachDirEntryU8		fedEnt,
+					void					*pCustom,
+					size_t					*pnSubLevels,
+					SMEMBUF                 *pmb
+										)
+	;
+#endif
+
+#ifdef HAVE_MEMBUF
+	size_t ForEachDirectoryEntryU8		(
+					const char				*strPathU8,
+					pForEachDirEntryU8		fedEnt,
+					void					*pCustom,
+					size_t					*pnSubLevels
+										)
+	;
+#endif
 
 /*
 	Flags for the parameter uiExcludeFlags of the function ForEachDirectoryEntryMaskU8 ().

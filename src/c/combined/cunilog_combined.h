@@ -1734,9 +1734,11 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	Deallocates the memory used by the SMEMBUF structure's buffer and initialises it
 	with initSMEMBUF() so that it can/could be re-used.
 
-	Not to be called on structures that do not have any buffer allocated.
+	Not to be called on structures that do not have any buffer allocated, i.e. have
+	never seen active service.
 
-	Note that pb must not be NULL. Debug versions abort if pb is NULL.
+	Note that pb must not be NULL. Debug versions abort if pb is NULL. Passing a NULL-
+	pointer in release versions leads to undefined behaviour.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb);
@@ -1756,6 +1758,9 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	Not to be called on structures that do not have any buffer allocated. The
 	function or macro aborts in debug versions if no buffer has been allocated.
 	Use doneSMEMBUFuncond () if this check is not desirable.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL. Passing a NULL-
+	pointer in release versions leads to undefined behaviour.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#define DONESMEMBUF(s) doneSMEMBUF (&(s))
@@ -1774,7 +1779,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	This function or macro does not abort in debug versions if the SMEMBUF structure
 	doesn't have an allocated buffer.
 
-	Note that pb must not be NULL. Debug versions abort if pb is NULL.
+	Note that pb must not be NULL. Debug versions abort if pb is NULL. Passing a NULL-
+	pointer in release versions leads to undefined behaviour.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUFuncond (SMEMBUF *pb);
@@ -1793,6 +1799,9 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 
 	This function or macro does not abort in debug versions if the SMEMBUF structure
 	doesn't have an allocated buffer.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL. Passing a NULL-
+	pointer in release versions leads to undefined behaviour.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#define DONESMEMBUFUNCOND(s) doneSMEMBUFuncond (&(s))
@@ -6161,9 +6170,9 @@ typedef bool (*pForEachDirEntryU8) (SRDIRONEENTRYSTRUCT *psdE);
 	Enumerates the UTF-8 directory strPathU8 points to and calls the callback
 	function fedEnt for each found file or folder entry.
 
-	The function ForEachDirectoryEntryU8_Ex () uses a re-usable SMEMBUF structure for its
-	internal heap allocations while ForEachDirectoryEntryU8 () does not, which makes
-	ForEachDirectoryEntryU8_Ex () slightly faster when a directory contains many subfolders.
+	The function ForEachDirectoryEntryU8_Ex () uses a re-usable SMEMBUF structure that is
+	provided by the user for its internal heap allocations while ForEachDirectoryEntryU8 ()
+	creates its own before it calls ForEachDirectoryEntryU8_Ex ().
 
 	strPathU8			The path as a UTF-8 string. This parameter is passed on to
 						the Windows API FindFirstFileW () as parameter lpFileName and can
@@ -6225,14 +6234,26 @@ typedef bool (*pForEachDirEntryU8) (SRDIRONEENTRYSTRUCT *psdE);
 	ERROR_FILE_NOT_FOUND, which would indicate that no files were found, and for
 	ERROR_NO_MORE_FILES, indicating success.
 */
-size_t ForEachDirectoryEntryU8_Ex	(
-				const char				*strPathU8,
-				pForEachDirEntryU8		fedEnt,
-				void					*pCustom,
-				size_t					*pnSubLevels,
-				SMEMBUF                 *pmb
-									)
-;
+#ifdef HAVE_MEMBUF
+	size_t ForEachDirectoryEntryU8_Ex	(
+					const char				*strPathU8,
+					pForEachDirEntryU8		fedEnt,
+					void					*pCustom,
+					size_t					*pnSubLevels,
+					SMEMBUF                 *pmb
+										)
+	;
+#endif
+
+#ifdef HAVE_MEMBUF
+	size_t ForEachDirectoryEntryU8		(
+					const char				*strPathU8,
+					pForEachDirEntryU8		fedEnt,
+					void					*pCustom,
+					size_t					*pnSubLevels
+										)
+	;
+#endif
 
 /*
 	Flags for the parameter uiExcludeFlags of the function ForEachDirectoryEntryMaskU8 ().
@@ -16760,7 +16781,7 @@ enum enStrlineExtractCharSet
 
 /*
 	Our default string parameters for single and multi-line comments, open
-	and closing quotes, equality signs, and section start and end strings.
+	and closing quotes, here-strings, equality signs, and section start and end strings.
 */
 extern const char	*ccCulStdLineCComment	[];
 extern unsigned int	nCulStdLineCComment;
@@ -16775,6 +16796,7 @@ extern unsigned int	nccCulStdMultComment;
 extern const char	*ccCulStdOpenQuotes		[];
 extern const char	*ccCulStdClosQuotes		[];
 extern unsigned int	nCulStdQuotes;
+extern unsigned int	uCulStdIdxHeres;
 
 extern const char	*ccCulStdEqualSigns		[];
 extern unsigned int	nCulStdEquals;
@@ -16802,6 +16824,8 @@ typedef struct sculmltstrings
 	const char		**ccOpenQuotes;
 	const char		**ccClosQuotes;
 	unsigned int	nQuotes;
+
+	unsigned int	uCulStdIdxHeres;
 
 	const char		**ccEquals;
 	unsigned int	nEquals;
@@ -16867,6 +16891,8 @@ typedef struct strlineinf
 															//	a line. 1 = first column/character.
 	size_t				absPosition;						// Position within the entire buffer.
 															//	1 = first position/character.
+	size_t				lnLeftTotal;						// The total remaining buffer length
+															//	that could be consumed.
 	void				*pCustom;							// Can be used by the caller.
 	#ifdef DEBUG
 		bool			bInitialised;
@@ -17075,6 +17101,11 @@ bool strlineextractIsCloseString	(
 
 	Leading and trailing white space, if any, is ignored.
 
+	This function cannot handle here-strings. If the start of a here-string is encountered,
+	pszKeyOrVal receives a pointer to the first character after the opening here-string
+	marker, the value plnKeyOrVal points to is set to 0, pidxEqual1based points to the
+	index of the here-string opening marker, and the function returns false.
+
 	Parameters
 	----------
 
@@ -17108,30 +17139,10 @@ bool strlineextractIsCloseString	(
 	lnLine			The length of szLine. If this parameter is USE_STRLEN, the function
 					obtains it with strlen (szLine).
 
-
-	The following parameters have been replaced with the SCULMLTSTRINGS structure psmlt:
-
-	nQuotes			The amount of quote strings. See parameters szOpenQuotes and
-					szClosQuotes below. If this value is 0, no quotes are recognised.
-
-	pszOpenQuotes	A pointer to an array of NUL-terminated strings recognised as opening
-					quotation marks/strings. The parameter nQuotes specifies the number
-					of elements in this array.
-
-	pszClosQuotes	A pointer to an array of NUL-terminated strings recognised as closing
-					quotation marks/strings. The parameter nQuotes specifies the number
-					of elements in this array.
-
-	pszEquals		A pointer to an array of NUL-terminated strings recognised as equality
-					characters/strings. The parameter nEquals specifies the number of
-					stings/elements in this array. If this parameter is NULL, the function
-					fails and returns false.
-
-	nEquals			The number of strings that are recognised as equality signs pointed
-					to by the parameter pszEquals. If this parameter is 0, the function is
-					bound to fail and return false, as a key/value pair cannot be identified
-					without at least one accepted equality sign character or string that
-					separates key and value.
+	psmlt			A pointer to an initialised SCULMLTSTRINGS structure that contains
+					the strings that are recognised as single and multi-line comments,
+					quotations, here-strings, equality character strings, how sections
+					are enclosed, and special white space.
 
 */
 bool strlineextractKeyOrValue	(
@@ -17185,29 +17196,10 @@ bool strlineextractKeyOrValue	(
 	lnLine			The length of szLine. If this parameter is USE_STRLEN, the function
 					obtains it with strlen (szLine).
 
-	The following parameters have been replaced with the SCULMLTSTRINGS structure psmlt:
-
-	nQuotes			The amount of quote strings. See parameters szOpenQuotes and
-					szClosQuotes below. If this value is 0, no quotes are recognised.
-
-	pszOpenQuotes	A pointer to an array of NUL-terminated strings recognised as opening
-					quotation marks/strings. The parameter nQuotes specifies the number
-					of elements in this array.
-
-	pszClosQuotes	A pointer to an array of NUL-terminated strings recognised as closing
-					quotation marks/strings. The parameter nQuotes specifies the number
-					of elements in this array.
-
-	pszEquals		A pointer to an array of NUL-terminated strings recognised as equality
-					characters/strings. The parameter nEquals specifies the number of
-					stings/elements in this array. If this parameter is NULL, the function
-					fails and returns false.
-
-	nEquals			The number of strings that are recognised as equality signs pointed
-					to by the parameter pszEquals. If this parameter is 0, the function is
-					bound to fail and return false, as a key/value pair cannot be identified
-					without at least one accepted equality sign character or string that
-					separates key and value.
+	psmlt			A pointer to an initialised SCULMLTSTRINGS structure that contains
+					the strings that are recognised as single and multi-line comments,
+					quotations, here-strings, equality character strings, how sections
+					are enclosed, and special white space.
 
 	The function returns the amount of values extracted if a key and at least one value
 	could be extracted from the line, which may include empty strings for the values but
@@ -18640,6 +18632,17 @@ size_t ubf_str_from_uint16 (char *result, uint16_t ui16);
 	character.
 */
 size_t ubf_str0_from_uint16 (char *result, size_t digits, uint16_t ui16);
+
+/*
+	ubf_str_from_uint32
+	
+	Returns an ASCII representation of the value of ui16, in decimal (base 10). The
+	buffer result points to must be at least UBF_UINT32_SIZE bytes long.
+
+	The function returns the amount of decimal digits written to result, which
+	does not include the terminating NUL character.
+*/
+size_t ubf_str_from_uint32 (char *result, uint32_t ui32);
 
 /*
 	ubf_str_from_int64
@@ -20658,7 +20661,7 @@ void DoneCunilogRootConfigData (SCUNILOGCFGNODE *cfg)
 /*
 	CreateSCUNILOGINI
 
-	Parses the ini buffer szIniBuf points to with length of lnIniBuf. If lnIniBuf is
+	Parses the ini buffer szIniBuf points to with a length of lnIniBuf. If lnIniBuf is
 	USE_STRLEN, the function uses strlen () to obtain it. Otherwise, the buffer does not
 	need to be NUL-terminated.
 
@@ -21244,17 +21247,15 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 
 	Specifies the application type of a cunilog target and how processing events is
 	protected. These values are valid for a single target.
-	Applications however can in theory work with an arbitrary number of targets, even if
-	the targets are configured differently.
+	Applications however can in theory work with an arbitrary number of targets.
 
 
 	cunilogSingleThreaded
 
 	Only a single thread from one instance of the current application can safely write out
 	logging information. Cunilog does not apply any concurrency protection.
-	Writing logging information from more than a single thread, another instance of the
-	same application, or from a different application is not supported and resulta in data
-	corruption and application crashes. In a best case it may only lead to unusable
+	Writing logging information from more than a single thread is not supported and results
+	in data corruption and/or application crashes. In a best case it may only lead to unusable
 	logging information.
 
 	Every logging function blocks as it executes the list of processors before returning.
@@ -21268,14 +21269,13 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	Identical to cunilogSingleThreaded but the application must be built with multi-threading
 	support. The process of writing out logging information (i.e. executing the list of
 	logging processors) takes place in a separate thread.
-	Calling logging functions from more than a single thread, another instance of the
-	same application, or from a different application is not supported and results in
+	Calling logging functions from more than a single thread is not supported and results in
 	data corruption and application crashes. In a best case it may only lead to unusable
 	logging information.
 	
 	However, due to how this is currently implemented, some of these restrictions do not apply
 	right now because cunilogSingleThreadedSeparateLoggingThread is actually identical to
-	unilogMultiThreadedSeparateLoggingThread. Since this might and most likely will change in
+	cunilogMultiThreadedSeparateLoggingThread. Since this might and most likely will change in
 	future versions of the software, use cunilogMultiThreadedSeparateLoggingThread to be safe.
 
 
@@ -21292,16 +21292,15 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	these parameters are available. You can use a cunilogSingleThreadedQueueOnly or a
 	cunilogMultiThreadedQueueOnly target as a dummy target to log to until the real target
 	can be created with the correct parameters. After the real target has been created,
-	the entire queue can then be moved over to it, and no event is lost.
+	the entire queue can then be moved over to it, and no event is lost. Use the function
+	MoveCUNILOG_TARGETqueueToFrom () to move the queue to the final target.
 
 
 	cunilogMultiThreaded
 
-	Multiple threads from a single instance of the current application can safely write out
-	logging information. Cunilog provides necessary concurrency protection for this case but
-	does not protect logging information from being overwritten/destroyed by other processes.
-	Any logging function called from any thread blocks as it works its way through the list of
-	processors before releasing its lock and returning.
+	Multiple threads can safely write out logging information. Cunilog provides necessary
+	concurrency protection. Any logging function called from any thread blocks as it works
+	its way through the list of processors before releasing its lock and returning.
 
 
 	cunilogMultiThreadedSeparateLoggingThread
@@ -21320,12 +21319,6 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	cunilogMultiThreadedQueueOnly can be logged to from several threads because the list is
 	protected by a mutex (POSIX) or critical section object (Windows).
 
-
-	cunilogMultiProcesses
-
-	Logging information is fully protected and can be written from different threads as well
-	as from different processes. This is currently not supported and hasn't been implemented
-	yet.
 */
 enum cunilogtype
 {
@@ -21336,7 +21329,7 @@ enum cunilogtype
 	,	cunilogMultiThreaded
 	,	cunilogMultiThreadedSeparateLoggingThread
 	,	cunilogMultiThreadedQueueOnly
-	,	cunilogMultiProcesses
+	//,	cunilogMultiProcesses
 	#endif
 	// Do not add anything below this line.
 	,	cunilogTypeAmountEnumValues							// Used for table sizes.
@@ -21398,9 +21391,9 @@ enum cunilogpostfix
 	This is a dummy processor and does nothing.
 
 
-	cunilogProcessEchoToConsole
+	cunilogProcessOutputToConsole
 
-	Echoes/outputs the event line to the console
+	Outputs the event line to the console.
 
 
 	cunilogProcessUpdateLogFileName
@@ -21446,7 +21439,7 @@ enum cunilogpostfix
 enum cunilogprocesstask
 {
 		cunilogProcessNoOperation							// Does nothing.
-	,	cunilogProcessEchoToConsole							// Echoes to console.
+	,	cunilogProcessOutputToConsole						// Outputs to console.
 	,	cunilogProcessUpdateLogFileName						// Updates full path to logfile.
 	,	cunilogProcessWriteToLogFile						// Writes to logfile.
 	,	cunilogProcessFlushLogFile							// Flushes the logfile.
@@ -21546,7 +21539,7 @@ typedef struct cunilog_logfile
 	#ifdef OS_IS_WINDOWS
 		HANDLE			hLogFile;
 	#else
-		FILE			*fLogFile;
+		int				fd;
 	#endif
 } CUNILOG_LOGFILE;
 
@@ -21699,9 +21692,9 @@ typedef struct cunilog_rotation_data
 /*
 	Initialisers for processor tasks.
 */
-#define CUNILOG_INIT_DEF_ECHO_PROCESSOR					\
+#define CUNILOG_INIT_DEF_COUT_PROCESSOR					\
 {														\
-	cunilogProcessEchoToConsole,						\
+	cunilogProcessOutputToConsole,						\
 	cunilogProcessAppliesTo_nAlways,					\
 	0, 0,												\
 	NULL,												\
@@ -21715,9 +21708,6 @@ typedef struct cunilog_rotation_data
 	NULL,												\
 	OPT_CUNPROC_FORCE_NEXT								\
 }
-/*
-	Argument plf is a pointer to a CUNILOG_LOGFILE structure.
-*/
 #define CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR		\
 {														\
 	cunilogProcessWriteToLogFile,						\
@@ -22161,6 +22151,8 @@ typedef struct CUNILOG_TARGET
 #define CUNILOGTARGET_PROCESSORS_ALLOCATED		SINGLEBIT64 (8)
 
 // Run all processors on startup, independent of their individual flags.
+//	This flag overwrites the CUNILOGEVENT_NOROTATION flag of the first
+//	event after startup. Otherwise the rotation processors would not run.
 #define CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP	SINGLEBIT64 (9)
 
 // The filesystem that holds the log files doesn't return filenames in
@@ -22334,24 +22326,24 @@ typedef struct CUNILOG_TARGET
 */
 #define CUNILOGTARGET_ENQUEUE_TIMESTAMPS		SINGLEBIT64 (33)
 
-// The echo/console output processor is skipped.
-#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (34)
+// The console output processor is skipped.
+#define CUNILOGTARGET_NO_COUT					SINGLEBIT64 (34)
 
 // The processor that writes to the logfile is skipped.
 #define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (35)
 
 // Colour information should be used.
-#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (36)
+#define CUNILOGTARGET_USE_COLOUR_FOR_COUT		SINGLEBIT64 (36)
 
 /*
 	Macros for public/user/caller flags.
 */
-#define cunilogIsNoEcho(put)							\
-	((put)->uiOpts & CUNILOGTARGET_NO_ECHO)
-#define cunilogClrNoEcho(put)							\
-	((put)->uiOpts &= ~ CUNILOGTARGET_NO_ECHO)
-#define cunilogSetNoEcho(put)							\
-	((put)->uiOpts |= CUNILOGTARGET_NO_ECHO)
+#define cunilogHasTargetNoCout(put)						\
+	((put)->uiOpts & CUNILOGTARGET_NO_COUT)
+#define cunilogClrTargetNoCout(put)						\
+	((put)->uiOpts &= ~ CUNILOGTARGET_NO_COUT)
+#define cunilogSetTargetNoCout(put)						\
+	((put)->uiOpts |= CUNILOGTARGET_NO_COUT)
 
 #define cunilogHasDontWriteToLogfile(put)				\
 	((put)->uiOpts & CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
@@ -22361,17 +22353,17 @@ typedef struct CUNILOG_TARGET
 	((put)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-	#ifndef cunilogTargetHasUseColourForEcho
-		#define cunilogTargetHasUseColourForEcho(put)	\
-			((put)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#ifndef cunilogTargetHasUseColourForCout
+		#define cunilogTargetHasUseColourForCout(put)	\
+			((put)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_COUT)
 	#endif
-	#ifndef cunilogTargetClrUseColourForEcho
-		#define cunilogTargetClrUseColourForEcho(put)	\
-			((put)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#ifndef cunilogTargetClrUseColourForCout
+		#define cunilogTargetClrUseColourForCout(put)	\
+			((put)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_COUT)
 	#endif
-	#ifndef cunilogTargetSetUseColourForEcho
-		#define cunilogTargetSetUseColourForEcho(put)	\
-			((put)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#ifndef cunilogTargetSetUseColourForCout
+		#define cunilogTargetSetUseColourForCout(put)	\
+			((put)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_COUT)
 	#endif
 #endif
 
@@ -22515,8 +22507,8 @@ typedef struct CUNILOG_EVENT
 // Shuts down logging.
 #define CUNILOGEVENT_SHUTDOWN					SINGLEBIT64 (2)
 
-// Suppresses echo/console output processor.
-#define CUNILOGEVENT_NO_ECHO					SINGLEBIT64 (3)
+// Suppresses console output processor.
+#define CUNILOGEVENT_NO_COUT					SINGLEBIT64 (3)
 
 // This is an internal event. Internal events are generated
 //	within processors.
@@ -22527,14 +22519,19 @@ typedef struct CUNILOG_EVENT
 
 // No rotation for this event. This is very fast/quick logging.
 //	It is also used for internal logging.
+//	Note that this flag has no effect for the very first event
+//	created when the target has CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP
+//	set. The flag CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP forces
+//	all processors, including rotation processors, to run
+//	for the first event.
 #define CUNILOGEVENT_NOROTATION					SINGLEBIT64 (6)
 
 // Suppresses the remaining processors.
 #define CUNILOGEVENT_IGNORE_REMAINING_PROCESSORS\
 												SINGLEBIT64	(7)
 
-// Only process the echo processor. All others are suppressed.
-#define CUNILOGEVENT_ECHO_ONLY					SINGLEBIT64 (8)
+// Only process the console output processor. All others are suppressed.
+#define CUNILOGEVENT_COUT_ONLY					SINGLEBIT64 (8)
 
 // Macros to set and check flags.
 #define cunilogSetEventAllocated(pev)					\
@@ -22551,12 +22548,12 @@ typedef struct CUNILOG_EVENT
 #define cunilogIsEventCancel(pev)						\
 	((pev)->uiOpts & CUNILOGEVENT_CANCEL)
 
-#define cunilogSetEventNoEcho(pev)						\
-	((pev)->uiOpts |= CUNILOGEVENT_NO_ECHO)
-#define cunilogClrEventNoEcho(pev)						\
-	((pev)->uiOpts &= ~ CUNILOGEVENT_NO_ECHO)
-#define cunilogHasEventNoEcho(pev)						\
-	((pev)->uiOpts & CUNILOGEVENT_NO_ECHO)
+#define cunilogSetEventNoCout(pev)						\
+	((pev)->uiOpts |= CUNILOGEVENT_NO_COUT)
+#define cunilogClrEventNoCout(pev)						\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_NO_COUT)
+#define cunilogHasEventNoCout(pev)						\
+	((pev)->uiOpts & CUNILOGEVENT_NO_COUT)
 
 #define cunilogSetEventInternal(pev)					\
 	((pev)->uiOpts |= CUNILOGEVENT_IS_INTERNAL)
@@ -22574,6 +22571,8 @@ typedef struct CUNILOG_EVENT
 	((pev)->uiOpts & CUNILOGEVENT_NOROTATION)
 #define cunilogSetEventNoRotation(pev)					\
 	((pev)->uiOpts |= CUNILOGEVENT_NOROTATION)
+#define cunilogClrEventNoRotation(pev)					\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_NOROTATION)
 
 #define cunilogEventSetIgnoreRemainingProcessors(pev)	\
 	((pev)->uiOpts |= CUNILOGEVENT_IGNORE_REMAINING_PROCESSORS)
@@ -22582,12 +22581,12 @@ typedef struct CUNILOG_EVENT
 #define cunilogEventHasIgnoreRemainingProcessors(pev)	\
 	((pev)->uiOpts & CUNILOGEVENT_IGNORE_REMAINING_PROCESSORS)
 
-#define cunilogSetEventEchoOnly(pev)					\
-	((pev)->uiOpts |= CUNILOGEVENT_ECHO_ONLY)
-#define cunilogClrEventEchoOnly(pev)					\
-	((pev)->uiOpts &= ~ CUNILOGEVENT_ECHO_ONLY)
-#define cunilogHasEventEchoOnly(pev)					\
-	((pev)->uiOpts & CUNILOGEVENT_ECHO_ONLY)
+#define cunilogSetEventCoutOnly(pev)					\
+	((pev)->uiOpts |= CUNILOGEVENT_COUT_ONLY)
+#define cunilogClrEventCoutOnly(pev)					\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_COUT_ONLY)
+#define cunilogHasEventCoutOnly(pev)					\
+	((pev)->uiOpts & CUNILOGEVENT_COUT_ONLY)
 
 /*
 	Return type of the separate logging thread.
@@ -22874,12 +22873,12 @@ size_t culCmdRequiredSize (enum cunilogEvtCmd cmd)
 ;
 
 /*
-	culCmdStoreCmdConfigUseColourForEcho
+	culCmdStoreCmdConfigUseColourForCout
 
 	Stores the command to change whether colours are used or not plus the boolean bUseColour
 	in the buffer szOut points to.
 */
-void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour)
+void culCmdStoreCmdConfigUseColourForCout (unsigned char *szOut, bool bUseColour)
 ;
 
 /*
@@ -23219,7 +23218,7 @@ DoneCUNILOG_TARGETstatic ();
 									);
 	*/
 #else
-	#define CUNILOG_DEFAULT_OPEN_MODE	"a"
+	#define CUNILOG_DEFAULT_OPEN_MODE	(O_WRONLY | O_APPEND | O_CREAT)
 #endif
 
 EXTERN_C_BEGIN
@@ -23264,6 +23263,82 @@ TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR **, CreateCopyCUNILOG_PROCESSORs)
 */
 void *DoneCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps []);
 TYPEDEF_FNCT_PTR (void *, DoneCopyCUNILOG_PROCESSORs) (CUNILOG_PROCESSOR *cps []);
+
+/*
+	CreateNewDefaultProcessors
+
+	Allocates new default processors on the heap and returns a pointer to the a
+
+	Call DoneCopyCUNILOG_PROCESSORs () when the processors are not needed anymore.
+*/
+CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn);
+TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR **, CreateNewDefaultProcessors) (unsigned int *pn);
+
+/*
+	GetCUNILOG_PROCESSOR
+
+	Returns a pointer to the nth processor that performs processing task task.
+	If n is 0, the function finds the first processor of task task, if it is
+	1, it returns the second processor of task task.
+
+	Returns NULL if a processor for task task does not exist or if n is higher
+	than the number of task processors - 1. For instance, if a processor list
+	only contains one console output processor, the function is asked to return
+	cunilogProcessOutputToConsole as task, and if n = 1, the function returns
+	NULL.
+*/
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
+						CUNILOG_PROCESSOR			**cup,
+						unsigned int				ncup,
+						enum cunilogprocesstask		task,
+						unsigned int				n
+										)
+;
+
+/*
+	GetCUNILOG_PROCESSORrotationTask
+
+	Returns a pointer to the nth rotation processor that performs rotation task rot.
+	If n is 0, the function finds the first rotation processor of task rot, if it is
+	1, it returns the second rotation procossor of task rot.
+
+	Returns NULL if a processor for task task does not exist or if n is higher
+	than the number of task processors - 1. For instance, if a processor list
+	only contains one console output processor, the function is asked to return
+	cunilogProcessOutputToConsole as task, and if n = 1, the function returns
+	NULL.
+*/
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
+						CUNILOG_PROCESSOR			**cup,
+						unsigned int				ncup,
+						enum cunilogrotationtask	rot,
+						unsigned int				n
+													)
+;
+
+/*
+	GetCUNILOG_ROTATION_DATAfromProcessor
+
+	Returns a pointer to CUNILOG_ROTATION_DATA of the nth rotation processor that
+	performs rotation task rot. The CUNILOG_ROTATION_DATA is the pData member of
+	a rotation processor.
+
+	If n is 0, the function finds the first rotation processor of task rot, if it is
+	1, it returns the second rotation procossor of task rot.
+
+	Returns NULL if a rotation processor for task rot does not exist or if n is higher
+	than the number of this type of ratation processors - 1. For instance, if a processor
+	list only contains one cunilogrotationtask_MoveToTrashLogfiles rotation processor,
+	rot is set to cunilogrotationtask_MoveToTrashLogfiles, and if n = 1, the function
+	returns NULL.
+*/
+CUNILOG_ROTATION_DATA *GetCUNILOG_ROTATION_DATAfromProcessor	(
+						CUNILOG_PROCESSOR			**cup,
+						unsigned int				ncup,
+						enum cunilogrotationtask	rot,
+						unsigned int				n
+																)
+;
 
 /*
 	Table with the length of the rotational date/timestamp.
@@ -23327,14 +23402,14 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 
 	Macros to set the console to UTF-8 or UTF-16 on Windows. They do nothing on POSIX.
 
-	By default the echo/console output processor changes the Windows console input
+	By default the console output processor changes the Windows console input
 	and output character sets/code pages to UTF-8 when invoked for the first time.
 	Calling one of these functions beforehand explicitely sets the code pages/console
-	character sets and prevents the echo/console output processor from changing them
-	when a logging function that echoes to the console is called the first time.
+	character sets and prevents the console output processor from changing them
+	when a logging function that outputs to the console is called the first time.
 
 	The function CunilogSetConsoleToNone () does not change the code pages/character
-	sets for the attached console but simply prevents the Cunilog echo/console output
+	sets for the attached console but simply prevents the Cunilog console output
 	processor from changing them when a logging function that writes to the console is
 	called for the first time.
 */
@@ -23543,7 +23618,12 @@ enum enLineEndings CunilogAutoNewLine (void);
 
 	rp					Can be either cunilogRunProcessorsOnStartup or
 						cunilogDontRunProcessorsOnStartup to run or not run all processors the
-						first time a logging function is called.
+						first time a logging function is called. 
+						Note that if the first logging function called after the target has
+						been initialised or created is a "q" (quick) function, and the target
+						has been initialised/created with cunilogRunProcessorsOnStartup, the
+						quick option for that logging call is ignored, and the rotation
+						processors are run regardless.
 
 	The function returns a pointer to puz on success, NULL otherwise.
 */
@@ -23699,9 +23779,14 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 						operating system. However, it is recommended to use the value returned
 						by CunilogAutoNewLine () for this parameter.
 
-	rp					Can be either unilogRunProcessorsOnStartup or
-						unilogDontRunProcessorsOnStartup to run or not run all processors the
-						first time a logging function is called.
+	rp					Can be either cunilogRunProcessorsOnStartup or
+						cunilogDontRunProcessorsOnStartup to run or not run all processors the
+						first time a logging function is called. 
+						Note that if the first logging function called after the target has
+						been initialised or created is a "q" (quick) function, and the target
+						has been initialised/created with cunilogRunProcessorsOnStartup, the
+						quick option for that logging call is ignored, and the rotation
+						processors are run regardless.
 
 	For performance reasons and to simplify data handling, the function allocates a single memory
 	block that holds enough space for the CUNILOG_TARGET structure as well as szLogPath and
@@ -23873,7 +23958,12 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitOrCreateCUNILOG_TARGET)
 
 	rp					Can be either cunilogRunProcessorsOnStartup or
 						cunilogDontRunProcessorsOnStartup to run or not run all processors the
-						first time a logging function is called.
+						first time a logging function is called. 
+						Note that if the first logging function called after the target has
+						been initialised or created is a "q" (quick) function, and the target
+						has been initialised/created with cunilogRunProcessorsOnStartup, the
+						quick option for that logging call is ignored, and the rotation
+						processors are run regardless.
 
 	The function returns a pointer to the internal CUNILOG_TARGET cunilognewlinestructure
 	upon success, NULL otherwise.
@@ -23985,22 +24075,25 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 /*
 	MoveCUNILOG_TARGETqueueToFrom
 
-	Moves the queue of the target putFrom to target putTo.
+	Moves the queue of the target putSrc to target putDst.
 	The function requires that both targets have a queue. It fails if this is not
 	the case.
+
+	Note that the first parameter points to the destination target, and the second
+	parameter is the source.
 
 	The function returns true on success, false otherwise.
 */
 #if !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && !defined (CUNILOG_BUILD_SINGLE_THREADED_QUEUE)
 	bool MoveCUNILOG_TARGETqueueToFrom	(
-			CUNILOG_TARGET *cunilog_restrict putTo,
-			CUNILOG_TARGET *cunilog_restrict putFrom
+			CUNILOG_TARGET *cunilog_restrict putDst,
+			CUNILOG_TARGET *cunilog_restrict putSrc
 										)
 	;
 	TYPEDEF_FNCT_PTR (bool, MoveCUNILOG_TARGETqueueToFrom)
 	(
-			CUNILOG_TARGET *cunilog_restrict putTo,
-			CUNILOG_TARGET *cunilog_restrict putFrom
+			CUNILOG_TARGET *cunilog_restrict putDst,
+			CUNILOG_TARGET *cunilog_restrict putSrc
 	);
 #endif
 
@@ -24049,27 +24142,30 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET_static)
 	(size_t *plen);
 
 /*
-	GetCUNILOG_PROCESSOR
+	GetCUNILOG_TARGETprocessor
 
-	Returns a pointer to the nth processor that performs processing task task.
+	Returns a pointer to the nth processor of CUNILOG_TARGET put that
+	performs processing task task.
 	If n is 0, the function finds the first processor of task task, if it is
-	1, it returns the second procossor of task task.
+	1, it returns the second processor of task task.
+
 	Returns NULL if a processor for task task does not exist or if n is higher
 	than the number of task processors - 1. For instance, if a processor list
-	only contains one echo processor, and if n = 1, the function returns NULL.
+	only contains one console output processor, but n = 1, the function returns
+	NULL.
 
-	For example, to obtain the echo processor:
-	CUNILOG_PROCESSOR *cup = GetCUNILOG_PROCESSOR	(
-								put, cunilogProcessEchoToConsole, 0
-													);
+	For example, to obtain the console output processor:
+	CUNILOG_PROCESSOR *cup = GetCUNILOG_TARGETprocessor	(
+								put, cunilogProcessOutputToConsole, 0
+														);
 */
-CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
+CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessor	(
 						CUNILOG_TARGET				*put,
 						enum cunilogprocesstask		task,
 						unsigned int				n
-										)
+												)
 ;
-TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_PROCESSOR)
+TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_TARGETprocessor)
 										(
 						CUNILOG_TARGET				*put,
 						enum cunilogprocesstask		task,
@@ -24078,9 +24174,10 @@ TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_PROCESSOR)
 ;
 
 /*
-	GetCUNILOG_PROCESSORrotationTask
+	GetCUNILOG_TARGETprocessorRotationTask
 
-	Returns a pointer to the nth rotation processor that performs rotation task rot.
+	Returns a pointer to the nth rotation processor of CUNILOG_TARGET put that
+	performs rotation task rot.
 	If n is 0, the function finds the first rotation processor of task rot, if it is
 	1, it returns the second rotation procossor of task rot.
 	Returns NULL if a rotation processor for task rot does not exist or if n is higher
@@ -24090,15 +24187,15 @@ TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_PROCESSOR)
 
 	For example, to obtain a pointer to the rotation processor that moves files to the
 	recycle bin/trash:
-	CUNILOG_PROCESSOR *cup = GetCUNILOG_PROCESSORrotationTask	(
+	CUNILOG_PROCESSOR *cup = GetCUNILOG_TARGETprocessorRotationTask	(
 								put, cunilogrotationtask_MoveToTrashLogfiles, 0
-																);
+																	);
 */
-CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
+CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 						CUNILOG_TARGET				*put,
 						enum cunilogrotationtask	rot,
 						unsigned int				n
-													)
+															)
 ;
 
 /*
@@ -24202,26 +24299,26 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 #endif
 
 /*
-	ConfigCUNILOG_TARGETuseColourForEcho
+	ConfigCUNILOG_TARGETuseColourForCout
 
 	Switches on/off using colours for console output depending on event severity level.
 
 	The NO_COLOR suggestion at https://no-color.org/ recommends that this function is
 	called after checking the environment variable NO_COLOR first:
-	ConfigCUNILOG_TARGETuseColourForEcho (target, !Cunilog_Have_NO_COLOR ());
+	ConfigCUNILOG_TARGETuseColourForCout (target, !Cunilog_Have_NO_COLOR ());
 */
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-		void ConfigCUNILOG_TARGETuseColourForEcho (CUNILOG_TARGET *put, bool bUseColour)
+		void ConfigCUNILOG_TARGETuseColourForCout (CUNILOG_TARGET *put, bool bUseColour)
 		;
-		TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETuseColourForEcho)
+		TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETuseColourForCout)
 			(CUNILOG_TARGET *put, bool bUseColour);
 	#else
-		#define ConfigCUNILOG_TARGETuseColourForEcho(put, b)	\
+		#define ConfigCUNILOG_TARGETuseColourForCout(put, b)	\
 			if (bUseColour)										\
-				cunilogSetUseColourForEcho (put);				\
+				cunilogTargetSetUseColourForCout (put);			\
 			else												\
-				cunilogClrUseColourForEcho (put)
+				cunilogTargetClrUseColourForCout (put)
 	#endif
 #endif
 
@@ -24282,17 +24379,17 @@ TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableTaskProcessors)
 	(CUNILOG_TARGET *put, enum cunilogprocesstask task);
 
 /*
-	ConfigCUNILOG_TARGETdisableEchoProcessor
-	ConfigCUNILOG_TARGETenableEchoProcessor
+	ConfigCUNILOG_TARGETdisableCoutProcessor
+	ConfigCUNILOG_TARGETenableCoutProcessor
 
-	Disables/enables echo (console output) processors. Echo or console output processors
-	are processors whose task is cunilogProcessEchoToConsole.
+	Disables/enables console output processors. Console output processors
+	are processors whose task is cunilogProcessOutputToConsole.
 */
-void ConfigCUNILOG_TARGETdisableEchoProcessor	(CUNILOG_TARGET *put);
-void ConfigCUNILOG_TARGETenableEchoProcessor	(CUNILOG_TARGET *put);
+void ConfigCUNILOG_TARGETdisableCoutProcessor	(CUNILOG_TARGET *put);
+void ConfigCUNILOG_TARGETenableCoutProcessor	(CUNILOG_TARGET *put);
 
-TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableEchoProcessor)	(CUNILOG_TARGET *put);
-TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableEchoProcessor)	(CUNILOG_TARGET *put);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableCoutProcessor)	(CUNILOG_TARGET *put);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET *put);
 
 /*
 	EnterCUNILOG_TARGET
@@ -24684,7 +24781,9 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 #define logEv_static(pev)	logEv (pCUNILOG_TARGETstatic, (pev))
 
 /*
-	The functions expect an CUNILOG_TARGET structure as their first parameter.
+	Logging functions
+
+	The functions expect a CUNILOG_TARGET structure as their first parameter.
 	The _static macros use the module's internal static structure and do not require
 	a pointer to a CUNILOG_TARGET structure as their first parameter. If you only intend to
 	write to a single logfile, the _static macros are ideal.
@@ -24729,6 +24828,9 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 	than CUNILOG_DEFAULT_SFMT_SIZE bytes are required. Otherwise the heap is used.
 	
 	Function names containing a "q" (for quick) do not invoke any rotation processors.
+	Note that if the first logging function called is a "q" function, and the target has been
+	created with cunilogRunProcessorsOnStartup, the quick option is ignored for the first call
+	and the rotation processors are executed regardless.
 
 	The functions logTextU8smbfmtsev () and logTextU8smbfmt () additionally expect an
 	initialised parameter structure of type SMEMBUF. The SMEMBUF structure can be re-used
@@ -24861,10 +24963,10 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 #define logTextU8csfmtsev_static(s, ...)				\
 										logTextU8csfmtsev	(pCUNILOG_TARGETstatic, (s), __VA_ARGS__);
 
-/*	ChangeCUNILOG_TARGETuseColourForEcho
-	ChangeCUNILOG_TARGETuseColorForEcho
-	ChangeCUNILOG_TARGETuseColourForEcho_static
-	ChangeCUNILOG_TARGETuseColorForEcho_static
+/*	ChangeCUNILOG_TARGETuseColourForCout
+	ChangeCUNILOG_TARGETuseColorForCout
+	ChangeCUNILOG_TARGETuseColourForCout
+	ChangeCUNILOG_TARGETuseColorForCout_static
 
 	Creates and queues an event that changes the colour output of event severity
 	types. A value of false for bUseColour disables coloured output. A value of true
@@ -24874,14 +24976,14 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 	structure.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	bool ChangeCUNILOG_TARGETuseColourForEcho (CUNILOG_TARGET *put, bool bUseColour)
+	bool ChangeCUNILOG_TARGETuseColourForCout (CUNILOG_TARGET *put, bool bUseColour)
 	;
-	#define ChangeCUNILOG_TARGETuseColourForEcho_static(bc)	\
-				ChangeCUNILOG_TARGETuseColourForEcho (pCUNILOG_TARGETstatic, (bc))
-	#define ChangeCUNILOG_TARGETuseColorForEcho(p, bc)		\
-				ChangeCUNILOG_TARGETuseColourForEcho ((p), (bc))
-	#define ChangeCUNILOG_TARGETuseColorForEcho_static(bc)	\
-				ChangeCUNILOG_TARGETuseColourForEcho (pCUNILOG_TARGETstatic, (bc))
+	#define ChangeCUNILOG_TARGETuseColourForCout_static(bc)	\
+				ChangeCUNILOG_TARGETuseColourForCout (pCUNILOG_TARGETstatic, (bc))
+	#define ChangeCUNILOG_TARGETuseColorForCout(p, bc)		\
+				ChangeCUNILOG_TARGETuseColourForCout ((p), (bc))
+	#define ChangeCUNILOG_TARGETuseColorForCout_static(bc)	\
+				ChangeCUNILOG_TARGETuseColourForCout (pCUNILOG_TARGETstatic, (bc))
 #endif
 
 /*
@@ -24913,17 +25015,17 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 #endif
 
 /*
-	ChangeCUNILOG_TARGETdisableEchoProcessor
-	ChangeCUNILOG_TARGETenableEchoProcessor
+	ChangeCUNILOG_TARGETdisableCoutProcessor
+	ChangeCUNILOG_TARGETenableCoutProcessor
 
 	The functions return true if the event was queued successfully, false otherwise.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	bool ChangeCUNILOG_TARGETdisableEchoProcessor	(CUNILOG_TARGET *put);
-	bool ChangeCUNILOG_TARGETenableEchoProcessor	(CUNILOG_TARGET *put);
+	bool ChangeCUNILOG_TARGETdisableCoutProcessor	(CUNILOG_TARGET *put);
+	bool ChangeCUNILOG_TARGETenableCoutProcessor	(CUNILOG_TARGET *put);
 
-	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETdisableEchoProcessor)	(CUNILOG_TARGET *put);
-	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETenableEchoProcessor)	(CUNILOG_TARGET *put);
+	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETdisableCoutProcessor)	(CUNILOG_TARGET *put);
+	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET *put);
 #endif
 
 /*

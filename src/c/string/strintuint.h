@@ -293,6 +293,17 @@ size_t ubf_str_from_uint16 (char *result, uint16_t ui16);
 size_t ubf_str0_from_uint16 (char *result, size_t digits, uint16_t ui16);
 
 /*
+	ubf_str_from_uint32
+	
+	Returns an ASCII representation of the value of ui16, in decimal (base 10). The
+	buffer result points to must be at least UBF_UINT32_SIZE bytes long.
+
+	The function returns the amount of decimal digits written to result, which
+	does not include the terminating NUL character.
+*/
+size_t ubf_str_from_uint32 (char *result, uint32_t ui32);
+
+/*
 	ubf_str_from_int64
 
 	Returns an ASCII representation of the value of i64, in decimal (base 10). The

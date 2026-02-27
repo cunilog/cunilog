@@ -72,21 +72,18 @@ unsigned int	nCulStdLineCComment			= GET_ARRAY_LEN (ccCulStdLineCComment);
 const char		*ccCulStdLineUComment	[]	= {"//", "#", ";", "+", "--", "!"};
 unsigned int	nCulStdLineUComment			= GET_ARRAY_LEN (ccCulStdLineUComment);
 
-// These line comments are meant to be preceded by white space in the future.
-//	Not implemented yet. At the moment all line comments need to be preceded
-//	by white space if they appear at the end of a line.
-/*
-const char		*ccCulStdLineWSComment	[]	= {"#", ";", "!"};
-unsigned int	nCulStdLineWSComment		= GET_ARRAY_LEN (ccCulStdLineWSComment);
-*/
-
 const char		*ccCulStdBegMultComment	[]	= {"/*", "{-", "(*"};
 const char		*ccCulStdEndMultComment	[]	= {"*/", "-}", "*)"};
 unsigned int	nccCulStdMultComment		= GET_ARRAY_LEN (ccCulStdEndMultComment);
 
-const char		*ccCulStdOpenQuotes		[]	= {"\"", "'", "[", "{"};
-const char		*ccCulStdClosQuotes		[]	= {"\"", "'", "]", "}"};
+// Element 0 is the quote for a here-string.
+const char		*ccCulStdOpenQuotes		[]	= {"@\"", "\"", "'", "[", "{"};
+const char		*ccCulStdClosQuotes		[]	= {"\"@", "\"", "'", "]", "}"};
 unsigned int	nCulStdQuotes				= GET_ARRAY_LEN (ccCulStdOpenQuotes);
+
+// 1-based index of ccCulStdOpenQuotes and ccCulStdClosQuotes that serves for here-strings.
+//	If this is 0, here-strings are not supported.
+unsigned int	uCulStdIdxHeres				= 1;
 
 const char		*ccCulStdEqualSigns		[]	= {":=", "=", ":", "->", "<-"};
 unsigned int	nCulStdEquals				= GET_ARRAY_LEN (ccCulStdEqualSigns);
@@ -120,7 +117,7 @@ static bool isExtraWhiteSpc (const char *sz, size_t ln)
 	return false;
 }
 
-void InitSTRLINEINF (STRLINEINF *pi, void *pCustom)
+static void InitSTRLINEINF (STRLINEINF *pi, size_t lenLeftTotal, void *pCustom)
 {
 	ubf_assert_non_NULL (pi);
 
@@ -136,6 +133,7 @@ void InitSTRLINEINF (STRLINEINF *pi, void *pCustom)
 	pi->pCustom					= pCustom;
 	pi->szStart					= NULL;
 	pi->lnLength				= 0;
+	pi->lnLeftTotal				= lenLeftTotal;
 	#ifdef DEBUG
 		pi->bInitialised		= true;
 	#endif
@@ -198,6 +196,7 @@ void InitSCULMLTSTRINGSforUBFL (SCULMLTSTRINGS *psmls)
 	psmls->ccOpenQuotes			= ccCulStdOpenQuotes;
 	psmls->ccClosQuotes			= ccCulStdClosQuotes;
 	psmls->nQuotes				= nCulStdQuotes;
+	psmls->uCulStdIdxHeres		= uCulStdIdxHeres;
 	psmls->ccEquals				= ccCulStdEqualSigns;
 	psmls->nEquals				= nCulStdEquals;
 	psmls->ccStrtSections		= ccCulStdStrtSection;
@@ -225,6 +224,7 @@ void InitSCULMLTSTRINGSforC (SCULMLTSTRINGS *psmls)
 	psmls->ccOpenQuotes			= ccCulStdOpenQuotes;
 	psmls->ccClosQuotes			= ccCulStdClosQuotes;
 	psmls->nQuotes				= nCulStdQuotes;
+	psmls->uCulStdIdxHeres		= uCulStdIdxHeres;
 	psmls->ccEquals				= ccCulStdEqualSigns;
 	psmls->nEquals				= nCulStdEquals;
 	psmls->ccStrtSections		= ccCulStdStrtSection;
@@ -281,7 +281,7 @@ bool cmpBufStartsWith (const char *p, size_t l, const char *sz)
 	ubf_assert (NULL != sz);
 	ubf_assert (USE_STRLEN != l);
 
-	size_t	lc	= sz ? strlen (sz) : 0;
+	size_t lc = sz ? strlen (sz) : 0;
 	if (p && lc && l && l >= lc)
 	{
 		return 0 == memcmp (p, sz, lc);
@@ -333,17 +333,16 @@ bool isEndMultiLineComment (const char *pb, size_t lb, STRLINECONF *pc, unsigned
 	Steps pb on to the next line and updates the STRLINEINF structure pi points
 	to as it goes along.
 */
-void nextLine (const char **pb, size_t *pl, STRLINEINF *pi)
+void nextLine (const char **pb, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
-	ubf_assert_non_NULL (pl);
 	ubf_assert_non_NULL (pi);
 
 	const char		*ch	= *pb;
 	size_t			nls	= 0;
 	size_t			jmp	= 0;
-	size_t			l	= *pl;
+	size_t			l	= pi->lnLeftTotal;
 
 	while (l && 0 == (nls = strIsLineEndings (ch, l, &jmp)))
 	{
@@ -353,12 +352,12 @@ void nextLine (const char **pb, size_t *pl, STRLINEINF *pi)
 	}
 	if (nls)
 	{
-		l	-= jmp;
-		ch	+= jmp;
-		pi->absPosition += jmp;
-		pi->charNumber = 1;
+		l				-= jmp;
+		ch				+= jmp;
+		pi->absPosition	+= jmp;
+		pi->charNumber	= 1;
 	}
-	*pl = l;
+	pi->lnLeftTotal = l;
 	*pb = ch;
 	pi->lineNumber += nls;
 }
@@ -380,7 +379,7 @@ bool isLineComment (const char *sz, size_t ln, SCULMLTSTRINGS *pi)
 	Swallows single-line comments up to the next line. Returns true if a line
 	comment was swallowed.
 */
-bool swallowLineComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
+bool swallowLineComment (const char **pb, STRLINECONF *pc, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
@@ -393,9 +392,9 @@ bool swallowLineComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEIN
 	{
 		for (n = 0; n < pc->nLineCommentStr; ++ n)
 		{
-			if (cmpBufStartsWith (*pb, *pl, pc->pchLineCommentStr [n]))
+			if (cmpBufStartsWith (*pb, pi->lnLeftTotal, pc->pchLineCommentStr [n]))
 			{
-				nextLine (pb, pl, pi);
+				nextLine (pb, pi);
 				// *pb should now point to the first character of a new line.
 				return true;
 			}
@@ -407,11 +406,10 @@ bool swallowLineComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEIN
 /*
 	Swallows a multi-line/block comment. Returns true when a block comment was swallowed.
 */
-bool swallowMultiComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
+bool swallowMultiComment (const char **pb, STRLINECONF *pc, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
-	ubf_assert_non_NULL (pl);
 	ubf_assert_non_NULL (pc);
 	ubf_assert_non_NULL (pi);
 
@@ -420,35 +418,35 @@ bool swallowMultiComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEI
 	size_t			nls;
 	size_t			jmp;
 
-	if (0 < (idx = isStartMultiLineComment (*pb, *pl, pc)))
+	if (0 < (idx = isStartMultiLineComment (*pb, pi->lnLeftTotal, pc)))
 	{
 		l = strlen (pc->pchStartMultiCommentStr [idx - 1]);
 		*pb += l;
-		*pl -= l;
+		pi->lnLeftTotal -= l;
 		++ pi->absPosition;
-		while (*pl && **pb)
+		while (pi->lnLeftTotal && **pb)
 		{
-			if (isEndMultiLineComment (*pb, *pl, pc, idx))
+			if (isEndMultiLineComment (*pb, pi->lnLeftTotal, pc, idx))
 			{
 				l = strlen (pc->pchEndMultiCommentStr [idx - 1]);
-				*pb += l;
-				*pl -= l;
+				*pb					+= l;
+				pi->lnLeftTotal		-= l;
 				++ pi->absPosition;
 				return true;
 			} else
 			{
-				nls = strIsLineEndings (*pb, *pl, &jmp);
+				nls = strIsLineEndings (*pb, pi->lnLeftTotal, &jmp);
 				if (nls)
 				{
 					pi->lineNumber	+= nls;
 					pi->absPosition	+= jmp;
-					pi->charNumber = 1;
+					pi->charNumber	= 1;
 					*pb += jmp;
-					*pl -= jmp;
+					pi->lnLeftTotal	-= jmp;
 				} else
 				{
 					*pb += 1;
-					*pl -= 1;
+					pi->lnLeftTotal	-= 1;
 					++ pi->absPosition;
 				}
 			}
@@ -461,18 +459,17 @@ bool swallowMultiComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEI
 /*
 	Returns true when white space or a new line was swallowed.
 */
-bool swallowEmptyAndWhiteSpaceLines (const char **pb, size_t *pl, STRLINEINF *pi)
+bool swallowEmptyAndWhiteSpaceLines (const char **pb, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
-	ubf_assert_non_NULL (pl);
 	ubf_assert_non_NULL (pi);
 	
 	size_t	nls;
 	size_t	jmp;
 	bool	bRet	= false;
 	
-	while (*pl)
+	while (pi->lnLeftTotal)
 	{
 		char	c;
 			
@@ -480,29 +477,29 @@ bool swallowEmptyAndWhiteSpaceLines (const char **pb, size_t *pl, STRLINEINF *pi
 		if (isWhiteSpace (c))
 		{
 			*pb += 1;
-			*pl -= 1;
+			pi->lnLeftTotal -= 1;
 			++ pi->absPosition;
 			++ pi->charNumber;
 			bRet = true;
 		} else
 			break;
 	}
-	nls = strIsLineEndings (*pb, *pl, &jmp);
+	nls = strIsLineEndings (*pb, pi->lnLeftTotal, &jmp);
 	if (nls)
 	{
 		pi->lineNumber	+= nls;
 		pi->absPosition	+= jmp;
-		*pb += jmp;
-		*pl -= jmp;
+		*pb				+= jmp;
+		pi->lnLeftTotal	-= jmp;
 		bRet = true;
 	}
 
 	// We additionally always ignore CR characters, independent of whether support for this
 	//	has been enabled in our build or not.
-	while (*pl && '\r' == **pb)
+	while (pi->lnLeftTotal && '\r' == **pb)
 	{
 		*pb += 1;
-		*pl -= 1;
+		pi->lnLeftTotal -= 1;
 	}
 	return bRet;
 }
@@ -582,19 +579,19 @@ unsigned int StrLineExtractU8	(
 
 	if (pBuf)
 	{
-		InitSTRLINEINF (&sLineInfo, pCustom);
-		while (lenBuf)
+		InitSTRLINEINF (&sLineInfo, lenBuf, pCustom);
+		while (sLineInfo.lnLeftTotal)
 		{
 			do
 			{
-				b = swallowLineComment (&pBuf, &lenBuf, pConf, &sLineInfo);
-				b |= swallowMultiComment (&pBuf, &lenBuf, pConf, &sLineInfo);
-				b |= swallowEmptyAndWhiteSpaceLines (&pBuf, &lenBuf, &sLineInfo);
+				b = swallowLineComment (&pBuf, pConf, &sLineInfo);
+				b |= swallowMultiComment (&pBuf, pConf, &sLineInfo);
+				b |= swallowEmptyAndWhiteSpaceLines (&pBuf, &sLineInfo);
 			} while (b);
-			if (lenBuf)
+			if (sLineInfo.lnLeftTotal)
 			{
 				// We now got a single line.
-				sLineInfo.lnLength		= getLineLength (pBuf, lenBuf); //, pConf);
+				sLineInfo.lnLength		= getLineLength (pBuf, sLineInfo.lnLeftTotal);
 				sLineInfo.szStart		= pBuf;
 				sLineInfo.charNumber	= 0;			// Currently not supported.
 				if (cb)
@@ -604,8 +601,8 @@ unsigned int StrLineExtractU8	(
 					if (!cbRet)
 						break;
 				}
-				pBuf	+= sLineInfo.lnLength;
-				lenBuf	-= sLineInfo.lnLength;
+				pBuf					+= sLineInfo.lnLength;
+				sLineInfo.lnLeftTotal	-= sLineInfo.lnLength;
 			}
 		}
 	}
@@ -788,7 +785,9 @@ bool strlineextractKeyOrValue	(
 
 	const char		*szRet;
 	const char		*szEnd;
-	unsigned int uQuote = strlineextractIsOpenString (szLine, lnLine, psmlt->nQuotes, psmlt->ccOpenQuotes);
+	unsigned int	ue;										// 1-based idx of equality.
+
+	unsigned int uQuote = strlineextractIsOpenString (szLine, lnLine, psmlt->nQuotes,	psmlt->ccOpenQuotes);
 	if (uQuote)
 	{
 		size_t lnOpenQuote = strlen (psmlt->ccOpenQuotes [uQuote - 1]);
@@ -817,15 +816,14 @@ bool strlineextractKeyOrValue	(
 					} else
 						return true;
 				}
-				unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
-				if (ui1)
+				if ((ue = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals)))
 				{	// Return the position of the equality sign found and the remaining length
 					//	of the line and its 1-based index. This way the caller doesn't need to
 					//	parse white space up until after the equality sign again, since its
 					//	length can be obtained via the 1-based index - 1.
 					if (pszEqual)			*pszEqual			= szLine;
 					if (plnEqual)			*plnEqual			= lnLine;
-					if (pidxEqual1based)	*pidxEqual1based	= ui1;
+					if (pidxEqual1based)	*pidxEqual1based	= ue;
 					return true;
 				}
 				// Must be something like "{key } abc", or even "{key },"
@@ -835,17 +833,31 @@ bool strlineextractKeyOrValue	(
 			-- lnLine;
 		}
 		// No closing quote. The key or value is incomplete.
+
+		// This function cannot handle here-strings that don't fit in one line.
+		if (uQuote == psmlt->uCulStdIdxHeres)
+		{	
+			*pszKeyOrVal = szRet;
+			*plnKeyOrVal = 0;
+			if (pidxEqual1based)
+				*pidxEqual1based = uQuote;
+			return false;
+		}
 		return false;
 	}
 
 	szRet = szLine;
 	szEnd = NULL;
 
+	ue = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
+	// Starts with an equality sign. The entire line is a key.
+	bool bie = ue;
+
 	while (lnLine)
 	{
 		if	(
 					!isWhiteSpace (szLine [0])
-				&&	!strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals)
+				&&	(bie || !strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals))
 				&&	!isLineComment (szLine, lnLine, psmlt)
 			)
 		{
@@ -868,16 +880,15 @@ bool strlineextractKeyOrValue	(
 			++ szLine;
 			-- lnLine;
 		}
-		unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
-		if (ui1)
-		{	// Return the position of the equality sign found and the remaining length
-			//	of the line and its 1-based index. This way the caller doesn't need to
-			//	parse white space up until after the equality sign again, since its
-			//	length can be obtained via the 1-based index - 1.
-			if (pszEqual)			*pszEqual			= szLine;
-			if (plnEqual)			*plnEqual			= lnLine;
-			if (pidxEqual1based)	*pidxEqual1based	= ui1;
-			break;
+		if (!bie)
+		{
+			if ((ue = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals)))
+			{
+				if (pszEqual)			*pszEqual			= szLine;
+				if (plnEqual)			*plnEqual			= lnLine;
+				if (pidxEqual1based)	*pidxEqual1based	= ue;
+				break;
+			}
 		}
 	}
 	Escape:
@@ -922,7 +933,13 @@ unsigned int strlineextractKeyAndValues	(
 				psmlt
 										);
 	if (!b)
+	{
+		if (idxEqual1 == uCulStdIdxHeres)
+		{	// Here-string.
+
+		}
 		return 0;
+	}
 
 	// We're expecting a key/value pair like "key = value". That's not possible without
 	//	an equality sign.
@@ -1068,7 +1085,7 @@ bool strlineextractSection	(
 			++ szLine;
 			-- lnLine;
 		}
-		// No exit section string.
+		// No closing section string.
 	}
 
 	Escape:
@@ -1153,7 +1170,7 @@ bool strlineextractSection	(
 		ubf_expect_bool_AND (b, true == br);
 
 		STRLINEINF	inf;
-		InitSTRLINEINF (&inf, (void *) 73);
+		InitSTRLINEINF (&inf, 0, (void *) 73);
 		ubf_expect_bool_AND (b, (void *) 73 == inf.pCustom);
 
 		STRLINEXTCSTM	cust;
@@ -1222,6 +1239,72 @@ bool strlineextractSection	(
 
 		const char	*szKey	= NULL;
 		size_t		lnKey	= 0;
+
+		// A single equality character.
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				" = ", USE_STRLEN, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, 1 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("= ", szKey, 2));
+
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, 1 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("= ", szKey, 2));
+
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				" = key ", USE_STRLEN, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, 5 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("= key ", szKey, 6));
+
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				" = key = val ", USE_STRLEN, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, 11 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("= key = val ", szKey, 12));
+
+		// Here-strings. These are one-liners and should be handled by
+		//	strlineextractKeyOrValue ().
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"@\" key \"@", USE_STRLEN, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 5 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp (" key \"", szKey, 6));
+
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"@\" key \"@ = @\" val \"@", USE_STRLEN, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 5 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp (" key \"", szKey, 6));
+
+		// Returns the first character after the opening here-string marker and false.
+		//	The key's length is set to 0.
+		b &= !strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"@\"        \n"
+				" Str00 \n", 5, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("      ", szKey, 6));
 
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,

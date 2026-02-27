@@ -345,9 +345,11 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	Deallocates the memory used by the SMEMBUF structure's buffer and initialises it
 	with initSMEMBUF() so that it can/could be re-used.
 
-	Not to be called on structures that do not have any buffer allocated.
+	Not to be called on structures that do not have any buffer allocated, i.e. have
+	never seen active service.
 
-	Note that pb must not be NULL. Debug versions abort if pb is NULL.
+	Note that pb must not be NULL. Debug versions abort if pb is NULL. Passing a NULL-
+	pointer in release versions leads to undefined behaviour.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUF (SMEMBUF *pb);
@@ -367,6 +369,9 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	Not to be called on structures that do not have any buffer allocated. The
 	function or macro aborts in debug versions if no buffer has been allocated.
 	Use doneSMEMBUFuncond () if this check is not desirable.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL. Passing a NULL-
+	pointer in release versions leads to undefined behaviour.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#define DONESMEMBUF(s) doneSMEMBUF (&(s))
@@ -385,7 +390,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 	This function or macro does not abort in debug versions if the SMEMBUF structure
 	doesn't have an allocated buffer.
 
-	Note that pb must not be NULL. Debug versions abort if pb is NULL.
+	Note that pb must not be NULL. Debug versions abort if pb is NULL. Passing a NULL-
+	pointer in release versions leads to undefined behaviour.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void doneSMEMBUFuncond (SMEMBUF *pb);
@@ -404,6 +410,9 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz);
 
 	This function or macro does not abort in debug versions if the SMEMBUF structure
 	doesn't have an allocated buffer.
+
+	Note that pb must not be NULL. Debug versions abort if pb is NULL. Passing a NULL-
+	pointer in release versions leads to undefined behaviour.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	#define DONESMEMBUFUNCOND(s) doneSMEMBUFuncond (&(s))

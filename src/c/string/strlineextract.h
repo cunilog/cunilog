@@ -78,7 +78,7 @@ enum enStrlineExtractCharSet
 
 /*
 	Our default string parameters for single and multi-line comments, open
-	and closing quotes, equality signs, and section start and end strings.
+	and closing quotes, here-strings, equality signs, and section start and end strings.
 */
 extern const char	*ccCulStdLineCComment	[];
 extern unsigned int	nCulStdLineCComment;
@@ -93,6 +93,7 @@ extern unsigned int	nccCulStdMultComment;
 extern const char	*ccCulStdOpenQuotes		[];
 extern const char	*ccCulStdClosQuotes		[];
 extern unsigned int	nCulStdQuotes;
+extern unsigned int	uCulStdIdxHeres;
 
 extern const char	*ccCulStdEqualSigns		[];
 extern unsigned int	nCulStdEquals;
@@ -120,6 +121,8 @@ typedef struct sculmltstrings
 	const char		**ccOpenQuotes;
 	const char		**ccClosQuotes;
 	unsigned int	nQuotes;
+
+	unsigned int	uCulStdIdxHeres;
 
 	const char		**ccEquals;
 	unsigned int	nEquals;
@@ -185,6 +188,8 @@ typedef struct strlineinf
 															//	a line. 1 = first column/character.
 	size_t				absPosition;						// Position within the entire buffer.
 															//	1 = first position/character.
+	size_t				lnLeftTotal;						// The total remaining buffer length
+															//	that could be consumed.
 	void				*pCustom;							// Can be used by the caller.
 	#ifdef DEBUG
 		bool			bInitialised;
@@ -393,6 +398,11 @@ bool strlineextractIsCloseString	(
 
 	Leading and trailing white space, if any, is ignored.
 
+	This function cannot handle here-strings. If the start of a here-string is encountered,
+	pszKeyOrVal receives a pointer to the first character after the opening here-string
+	marker, the value plnKeyOrVal points to is set to 0, pidxEqual1based points to the
+	index of the here-string opening marker, and the function returns false.
+
 	Parameters
 	----------
 
@@ -426,30 +436,10 @@ bool strlineextractIsCloseString	(
 	lnLine			The length of szLine. If this parameter is USE_STRLEN, the function
 					obtains it with strlen (szLine).
 
-
-	The following parameters have been replaced with the SCULMLTSTRINGS structure psmlt:
-
-	nQuotes			The amount of quote strings. See parameters szOpenQuotes and
-					szClosQuotes below. If this value is 0, no quotes are recognised.
-
-	pszOpenQuotes	A pointer to an array of NUL-terminated strings recognised as opening
-					quotation marks/strings. The parameter nQuotes specifies the number
-					of elements in this array.
-
-	pszClosQuotes	A pointer to an array of NUL-terminated strings recognised as closing
-					quotation marks/strings. The parameter nQuotes specifies the number
-					of elements in this array.
-
-	pszEquals		A pointer to an array of NUL-terminated strings recognised as equality
-					characters/strings. The parameter nEquals specifies the number of
-					stings/elements in this array. If this parameter is NULL, the function
-					fails and returns false.
-
-	nEquals			The number of strings that are recognised as equality signs pointed
-					to by the parameter pszEquals. If this parameter is 0, the function is
-					bound to fail and return false, as a key/value pair cannot be identified
-					without at least one accepted equality sign character or string that
-					separates key and value.
+	psmlt			A pointer to an initialised SCULMLTSTRINGS structure that contains
+					the strings that are recognised as single and multi-line comments,
+					quotations, here-strings, equality character strings, how sections
+					are enclosed, and special white space.
 
 */
 bool strlineextractKeyOrValue	(
@@ -503,29 +493,10 @@ bool strlineextractKeyOrValue	(
 	lnLine			The length of szLine. If this parameter is USE_STRLEN, the function
 					obtains it with strlen (szLine).
 
-	The following parameters have been replaced with the SCULMLTSTRINGS structure psmlt:
-
-	nQuotes			The amount of quote strings. See parameters szOpenQuotes and
-					szClosQuotes below. If this value is 0, no quotes are recognised.
-
-	pszOpenQuotes	A pointer to an array of NUL-terminated strings recognised as opening
-					quotation marks/strings. The parameter nQuotes specifies the number
-					of elements in this array.
-
-	pszClosQuotes	A pointer to an array of NUL-terminated strings recognised as closing
-					quotation marks/strings. The parameter nQuotes specifies the number
-					of elements in this array.
-
-	pszEquals		A pointer to an array of NUL-terminated strings recognised as equality
-					characters/strings. The parameter nEquals specifies the number of
-					stings/elements in this array. If this parameter is NULL, the function
-					fails and returns false.
-
-	nEquals			The number of strings that are recognised as equality signs pointed
-					to by the parameter pszEquals. If this parameter is 0, the function is
-					bound to fail and return false, as a key/value pair cannot be identified
-					without at least one accepted equality sign character or string that
-					separates key and value.
+	psmlt			A pointer to an initialised SCULMLTSTRINGS structure that contains
+					the strings that are recognised as single and multi-line comments,
+					quotations, here-strings, equality character strings, how sections
+					are enclosed, and special white space.
 
 	The function returns the amount of values extracted if a key and at least one value
 	could be extracted from the line, which may include empty strings for the values but

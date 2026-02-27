@@ -183,17 +183,15 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 
 	Specifies the application type of a cunilog target and how processing events is
 	protected. These values are valid for a single target.
-	Applications however can in theory work with an arbitrary number of targets, even if
-	the targets are configured differently.
+	Applications however can in theory work with an arbitrary number of targets.
 
 
 	cunilogSingleThreaded
 
 	Only a single thread from one instance of the current application can safely write out
 	logging information. Cunilog does not apply any concurrency protection.
-	Writing logging information from more than a single thread, another instance of the
-	same application, or from a different application is not supported and resulta in data
-	corruption and application crashes. In a best case it may only lead to unusable
+	Writing logging information from more than a single thread is not supported and results
+	in data corruption and/or application crashes. In a best case it may only lead to unusable
 	logging information.
 
 	Every logging function blocks as it executes the list of processors before returning.
@@ -207,14 +205,13 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	Identical to cunilogSingleThreaded but the application must be built with multi-threading
 	support. The process of writing out logging information (i.e. executing the list of
 	logging processors) takes place in a separate thread.
-	Calling logging functions from more than a single thread, another instance of the
-	same application, or from a different application is not supported and results in
+	Calling logging functions from more than a single thread is not supported and results in
 	data corruption and application crashes. In a best case it may only lead to unusable
 	logging information.
 	
 	However, due to how this is currently implemented, some of these restrictions do not apply
 	right now because cunilogSingleThreadedSeparateLoggingThread is actually identical to
-	unilogMultiThreadedSeparateLoggingThread. Since this might and most likely will change in
+	cunilogMultiThreadedSeparateLoggingThread. Since this might and most likely will change in
 	future versions of the software, use cunilogMultiThreadedSeparateLoggingThread to be safe.
 
 
@@ -231,16 +228,15 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	these parameters are available. You can use a cunilogSingleThreadedQueueOnly or a
 	cunilogMultiThreadedQueueOnly target as a dummy target to log to until the real target
 	can be created with the correct parameters. After the real target has been created,
-	the entire queue can then be moved over to it, and no event is lost.
+	the entire queue can then be moved over to it, and no event is lost. Use the function
+	MoveCUNILOG_TARGETqueueToFrom () to move the queue to the final target.
 
 
 	cunilogMultiThreaded
 
-	Multiple threads from a single instance of the current application can safely write out
-	logging information. Cunilog provides necessary concurrency protection for this case but
-	does not protect logging information from being overwritten/destroyed by other processes.
-	Any logging function called from any thread blocks as it works its way through the list of
-	processors before releasing its lock and returning.
+	Multiple threads can safely write out logging information. Cunilog provides necessary
+	concurrency protection. Any logging function called from any thread blocks as it works
+	its way through the list of processors before releasing its lock and returning.
 
 
 	cunilogMultiThreadedSeparateLoggingThread
@@ -259,12 +255,6 @@ CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log"
 	cunilogMultiThreadedQueueOnly can be logged to from several threads because the list is
 	protected by a mutex (POSIX) or critical section object (Windows).
 
-
-	cunilogMultiProcesses
-
-	Logging information is fully protected and can be written from different threads as well
-	as from different processes. This is currently not supported and hasn't been implemented
-	yet.
 */
 enum cunilogtype
 {
@@ -275,7 +265,7 @@ enum cunilogtype
 	,	cunilogMultiThreaded
 	,	cunilogMultiThreadedSeparateLoggingThread
 	,	cunilogMultiThreadedQueueOnly
-	,	cunilogMultiProcesses
+	//,	cunilogMultiProcesses
 	#endif
 	// Do not add anything below this line.
 	,	cunilogTypeAmountEnumValues							// Used for table sizes.
@@ -337,9 +327,9 @@ enum cunilogpostfix
 	This is a dummy processor and does nothing.
 
 
-	cunilogProcessEchoToConsole
+	cunilogProcessOutputToConsole
 
-	Echoes/outputs the event line to the console
+	Outputs the event line to the console.
 
 
 	cunilogProcessUpdateLogFileName
@@ -385,7 +375,7 @@ enum cunilogpostfix
 enum cunilogprocesstask
 {
 		cunilogProcessNoOperation							// Does nothing.
-	,	cunilogProcessEchoToConsole							// Echoes to console.
+	,	cunilogProcessOutputToConsole						// Outputs to console.
 	,	cunilogProcessUpdateLogFileName						// Updates full path to logfile.
 	,	cunilogProcessWriteToLogFile						// Writes to logfile.
 	,	cunilogProcessFlushLogFile							// Flushes the logfile.
@@ -485,7 +475,7 @@ typedef struct cunilog_logfile
 	#ifdef OS_IS_WINDOWS
 		HANDLE			hLogFile;
 	#else
-		FILE			*fLogFile;
+		int				fd;
 	#endif
 } CUNILOG_LOGFILE;
 
@@ -638,9 +628,9 @@ typedef struct cunilog_rotation_data
 /*
 	Initialisers for processor tasks.
 */
-#define CUNILOG_INIT_DEF_ECHO_PROCESSOR					\
+#define CUNILOG_INIT_DEF_COUT_PROCESSOR					\
 {														\
-	cunilogProcessEchoToConsole,						\
+	cunilogProcessOutputToConsole,						\
 	cunilogProcessAppliesTo_nAlways,					\
 	0, 0,												\
 	NULL,												\
@@ -654,9 +644,6 @@ typedef struct cunilog_rotation_data
 	NULL,												\
 	OPT_CUNPROC_FORCE_NEXT								\
 }
-/*
-	Argument plf is a pointer to a CUNILOG_LOGFILE structure.
-*/
 #define CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR		\
 {														\
 	cunilogProcessWriteToLogFile,						\
@@ -1100,6 +1087,8 @@ typedef struct CUNILOG_TARGET
 #define CUNILOGTARGET_PROCESSORS_ALLOCATED		SINGLEBIT64 (8)
 
 // Run all processors on startup, independent of their individual flags.
+//	This flag overwrites the CUNILOGEVENT_NOROTATION flag of the first
+//	event after startup. Otherwise the rotation processors would not run.
 #define CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP	SINGLEBIT64 (9)
 
 // The filesystem that holds the log files doesn't return filenames in
@@ -1273,24 +1262,24 @@ typedef struct CUNILOG_TARGET
 */
 #define CUNILOGTARGET_ENQUEUE_TIMESTAMPS		SINGLEBIT64 (33)
 
-// The echo/console output processor is skipped.
-#define CUNILOGTARGET_NO_ECHO					SINGLEBIT64 (34)
+// The console output processor is skipped.
+#define CUNILOGTARGET_NO_COUT					SINGLEBIT64 (34)
 
 // The processor that writes to the logfile is skipped.
 #define CUNILOGTARGET_DONT_WRITE_TO_LOGFILE		SINGLEBIT64 (35)
 
 // Colour information should be used.
-#define CUNILOGTARGET_USE_COLOUR_FOR_ECHO		SINGLEBIT64 (36)
+#define CUNILOGTARGET_USE_COLOUR_FOR_COUT		SINGLEBIT64 (36)
 
 /*
 	Macros for public/user/caller flags.
 */
-#define cunilogIsNoEcho(put)							\
-	((put)->uiOpts & CUNILOGTARGET_NO_ECHO)
-#define cunilogClrNoEcho(put)							\
-	((put)->uiOpts &= ~ CUNILOGTARGET_NO_ECHO)
-#define cunilogSetNoEcho(put)							\
-	((put)->uiOpts |= CUNILOGTARGET_NO_ECHO)
+#define cunilogHasTargetNoCout(put)						\
+	((put)->uiOpts & CUNILOGTARGET_NO_COUT)
+#define cunilogClrTargetNoCout(put)						\
+	((put)->uiOpts &= ~ CUNILOGTARGET_NO_COUT)
+#define cunilogSetTargetNoCout(put)						\
+	((put)->uiOpts |= CUNILOGTARGET_NO_COUT)
 
 #define cunilogHasDontWriteToLogfile(put)				\
 	((put)->uiOpts & CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
@@ -1300,17 +1289,17 @@ typedef struct CUNILOG_TARGET
 	((put)->uiOpts |= CUNILOGTARGET_DONT_WRITE_TO_LOGFILE)
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-	#ifndef cunilogTargetHasUseColourForEcho
-		#define cunilogTargetHasUseColourForEcho(put)	\
-			((put)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#ifndef cunilogTargetHasUseColourForCout
+		#define cunilogTargetHasUseColourForCout(put)	\
+			((put)->uiOpts & CUNILOGTARGET_USE_COLOUR_FOR_COUT)
 	#endif
-	#ifndef cunilogTargetClrUseColourForEcho
-		#define cunilogTargetClrUseColourForEcho(put)	\
-			((put)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#ifndef cunilogTargetClrUseColourForCout
+		#define cunilogTargetClrUseColourForCout(put)	\
+			((put)->uiOpts &= ~ CUNILOGTARGET_USE_COLOUR_FOR_COUT)
 	#endif
-	#ifndef cunilogTargetSetUseColourForEcho
-		#define cunilogTargetSetUseColourForEcho(put)	\
-			((put)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_ECHO)
+	#ifndef cunilogTargetSetUseColourForCout
+		#define cunilogTargetSetUseColourForCout(put)	\
+			((put)->uiOpts |= CUNILOGTARGET_USE_COLOUR_FOR_COUT)
 	#endif
 #endif
 
@@ -1454,8 +1443,8 @@ typedef struct CUNILOG_EVENT
 // Shuts down logging.
 #define CUNILOGEVENT_SHUTDOWN					SINGLEBIT64 (2)
 
-// Suppresses echo/console output processor.
-#define CUNILOGEVENT_NO_ECHO					SINGLEBIT64 (3)
+// Suppresses console output processor.
+#define CUNILOGEVENT_NO_COUT					SINGLEBIT64 (3)
 
 // This is an internal event. Internal events are generated
 //	within processors.
@@ -1466,14 +1455,19 @@ typedef struct CUNILOG_EVENT
 
 // No rotation for this event. This is very fast/quick logging.
 //	It is also used for internal logging.
+//	Note that this flag has no effect for the very first event
+//	created when the target has CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP
+//	set. The flag CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP forces
+//	all processors, including rotation processors, to run
+//	for the first event.
 #define CUNILOGEVENT_NOROTATION					SINGLEBIT64 (6)
 
 // Suppresses the remaining processors.
 #define CUNILOGEVENT_IGNORE_REMAINING_PROCESSORS\
 												SINGLEBIT64	(7)
 
-// Only process the echo processor. All others are suppressed.
-#define CUNILOGEVENT_ECHO_ONLY					SINGLEBIT64 (8)
+// Only process the console output processor. All others are suppressed.
+#define CUNILOGEVENT_COUT_ONLY					SINGLEBIT64 (8)
 
 // Macros to set and check flags.
 #define cunilogSetEventAllocated(pev)					\
@@ -1490,12 +1484,12 @@ typedef struct CUNILOG_EVENT
 #define cunilogIsEventCancel(pev)						\
 	((pev)->uiOpts & CUNILOGEVENT_CANCEL)
 
-#define cunilogSetEventNoEcho(pev)						\
-	((pev)->uiOpts |= CUNILOGEVENT_NO_ECHO)
-#define cunilogClrEventNoEcho(pev)						\
-	((pev)->uiOpts &= ~ CUNILOGEVENT_NO_ECHO)
-#define cunilogHasEventNoEcho(pev)						\
-	((pev)->uiOpts & CUNILOGEVENT_NO_ECHO)
+#define cunilogSetEventNoCout(pev)						\
+	((pev)->uiOpts |= CUNILOGEVENT_NO_COUT)
+#define cunilogClrEventNoCout(pev)						\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_NO_COUT)
+#define cunilogHasEventNoCout(pev)						\
+	((pev)->uiOpts & CUNILOGEVENT_NO_COUT)
 
 #define cunilogSetEventInternal(pev)					\
 	((pev)->uiOpts |= CUNILOGEVENT_IS_INTERNAL)
@@ -1513,6 +1507,8 @@ typedef struct CUNILOG_EVENT
 	((pev)->uiOpts & CUNILOGEVENT_NOROTATION)
 #define cunilogSetEventNoRotation(pev)					\
 	((pev)->uiOpts |= CUNILOGEVENT_NOROTATION)
+#define cunilogClrEventNoRotation(pev)					\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_NOROTATION)
 
 #define cunilogEventSetIgnoreRemainingProcessors(pev)	\
 	((pev)->uiOpts |= CUNILOGEVENT_IGNORE_REMAINING_PROCESSORS)
@@ -1521,12 +1517,12 @@ typedef struct CUNILOG_EVENT
 #define cunilogEventHasIgnoreRemainingProcessors(pev)	\
 	((pev)->uiOpts & CUNILOGEVENT_IGNORE_REMAINING_PROCESSORS)
 
-#define cunilogSetEventEchoOnly(pev)					\
-	((pev)->uiOpts |= CUNILOGEVENT_ECHO_ONLY)
-#define cunilogClrEventEchoOnly(pev)					\
-	((pev)->uiOpts &= ~ CUNILOGEVENT_ECHO_ONLY)
-#define cunilogHasEventEchoOnly(pev)					\
-	((pev)->uiOpts & CUNILOGEVENT_ECHO_ONLY)
+#define cunilogSetEventCoutOnly(pev)					\
+	((pev)->uiOpts |= CUNILOGEVENT_COUT_ONLY)
+#define cunilogClrEventCoutOnly(pev)					\
+	((pev)->uiOpts &= ~ CUNILOGEVENT_COUT_ONLY)
+#define cunilogHasEventCoutOnly(pev)					\
+	((pev)->uiOpts & CUNILOGEVENT_COUT_ONLY)
 
 /*
 	Return type of the separate logging thread.

@@ -175,7 +175,7 @@ errCBretval CunilogTestFnctTestInitialThreshold (CUNILOG_ERROR error, CUNILOG_PR
 			CunilogTestFnctStartTestToConsole ("Checking initial threshold for cunilogProcessNoOperation...");
 			CunilogTestFnctResultToConsole (true);
 			break;
-		case cunilogProcessEchoToConsole:
+		case cunilogProcessOutputToConsole:
 			CunilogTestFnctStartTestToConsole ("Checking initial threshold for cunilogProcessEchoToConsole...");
 			CunilogTestFnctResultToConsole (0 == cup->thr && 0 == cup->cur);
 			break;
@@ -248,7 +248,7 @@ errCBretval CunilogTestFnctErrCallback0002	(
 
 	if (2 == stTestState)
 	{
-		CunilogTestFnctResultToConsole (cunilogProcessEchoToConsole == cup->task);
+		CunilogTestFnctResultToConsole (cunilogProcessOutputToConsole == cup->task);
 		CunilogTestFnctStartTestToConsole ("Before updating threshold...");
 		CunilogTestFnctResultToConsole (CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE == error);
 		stTestState = 3;
@@ -349,7 +349,7 @@ errCBretval CunilogTestFnctErrCallback0002	(
 
 	if (10 == stTestState)
 	{
-		CunilogTestFnctResultToConsole (cunilogProcessEchoToConsole == cup->task);
+		CunilogTestFnctResultToConsole (cunilogProcessOutputToConsole == cup->task);
 		CunilogTestFnctStartTestToConsole ("Echo processor before threshold...");
 		CunilogTestFnctResultToConsole (CUNILOG_ERROR_TEST_BEFORE_THRESHOLD_UPDATE == error);
 		stTestState = 11;
@@ -681,23 +681,6 @@ bool CunilogTestFunction	(
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 
-	CunilogTestFnctStartTestToConsole ("Testing directory reader...");
-	#ifdef PLATFORM_IS_WINDOWS
-		b &= ForEachDirectoryEntryMaskU8TestFnct ();
-		#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
-			CunilogTestFnctResultToConsole (b);
-		#else
-			CunilogTestFnctDisabledToConsole (b);
-		#endif
-	#else
-		b = true;
-		#ifdef CUNILOG_BUILD_READDIR_TESTFNCT
-			CunilogTestFnctDisabledToConsole (b);
-		#else
-			CunilogTestFnctDisabledToConsole (b);
-		#endif
-	#endif
-
 	CunilogTestFnctStartTestToConsole ("Init static target with cunilogPostfixDotNumberYearly...");
 	put = InitCUNILOG_TARGETstaticEx	(
 				ccLogsFolder, lnLogsFolder,
@@ -781,15 +764,15 @@ bool CunilogTestFunction	(
 	CunilogTestFnctResultToConsole (NULL == pev);
 
 	CunilogTestFnctStartTestToConsole ("Obtaining echo/console output processor...");
-	cup = GetCUNILOG_PROCESSOR (put, cunilogProcessEchoToConsole, 0);
-	CunilogTestFnctResultToConsole (NULL != cup && cunilogProcessEchoToConsole == cup->task);
+	cup = GetCUNILOG_TARGETprocessor (put, cunilogProcessOutputToConsole, 0);
+	CunilogTestFnctResultToConsole (NULL != cup && cunilogProcessOutputToConsole == cup->task);
 
 	CunilogTestFnctStartTestToConsole ("Obtaining processor cunilogProcessUpdateLogFileName...");
-	cup = GetCUNILOG_PROCESSOR (put, cunilogProcessUpdateLogFileName, 0);
+	cup = GetCUNILOG_TARGETprocessor (put, cunilogProcessUpdateLogFileName, 0);
 	CunilogTestFnctResultToConsole (NULL != cup && cunilogProcessUpdateLogFileName == cup->task);
 
 	CunilogTestFnctStartTestToConsole ("Obtaining rotation task cunilogrotationtask_RenameLogfiles...");
-	cup = GetCUNILOG_PROCESSORrotationTask (put, cunilogrotationtask_RenameLogfiles, 0);
+	cup = GetCUNILOG_TARGETprocessorRotationTask (put, cunilogrotationtask_RenameLogfiles, 0);
 	CunilogTestFnctResultToConsole (NULL != cup);
 
 	stTestState = 1;
@@ -995,11 +978,11 @@ bool CunilogTestFunction	(
 	testV (put, "Hello %i", 20);
 	logTextU8sev_static (cunilogEvtSeverityDebug, "This is a debug message");
 	logTextU8sev_static (cunilogEvtSeverityCritical, "This is a critical message");
-	ChangeCUNILOG_TARGETuseColourForEcho_static (false);
+	ChangeCUNILOG_TARGETuseColourForCout_static (false);
 	logTextU8sev_static (cunilogEvtSeverityCritical, "This is also a critical message");
 	ChangeCUNILOG_TARGETlogPriority_static (cunilogPrioBelowNormal);
 	ChangeCUNILOG_TARGETlogPriority_static (cunilogPrioNormal);
-	ChangeCUNILOG_TARGETuseColourForEcho_static (true);
+	ChangeCUNILOG_TARGETuseColourForCout_static (true);
 	logTextU8sev_static (cunilogEvtSeverityCritical, "This is another critical message");
 
 	logTextU8sev_static (cunilogEvtSeverityNonePass, "This is a good one");

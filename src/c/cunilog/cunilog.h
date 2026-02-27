@@ -274,7 +274,7 @@ DoneCUNILOG_TARGETstatic ();
 									);
 	*/
 #else
-	#define CUNILOG_DEFAULT_OPEN_MODE	"a"
+	#define CUNILOG_DEFAULT_OPEN_MODE	(O_WRONLY | O_APPEND | O_CREAT)
 #endif
 
 EXTERN_C_BEGIN
@@ -319,6 +319,82 @@ TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR **, CreateCopyCUNILOG_PROCESSORs)
 */
 void *DoneCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps []);
 TYPEDEF_FNCT_PTR (void *, DoneCopyCUNILOG_PROCESSORs) (CUNILOG_PROCESSOR *cps []);
+
+/*
+	CreateNewDefaultProcessors
+
+	Allocates new default processors on the heap and returns a pointer to the a
+
+	Call DoneCopyCUNILOG_PROCESSORs () when the processors are not needed anymore.
+*/
+CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn);
+TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR **, CreateNewDefaultProcessors) (unsigned int *pn);
+
+/*
+	GetCUNILOG_PROCESSOR
+
+	Returns a pointer to the nth processor that performs processing task task.
+	If n is 0, the function finds the first processor of task task, if it is
+	1, it returns the second processor of task task.
+
+	Returns NULL if a processor for task task does not exist or if n is higher
+	than the number of task processors - 1. For instance, if a processor list
+	only contains one console output processor, the function is asked to return
+	cunilogProcessOutputToConsole as task, and if n = 1, the function returns
+	NULL.
+*/
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
+						CUNILOG_PROCESSOR			**cup,
+						unsigned int				ncup,
+						enum cunilogprocesstask		task,
+						unsigned int				n
+										)
+;
+
+/*
+	GetCUNILOG_PROCESSORrotationTask
+
+	Returns a pointer to the nth rotation processor that performs rotation task rot.
+	If n is 0, the function finds the first rotation processor of task rot, if it is
+	1, it returns the second rotation procossor of task rot.
+
+	Returns NULL if a processor for task task does not exist or if n is higher
+	than the number of task processors - 1. For instance, if a processor list
+	only contains one console output processor, the function is asked to return
+	cunilogProcessOutputToConsole as task, and if n = 1, the function returns
+	NULL.
+*/
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
+						CUNILOG_PROCESSOR			**cup,
+						unsigned int				ncup,
+						enum cunilogrotationtask	rot,
+						unsigned int				n
+													)
+;
+
+/*
+	GetCUNILOG_ROTATION_DATAfromProcessor
+
+	Returns a pointer to CUNILOG_ROTATION_DATA of the nth rotation processor that
+	performs rotation task rot. The CUNILOG_ROTATION_DATA is the pData member of
+	a rotation processor.
+
+	If n is 0, the function finds the first rotation processor of task rot, if it is
+	1, it returns the second rotation procossor of task rot.
+
+	Returns NULL if a rotation processor for task rot does not exist or if n is higher
+	than the number of this type of ratation processors - 1. For instance, if a processor
+	list only contains one cunilogrotationtask_MoveToTrashLogfiles rotation processor,
+	rot is set to cunilogrotationtask_MoveToTrashLogfiles, and if n = 1, the function
+	returns NULL.
+*/
+CUNILOG_ROTATION_DATA *GetCUNILOG_ROTATION_DATAfromProcessor	(
+						CUNILOG_PROCESSOR			**cup,
+						unsigned int				ncup,
+						enum cunilogrotationtask	rot,
+						unsigned int				n
+																)
+;
 
 /*
 	Table with the length of the rotational date/timestamp.
@@ -382,14 +458,14 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 
 	Macros to set the console to UTF-8 or UTF-16 on Windows. They do nothing on POSIX.
 
-	By default the echo/console output processor changes the Windows console input
+	By default the console output processor changes the Windows console input
 	and output character sets/code pages to UTF-8 when invoked for the first time.
 	Calling one of these functions beforehand explicitely sets the code pages/console
-	character sets and prevents the echo/console output processor from changing them
-	when a logging function that echoes to the console is called the first time.
+	character sets and prevents the console output processor from changing them
+	when a logging function that outputs to the console is called the first time.
 
 	The function CunilogSetConsoleToNone () does not change the code pages/character
-	sets for the attached console but simply prevents the Cunilog echo/console output
+	sets for the attached console but simply prevents the Cunilog console output
 	processor from changing them when a logging function that writes to the console is
 	called for the first time.
 */
@@ -598,7 +674,12 @@ enum enLineEndings CunilogAutoNewLine (void);
 
 	rp					Can be either cunilogRunProcessorsOnStartup or
 						cunilogDontRunProcessorsOnStartup to run or not run all processors the
-						first time a logging function is called.
+						first time a logging function is called. 
+						Note that if the first logging function called after the target has
+						been initialised or created is a "q" (quick) function, and the target
+						has been initialised/created with cunilogRunProcessorsOnStartup, the
+						quick option for that logging call is ignored, and the rotation
+						processors are run regardless.
 
 	The function returns a pointer to puz on success, NULL otherwise.
 */
@@ -754,9 +835,14 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 						operating system. However, it is recommended to use the value returned
 						by CunilogAutoNewLine () for this parameter.
 
-	rp					Can be either unilogRunProcessorsOnStartup or
-						unilogDontRunProcessorsOnStartup to run or not run all processors the
-						first time a logging function is called.
+	rp					Can be either cunilogRunProcessorsOnStartup or
+						cunilogDontRunProcessorsOnStartup to run or not run all processors the
+						first time a logging function is called. 
+						Note that if the first logging function called after the target has
+						been initialised or created is a "q" (quick) function, and the target
+						has been initialised/created with cunilogRunProcessorsOnStartup, the
+						quick option for that logging call is ignored, and the rotation
+						processors are run regardless.
 
 	For performance reasons and to simplify data handling, the function allocates a single memory
 	block that holds enough space for the CUNILOG_TARGET structure as well as szLogPath and
@@ -928,7 +1014,12 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitOrCreateCUNILOG_TARGET)
 
 	rp					Can be either cunilogRunProcessorsOnStartup or
 						cunilogDontRunProcessorsOnStartup to run or not run all processors the
-						first time a logging function is called.
+						first time a logging function is called. 
+						Note that if the first logging function called after the target has
+						been initialised or created is a "q" (quick) function, and the target
+						has been initialised/created with cunilogRunProcessorsOnStartup, the
+						quick option for that logging call is ignored, and the rotation
+						processors are run regardless.
 
 	The function returns a pointer to the internal CUNILOG_TARGET cunilognewlinestructure
 	upon success, NULL otherwise.
@@ -1040,22 +1131,25 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 /*
 	MoveCUNILOG_TARGETqueueToFrom
 
-	Moves the queue of the target putFrom to target putTo.
+	Moves the queue of the target putSrc to target putDst.
 	The function requires that both targets have a queue. It fails if this is not
 	the case.
+
+	Note that the first parameter points to the destination target, and the second
+	parameter is the source.
 
 	The function returns true on success, false otherwise.
 */
 #if !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && !defined (CUNILOG_BUILD_SINGLE_THREADED_QUEUE)
 	bool MoveCUNILOG_TARGETqueueToFrom	(
-			CUNILOG_TARGET *cunilog_restrict putTo,
-			CUNILOG_TARGET *cunilog_restrict putFrom
+			CUNILOG_TARGET *cunilog_restrict putDst,
+			CUNILOG_TARGET *cunilog_restrict putSrc
 										)
 	;
 	TYPEDEF_FNCT_PTR (bool, MoveCUNILOG_TARGETqueueToFrom)
 	(
-			CUNILOG_TARGET *cunilog_restrict putTo,
-			CUNILOG_TARGET *cunilog_restrict putFrom
+			CUNILOG_TARGET *cunilog_restrict putDst,
+			CUNILOG_TARGET *cunilog_restrict putSrc
 	);
 #endif
 
@@ -1104,27 +1198,30 @@ TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET_static)
 	(size_t *plen);
 
 /*
-	GetCUNILOG_PROCESSOR
+	GetCUNILOG_TARGETprocessor
 
-	Returns a pointer to the nth processor that performs processing task task.
+	Returns a pointer to the nth processor of CUNILOG_TARGET put that
+	performs processing task task.
 	If n is 0, the function finds the first processor of task task, if it is
-	1, it returns the second procossor of task task.
+	1, it returns the second processor of task task.
+
 	Returns NULL if a processor for task task does not exist or if n is higher
 	than the number of task processors - 1. For instance, if a processor list
-	only contains one echo processor, and if n = 1, the function returns NULL.
+	only contains one console output processor, but n = 1, the function returns
+	NULL.
 
-	For example, to obtain the echo processor:
-	CUNILOG_PROCESSOR *cup = GetCUNILOG_PROCESSOR	(
-								put, cunilogProcessEchoToConsole, 0
-													);
+	For example, to obtain the console output processor:
+	CUNILOG_PROCESSOR *cup = GetCUNILOG_TARGETprocessor	(
+								put, cunilogProcessOutputToConsole, 0
+														);
 */
-CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
+CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessor	(
 						CUNILOG_TARGET				*put,
 						enum cunilogprocesstask		task,
 						unsigned int				n
-										)
+												)
 ;
-TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_PROCESSOR)
+TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_TARGETprocessor)
 										(
 						CUNILOG_TARGET				*put,
 						enum cunilogprocesstask		task,
@@ -1133,9 +1230,10 @@ TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_PROCESSOR)
 ;
 
 /*
-	GetCUNILOG_PROCESSORrotationTask
+	GetCUNILOG_TARGETprocessorRotationTask
 
-	Returns a pointer to the nth rotation processor that performs rotation task rot.
+	Returns a pointer to the nth rotation processor of CUNILOG_TARGET put that
+	performs rotation task rot.
 	If n is 0, the function finds the first rotation processor of task rot, if it is
 	1, it returns the second rotation procossor of task rot.
 	Returns NULL if a rotation processor for task rot does not exist or if n is higher
@@ -1145,15 +1243,15 @@ TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_PROCESSOR)
 
 	For example, to obtain a pointer to the rotation processor that moves files to the
 	recycle bin/trash:
-	CUNILOG_PROCESSOR *cup = GetCUNILOG_PROCESSORrotationTask	(
+	CUNILOG_PROCESSOR *cup = GetCUNILOG_TARGETprocessorRotationTask	(
 								put, cunilogrotationtask_MoveToTrashLogfiles, 0
-																);
+																	);
 */
-CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
+CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 						CUNILOG_TARGET				*put,
 						enum cunilogrotationtask	rot,
 						unsigned int				n
-													)
+															)
 ;
 
 /*
@@ -1257,26 +1355,26 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 #endif
 
 /*
-	ConfigCUNILOG_TARGETuseColourForEcho
+	ConfigCUNILOG_TARGETuseColourForCout
 
 	Switches on/off using colours for console output depending on event severity level.
 
 	The NO_COLOR suggestion at https://no-color.org/ recommends that this function is
 	called after checking the environment variable NO_COLOR first:
-	ConfigCUNILOG_TARGETuseColourForEcho (target, !Cunilog_Have_NO_COLOR ());
+	ConfigCUNILOG_TARGETuseColourForCout (target, !Cunilog_Have_NO_COLOR ());
 */
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-		void ConfigCUNILOG_TARGETuseColourForEcho (CUNILOG_TARGET *put, bool bUseColour)
+		void ConfigCUNILOG_TARGETuseColourForCout (CUNILOG_TARGET *put, bool bUseColour)
 		;
-		TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETuseColourForEcho)
+		TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETuseColourForCout)
 			(CUNILOG_TARGET *put, bool bUseColour);
 	#else
-		#define ConfigCUNILOG_TARGETuseColourForEcho(put, b)	\
+		#define ConfigCUNILOG_TARGETuseColourForCout(put, b)	\
 			if (bUseColour)										\
-				cunilogSetUseColourForEcho (put);				\
+				cunilogTargetSetUseColourForCout (put);			\
 			else												\
-				cunilogClrUseColourForEcho (put)
+				cunilogTargetClrUseColourForCout (put)
 	#endif
 #endif
 
@@ -1337,17 +1435,17 @@ TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableTaskProcessors)
 	(CUNILOG_TARGET *put, enum cunilogprocesstask task);
 
 /*
-	ConfigCUNILOG_TARGETdisableEchoProcessor
-	ConfigCUNILOG_TARGETenableEchoProcessor
+	ConfigCUNILOG_TARGETdisableCoutProcessor
+	ConfigCUNILOG_TARGETenableCoutProcessor
 
-	Disables/enables echo (console output) processors. Echo or console output processors
-	are processors whose task is cunilogProcessEchoToConsole.
+	Disables/enables console output processors. Console output processors
+	are processors whose task is cunilogProcessOutputToConsole.
 */
-void ConfigCUNILOG_TARGETdisableEchoProcessor	(CUNILOG_TARGET *put);
-void ConfigCUNILOG_TARGETenableEchoProcessor	(CUNILOG_TARGET *put);
+void ConfigCUNILOG_TARGETdisableCoutProcessor	(CUNILOG_TARGET *put);
+void ConfigCUNILOG_TARGETenableCoutProcessor	(CUNILOG_TARGET *put);
 
-TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableEchoProcessor)	(CUNILOG_TARGET *put);
-TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableEchoProcessor)	(CUNILOG_TARGET *put);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableCoutProcessor)	(CUNILOG_TARGET *put);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET *put);
 
 /*
 	EnterCUNILOG_TARGET
@@ -1739,7 +1837,9 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 #define logEv_static(pev)	logEv (pCUNILOG_TARGETstatic, (pev))
 
 /*
-	The functions expect an CUNILOG_TARGET structure as their first parameter.
+	Logging functions
+
+	The functions expect a CUNILOG_TARGET structure as their first parameter.
 	The _static macros use the module's internal static structure and do not require
 	a pointer to a CUNILOG_TARGET structure as their first parameter. If you only intend to
 	write to a single logfile, the _static macros are ideal.
@@ -1784,6 +1884,9 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 	than CUNILOG_DEFAULT_SFMT_SIZE bytes are required. Otherwise the heap is used.
 	
 	Function names containing a "q" (for quick) do not invoke any rotation processors.
+	Note that if the first logging function called is a "q" function, and the target has been
+	created with cunilogRunProcessorsOnStartup, the quick option is ignored for the first call
+	and the rotation processors are executed regardless.
 
 	The functions logTextU8smbfmtsev () and logTextU8smbfmt () additionally expect an
 	initialised parameter structure of type SMEMBUF. The SMEMBUF structure can be re-used
@@ -1916,10 +2019,10 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 #define logTextU8csfmtsev_static(s, ...)				\
 										logTextU8csfmtsev	(pCUNILOG_TARGETstatic, (s), __VA_ARGS__);
 
-/*	ChangeCUNILOG_TARGETuseColourForEcho
-	ChangeCUNILOG_TARGETuseColorForEcho
-	ChangeCUNILOG_TARGETuseColourForEcho_static
-	ChangeCUNILOG_TARGETuseColorForEcho_static
+/*	ChangeCUNILOG_TARGETuseColourForCout
+	ChangeCUNILOG_TARGETuseColorForCout
+	ChangeCUNILOG_TARGETuseColourForCout
+	ChangeCUNILOG_TARGETuseColorForCout_static
 
 	Creates and queues an event that changes the colour output of event severity
 	types. A value of false for bUseColour disables coloured output. A value of true
@@ -1929,14 +2032,14 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 	structure.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	bool ChangeCUNILOG_TARGETuseColourForEcho (CUNILOG_TARGET *put, bool bUseColour)
+	bool ChangeCUNILOG_TARGETuseColourForCout (CUNILOG_TARGET *put, bool bUseColour)
 	;
-	#define ChangeCUNILOG_TARGETuseColourForEcho_static(bc)	\
-				ChangeCUNILOG_TARGETuseColourForEcho (pCUNILOG_TARGETstatic, (bc))
-	#define ChangeCUNILOG_TARGETuseColorForEcho(p, bc)		\
-				ChangeCUNILOG_TARGETuseColourForEcho ((p), (bc))
-	#define ChangeCUNILOG_TARGETuseColorForEcho_static(bc)	\
-				ChangeCUNILOG_TARGETuseColourForEcho (pCUNILOG_TARGETstatic, (bc))
+	#define ChangeCUNILOG_TARGETuseColourForCout_static(bc)	\
+				ChangeCUNILOG_TARGETuseColourForCout (pCUNILOG_TARGETstatic, (bc))
+	#define ChangeCUNILOG_TARGETuseColorForCout(p, bc)		\
+				ChangeCUNILOG_TARGETuseColourForCout ((p), (bc))
+	#define ChangeCUNILOG_TARGETuseColorForCout_static(bc)	\
+				ChangeCUNILOG_TARGETuseColourForCout (pCUNILOG_TARGETstatic, (bc))
 #endif
 
 /*
@@ -1968,17 +2071,17 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 #endif
 
 /*
-	ChangeCUNILOG_TARGETdisableEchoProcessor
-	ChangeCUNILOG_TARGETenableEchoProcessor
+	ChangeCUNILOG_TARGETdisableCoutProcessor
+	ChangeCUNILOG_TARGETenableCoutProcessor
 
 	The functions return true if the event was queued successfully, false otherwise.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	bool ChangeCUNILOG_TARGETdisableEchoProcessor	(CUNILOG_TARGET *put);
-	bool ChangeCUNILOG_TARGETenableEchoProcessor	(CUNILOG_TARGET *put);
+	bool ChangeCUNILOG_TARGETdisableCoutProcessor	(CUNILOG_TARGET *put);
+	bool ChangeCUNILOG_TARGETenableCoutProcessor	(CUNILOG_TARGET *put);
 
-	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETdisableEchoProcessor)	(CUNILOG_TARGET *put);
-	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETenableEchoProcessor)	(CUNILOG_TARGET *put);
+	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETdisableCoutProcessor)	(CUNILOG_TARGET *put);
+	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET *put);
 #endif
 
 /*

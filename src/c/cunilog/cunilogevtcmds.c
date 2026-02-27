@@ -118,7 +118,7 @@ void culCmdStoreEventCommand (unsigned char *szOut, enum cunilogEvtCmd cmd)
 	memcpy (szOut, &cmd, sizeof (cmd));
 }
 
-void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour)
+void culCmdStoreCmdConfigUseColourForCout (unsigned char *szOut, bool bUseColour)
 {
 	ubf_assert_non_NULL (szOut);
 
@@ -151,8 +151,8 @@ void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
 */
 void ConfigCUNILOG_TARGETdisableTaskProcessors (CUNILOG_TARGET *put, enum cunilogprocesstask task);
 void ConfigCUNILOG_TARGETenableTaskProcessors (CUNILOG_TARGET *put, enum cunilogprocesstask task);
-void ConfigCUNILOG_TARGETdisableEchoProcessor (CUNILOG_TARGET *put);
-void ConfigCUNILOG_TARGETenableEchoProcessor (CUNILOG_TARGET *put);
+void ConfigCUNILOG_TARGETdisableCoutProcessor (CUNILOG_TARGET *put);
+void ConfigCUNILOG_TARGETenableCoutProcessor (CUNILOG_TARGET *put);
 
 void culCmdStoreCmdConfigDisableTaskProcessors (unsigned char *szOut, enum cunilogprocesstask task)
 {
@@ -296,9 +296,9 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 			#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 				memcpy (&boolVal, szData, sizeof (bool));
 				if (boolVal)
-					cunilogTargetSetUseColourForEcho (put);
+					cunilogTargetSetUseColourForCout (put);
 				else
-					cunilogTargetClrUseColourForEcho (put);
+					cunilogTargetClrUseColourForCout (put);
 			#endif
 			break;
 		case cunilogCmdConfigEventSeverityFormatType:
@@ -318,10 +318,10 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 			culCmdConfigEnableTaskProcessors (put, szData);
 			break;
 		case cunilogCmdConfigDisableEchoProcessor:
-			ConfigCUNILOG_TARGETdisableEchoProcessor (put);
+			ConfigCUNILOG_TARGETdisableCoutProcessor (put);
 			break;
 		case cunilogCmdConfigEnableEchoProcessor:
-			ConfigCUNILOG_TARGETenableEchoProcessor (put);
+			ConfigCUNILOG_TARGETenableCoutProcessor (put);
 			break;
 		case cunilogCmdConfigSetLogPriority:
 			culCmdConfigSetLogPriority (szData);

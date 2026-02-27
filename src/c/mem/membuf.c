@@ -220,7 +220,6 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz)
 	void doneSMEMBUFuncond (SMEMBUF *pb)
 	{
 		ubf_assert_non_NULL	(pb);
-		//ubf_assert			(isInitialisedSMEMBUF (pb));
 
 		freeSMEMBUFuncond (pb);
 		initSMEMBUF (pb);

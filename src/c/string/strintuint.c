@@ -338,6 +338,27 @@ size_t ubf_str0_from_uint16 (char *result, size_t digits, uint16_t ui16)
 	return st;
 }
 
+size_t ubf_str_from_uint32 (char *result, uint32_t ui32)
+{
+	char*		ptr			= result, *ptr1 = result, tmp_char;
+	uint32_t	tmp_value;
+	char		*r;
+
+	do {
+		tmp_value = ui32;
+		ui32 /= 10;
+		*ptr++ = c_ito_alphabet [35 + (tmp_value - ui32 * 10)];
+	} while (ui32);
+	r = ptr;
+	*ptr-- = ASCII_NUL;
+	while(ptr1 < ptr) {
+		tmp_char = *ptr;
+		*ptr--= *ptr1;
+		*ptr1++ = tmp_char;
+	}
+	return ((size_t) (r - result));
+}
+
 size_t ubf_str_from_int64 (char *result, int64_t i64)
 {
 	char* ptr	= result, *ptr1 = result, tmp_char;

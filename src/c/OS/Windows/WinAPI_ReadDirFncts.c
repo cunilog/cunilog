@@ -306,6 +306,23 @@ uint64_t ReleaseDirectoryEntriesSDIRW_cnt (SDIRW *swd)
 	}
 #endif
 
+#ifdef HAVE_MEMBUF
+	size_t ForEachDirectoryEntryU8		(
+					const char				*strPathU8,
+					pForEachDirEntryU8		fedEnt,
+					void					*pCustom,
+					size_t					*pnSubLevels
+										)
+	{
+		SMEMBUF	smb	= SMEMBUF_INITIALISER;
+		size_t	st	= ForEachDirectoryEntryU8_Ex	(
+						strPathU8, fedEnt, pCustom, pnSubLevels, &smb
+													);
+		DONESMEMBUFUNCOND (smb);
+		return st;
+	}
+#endif
+
 static const char	ccCoverAllMask []	= "\\*";
 #define SIZCOVERALLMSK	(sizeof (ccCoverAllMask))
 #define LENCOVERALLMSK	(sizeof (ccCoverAllMask) - 1)
@@ -491,7 +508,7 @@ size_t ForEachDirectoryEntryMaskU8	(
 		uiEnts = ForEachDirEntryMaskU8intern	(
 					lenFolderU8, fedEntCB, &sdE, pnSubLevels, pCustom
 												);
-		DONESMEMBUF (sdE.mbPathBuf);
+		DONESMEMBUFUNCOND (sdE.mbPathBuf);
 
 	} else
 		SetLastError (ERROR_INVALID_PARAMETER);
@@ -602,13 +619,15 @@ size_t ForEachDirectoryEntryMaskU8	(
 										);
 		//puts ("Done.");
 
+		/*
 		n = ForEachDirectoryEntryMaskU8	(
 				"C:\\Windows",		USE_STRLEN,
 				//"*.txt",		USE_STRLEN,
 				"**",			USE_STRLEN,
 				perFile, &ui, uiDontList, NULL
 										);
-		UNREFERENCED_PARAMETER (n);
+		*/
+
 		/*
 		n = ForEachDirectoryEntryMaskU8	(
 				"C:/temp/",		USE_STRLEN,

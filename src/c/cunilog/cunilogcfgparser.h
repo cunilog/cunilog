@@ -225,7 +225,7 @@ void DoneCunilogRootConfigData (SCUNILOGCFGNODE *cfg)
 /*
 	CreateSCUNILOGINI
 
-	Parses the ini buffer szIniBuf points to with length of lnIniBuf. If lnIniBuf is
+	Parses the ini buffer szIniBuf points to with a length of lnIniBuf. If lnIniBuf is
 	USE_STRLEN, the function uses strlen () to obtain it. Otherwise, the buffer does not
 	need to be NUL-terminated.
 

@@ -71,6 +71,10 @@ When		Who				What
 #endif
 
 /*
+	Note that this is not implemented yet!
+	2026-02-10
+
+
 	Example from https://github.com/vstakhov/libucl:
 
 	param = value;
@@ -431,8 +435,8 @@ static bool createCreateSCUNILOGINI_count_cb (STRLINEINF *psli)
 
 		// We obviously have key/value pairs that don't belong to a section.
 		//	In this case we're going to create a section without a name as dummy.
-		//	Since an empty name ("") is possible to configure, this name is going
-		//	to be NULL.
+		//	Since an empty name ("") is possible, its name is going to be NULL
+		//	instead.
 		if (0 == pkvs->nSects)
 			++ pkvs->nSects;
 

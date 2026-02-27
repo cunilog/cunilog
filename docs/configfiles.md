@@ -75,7 +75,7 @@ key2  = Hello !
 key3  = Hello ! Comment.
 ```
 The exclamation mark belongs to the value of ***key***, because there's no space between the text "Hello" and the exclamation mark. This makes it "Hello!".
-The value of ***key2*** is "Hello" without the exclamation mark, because it denotes the start of an (empty) line comment. The same goes for ***key3*** but the line comment is not empty.
+The value of ***key2*** is "Hello" without the exclamation mark, and without trailing white space, because the exclamation mark denotes the start of an (empty) line comment. The same goes for ***key3*** but the line comment is not empty.
 
 ### Section and key on the same line
 
@@ -165,7 +165,7 @@ key2 = "value1, value2, value3"
 
 ### Equality signs
 
-Only the first equals sign found is recognised as the separator between a key and its values. If there's more than one equality sign, these are part of the value.
+Only the first equals sign found is recognised as the separator between a key and its values. If there are more than one equality sign, these are all part of the same value.
 
 ```ini
 [section]
@@ -193,6 +193,7 @@ key3  :  value3
 key4  -> value4
 key5  <- value5
 ```
+If the first non-white-space character is an equality sign, the entire line is considered a key without a value. See below.
 
 ### Keys without values
 
@@ -201,7 +202,7 @@ The configuration
 [section]
 key
 ```
-could be understood in two different ways. This is either a section called ***section*** with a key named ***key*** that doesn't have any values, or the section has a value named ***key*** but the key doesn't have a name. Cunilog applies the former logic: the key ***key*** does not have a value.
+could be understood in two different ways. This is either a section called ***section*** with a key named ***key*** that doesn't have any values, or the section has a value named ***key*** but it either has no key or its key doesn't have a name. Cunilog applies the former logic: the key ***key*** does not have a value. From the config reader's perspective, a key does not necessarily require any values, but there are no orphan values. Each value requires a key.
 
 Therefore, this example defines 3 keys without values:
 ```ini
@@ -210,6 +211,20 @@ key 1
 key 2
 key 3
 ```
+
+If the first non-white-space character is an equality sign, the entire line is considered a key without a value.
+
+```ini
+[section]
+= key
+```
+The key's name is ***= key***. This is also valid for multiple equality signs:
+
+```ini
+[section]
+= key = key = key
+```
+The name of the key above is ***= key = key = key***.
 
 Keys without values can be used as something like verbs or characteristics, or to create simple lists:
 ```ini

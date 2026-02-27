@@ -97,12 +97,12 @@ size_t culCmdRequiredSize (enum cunilogEvtCmd cmd)
 ;
 
 /*
-	culCmdStoreCmdConfigUseColourForEcho
+	culCmdStoreCmdConfigUseColourForCout
 
 	Stores the command to change whether colours are used or not plus the boolean bUseColour
 	in the buffer szOut points to.
 */
-void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour)
+void culCmdStoreCmdConfigUseColourForCout (unsigned char *szOut, bool bUseColour)
 ;
 
 /*

@@ -240,7 +240,6 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz)
 	void doneSMEMBUFuncond (SMEMBUF *pb)
 	{
 		ubf_assert_non_NULL	(pb);
-		//ubf_assert			(isInitialisedSMEMBUF (pb));
 
 		freeSMEMBUFuncond (pb);
 		initSMEMBUF (pb);
@@ -5160,6 +5159,23 @@ uint64_t ReleaseDirectoryEntriesSDIRW_cnt (SDIRW *swd)
 	}
 #endif
 
+#ifdef HAVE_MEMBUF
+	size_t ForEachDirectoryEntryU8		(
+					const char				*strPathU8,
+					pForEachDirEntryU8		fedEnt,
+					void					*pCustom,
+					size_t					*pnSubLevels
+										)
+	{
+		SMEMBUF	smb	= SMEMBUF_INITIALISER;
+		size_t	st	= ForEachDirectoryEntryU8_Ex	(
+						strPathU8, fedEnt, pCustom, pnSubLevels, &smb
+													);
+		DONESMEMBUFUNCOND (smb);
+		return st;
+	}
+#endif
+
 static const char	ccCoverAllMask []	= "\\*";
 #define SIZCOVERALLMSK	(sizeof (ccCoverAllMask))
 #define LENCOVERALLMSK	(sizeof (ccCoverAllMask) - 1)
@@ -5345,7 +5361,7 @@ size_t ForEachDirectoryEntryMaskU8	(
 		uiEnts = ForEachDirEntryMaskU8intern	(
 					lenFolderU8, fedEntCB, &sdE, pnSubLevels, pCustom
 												);
-		DONESMEMBUF (sdE.mbPathBuf);
+		DONESMEMBUFUNCOND (sdE.mbPathBuf);
 
 	} else
 		SetLastError (ERROR_INVALID_PARAMETER);
@@ -5456,13 +5472,15 @@ size_t ForEachDirectoryEntryMaskU8	(
 										);
 		//puts ("Done.");
 
+		/*
 		n = ForEachDirectoryEntryMaskU8	(
 				"C:\\Windows",		USE_STRLEN,
 				//"*.txt",		USE_STRLEN,
 				"**",			USE_STRLEN,
 				perFile, &ui, uiDontList, NULL
 										);
-		UNREFERENCED_PARAMETER (n);
+		*/
+
 		/*
 		n = ForEachDirectoryEntryMaskU8	(
 				"C:/temp/",		USE_STRLEN,
@@ -18352,21 +18370,18 @@ unsigned int	nCulStdLineCComment			= GET_ARRAY_LEN (ccCulStdLineCComment);
 const char		*ccCulStdLineUComment	[]	= {"//", "#", ";", "+", "--", "!"};
 unsigned int	nCulStdLineUComment			= GET_ARRAY_LEN (ccCulStdLineUComment);
 
-// These line comments are meant to be preceded by white space in the future.
-//	Not implemented yet. At the moment all line comments need to be preceded
-//	by white space if they appear at the end of a line.
-/*
-const char		*ccCulStdLineWSComment	[]	= {"#", ";", "!"};
-unsigned int	nCulStdLineWSComment		= GET_ARRAY_LEN (ccCulStdLineWSComment);
-*/
-
 const char		*ccCulStdBegMultComment	[]	= {"/*", "{-", "(*"};
 const char		*ccCulStdEndMultComment	[]	= {"*/", "-}", "*)"};
 unsigned int	nccCulStdMultComment		= GET_ARRAY_LEN (ccCulStdEndMultComment);
 
-const char		*ccCulStdOpenQuotes		[]	= {"\"", "'", "[", "{"};
-const char		*ccCulStdClosQuotes		[]	= {"\"", "'", "]", "}"};
+// Element 0 is the quote for a here-string.
+const char		*ccCulStdOpenQuotes		[]	= {"@\"", "\"", "'", "[", "{"};
+const char		*ccCulStdClosQuotes		[]	= {"\"@", "\"", "'", "]", "}"};
 unsigned int	nCulStdQuotes				= GET_ARRAY_LEN (ccCulStdOpenQuotes);
+
+// 1-based index of ccCulStdOpenQuotes and ccCulStdClosQuotes that serves for here-strings.
+//	If this is 0, here-strings are not supported.
+unsigned int	uCulStdIdxHeres				= 1;
 
 const char		*ccCulStdEqualSigns		[]	= {":=", "=", ":", "->", "<-"};
 unsigned int	nCulStdEquals				= GET_ARRAY_LEN (ccCulStdEqualSigns);
@@ -18400,7 +18415,7 @@ static bool isExtraWhiteSpc (const char *sz, size_t ln)
 	return false;
 }
 
-void InitSTRLINEINF (STRLINEINF *pi, void *pCustom)
+static void InitSTRLINEINF (STRLINEINF *pi, size_t lenLeftTotal, void *pCustom)
 {
 	ubf_assert_non_NULL (pi);
 
@@ -18416,6 +18431,7 @@ void InitSTRLINEINF (STRLINEINF *pi, void *pCustom)
 	pi->pCustom					= pCustom;
 	pi->szStart					= NULL;
 	pi->lnLength				= 0;
+	pi->lnLeftTotal				= lenLeftTotal;
 	#ifdef DEBUG
 		pi->bInitialised		= true;
 	#endif
@@ -18478,6 +18494,7 @@ void InitSCULMLTSTRINGSforUBFL (SCULMLTSTRINGS *psmls)
 	psmls->ccOpenQuotes			= ccCulStdOpenQuotes;
 	psmls->ccClosQuotes			= ccCulStdClosQuotes;
 	psmls->nQuotes				= nCulStdQuotes;
+	psmls->uCulStdIdxHeres		= uCulStdIdxHeres;
 	psmls->ccEquals				= ccCulStdEqualSigns;
 	psmls->nEquals				= nCulStdEquals;
 	psmls->ccStrtSections		= ccCulStdStrtSection;
@@ -18505,6 +18522,7 @@ void InitSCULMLTSTRINGSforC (SCULMLTSTRINGS *psmls)
 	psmls->ccOpenQuotes			= ccCulStdOpenQuotes;
 	psmls->ccClosQuotes			= ccCulStdClosQuotes;
 	psmls->nQuotes				= nCulStdQuotes;
+	psmls->uCulStdIdxHeres		= uCulStdIdxHeres;
 	psmls->ccEquals				= ccCulStdEqualSigns;
 	psmls->nEquals				= nCulStdEquals;
 	psmls->ccStrtSections		= ccCulStdStrtSection;
@@ -18561,7 +18579,7 @@ bool cmpBufStartsWith (const char *p, size_t l, const char *sz)
 	ubf_assert (NULL != sz);
 	ubf_assert (USE_STRLEN != l);
 
-	size_t	lc	= sz ? strlen (sz) : 0;
+	size_t lc = sz ? strlen (sz) : 0;
 	if (p && lc && l && l >= lc)
 	{
 		return 0 == memcmp (p, sz, lc);
@@ -18613,17 +18631,16 @@ bool isEndMultiLineComment (const char *pb, size_t lb, STRLINECONF *pc, unsigned
 	Steps pb on to the next line and updates the STRLINEINF structure pi points
 	to as it goes along.
 */
-void nextLine (const char **pb, size_t *pl, STRLINEINF *pi)
+void nextLine (const char **pb, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
-	ubf_assert_non_NULL (pl);
 	ubf_assert_non_NULL (pi);
 
 	const char		*ch	= *pb;
 	size_t			nls	= 0;
 	size_t			jmp	= 0;
-	size_t			l	= *pl;
+	size_t			l	= pi->lnLeftTotal;
 
 	while (l && 0 == (nls = strIsLineEndings (ch, l, &jmp)))
 	{
@@ -18633,12 +18650,12 @@ void nextLine (const char **pb, size_t *pl, STRLINEINF *pi)
 	}
 	if (nls)
 	{
-		l	-= jmp;
-		ch	+= jmp;
-		pi->absPosition += jmp;
-		pi->charNumber = 1;
+		l				-= jmp;
+		ch				+= jmp;
+		pi->absPosition	+= jmp;
+		pi->charNumber	= 1;
 	}
-	*pl = l;
+	pi->lnLeftTotal = l;
 	*pb = ch;
 	pi->lineNumber += nls;
 }
@@ -18660,7 +18677,7 @@ bool isLineComment (const char *sz, size_t ln, SCULMLTSTRINGS *pi)
 	Swallows single-line comments up to the next line. Returns true if a line
 	comment was swallowed.
 */
-bool swallowLineComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
+bool swallowLineComment (const char **pb, STRLINECONF *pc, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
@@ -18673,9 +18690,9 @@ bool swallowLineComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEIN
 	{
 		for (n = 0; n < pc->nLineCommentStr; ++ n)
 		{
-			if (cmpBufStartsWith (*pb, *pl, pc->pchLineCommentStr [n]))
+			if (cmpBufStartsWith (*pb, pi->lnLeftTotal, pc->pchLineCommentStr [n]))
 			{
-				nextLine (pb, pl, pi);
+				nextLine (pb, pi);
 				// *pb should now point to the first character of a new line.
 				return true;
 			}
@@ -18687,11 +18704,10 @@ bool swallowLineComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEIN
 /*
 	Swallows a multi-line/block comment. Returns true when a block comment was swallowed.
 */
-bool swallowMultiComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEINF *pi)
+bool swallowMultiComment (const char **pb, STRLINECONF *pc, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
-	ubf_assert_non_NULL (pl);
 	ubf_assert_non_NULL (pc);
 	ubf_assert_non_NULL (pi);
 
@@ -18700,35 +18716,35 @@ bool swallowMultiComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEI
 	size_t			nls;
 	size_t			jmp;
 
-	if (0 < (idx = isStartMultiLineComment (*pb, *pl, pc)))
+	if (0 < (idx = isStartMultiLineComment (*pb, pi->lnLeftTotal, pc)))
 	{
 		l = strlen (pc->pchStartMultiCommentStr [idx - 1]);
 		*pb += l;
-		*pl -= l;
+		pi->lnLeftTotal -= l;
 		++ pi->absPosition;
-		while (*pl && **pb)
+		while (pi->lnLeftTotal && **pb)
 		{
-			if (isEndMultiLineComment (*pb, *pl, pc, idx))
+			if (isEndMultiLineComment (*pb, pi->lnLeftTotal, pc, idx))
 			{
 				l = strlen (pc->pchEndMultiCommentStr [idx - 1]);
-				*pb += l;
-				*pl -= l;
+				*pb					+= l;
+				pi->lnLeftTotal		-= l;
 				++ pi->absPosition;
 				return true;
 			} else
 			{
-				nls = strIsLineEndings (*pb, *pl, &jmp);
+				nls = strIsLineEndings (*pb, pi->lnLeftTotal, &jmp);
 				if (nls)
 				{
 					pi->lineNumber	+= nls;
 					pi->absPosition	+= jmp;
-					pi->charNumber = 1;
+					pi->charNumber	= 1;
 					*pb += jmp;
-					*pl -= jmp;
+					pi->lnLeftTotal	-= jmp;
 				} else
 				{
 					*pb += 1;
-					*pl -= 1;
+					pi->lnLeftTotal	-= 1;
 					++ pi->absPosition;
 				}
 			}
@@ -18741,18 +18757,17 @@ bool swallowMultiComment (const char **pb, size_t *pl, STRLINECONF *pc, STRLINEI
 /*
 	Returns true when white space or a new line was swallowed.
 */
-bool swallowEmptyAndWhiteSpaceLines (const char **pb, size_t *pl, STRLINEINF *pi)
+bool swallowEmptyAndWhiteSpaceLines (const char **pb, STRLINEINF *pi)
 {
 	ubf_assert_non_NULL (pb);
 	ubf_assert_non_NULL (*pb);
-	ubf_assert_non_NULL (pl);
 	ubf_assert_non_NULL (pi);
 	
 	size_t	nls;
 	size_t	jmp;
 	bool	bRet	= false;
 	
-	while (*pl)
+	while (pi->lnLeftTotal)
 	{
 		char	c;
 			
@@ -18760,29 +18775,29 @@ bool swallowEmptyAndWhiteSpaceLines (const char **pb, size_t *pl, STRLINEINF *pi
 		if (isWhiteSpace (c))
 		{
 			*pb += 1;
-			*pl -= 1;
+			pi->lnLeftTotal -= 1;
 			++ pi->absPosition;
 			++ pi->charNumber;
 			bRet = true;
 		} else
 			break;
 	}
-	nls = strIsLineEndings (*pb, *pl, &jmp);
+	nls = strIsLineEndings (*pb, pi->lnLeftTotal, &jmp);
 	if (nls)
 	{
 		pi->lineNumber	+= nls;
 		pi->absPosition	+= jmp;
-		*pb += jmp;
-		*pl -= jmp;
+		*pb				+= jmp;
+		pi->lnLeftTotal	-= jmp;
 		bRet = true;
 	}
 
 	// We additionally always ignore CR characters, independent of whether support for this
 	//	has been enabled in our build or not.
-	while (*pl && '\r' == **pb)
+	while (pi->lnLeftTotal && '\r' == **pb)
 	{
 		*pb += 1;
-		*pl -= 1;
+		pi->lnLeftTotal -= 1;
 	}
 	return bRet;
 }
@@ -18862,19 +18877,19 @@ unsigned int StrLineExtractU8	(
 
 	if (pBuf)
 	{
-		InitSTRLINEINF (&sLineInfo, pCustom);
-		while (lenBuf)
+		InitSTRLINEINF (&sLineInfo, lenBuf, pCustom);
+		while (sLineInfo.lnLeftTotal)
 		{
 			do
 			{
-				b = swallowLineComment (&pBuf, &lenBuf, pConf, &sLineInfo);
-				b |= swallowMultiComment (&pBuf, &lenBuf, pConf, &sLineInfo);
-				b |= swallowEmptyAndWhiteSpaceLines (&pBuf, &lenBuf, &sLineInfo);
+				b = swallowLineComment (&pBuf, pConf, &sLineInfo);
+				b |= swallowMultiComment (&pBuf, pConf, &sLineInfo);
+				b |= swallowEmptyAndWhiteSpaceLines (&pBuf, &sLineInfo);
 			} while (b);
-			if (lenBuf)
+			if (sLineInfo.lnLeftTotal)
 			{
 				// We now got a single line.
-				sLineInfo.lnLength		= getLineLength (pBuf, lenBuf); //, pConf);
+				sLineInfo.lnLength		= getLineLength (pBuf, sLineInfo.lnLeftTotal);
 				sLineInfo.szStart		= pBuf;
 				sLineInfo.charNumber	= 0;			// Currently not supported.
 				if (cb)
@@ -18884,8 +18899,8 @@ unsigned int StrLineExtractU8	(
 					if (!cbRet)
 						break;
 				}
-				pBuf	+= sLineInfo.lnLength;
-				lenBuf	-= sLineInfo.lnLength;
+				pBuf					+= sLineInfo.lnLength;
+				sLineInfo.lnLeftTotal	-= sLineInfo.lnLength;
 			}
 		}
 	}
@@ -19068,7 +19083,9 @@ bool strlineextractKeyOrValue	(
 
 	const char		*szRet;
 	const char		*szEnd;
-	unsigned int uQuote = strlineextractIsOpenString (szLine, lnLine, psmlt->nQuotes, psmlt->ccOpenQuotes);
+	unsigned int	ue;										// 1-based idx of equality.
+
+	unsigned int uQuote = strlineextractIsOpenString (szLine, lnLine, psmlt->nQuotes,	psmlt->ccOpenQuotes);
 	if (uQuote)
 	{
 		size_t lnOpenQuote = strlen (psmlt->ccOpenQuotes [uQuote - 1]);
@@ -19097,15 +19114,14 @@ bool strlineextractKeyOrValue	(
 					} else
 						return true;
 				}
-				unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
-				if (ui1)
+				if ((ue = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals)))
 				{	// Return the position of the equality sign found and the remaining length
 					//	of the line and its 1-based index. This way the caller doesn't need to
 					//	parse white space up until after the equality sign again, since its
 					//	length can be obtained via the 1-based index - 1.
 					if (pszEqual)			*pszEqual			= szLine;
 					if (plnEqual)			*plnEqual			= lnLine;
-					if (pidxEqual1based)	*pidxEqual1based	= ui1;
+					if (pidxEqual1based)	*pidxEqual1based	= ue;
 					return true;
 				}
 				// Must be something like "{key } abc", or even "{key },"
@@ -19115,17 +19131,31 @@ bool strlineextractKeyOrValue	(
 			-- lnLine;
 		}
 		// No closing quote. The key or value is incomplete.
+
+		// This function cannot handle here-strings that don't fit in one line.
+		if (uQuote == psmlt->uCulStdIdxHeres)
+		{	
+			*pszKeyOrVal = szRet;
+			*plnKeyOrVal = 0;
+			if (pidxEqual1based)
+				*pidxEqual1based = uQuote;
+			return false;
+		}
 		return false;
 	}
 
 	szRet = szLine;
 	szEnd = NULL;
 
+	ue = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
+	// Starts with an equality sign. The entire line is a key.
+	bool bie = ue;
+
 	while (lnLine)
 	{
 		if	(
 					!isWhiteSpace (szLine [0])
-				&&	!strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals)
+				&&	(bie || !strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals))
 				&&	!isLineComment (szLine, lnLine, psmlt)
 			)
 		{
@@ -19148,16 +19178,15 @@ bool strlineextractKeyOrValue	(
 			++ szLine;
 			-- lnLine;
 		}
-		unsigned int ui1 = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals);
-		if (ui1)
-		{	// Return the position of the equality sign found and the remaining length
-			//	of the line and its 1-based index. This way the caller doesn't need to
-			//	parse white space up until after the equality sign again, since its
-			//	length can be obtained via the 1-based index - 1.
-			if (pszEqual)			*pszEqual			= szLine;
-			if (plnEqual)			*plnEqual			= lnLine;
-			if (pidxEqual1based)	*pidxEqual1based	= ui1;
-			break;
+		if (!bie)
+		{
+			if ((ue = strlineextractIsEqual (szLine, lnLine, psmlt->nEquals, psmlt->ccEquals)))
+			{
+				if (pszEqual)			*pszEqual			= szLine;
+				if (plnEqual)			*plnEqual			= lnLine;
+				if (pidxEqual1based)	*pidxEqual1based	= ue;
+				break;
+			}
 		}
 	}
 	Escape:
@@ -19202,7 +19231,13 @@ unsigned int strlineextractKeyAndValues	(
 				psmlt
 										);
 	if (!b)
+	{
+		if (idxEqual1 == uCulStdIdxHeres)
+		{	// Here-string.
+
+		}
 		return 0;
+	}
 
 	// We're expecting a key/value pair like "key = value". That's not possible without
 	//	an equality sign.
@@ -19348,7 +19383,7 @@ bool strlineextractSection	(
 			++ szLine;
 			-- lnLine;
 		}
-		// No exit section string.
+		// No closing section string.
 	}
 
 	Escape:
@@ -19433,7 +19468,7 @@ bool strlineextractSection	(
 		ubf_expect_bool_AND (b, true == br);
 
 		STRLINEINF	inf;
-		InitSTRLINEINF (&inf, (void *) 73);
+		InitSTRLINEINF (&inf, 0, (void *) 73);
 		ubf_expect_bool_AND (b, (void *) 73 == inf.pCustom);
 
 		STRLINEXTCSTM	cust;
@@ -19502,6 +19537,72 @@ bool strlineextractSection	(
 
 		const char	*szKey	= NULL;
 		size_t		lnKey	= 0;
+
+		// A single equality character.
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				" = ", USE_STRLEN, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, 1 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("= ", szKey, 2));
+
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, 1 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("= ", szKey, 2));
+
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				" = key ", USE_STRLEN, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, 5 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("= key ", szKey, 6));
+
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				" = key = val ", USE_STRLEN, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, 11 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("= key = val ", szKey, 12));
+
+		// Here-strings. These are one-liners and should be handled by
+		//	strlineextractKeyOrValue ().
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"@\" key \"@", USE_STRLEN, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 5 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp (" key \"", szKey, 6));
+
+		b &= strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"@\" key \"@ = @\" val \"@", USE_STRLEN, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 != lnKey);
+		ubf_expect_bool_AND (b, NULL != szKey);
+		ubf_expect_bool_AND (b, 5 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp (" key \"", szKey, 6));
+
+		// Returns the first character after the opening here-string marker and false.
+		//	The key's length is set to 0.
+		b &= !strlineextractKeyOrValue	(
+				&szKey, &lnKey, NULL, NULL, NULL,
+				"@\"        \n"
+				" Str00 \n", 5, &scmul
+										);
+		ubf_expect_true (b);
+		ubf_expect_bool_AND (b, 0 == lnKey);
+		ubf_expect_bool_AND (b, !memcmp ("      ", szKey, 6));
 
 		b &= strlineextractKeyOrValue	(
 				&szKey, &lnKey, NULL, NULL, NULL,
@@ -22014,6 +22115,27 @@ size_t ubf_str0_from_uint16 (char *result, size_t digits, uint16_t ui16)
 	}
 	result [digits] = ASCII_NUL;
 	return st;
+}
+
+size_t ubf_str_from_uint32 (char *result, uint32_t ui32)
+{
+	char*		ptr			= result, *ptr1 = result, tmp_char;
+	uint32_t	tmp_value;
+	char		*r;
+
+	do {
+		tmp_value = ui32;
+		ui32 /= 10;
+		*ptr++ = c_ito_alphabet [35 + (tmp_value - ui32 * 10)];
+	} while (ui32);
+	r = ptr;
+	*ptr-- = ASCII_NUL;
+	while(ptr1 < ptr) {
+		tmp_char = *ptr;
+		*ptr--= *ptr1;
+		*ptr1++ = tmp_char;
+	}
+	return ((size_t) (r - result));
 }
 
 size_t ubf_str_from_int64 (char *result, int64_t i64)
@@ -25013,6 +25135,10 @@ When		Who				What
 #endif
 
 /*
+	Note that this is not implemented yet!
+	2026-02-10
+
+
 	Example from https://github.com/vstakhov/libucl:
 
 	param = value;
@@ -25373,8 +25499,8 @@ static bool createCreateSCUNILOGINI_count_cb (STRLINEINF *psli)
 
 		// We obviously have key/value pairs that don't belong to a section.
 		//	In this case we're going to create a section without a name as dummy.
-		//	Since an empty name ("") is possible to configure, this name is going
-		//	to be NULL.
+		//	Since an empty name ("") is possible, its name is going to be NULL
+		//	instead.
 		if (0 == pkvs->nSects)
 			++ pkvs->nSects;
 
@@ -26950,7 +27076,7 @@ void culCmdStoreEventCommand (unsigned char *szOut, enum cunilogEvtCmd cmd)
 	memcpy (szOut, &cmd, sizeof (cmd));
 }
 
-void culCmdStoreCmdConfigUseColourForEcho (unsigned char *szOut, bool bUseColour)
+void culCmdStoreCmdConfigUseColourForCout (unsigned char *szOut, bool bUseColour)
 {
 	ubf_assert_non_NULL (szOut);
 
@@ -26983,8 +27109,8 @@ void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
 */
 void ConfigCUNILOG_TARGETdisableTaskProcessors (CUNILOG_TARGET *put, enum cunilogprocesstask task);
 void ConfigCUNILOG_TARGETenableTaskProcessors (CUNILOG_TARGET *put, enum cunilogprocesstask task);
-void ConfigCUNILOG_TARGETdisableEchoProcessor (CUNILOG_TARGET *put);
-void ConfigCUNILOG_TARGETenableEchoProcessor (CUNILOG_TARGET *put);
+void ConfigCUNILOG_TARGETdisableCoutProcessor (CUNILOG_TARGET *put);
+void ConfigCUNILOG_TARGETenableCoutProcessor (CUNILOG_TARGET *put);
 
 void culCmdStoreCmdConfigDisableTaskProcessors (unsigned char *szOut, enum cunilogprocesstask task)
 {
@@ -27128,9 +27254,9 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 			#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 				memcpy (&boolVal, szData, sizeof (bool));
 				if (boolVal)
-					cunilogTargetSetUseColourForEcho (put);
+					cunilogTargetSetUseColourForCout (put);
 				else
-					cunilogTargetClrUseColourForEcho (put);
+					cunilogTargetClrUseColourForCout (put);
 			#endif
 			break;
 		case cunilogCmdConfigEventSeverityFormatType:
@@ -27150,10 +27276,10 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 			culCmdConfigEnableTaskProcessors (put, szData);
 			break;
 		case cunilogCmdConfigDisableEchoProcessor:
-			ConfigCUNILOG_TARGETdisableEchoProcessor (put);
+			ConfigCUNILOG_TARGETdisableCoutProcessor (put);
 			break;
 		case cunilogCmdConfigEnableEchoProcessor:
-			ConfigCUNILOG_TARGETenableEchoProcessor (put);
+			ConfigCUNILOG_TARGETenableCoutProcessor (put);
 			break;
 		case cunilogCmdConfigSetLogPriority:
 			culCmdConfigSetLogPriority (szData);
@@ -27312,59 +27438,6 @@ typedef struct cunilog_processor
 
 */
 
-/*
-	Our default static pData structures for our standard processors.
-*/
-/*
-CUNILOG_LOGFILE			defcuppLogFile						=
-	CUNILOG_INIT_DEF_CUNILOG_LOGFILE ();
-CUNILOG_ROTATION_DATA	defcuppRotatorRenameLogfiles		=
-	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_RENAME_LOGFILES
-		();
-CUNILOG_ROTATION_DATA	defcuppRotatorFS_compress			=
-	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS
-		(CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED);
-CUNILOG_ROTATION_DATA	defcuppRotatorMove_to_recycle_bin	=
-	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_RECYCLE_BIN
-		(CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED);
-CUNILOG_ROTATION_DATA	defcuppRotatorDelete				=
-	CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_DELETE
-		(CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED);
-*/
-/*
-	Our default processors. Only used for our static CUNILOG_TARGET structure.
-*/
-/*
-CUNILOG_PROCESSOR		defcuppEcho							=
-	CUNILOG_INIT_DEF_ECHO_PROCESSOR;
-CUNILOG_PROCESSOR		defcuppUpdateLogfileName			=
-	CUNILOG_INIT_DEF_UPDATELOGFILENAME_PROCESSOR;
-CUNILOG_PROCESSOR		defcuppWriteToLogfile				=
-	CUNILOG_INIT_DEF_WRITETTOLOGFILE_PROCESSOR		(&defcuppLogFile);
-CUNILOG_PROCESSOR		defcuppFlushLogFile					=
-	CUNILOG_INIT_DEF_FLUSHLOGFILE_PROCESSOR;
-CUNILOG_PROCESSOR		defcuppRotateLogfilesRename			=
-	CUNILOG_INIT_DEF_RENAMELOGFILES_PROCESSOR		(&defcuppRotatorRenameLogfiles);
-CUNILOG_PROCESSOR		defcuppRotateLogfilesFScompress		=
-	CUNILOG_INIT_DEF_LOGFILESFSCOMPRESS_PROCESSOR	(&defcuppRotatorFS_compress);
-CUNILOG_PROCESSOR		defcuppRotateLogfilesMoveToTrash	=
-	CUNILOG_INIT_DEF_LOGFILESMOVETOTRASH_PROCESSOR	(&defcuppRotatorMove_to_recycle_bin);
-*/
-// The list with the processors.
-/*
-CUNILOG_PROCESSOR	*defcupp [] =
-{
-	&defcuppEcho,											// Writes to console.
-	&defcuppUpdateLogfileName,								// Updates the date/timestamp within
-															//	the log file's name.
-	&defcuppWriteToLogfile,									// Writes out to log file.
-	&defcuppFlushLogFile,									// Flushes the log file.
-	&defcuppRotateLogfilesRename,							// Rename the log files.
-	&defcuppRotateLogfilesFScompress,						// Rotates the log files.
-	&defcuppRotateLogfilesMoveToTrash						// Rotates the log files.
-};
-*/
-
 CUNILOG_PROCESSOR **CreateCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [], unsigned int n)
 {
 	ubf_assert_non_NULL	(cps);
@@ -27454,7 +27527,7 @@ CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn)
 	ubf_assert_non_NULL (pn);
 
 	/*
-		We simply place default processors on the stack andcreate a copy of them on the heap.
+		We simply place default processors on the stack and create a copy of them on the heap.
 	*/
 	// Our pData structures.
 	CUNILOG_ROTATION_DATA	stkcuppRotatorRenameLogfiles		=
@@ -27471,8 +27544,8 @@ CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn)
 			(CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED);
 	*/
 	// The processors.
-	CUNILOG_PROCESSOR		stkcuppEcho							=
-		CUNILOG_INIT_DEF_ECHO_PROCESSOR;
+	CUNILOG_PROCESSOR		stkcuppCout							=
+		CUNILOG_INIT_DEF_COUT_PROCESSOR;
 	CUNILOG_PROCESSOR		stkcuppUpdateLogfileName			=
 		CUNILOG_INIT_DEF_UPDATELOGFILENAME_PROCESSOR;
 	CUNILOG_PROCESSOR		stkcuppWriteToLogfile				=
@@ -27489,7 +27562,7 @@ CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn)
 	// The list with the processors.
 	CUNILOG_PROCESSOR	*stkcupp [] =
 	{
-		&stkcuppEcho,											// Writes to console.
+		&stkcuppCout,											// Writes to console.
 		&stkcuppUpdateLogfileName,								// Updates the date/timestamp within
 																//	the log file's name.
 		&stkcuppWriteToLogfile,									// Writes out to log file.
@@ -27504,6 +27577,94 @@ CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn)
 	if (cps)
 		*pn = n;
 	return cps;
+}
+
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
+						CUNILOG_PROCESSOR			**cup,
+						unsigned int				ncup,
+						enum cunilogprocesstask		task,
+						unsigned int				n
+										)
+{
+	ubf_assert_non_NULL	(cup);
+	ubf_assert_non_0	(ncup);
+	ubf_assert			(0 <= task);
+	ubf_assert			(cunilogProcessXAmountEnumValues > task);
+
+	if (n < ncup)
+	{
+		unsigned int fnd = 0;
+		unsigned int npr = 0;
+
+		while (npr < ncup)
+		{
+			if (task == cup [npr]->task)
+			{
+				if (fnd == n)
+					return cup [npr];
+				++ fnd;
+			}
+			++ npr;
+		}
+	}
+	return NULL;
+}
+
+CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
+						CUNILOG_PROCESSOR			**cup,
+						unsigned int				ncup,
+						enum cunilogrotationtask	rot,
+						unsigned int				n
+													)
+{
+	ubf_assert_non_NULL	(cup);
+	ubf_assert_non_0	(ncup);
+	ubf_assert			(0 <= rot);
+	ubf_assert			(cunilogrotationtask_XAmountEnumValues > rot);
+
+	unsigned int fnd	= 0;
+	unsigned int np		= 0;
+
+	CUNILOG_ROTATION_DATA	*prd;
+
+	while (np < ncup)
+	{
+		if (cunilogProcessRotateLogfiles == cup [np]->task)
+		{
+			prd = cup [np]->pData;
+			ubf_assert_non_NULL (prd);
+
+			if (rot == prd->tsk)
+			{
+				if (fnd == n)
+					return cup [np];
+				++ fnd;
+			}
+		}
+		++ np;
+	}
+	return NULL;
+}
+
+CUNILOG_ROTATION_DATA *GetCUNILOG_ROTATION_DATAfromProcessor	(
+						CUNILOG_PROCESSOR			**cup,
+						unsigned int				ncup,
+						enum cunilogrotationtask	rot,
+						unsigned int				n
+																)
+{
+	ubf_assert_non_NULL	(cup);
+	ubf_assert_non_0	(ncup);
+	ubf_assert			(0 <= rot);
+	ubf_assert			(cunilogrotationtask_XAmountEnumValues > rot);
+
+	CUNILOG_ROTATION_DATA	*prd = NULL;
+	CUNILOG_PROCESSOR		*clp;
+
+	clp = GetCUNILOG_PROCESSORrotationTask (cup, ncup, rot, n);
+	if (clp)
+		prd = clp->pData;
+	return prd;
 }
 
 /*
@@ -28218,7 +28379,7 @@ static inline void correctDefaultFrequency (CUNILOG_PROCESSOR *cp, CUNILOG_TARGE
 		switch (cp->task)
 		{
 			case cunilogProcessNoOperation:
-			case cunilogProcessEchoToConsole:
+			case cunilogProcessOutputToConsole:
 			case cunilogProcessWriteToLogFile:
 			case cunilogProcessCustomProcessor:
 				cp->freq = cunilogProcessAppliesTo_nAlways;
@@ -28721,7 +28882,7 @@ static inline void initCUNILOG_TARGEToptionFlags (CUNILOG_TARGET *put, runProces
 		cunilogTargetSetRunProcessorsOnStartup (put);
 
 	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-		cunilogTargetSetUseColourForEcho (put);
+		cunilogTargetSetUseColourForCout (put);
 	#endif
 }
 
@@ -28828,7 +28989,7 @@ static inline bool cunilogOpenLogFile (CUNILOG_TARGET *put)
 		put->logfile.hLogFile = CreateFileU8	(
 						put->mbLogfileName.buf.pcc,
 						CUNILOG_DEFAULT_OPEN_MODE,
-						FILE_SHARE_DELETE | FILE_SHARE_READ,
+						FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
 						NULL, OPEN_ALWAYS,
 						FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
 						NULL
@@ -28836,8 +28997,8 @@ static inline bool cunilogOpenLogFile (CUNILOG_TARGET *put)
 		return NULL != put->logfile.hLogFile && INVALID_HANDLE_VALUE != put->logfile.hLogFile;
 	#else
 		// We always (and automatically) append.
-		put->logfile.fLogFile = fopen (put->mbLogfileName.buf.pcc, CUNILOG_DEFAULT_OPEN_MODE);
-		return NULL != put->logfile.fLogFile;
+		put->logfile.fd = open (put->mbLogfileName.buf.pcc, CUNILOG_DEFAULT_OPEN_MODE);
+		return -1 != put->logfile.fd;
 	#endif
 }
 
@@ -28852,10 +29013,10 @@ static inline void cunilogCloseCUNILOG_LOGFILEifOpen (CUNILOG_TARGET *put)
 			put->logfile.hLogFile = NULL;
 		}
 	#else
-		if (put->logfile.fLogFile)
+		if (-1 != put->logfile.fd)
 		{
-			fclose (put->logfile.fLogFile);
-			put->logfile.fLogFile = NULL;
+			close (put->logfile.fd);
+			put->logfile.fd = -1;
 		}
 	#endif
 }
@@ -28957,7 +29118,7 @@ newline_t CunilogAutoNewLine (void)
 		#endif
 	#endif
 
-};
+}
 
 CUNILOG_TARGET *InitCUNILOG_TARGETex
 (
@@ -29329,35 +29490,35 @@ CUNILOG_TARGET *InitCUNILOG_TARGETstatic
 
 #if !defined (CUNILOG_BUILD_SINGLE_THREADED_ONLY) && !defined (CUNILOG_BUILD_SINGLE_THREADED_QUEUE)
 	bool MoveCUNILOG_TARGETqueueToFrom	(
-			CUNILOG_TARGET *cunilog_restrict putTo,
-			CUNILOG_TARGET *cunilog_restrict putFrom
+			CUNILOG_TARGET *cunilog_restrict putDst,
+			CUNILOG_TARGET *cunilog_restrict putSrc
 										)
 	{
-		ubf_assert_non_NULL	(putTo);
-		ubf_assert_non_NULL	(putFrom);
-		ubf_assert			(putTo != putFrom);					// That's why cunilog_restrict.
+		ubf_assert_non_NULL	(putDst);
+		ubf_assert_non_NULL	(putSrc);
+		ubf_assert			(putDst != putSrc);					// That's why cunilog_restrict.
 
-		if (HAS_CUNILOG_TARGET_A_QUEUE (putTo) && HAS_CUNILOG_TARGET_A_QUEUE (putFrom))
+		if (HAS_CUNILOG_TARGET_A_QUEUE (putDst) && HAS_CUNILOG_TARGET_A_QUEUE (putSrc))
 		{
-			EnterCUNILOG_LOCKER (putFrom);
+			EnterCUNILOG_LOCKER (putSrc);
 		
 			// Remove the queue from putFrom.
-			CUNILOG_EVENT	*pev	= putFrom->qu.first;
-			size_t			n		= putFrom->qu.num;
+			CUNILOG_EVENT	*pev	= putSrc->qu.first;
+			size_t			n		= putSrc->qu.num;
 
-			putFrom->qu.first		= NULL;
-			putFrom->qu.last		= NULL;
-			putFrom->qu.num			= 0;
+			putSrc->qu.first		= NULL;
+			putSrc->qu.last			= NULL;
+			putSrc->qu.num			= 0;
 
-			LeaveCUNILOG_LOCKER (putFrom);
+			LeaveCUNILOG_LOCKER (putSrc);
 
 			if (pev)
 			{
 				ubf_assert_non_0 (n);
 				UNUSED (n);
 
-				// And now add it to putTo.
-				size_t q = EnqueueCUNILOG_EVENTs (putTo, pev);
+				// And now add it to putDst.
+				size_t q = EnqueueCUNILOG_EVENTs (putDst, pev);
 				ubf_assert (q == n);
 				UNUSED (q);
 				return true;
@@ -29391,7 +29552,7 @@ const char *GetAbsoluteLogPathCUNILOG_TARGET_static (size_t *plen)
 	return GetAbsoluteLogPathCUNILOG_TARGET (pCUNILOG_TARGETstatic, plen);
 }
 
-CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
+CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessor	(
 						CUNILOG_TARGET				*put,
 						enum cunilogprocesstask		task,
 						unsigned int				n
@@ -29401,26 +29562,10 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
 	ubf_assert			(0 <= task);
 	ubf_assert			(cunilogProcessXAmountEnumValues > task);
 
-	if (n < put->nprocessors)
-	{
-		unsigned int fnd = 0;
-		unsigned int npr = 0;
-
-		while (npr < put->nprocessors)
-		{
-			if (task == put->cprocessors [npr]->task)
-			{
-				if (fnd == n)
-					return put->cprocessors [npr];
-				++ fnd;
-			}
-			++ npr;
-		}
-	}
-	return NULL;
+	return GetCUNILOG_PROCESSOR (put->cprocessors, put->nprocessors, task, n);
 }
 
-CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
+CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 						CUNILOG_TARGET				*put,
 						enum cunilogrotationtask	rot,
 						unsigned int				n
@@ -29430,28 +29575,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 	ubf_assert			(0 <= rot);
 	ubf_assert			(cunilogrotationtask_XAmountEnumValues > rot);
 
-	unsigned int fnd	= 0;
-	unsigned int np		= 0;
-
-	CUNILOG_ROTATION_DATA	*prd;
-
-	while (np < put->nprocessors)
-	{
-		if (cunilogProcessRotateLogfiles == put->cprocessors [np]->task)
-		{
-			prd = put->cprocessors [np]->pData;
-			ubf_assert_non_NULL (prd);
-
-			if (rot == prd->tsk)
-			{
-				if (fnd == n)
-					return put->cprocessors [np];
-				++ fnd;
-			}
-		}
-		++ np;
-	}
-	return NULL;
+	return GetCUNILOG_PROCESSORrotationTask (put->cprocessors, put->nprocessors, rot, n);
 }
 
 #ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
@@ -29501,14 +29625,14 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
 	#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-		void ConfigCUNILOG_TARGETuseColourForEcho (CUNILOG_TARGET *put, bool bUseColour)
+		void ConfigCUNILOG_TARGETuseColourForCout (CUNILOG_TARGET *put, bool bUseColour)
 		{
 			ubf_assert_non_NULL (put);
 
 			if (bUseColour)
-				cunilogTargetSetUseColourForEcho (put);
+				cunilogTargetSetUseColourForCout (put);
 			else
-				cunilogTargetClrUseColourForEcho (put);
+				cunilogTargetClrUseColourForCout (put);
 		}
 	#endif
 #endif
@@ -29590,24 +29714,24 @@ void ConfigCUNILOG_TARGETenableTaskProcessors (CUNILOG_TARGET *put, enum cunilog
 	This function has a declaration in cunilogevtcmds.c too. If its signature changes,
 	please don't forget to change it there too.
 */
-void ConfigCUNILOG_TARGETdisableEchoProcessor (CUNILOG_TARGET *put)
+void ConfigCUNILOG_TARGETdisableCoutProcessor (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL (put->cprocessors);
 
-	ConfigCUNILOG_TARGETdisableTaskProcessors (put, cunilogProcessEchoToConsole);
+	ConfigCUNILOG_TARGETdisableTaskProcessors (put, cunilogProcessOutputToConsole);
 }
 
 /*
 	This function has a declaration in cunilogevtcmds.c too. If its signature changes,
 	please don't forget to change it there too.
 */
-void ConfigCUNILOG_TARGETenableEchoProcessor (CUNILOG_TARGET *put)
+void ConfigCUNILOG_TARGETenableCoutProcessor (CUNILOG_TARGET *put)
 {
 	ubf_assert_non_NULL	(put);
 	ubf_assert_non_NULL (put->cprocessors);
 
-	ConfigCUNILOG_TARGETenableTaskProcessors (put, cunilogProcessEchoToConsole);
+	ConfigCUNILOG_TARGETenableTaskProcessors (put, cunilogProcessOutputToConsole);
 }
 
 #ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
@@ -29645,7 +29769,7 @@ static void DoneCUNILOG_TARGETprocessors (CUNILOG_TARGET *put)
 		switch (cp->task)
 		{
 			case cunilogProcessNoOperation:
-			case cunilogProcessEchoToConsole:
+			case cunilogProcessOutputToConsole:
 			case cunilogProcessUpdateLogFileName:
 			case cunilogProcessFlushLogFile:
 				break;
@@ -30979,7 +31103,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 #endif
 
 #ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-	static inline void cunilogFillColouredEchoEvtLine	(
+	static inline void cunilogFillColouredCoutEvtLine	(
 							char				**pszToOutput,
 							size_t				*plnToOutput,
 							CUNILOG_EVENT		*pev
@@ -30993,7 +31117,7 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 		size_t	lnThisColour	= evtSeverityColoursLen (pev->evSeverity);
 
 		if	(
-					cunilogTargetHasUseColourForEcho (pev->pCUNILOG_TARGET)
+					cunilogTargetHasUseColourForCout (pev->pCUNILOG_TARGET)
 				&&	lnThisColour
 			)
 		{
@@ -31026,20 +31150,22 @@ static bool cunilogProcessNoneFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 	}
 #endif
 
-static bool cunilogProcessCCechoFnct	(
+static bool cunilogProcessControlCodeCoutFnct	(
 				const char					*szToOutput,
 				size_t						lnToOutput,
 				CUNILOG_PROCESSOR			*cup,
 				CUNILOG_EVENT				*pev
-										)
+												)
 {
 	int		ips;
 
 	#ifdef PLATFORM_IS_WINDOWS
 			ips = cunilogPrintWin (szToOutput, lnToOutput);
 	#else
+		ubf_assert (lnToOutput <= INT_MAX);
+		int iToOutput = lnToOutput & INT_MAX;
 		if (cunilogEvtTypeControlCode == pev->evType)
-			ips = printf (szToOutput, lnToOutput);
+			ips = printf ("%.*s", iToOutput, szToOutput);
 	#endif
 
 	if (0 > ips)
@@ -31051,13 +31177,13 @@ static bool cunilogProcessCCechoFnct	(
 	return true;
 }
 
-static bool cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
+static bool cunilogProcessCoutFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 {
 	UNREFERENCED_PARAMETER (cup);
 	ubf_assert_non_NULL (pev);
 	ubf_assert_non_NULL (pev->pCUNILOG_TARGET);
 
-	if (cunilogIsNoEcho (pev->pCUNILOG_TARGET) || cunilogHasEventNoEcho (pev))
+	if (cunilogHasTargetNoCout (pev->pCUNILOG_TARGET) || cunilogHasEventNoCout (pev))
 		return true;
 
 	// The actual task of this processor: Echo the event line.
@@ -31071,14 +31197,14 @@ static bool cunilogProcessEchoFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev)
 	size_t	lnToOutput;
 
 	#ifndef CUNILOG_BUILD_WITHOUT_CONSOLE_COLOUR
-		cunilogFillColouredEchoEvtLine (&szToOutput, &lnToOutput, pev);
+		cunilogFillColouredCoutEvtLine (&szToOutput, &lnToOutput, pev);
 	#else
 		szToOutput = pev->pCUNILOG_TARGET->mbLogEventLine.buf.pch;
 		lnToOutput = pev->pCUNILOG_TARGET->lnLogEventLine;
 	#endif
 
 	if (cunilogEvtTypeControlCode == pev->evType)
-		return cunilogProcessCCechoFnct (szToOutput, lnToOutput, cup, pev);
+		return cunilogProcessControlCodeCoutFnct (szToOutput, lnToOutput, cup, pev);
 
 	int		ips;
 
@@ -31248,13 +31374,14 @@ static bool cunilogWriteDataToLogFile (CUNILOG_TARGET *put, CUNILOG_EVENT *pev)
 		pData [lnData] = ASCII_NUL;
 		return b;
 	#else
-		long lToWrite	= (cunilogEvtTypeControlCode == pev->evType)
+		size_t toWrite	= (cunilogEvtTypeControlCode == pev->evType)
 						? put->lnLogEventLine & 0xFFFFFFFF;
-						: (long) addNewLineToLogEventLine (pData, lnData, nl);
+						: addNewLineToLogEventLine (pData, lnData, nl);
 		// See https://www.man7.org/linux/man-pages/man3/fopen.3.html .
 		//	A call "fseek (pl->fLogFile, (long) 0, SEEK_END);" is not required
 		//	because we opened the file in append mode.
-		size_t st = fwrite (pData, 1, lToWrite, put->logfile.fLogFile);
+		//size_t st = fwrite (pData, 1, ToWrite, put->logfile.fLogFile);
+		ssize_t written = write (put->logfile.fd, pData, toWrite);
 		pData [lnData] = ASCII_NUL;
 		return st == lnData;
 	#endif
@@ -31309,7 +31436,7 @@ static bool cunilogProcessFlushLogFileFnct (CUNILOG_PROCESSOR *cup, CUNILOG_EVEN
 		if (!FlushFileBuffers (put->logfile.hLogFile))
 			cunilogSetTargetErrorAndInvokeErrorCallback (CUNILOG_ERROR_FLUSHING_LOGFILE, cup, pev);
 	#else
-		if (0 != fflush (put->logfile.fLogFile))
+		if (-1 == fsync (put->logfile.fd)))
 			cunilogInvokeErrorCallback (CUNILOG_ERROR_FLUSHING_LOGFILE, cup, pev);
 	#endif
 	return true;
@@ -32911,7 +33038,7 @@ static inline bool updateCurrentValueAndIsThresholdReached	(
 static bool (*pickAndRunProcessor [cunilogProcessXAmountEnumValues]) (CUNILOG_PROCESSOR *cup, CUNILOG_EVENT *pev) =
 {
 	/* cunilogProcessNoOperation		*/		cunilogProcessNoneFnct
-	/* cunilogProcessEchoToConsole		*/	,	cunilogProcessEchoFnct
+	/* cunilogProcessOutputToConsole	*/	,	cunilogProcessCoutFnct
 	/* cunilogProcessUpdateLogFileName	*/	,	cunilogProcessUpdateLogFileNameFnct
 	/* cunilogProcessWriteToLogFile		*/	,	cunilogProcessWriteToLogFileFnct
 	/* cunilogProcessFlush				*/	,	cunilogProcessFlushLogFileFnct
@@ -32935,7 +33062,7 @@ static inline bool cunilogProcessProcessor (CUNILOG_EVENT *pev, CUNILOG_PROCESSO
 	if (optCunProcHasOPT_CUNPROC_DISABLED (cup->uiOpts))
 		return true;
 
-	if (cunilogHasEventEchoOnly (pev) && cunilogProcessEchoToConsole != cup->task)
+	if (cunilogHasEventCoutOnly (pev) && cunilogProcessOutputToConsole != cup->task)
 		return true;
 
 	bool bRetProcessor = true;
@@ -32945,7 +33072,7 @@ static inline bool cunilogProcessProcessor (CUNILOG_EVENT *pev, CUNILOG_PROCESSO
 		bRetProcessor = pickAndRunProcessor [cup->task] (cup, pev);
 	}
 	
-	if (cunilogProcessEchoToConsole == cup->task && cunilogHasEventEchoOnly (pev))
+	if (cunilogProcessOutputToConsole == cup->task && cunilogHasEventCoutOnly (pev))
 		return false;
 	// An error callback function told us to stop here and ignore the remaining processors.
 	if (cunilogEventHasIgnoreRemainingProcessors (pev))
@@ -32966,12 +33093,19 @@ static void cunilogProcessProcessors (CUNILOG_EVENT *pev)
 	ubf_assert (cunilogIsTargetInitialised	(pev->pCUNILOG_TARGET));
 	ubf_assert_non_NULL						(pev->pCUNILOG_TARGET->cprocessors);
 
-	CUNILOG_TARGET *put = pev->pCUNILOG_TARGET;
-	if (!cunilogIsEventInternal (pev) && !cunilogHasEventNoRotation (pev))
+	if (!cunilogIsEventInternal (pev))
 	{
-		pev->pCUNILOG_TARGET->scuNPI.nIgnoredTotal = 0;
-		cunilogResetFilesList (put);
-		cunilogEventClrIgnoreRemainingProcessors (pev);
+		if (cunilogHasEventNoRotation (pev))
+		{	// Target flag CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP
+			//	overrides event flag CUNILOGEVENT_NOROTATION.
+			if (cunilogTargetHasRunProcessorsOnStartup (pev->pCUNILOG_TARGET))
+				cunilogClrEventNoRotation (pev);
+		} else
+		{
+			pev->pCUNILOG_TARGET->scuNPI.nIgnoredTotal = 0;
+			cunilogResetFilesList (pev->pCUNILOG_TARGET);
+			cunilogEventClrIgnoreRemainingProcessors (pev);
+		}
 	}
 
 	CUNILOG_PROCESSOR *cup;
@@ -33097,12 +33231,14 @@ static bool cunilogProcessEventMultiThreadedSeparateLoggingThread (CUNILOG_EVENT
 	}
 #endif
 
+/* Covered by APPEND mode of logfile.
 static bool cunilogProcessOrQueueEventMultiProcesses (CUNILOG_EVENT *pev)
 {
 	UNREFERENCED_PARAMETER (pev);
 	ubf_assert_msg (false, "Not implemented yet.");
 	return false;
 }
+*/
 
 static bool (*cunilogProcOrQueueEvt [cunilogTypeAmountEnumValues]) (CUNILOG_EVENT *pev) =
 {
@@ -33113,7 +33249,7 @@ static bool (*cunilogProcOrQueueEvt [cunilogTypeAmountEnumValues]) (CUNILOG_EVEN
 	/* cunilogMultiThreaded							*/ , cunilogProcessEventMultiThreaded
 	/* cunilogMultiThreadedSeparateLoggingThread	*/ , cunilogProcessEventMultiThreadedSeparateLoggingThread
 	/* cunilogMultiThreadedQueueOnly				*/ , cunilogProcessQueue
-	/* cunilogMultiProcesses						*/ , cunilogProcessOrQueueEventMultiProcesses
+	/* cunilogMultiProcesses						*/ //, cunilogProcessOrQueueEventMultiProcesses
 	#endif
 };
 
@@ -33256,7 +33392,7 @@ static bool cunilogProcessOrQueueEvent (CUNILOG_EVENT *pev)
 				return true;
 			}
 
-			// Empty the queue. While this would actually not be required here, it can
+			// Drop the queue. While this would actually not be required here, it can
 			//	speed up things significantly (well, maybe a few cycles) with busy queues as
 			//	it takes some burden off the separate logging thread.
 			dropQueueCUNILOG_TARGET (put);
@@ -34077,7 +34213,7 @@ bool logTextU8csevl			(CUNILOG_TARGET *put, cueventseverity sev, const char *ccT
 	CUNILOG_EVENT *pev = CreateCUNILOG_EVENT_Text (put, sev, ccText, len);
 	if (pev)
 	{
-		cunilogSetEventEchoOnly (pev);
+		cunilogSetEventCoutOnly (pev);
 		return cunilogProcessOrQueueEvent (pev);
 	}
 	return false;
@@ -34378,12 +34514,12 @@ bool logEmptyLine			(CUNILOG_TARGET *put)
 #endif
 
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	bool ChangeCUNILOG_TARGETuseColourForEcho (CUNILOG_TARGET *put, bool bUseColour)
+	bool ChangeCUNILOG_TARGETuseColourForCout (CUNILOG_TARGET *put, bool bUseColour)
 	{
 		CUNILOG_EVENT *pev = CreateCUNILOG_EVENTforCommand (put, cunilogCmdConfigUseColourForEcho);
 		if (pev)
 		{
-			culCmdStoreCmdConfigUseColourForEcho (pev->szDataToLog, bUseColour);
+			culCmdStoreCmdConfigUseColourForCout (pev->szDataToLog, bUseColour);
 			return cunilogProcessOrQueueEvent (pev);
 		}
 		return false;
@@ -34442,7 +34578,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put)
 #endif
 
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	bool ChangeCUNILOG_TARGETdisableEchoProcessor	(CUNILOG_TARGET *put)
+	bool ChangeCUNILOG_TARGETdisableCoutProcessor	(CUNILOG_TARGET *put)
 	{
 		ubf_assert_non_NULL	(put);
 
@@ -34458,7 +34594,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put)
 #endif
 
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-	bool ChangeCUNILOG_TARGETenableEchoProcessor	(CUNILOG_TARGET *put)
+	bool ChangeCUNILOG_TARGETenableCoutProcessor	(CUNILOG_TARGET *put)
 	{
 		enum cunilogEvtCmd	cmd		= cunilogCmdConfigEnableEchoProcessor;
 		CUNILOG_EVENT		*pev	= CreateCUNILOG_EVENTforCommand (put, cmd);
