@@ -199,7 +199,7 @@ static inline bool readFromFile (uint32_t *pRead, unsigned char *ucBuf, uint32_t
 		}
 	#else
 		ubf_assert (toRead <= SSIZE_MAX);
-		ubf_assert (tRead >= 0);
+		ubf_assert (toRead >= 0);
 		if (-1 !=clf.fd)
 		{
 			ssize_t rd = read (clf.fd, ucBuf, toRead);
@@ -244,7 +244,7 @@ static inline bool writeToFile	(
 			ubf_assert (rd <= UINT32_MAX);
 			if (-1 != rd)
 			{
-				*pWritten = toWrite;
+				*pWritten = (uint32_t) rd;
 				return true;
 			}
 		}
@@ -264,10 +264,13 @@ static inline bool moveFilePointerForward (CUNILOG_LOGFILE clf, uint32_t distanc
 		UNREFERENCED_PARAMETER (dw);
 		return b;
 	#else
+		/*	Not required on POSIX.
 		ubf_assert (sizeof (off_t) > sizeof (uint32_t));
 		off_t odt = distance;
 		off_t off = lseek (clf.fd, odt, SEEK_CUR);
 		return (off_t) -1 != off;
+		*/
+		return true;
 	#endif
 }
 
@@ -306,7 +309,7 @@ static inline bool deleteFile (const char *szFileToDelete)
 		bool b = DeleteFileU8 (szFileToDelete);
 		return b;
 	#else
-		int u = unlink (encompress_delete);
+		int u = unlink (szFileToDelete);
 		return 0 == u;
 	#endif
 }
@@ -448,7 +451,7 @@ static inline bool storeCRCandSize	(
 	{
 		struct stat	statbuf;
 
-		if (fstat (clf.fd, &statbuf))
+		if (0 == fstat (clf.fd, &statbuf))
 		{
 			*pblksize = statbuf.st_blksize;
 			return true;
