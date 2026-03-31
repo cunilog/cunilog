@@ -17880,9 +17880,8 @@ static inline bool readFromFile (uint32_t *pRead, unsigned char *ucBuf, uint32_t
 		{
 			ssize_t rd;
 			do
-			{
 				rd = read (clf.fd, ucBuf, toRead);
-			} while (rd < 0 && errno == EINTR);
+			while (rd < 0 && errno == EINTR);
 			ubf_assert (rd <= UINT32_MAX);
 			if (rd >= 0)
 			{
@@ -17922,9 +17921,8 @@ static inline bool writeToFile	(
 		{
 			ssize_t written;
 			do
-			{
 				written = write (clf.fd, ucBuf, toWrite);
-			} while (written < 0 && errno == EINTR);
+			while (written < 0 && errno == EINTR);
 			ubf_assert (written <= UINT32_MAX);
 			if (written == toWrite)
 			{
