@@ -202,11 +202,11 @@ static inline bool readFromFile (uint32_t *pRead, unsigned char *ucBuf, uint32_t
 		ubf_assert (toRead >= 0);
 		if (-1 !=clf.fd)
 		{
-			ssize_t read = read (clf.fd, ucBuf, toRead);
-			ubf_assert (read <= UINT32_MAX);
-			if (read >= 0)
+			ssize_t rd = read (clf.fd, ucBuf, toRead);
+			ubf_assert (rd <= UINT32_MAX);
+			if (rd >= 0)
 			{
-				*pRead = (uint32_t) read;
+				*pRead = (uint32_t) rd;
 				return true;
 			}
 		}
