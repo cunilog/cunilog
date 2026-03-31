@@ -284,28 +284,43 @@ static inline bool truncateFile (CUNILOG_LOGFILE *pclf, const char *szFileName, 
 {
 	ubf_assert_non_NULL	(pclf);
 
-	CloseHandle (pclf->hLogFile);
+	#ifdef PLATFORM_IS_WINDOWS
+		CloseHandle (pclf->hLogFile);
 
-	pclf->hLogFile	=	CreateFileU8long	(
-							szFileName,
-							GENERIC_WRITE,
-							FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
-							NULL, OPEN_EXISTING,
-							FILE_ATTRIBUTE_NORMAL,
-							NULL
-										);
-	if (INVALID_HANDLE_VALUE != pclf->hLogFile)
-	{
-		LARGE_INTEGER pos;
-		pos.QuadPart = newSize;
+		pclf->hLogFile	=	CreateFileU8long	(
+								szFileName,
+								GENERIC_WRITE,
+								FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+								NULL, OPEN_EXISTING,
+								FILE_ATTRIBUTE_NORMAL,
+								NULL
+												);
+		if (INVALID_HANDLE_VALUE != pclf->hLogFile)
+		{
+			LARGE_INTEGER pos;
+			pos.QuadPart = newSize;
 
-		bool b;
-		b = SetFilePointerEx (pclf->hLogFile, pos, NULL, FILE_BEGIN);
-		DWORD dw = GetLastError ();
-		UNREFERENCED_PARAMETER (dw);
-		SetEndOfFile (pclf->hLogFile);
-		return b;
-	}
+			bool b;
+			b = SetFilePointerEx (pclf->hLogFile, pos, NULL, FILE_BEGIN);
+			DWORD dw = GetLastError ();
+			UNREFERENCED_PARAMETER (dw);
+			SetEndOfFile (pclf->hLogFile);
+			return b;
+		}
+	#else
+		// POSIX O_DIRECT path: truncate to logical size
+		if (pclf->fd != -1)
+		{
+			// Move file offset to newSize (optional but mirrors Windows behaviour)
+			off_t pos = (off_t) newSize;
+			if (lseek (pclf->fd, pos, SEEK_SET) == (off_t) -1)
+				return false;
+
+			// Truncate the file to the logical size
+			if (ftruncate (pclf->fd, pos) == 0)
+				return true;
+		}
+	#endif
 	return false;
 }
 
@@ -432,15 +447,13 @@ static inline bool storeCRCandSize	(
 	{
 		memcpy (ucOutBuf, footer + nfirst, remaining);
 
-		#ifdef PLATFORM_IS_WINDOWS
-			uiToWrite = ALIGNED_SIZE (remaining, uiPhysSectSize);
+		uiToWrite = ALIGNED_SIZE (remaining, uiPhysSectSize);
 
-			// Overwrite the padding.
-			memset (ucOutBuf + remaining, 0, uiPhysSectSize - remaining);
+		// Overwrite the padding.
+		memset (ucOutBuf + remaining, 0, uiPhysSectSize - remaining);
 
-			// This obviously requires that we're below the size of the buffer.
-			ubf_assert (uiToWrite <= stOutBuf);
-		#endif
+		// This obviously requires that we're below the size of the buffer.
+		ubf_assert (uiToWrite <= stOutBuf);
 
 		if (!writeToFile (&uiWrittenToOutFile, clout, ucOutBuf, uiToWrite))
 			return false;
@@ -597,10 +610,8 @@ bool extCompressFile	(
 				break;
 			}
 		}
-		#ifdef PLATFORM_IS_WINDOWS
-			// We got unbuffered I/O. The last chunk was rounded up to sector size.
-			truncateFile (&clout, szZipName, uiTotalOut);
-		#endif
+		// We got unbuffered I/O. The last chunk was rounded up to sector size.
+		truncateFile (&clout, szZipName, uiTotalOut);
 
 	cant_deflate_init:
 		freeAligned (ucOutBuf);
