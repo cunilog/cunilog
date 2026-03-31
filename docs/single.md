@@ -1,4 +1,4 @@
-# Specific (single) Cunilog Modules in your Project
+# Specific (single) Cunilog modules in your Project
 
 You can build each module Cunilog consists of together with your C or C++
 application as long as you compile the Cunilog code files as C code. This means

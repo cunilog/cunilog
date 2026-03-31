@@ -1,5 +1,5 @@
 
-# Newline/Line Endings
+# Newline/line endings
 
 ## POSIX
 
@@ -33,7 +33,7 @@ If you already know that you do not need to support versions of Windows/Notepad 
 Alternatively, initialise the target first with an initialisation function whose
 name doesn't end with "__Ex__", and call __configCUNILOG_TARGETcunilognewline ()__ with line ending argument __cunilogNewLineWindows__ or __cunilogNewLineWindows__ before actual logging has begun (before logging functions have been called).
 
-## Legacy Systems
+## Legacy systems
 
 Cunilog can be built to support all sorts of line endings. When CUNILOG_NEWLINE_EXTENDED
 is defined, additional legacy or exotic line endings are available, for example for zOS,

@@ -123,9 +123,9 @@ When		Who				What
 	ULONGLONGtoFILETIME (ftResult, ui64);
 */
 #ifndef FILETIMEfromULONGLONG
-#define FILETIMEfromULONGLONG(f,u)											\
-			(f).dwHighDateTime	= (uint32_t) (u >> 32 & 0x00000000FFFFFFFF);	\
-			(f).dwLowDateTime	= (uint32_t) (u & 0x00000000FFFFFFFF)
+#define FILETIMEfromULONGLONG(f,u)										\
+	(f).dwHighDateTime	= (uint32_t) (u >> 32 & 0x00000000FFFFFFFF);	\
+	(f).dwLowDateTime	= (uint32_t) (u & 0x00000000FFFFFFFF)
 #endif
 #ifndef ULONGLONGtoFILETIME
 #define ULONGLONGtoFILETIME FILETIMEfromULONGLONG

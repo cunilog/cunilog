@@ -61,7 +61,7 @@ When		Who				What
 #define CUNILOG_VERSION_MINOR	8							// Minor version.
 #define CUNILOG_VERSION_SUB		0							// Subversion for maintenance.
 #define CUNILOG_VERSION_BUILD	1							// Build number.
-#define CUNILOG_VERSION_YEAR	"2025"						// Copyright year.
+#define CUNILOG_VERSION_YEAR	"2026"						// Version year.
 
 #define VERSION_URL		"https://github.com/cunilog"
 

@@ -134,6 +134,9 @@ When		Who				What
 	#include <shlwapi.h>
 	#pragma comment (lib, "Shlwapi.lib")
 #endif
+#ifdef HAVE_USER32
+	 #pragma comment (lib, "User32.lib")
+#endif
 #ifdef HAVE_USERENV
 	#include <UserEnv.h>
 	 #pragma comment (lib, "Userenv.lib")
@@ -409,6 +412,23 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 #else
 	#define WinU16_from_UTF8(wcU16, sizeU16, chU8)		\
 		MultiByteToWideChar (CP_UTF8, 0, chU8, -1, wcU16, sizeU16)
+#endif
+
+/*
+	WinU16_from_UTF8l
+
+	Simplified invocation of MultiByteToWideChar () that converts from UTF-8 to
+	Windows UTF-16. Expects the length of chU8 in lenU8. Cannot be called with
+	USE_STRLEN.
+
+	This is a function in debug versions and a macro in release builds.
+*/
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	int WinU16_from_UTF8l (WCHAR *wcU16, int sizeU16, const char *chU8, int lenU8);
+	TYPEDEF_FNCT_PTR (int, WinU16_from_UTF8l) (WCHAR *wcU16, int sizeU16, const char *chU8, int lenU8);
+#else
+	#define WinU16_from_UTF8l(wcU16, sizeU16, chU8, lenU8)\
+		MultiByteToWideChar (CP_UTF8, 0, chU8, lenU8, wcU16, sizeU16)
 #endif
 
 /*
@@ -703,6 +723,29 @@ WCHAR *AllocWinU16fromU8orUseThresholdLongFileName (WCHAR *pwcStackVar, const ch
 TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16fromU8orUseThresholdLongFileName) (WCHAR *pwcStackVar, const char *pchU8);
 
 /*
+	AllocWinU16fromU8orUseThresholdLongFileNamel
+	
+	The function is identical to AllocWinU16fromU8orUseThresholdLongFileName () but
+	additionally expects the length, in characters (not octets/bytes) of pchU8 in
+	lnchU8. If lnchU8 is USE_STRLEN, the function calls
+	AllocWinU16fromU8orUseThresholdLongFileName ().
+
+	The function returns NULL if it fails. Otherwise a newly allocated buffer with
+	the UTF-8 string pchU8 with a length of lnchU8 is returned. The returned buffer
+	is NUL-terminated.
+
+	The length, in WCHARs, is returned in pLen.
+
+	Call DoneWinU16fromU8orUseThreshold () with the returned pointer and the same
+	pwcStackVar variable to conditionally deallocate the buffer again.
+*/
+WCHAR *AllocWinU16fromU8orUseThresholdLongFileNamel	(
+			size_t *pLen, WCHAR *pwcStackVar, const char *pchU8, size_t lnchU8
+													);
+TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16fromU8orUseThresholdLongFileNamel)
+	(size_t *pLen, WCHAR *pwcStackVar, const char *pchU8, size_t lnchU8);
+
+/*
 	DoneWinU16fromU8orUseThreshold
 	
 	Conditionally deallocates the memory allocated by
@@ -859,17 +902,26 @@ TYPEDEF_FNCT_PTR (BOOL, CopyFileU8long)
 	Creates all folders in wcPath and returns TRUE on success, FALSE otherwise.
 	Success means that the path either has been created by the function or that
 	it existed already prior to invoking the function.
+
+	The parameter lnPath is the length of wcPath, in characters (not bytes/octets).
+	If lnPath is USE_STRLEN, the function calls wcslen () to obtain it. Otherwise,
+	wcPath does not need to be NUL-terminated.
+
+	If len is 0, the function returns TRUE, assuming that a path with a length of
+	0 already exists.
 */
-BOOL CreateAllFoldersW (WCHAR *wcPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
-TYPEDEF_FNCT_PTR (BOOL, CreateAllFoldersW) (WCHAR *wcPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+BOOL CreateAllFoldersW (WCHAR *wcPath, size_t lnPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+TYPEDEF_FNCT_PTR (BOOL, CreateAllFoldersW)
+	(WCHAR *wcPath, size_t lnPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
 /*
 	CreateAllFoldersU8
 	
 	UTF-8 version of CreateAllFoldersW (). See above.
 */
-BOOL CreateAllFoldersU8 (const char *szPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
-TYPEDEF_FNCT_PTR (BOOL, CreateAllFoldersU8) (const char *szPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+BOOL CreateAllFoldersU8 (const char *szPath, size_t lnPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+TYPEDEF_FNCT_PTR (BOOL, CreateAllFoldersU8)
+	(const char *szPath, size_t lnPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
 /*
 	CreateDirectoryIfNotExistsW
@@ -2020,6 +2072,16 @@ enum en_wapi_fs_type GetFileSystemType (const char *chDriveRoot);
 TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemType) (const char *chDriveRoot);
 
 /*
+	GetFileSystemTypeFromFileName
+
+	More or less identical to GetFileSystemType () but accepts an absolute filename
+	as parameter.
+*/
+enum en_wapi_fs_type GetFileSystemTypeFromFileName (const char *chFileName)
+;
+TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemTypeFromFileName) (const char *chFileName);
+
+/*
 	IsFileSystemFAT
 
 	Returns or evaluates to TRUE if the file system of chDriveRoot is FAT.
@@ -2067,6 +2129,20 @@ TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemType) (const char *chDriveR
 	#define IsFileSystemNTFS(drv)						\
 		(FS_TYPE_NTFS == GetFileSystemType (drv))
 #endif
+
+/*
+	IsFileSystemNTFSfromFileName
+
+	Returns of evaluates to TRUE/true if the file system of the given filename
+	szFileName is NTFS, false/FALSE otherwise.
+*/
+#ifdef DEBUG
+	BOOL IsFileSystemNTFSfromFileName (const char *szFileName);
+#else
+	#define IsFileSystemNTFSfromFileName(filename)		\
+		(FS_TYPE_NTFS == GetFileSystemTypeFromFileName (filename))
+#endif
+
 
 /*
 	GetFileVersionInfoSizeU8
@@ -2233,6 +2309,20 @@ TYPEDEF_FNCT_PTR (HMODULE, GetModuleHandleU8)
 (
   LPCSTR lpModuleName
 );
+
+/*
+	GetPhysicalSectorSizeFromHandle
+
+	Obtains the physical sector size of the volume the file of the open file handle
+	hFile resides.
+
+	The physical sector size is returned at the address pSectorSize points to. This
+	address cannot be NULL. Debug versions abort if pSectorSize is NULL, release versions
+	may or may not crash with an access violation.
+
+	The function returns true upon success, false when it fails.
+*/
+bool GetPhysicalSectorSizeFromHandle (HANDLE hFile, DWORD *pSectorSize);
 
 /*
 	GetPrivateProfileStringU8
@@ -2489,6 +2579,27 @@ TYPEDEF_FNCT_PTR (BOOL, GetVolumeInformationU8)
   LPDWORD lpFileSystemFlags,
   LPSTR   lpFileSystemNameBuffer,
   DWORD   nFileSystemNameSize
+)
+;
+
+/*
+	GetVolumePathNameU8
+
+	UTF-8 version of the Windows API GetVolumePathNameW () See
+	https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumepathnamew
+	for details.
+*/
+BOOL GetVolumePathNameU8(
+  _In_  LPCSTR lpszFileNameU8,
+  _Out_ LPSTR  lpszVolumePathNameU8,
+  _In_  DWORD  cchBufferLength
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, GetVolumePathNameU8)
+(
+  _In_  LPCSTR lpszFileNameU8,
+  _Out_ LPSTR  lpszVolumePathNameU8,
+  _In_  DWORD  cchBufferLength
 )
 ;
 

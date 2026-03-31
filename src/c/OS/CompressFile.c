@@ -65,7 +65,7 @@ When		Who				What
 #ifdef DEBUG
 	enfilecompressresult_t IsFileCompressedByName (const char *szFilename)
 	{
-		#if defined (OS_IS_WINDOWS)
+		#if defined (PLATFORM_IS_WINDOWS)
 
 			#ifdef DEBUG
 				// Since the NTFS compressor provides a different enum, we need to make sure that
@@ -79,11 +79,15 @@ When		Who				What
 			enfilecompressresult_t r = (enfilecompressresult_t) IsFileNTFSCompressedByName (szFilename);
 			return r;
 
-		#elif defined (OS_IS_LINUX)
+		#elif defined (PLATFORM_IS_POSIX)
 
 			UNUSED (szFilename);
 			return fscompress_error;
 			
+		#elif
+
+			#error "Not supported"
+
 		#endif
 
 	}

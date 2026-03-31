@@ -107,7 +107,7 @@ EXTERN_C_BEGIN
 
 // Initialize a new shared mutex with given `name`. If a mutex
 // with such name exists in the system, it will be loaded.
-// Otherwise a new mutes will by created.
+// Otherwise a new mutex will by created.
 //
 // In case of any error, it will be printed into the standard output
 // and the returned structure will have `ptr` equal `NULL`.
@@ -146,6 +146,11 @@ shared_mutex_t InitSharedMutex (const char *name);
 // For complete desctruction use `shared_mutex_destroy` instead.
 //
 // **NOTE:** It will not unlock locked mutex.
+/*
+	2026-03-09, Thomas
+
+	The function does not send anything to standard output.
+*/
 int CloseSharedMutex (shared_mutex_t mutex);
 
 // Close and destroy shared mutex.
@@ -153,6 +158,11 @@ int CloseSharedMutex (shared_mutex_t mutex);
 //
 //
 // **NOTE:** It will not unlock locked mutex.
+/*
+	2026-03-09, Thomas
+
+	The function does not send anything to standard output.
+*/
 void DestroySharedMutex(shared_mutex_t mutex);
 
 /*
@@ -165,7 +175,7 @@ bool EnterSharedMutex (shared_mutex_t mutex);
 bool LeaveSharedMutex (shared_mutex_t mutex);
 
 /*
-	WeCreatedSharedMutex
+	HaveWeCreatedSharedMutex
 
 	Returns true if this instance/process created the shared mutex.
 */

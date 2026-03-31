@@ -1,5 +1,5 @@
 
-# Processors and Rotators
+# Processors and rotators
 
 ## Processors
 

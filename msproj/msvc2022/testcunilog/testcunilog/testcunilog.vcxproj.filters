@@ -198,6 +198,9 @@
     <ClCompile Include="..\..\..\..\src\c\OS\Windows\WinConfigureISOdate.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\c\OS\CreateAllFolders.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\src\c\cunilog\cunilogstructs.h">
@@ -414,6 +417,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\src\c\OS\Windows\WinConfigureISOdate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\src\c\OS\CreateAllFolders.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

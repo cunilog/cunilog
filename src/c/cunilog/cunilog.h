@@ -135,7 +135,7 @@ DoneCUNILOG_TARGETstatic ();
 #endif
 
 
-/*
+/*!
 	Memory alignments. Use 16 octets/bytes for 64 bit platforms.
 	Use CUNILOG_DEFAULT_ALIGNMENT for structures and CUNILOG_POINTER_ALIGNMENT
 	for pointers.
@@ -181,7 +181,7 @@ DoneCUNILOG_TARGETstatic ();
 #define CUNILOG_DEFAULT_SFMT_SIZE		(256)
 #endif
 
-/*
+/*!
 	The default initial size of an event line. Note that this is not the space for the text
 	but rather the entire line, including timestamp etc. If you know in advance that your
 	texts (including stamp etc) are going to be longer you may override this with a higher
@@ -197,7 +197,7 @@ DoneCUNILOG_TARGETstatic ();
 	#error CUNILOG_INITIAL_EVENTLINE_SIZE must be greater than zero
 #endif
 
-/*
+/*!
 	The default initial size of an event line that contains ANSI colour codes for severity
 	levels plus the event line itself.
 	If you know in advance that your texts (including stamp etc) are going to be longer you
@@ -240,11 +240,8 @@ DoneCUNILOG_TARGETstatic ();
 	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED
 	#define CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED	(2)
 	#endif
-	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED
-	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED		(3)
-	#endif
-	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED
-	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED		(4)
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_COMPRESSED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_COMPRESSED		(3)
 	#endif
 
 #else
@@ -252,34 +249,15 @@ DoneCUNILOG_TARGETstatic ();
 	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED
 	#define CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED	(10)
 	#endif
-	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED
-	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED		(100)
-	#endif
-	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED
-	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED		(100)
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_COMPRESSED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_COMPRESSED		(100)
 	#endif
 
-#endif
-
-// The mode for opening the current logfile.
-#ifdef PLATFORM_IS_WINDOWS
-	#define CUNILOG_DEFAULT_OPEN_MODE	(FILE_APPEND_DATA)
-	/*
-		pl->hLogFile = CreateFileU8	(
-						szLogFileName, GENERIC_WRITE,
-						FILE_SHARE_DELETE | FILE_SHARE_READ,
-						NULL, OPEN_ALWAYS,
-						FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-						NULL
-									);
-	*/
-#else
-	#define CUNILOG_DEFAULT_OPEN_MODE	(O_WRONLY | O_APPEND | O_CREAT)
 #endif
 
 EXTERN_C_BEGIN
 
-/*
+/*!
 	The pointer to the module's internal static CUNILOG_TARGET structure.
 	The _static versions of the logging functions operate on this structure.
 */
@@ -289,7 +267,7 @@ CUNILOG_DLL_IMPORT extern CUNILOG_TARGET *pCUNILOG_TARGETstatic;
 	Functions
 */
 
-/*
+/*!
 	CreateCopyCUNILOG_PROCESSORs
 
 	Creates a copy of the array of pointers to CUNILOG_PROCESSOR structures with n processors.
@@ -309,7 +287,7 @@ CUNILOG_PROCESSOR **CreateCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [], uns
 TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR **, CreateCopyCUNILOG_PROCESSORs)
 	(CUNILOG_PROCESSOR *cps [], unsigned int n);
 
-/*
+/*!
 	DoneCopyCUNILOG_PROCESSORs
 
 	Destroys a copy of CUNILOG_PROCESSORs created with CreateCopyCUNILOG_PROCESSORs ().
@@ -320,24 +298,29 @@ TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR **, CreateCopyCUNILOG_PROCESSORs)
 void *DoneCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps []);
 TYPEDEF_FNCT_PTR (void *, DoneCopyCUNILOG_PROCESSORs) (CUNILOG_PROCESSOR *cps []);
 
-/*
+/*!
 	CreateNewDefaultProcessors
 
-	Allocates new default processors on the heap and returns a pointer to the a
+	Allocates new default processors on the heap and returns a pointer to the newly
+	allocated processor array.
+
+	The parameter pn points to an unsigned int that receives the amount of processors
+	the array contains. Since a pointer to an array would be of no much use without
+	knowing the number of elements it contains, pn cannot be NULL.
 
 	Call DoneCopyCUNILOG_PROCESSORs () when the processors are not needed anymore.
 */
 CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn);
 TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR **, CreateNewDefaultProcessors) (unsigned int *pn);
 
-/*
+/*!
 	GetCUNILOG_PROCESSOR
 
 	Returns a pointer to the nth processor that performs processing task task.
 	If n is 0, the function finds the first processor of task task, if it is
-	1, it returns the second processor of task task.
+	1, it returns the second processor of task task, etc.
 
-	Returns NULL if a processor for task task does not exist or if n is higher
+	Returns NULL if a processor for task task does not exist or if n is greater
 	than the number of task processors - 1. For instance, if a processor list
 	only contains one console output processor, the function is asked to return
 	cunilogProcessOutputToConsole as task, and if n = 1, the function returns
@@ -351,14 +334,14 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
 										)
 ;
 
-/*
+/*!
 	GetCUNILOG_PROCESSORrotationTask
 
 	Returns a pointer to the nth rotation processor that performs rotation task rot.
 	If n is 0, the function finds the first rotation processor of task rot, if it is
-	1, it returns the second rotation procossor of task rot.
+	1, it returns the second rotation procossor of task rot, and so on.
 
-	Returns NULL if a processor for task task does not exist or if n is higher
+	Returns NULL if a processor for task task does not exist or if n is greater
 	than the number of task processors - 1. For instance, if a processor list
 	only contains one console output processor, the function is asked to return
 	cunilogProcessOutputToConsole as task, and if n = 1, the function returns
@@ -372,7 +355,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 													)
 ;
 
-/*
+/*!
 	GetCUNILOG_ROTATION_DATAfromProcessor
 
 	Returns a pointer to CUNILOG_ROTATION_DATA of the nth rotation processor that
@@ -380,9 +363,9 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 	a rotation processor.
 
 	If n is 0, the function finds the first rotation processor of task rot, if it is
-	1, it returns the second rotation procossor of task rot.
+	1, it returns the second rotation procossor of task rot, and so on.
 
-	Returns NULL if a rotation processor for task rot does not exist or if n is higher
+	Returns NULL if a rotation processor for task rot does not exist or if n is greater
 	than the number of this type of ratation processors - 1. For instance, if a processor
 	list only contains one cunilogrotationtask_MoveToTrashLogfiles rotation processor,
 	rot is set to cunilogrotationtask_MoveToTrashLogfiles, and if n = 1, the function
@@ -396,12 +379,12 @@ CUNILOG_ROTATION_DATA *GetCUNILOG_ROTATION_DATAfromProcessor	(
 																)
 ;
 
-/*
+/*!
 	Table with the length of the rotational date/timestamp.
 */
 extern size_t arrLengthTimeStampFromPostfix [cunilogPostfixAmountEnumValues];
 
-/*
+/*!
 	lenDateTimeStampFromRotation
 	
 	Returns the length of the timestamp of the current rotation.
@@ -413,12 +396,12 @@ extern size_t arrLengthTimeStampFromPostfix [cunilogPostfixAmountEnumValues];
 		(arrLengthTimeStampFromPostfix [(pfx)])
 #endif
 
-/*
+/*!
 	Table with the rotation wildcard masks.
 */
 extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 
-/*
+/*!
 	postfixMaskFromLogPostfix
 	
 	Returns a string representing a file name wildcard mask for rotation that can be used
@@ -432,7 +415,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 		(arrPostfixWildcardMask [pfx])
 #endif
 
-/*
+/*!
 	CunilogSetConsoleTo
 
 	Sets the console to UTF-8 or UTF-16 on Windows.
@@ -451,7 +434,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	TYPEDEF_FNCT_PTR (void, CunilogSetConsoleTo) (culogconcp cp);
 #endif
 
-/*
+/*!
 	CunilogSetConsoleToUTF8
 	CunilogSetConsoleToUTF16
 	CunilogSetConsoleToNone
@@ -485,7 +468,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	#define CunilogSetConsoleToNone()
 #endif
 
-/*
+/*!
 	CunilogEnableANSI
 	CunilogDisableANSI
 	CunilogIsANSIenabled
@@ -515,7 +498,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	#define CunilogIsANSIenabled() (true)
 #endif
 
-/*
+/*!
 	CunilogGetEnv
 
 	Wrapper function for getenv () on Windows and secure_getenv () on POSIX.
@@ -523,7 +506,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 char *CunilogGetEnv (const char *szName);
 TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
 
-/*
+/*!
 	Cunilog_Have_NO_COLOR
 
 	Returns true if the environment variable NO_COLOR exists and has a value (is not empty).
@@ -536,7 +519,7 @@ TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
 bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
 
-/*
+/*!
 	CunilogGetAbsPathFromAbsOrRelPath
 
 	Obtains an absolute path from a relative path. The parameter absOrRelPath specifies
@@ -586,7 +569,7 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 	||	cunilogMultiThreadedSeparateLoggingThread	== (p)->culogType\
 )
 
-/*
+/*!
 	CunilogAutoNewLine
 
 	On POSIX, this function always returns cunilogNewLinePOSIX.
@@ -596,7 +579,7 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 */
 enum enLineEndings CunilogAutoNewLine (void);
 
-/*
+/*!
 	InitCUNILOG_TARGETex
 
 	Initialises an existing CUNILOG_TARGET structure.
@@ -718,7 +701,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 )
 ;
 
-/*
+/*!
 	InitCUNILOG_TARGET
 
 	Simplified version of InitCUNILOG_TARGETex ().
@@ -766,7 +749,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 										)
 #endif
 
-/*
+/*!
 	CreateNewCUNILOG_TARGET
 
 	Creates a new CUNILOG_TARGET structure on the heap and initialises it.
@@ -884,7 +867,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, CreateNewCUNILOG_TARGET)
 )
 ;
 
-/*
+/*!
 	InitOrCreateCUNILOG_TARGET
 
 	Initialises an existing CUNILOG_TARGET structure or creates a new one on the heap.
@@ -945,7 +928,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitOrCreateCUNILOG_TARGET)
 )
 ;
 
-/*
+/*!
 	InitCUNILOG_TARGETstaticEx
 	
 	Initialises the internal CUNILOG_TARGET structure. If the _static versions of the logging
@@ -1059,7 +1042,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstaticEx)
 )
 ;
 
-/*
+/*!
 	InitCUNILOG_TARGETstatic
 
 	Simplified version of InitCUNILOG_TARGETstaticEx ().
@@ -1102,6 +1085,13 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstaticEx)
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 
+	The function calls InitCUNILOG_TARGETstaticEx () with the missing parameters set to
+	default values. The parameter postfix is set to cunilogPostfixDefault, which in turn is
+	cunilogPostfixDay. This means the target creates a new logfile on a daily basis.
+	A default set of processors is used. The first call to a logging function triggers that
+	all processors are run. This is done by setting the parameter rp to
+	cunilogRunProcessorsOnStartup.
+
 	The function returns a pointer to the internal CUNILOG_TARGET cunilognewlinestructure
 	upon success, NULL otherwise.
 
@@ -1128,7 +1118,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 )
 ;
 
-/*
+/*!
 	MoveCUNILOG_TARGETqueueToFrom
 
 	Moves the queue of the target putSrc to target putDst.
@@ -1153,7 +1143,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 	);
 #endif
 
-/*
+/*!
 	HAS_CUNILOG_TARGET_A_QUEUE
 
 	Macro to check if a CUNILOG_TARGET structure has an event quueue.
@@ -1170,7 +1160,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 	#define HAS_CUNILOG_TARGET_A_QUEUE(put)	(false)
 #endif
 
-/*
+/*!
 	GetAbsoluteLogPathCUNILOG_TARGET
 
 	Returns the absolute path to the folder logfiles are written to, including a directory
@@ -1187,7 +1177,7 @@ const char *GetAbsoluteLogPathCUNILOG_TARGET (CUNILOG_TARGET *put, size_t *plen)
 TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET)
 	(CUNILOG_TARGET *put, size_t *plen);
 
-/*
+/*!
 	GetAbsoluteLogPathCUNILOG_TARGET_static
 
 	Calls GetAbsoluteLogPathCUNILOG_TARGET () to obtain the absolute path to the folder
@@ -1197,7 +1187,7 @@ const char *GetAbsoluteLogPathCUNILOG_TARGET_static (size_t *plen);
 TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET_static)
 	(size_t *plen);
 
-/*
+/*!
 	GetCUNILOG_TARGETprocessor
 
 	Returns a pointer to the nth processor of CUNILOG_TARGET put that
@@ -1229,7 +1219,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_TARGETprocessor)
 										)
 ;
 
-/*
+/*!
 	GetCUNILOG_TARGETprocessorRotationTask
 
 	Returns a pointer to the nth rotation processor of CUNILOG_TARGET put that
@@ -1254,7 +1244,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 															)
 ;
 
-/*
+/*!
 	ConfigCUNILOG_TARGETerrorCallbackFunction
 
 	Sets the error callback function of the specified Cunilog target put points to.
@@ -1267,7 +1257,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 	#define ConfigCUNILOG_TARGETerrorCallbackFunction(put, errorCB)
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETeventStampFormat
 
 	Sets the member unilogEvtTSformat of the CUNILOG_TARGET structure put points to to the
@@ -1283,7 +1273,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 				(put)->unilogEvtTSformat = (f)
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETrunProcessorsOnStartup
 
 	Sets the flag CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP of the uiOpts member of the
@@ -1311,7 +1301,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 		}
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETcunilognewline
 
 	Sets the member unilogNewLine of the CUNILOG_TARGET structure put points to to the
@@ -1330,23 +1320,23 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 		(put)->unilogNewLine = (nl)
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETeventSeverityFormatType
 
 	Sets the format type of event severities for the target structure put. It
-	sets the member evSeverityType of the CUNILOG_TARGET structure put to the
+	sets the member severityFmType of the CUNILOG_TARGET structure put to the
 	value of eventSeverityFormatType.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigCUNILOG_TARGETeventSeverityFormatType	(
 			CUNILOG_TARGET				*put,
-			cueventsevfmtpy				eventSeverityFormatType
+			cueventsevprefix			eventSeverityFormatType
 														)
 	;
 	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETeventSeverityFormatType)
 														(
 			CUNILOG_TARGET				*put,
-			cueventsevfmtpy				eventSeverityFormatType
+			cueventsevprefix			eventSeverityFormatType
 														)
 	;
 #else
@@ -1354,7 +1344,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 		(put)->evSeverityType = (evstpy)
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETuseColourForCout
 
 	Switches on/off using colours for console output depending on event severity level.
@@ -1378,7 +1368,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 	#endif
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETprocessorList
 
 	Sets the processors for a CUNILOG_TARGET struture.
@@ -1393,34 +1383,51 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 						If this parameter is not NULL, the function does not create a
 						copy of the provided processor list, which means the list must be
 						available/accessible until ShutdownCUNILOG_TARGET () or
-						CancelCUNILOG_TARGET (), and then DoneSCUNILOGTAREGE () are called
+						CancelCUNILOG_TARGET (), and then DoneCUNILOG_TARGET () are called
 						on it. In other words the list is required to either reside on the
 						heap, is static, or is created as automatic in main ().
 
 	nProcessors			The amount of processors cuProcessorList points to.
 
 */
-#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigCUNILOG_TARGETprocessorList	(
-					CUNILOG_TARGET			*put
-				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
-				,	unsigned int			nProcessors			// Number of processors.
-											)
-	;
-	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETprocessorList)
-											(
-					CUNILOG_TARGET			*put
-				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
-				,	unsigned int			nProcessors			// Number of processors.
-											)
-	;
-#else
-	#define ConfigCUNILOG_TARGETprocessorList(put,		\
-				cup, n)									\
-				prepareProcessors (put, cuProcessorList, nProcessors)
-#endif
+void ConfigCUNILOG_TARGETprocessorList	(
+				CUNILOG_TARGET			*put
+			,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more processors.
+			,	unsigned int			nProcessors			// Number of processors.
+										)
+;
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETprocessorList)
+										(
+				CUNILOG_TARGET			*put
+			,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more processors.
+			,	unsigned int			nProcessors			// Number of processors.
+										)
+;
 
 /*
+	ConfigCUNILOG_PROCESSORnLogFiles
+
+	Sets the amount of logfiles to keep uncompressed as well as the amount of logfiles
+	to keep compressed for the target put. Excess logfiles are either moved to the recycle
+	bin or deleted.
+*/
+void ConfigCUNILOG_PROCESSORnLogFiles	(
+		CUNILOG_PROCESSOR	**cuProcessorList,					// One or more processors.
+		unsigned int		nProcessors,						// Number of processors.
+		uint64_t			nLogsToKeepUncompressed,
+		uint64_t			nLogsToKeepCompressed
+										)
+;
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_PROCESSORnLogFiles)
+(
+		CUNILOG_PROCESSOR	**cuProcessorList,					// One or more processors.
+		unsigned int		nProcessors,						// Number of processors.
+		uint64_t			nLogsToKeepUncompressed,
+		uint64_t			nLogsToKeepCompressed
+)
+;
+
+/*!
 	ConfigCUNILOG_TARGETdisableTaskProcessors
 	ConfigCUNILOG_TARGETenableTaskProcessors
 
@@ -1434,7 +1441,7 @@ TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableTaskProcessors)
 TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableTaskProcessors)
 	(CUNILOG_TARGET *put, enum cunilogprocesstask task);
 
-/*
+/*!
 	ConfigCUNILOG_TARGETdisableCoutProcessor
 	ConfigCUNILOG_TARGETenableCoutProcessor
 
@@ -1447,7 +1454,73 @@ void ConfigCUNILOG_TARGETenableCoutProcessor	(CUNILOG_TARGET *put);
 TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableCoutProcessor)	(CUNILOG_TARGET *put);
 TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET *put);
 
-/*
+/*!
+	ConfigCUNILOG_TARGETeventSeverityMask
+
+	Sets a new severity mask for the target. The severity mask determines which severities
+	are enabled. Each bit of the severity mask represents a value of the cueventseverity
+	enumeration. If a bit is set, the severity level is enabled. If a bit is 0, the severity
+	level is disabled.
+	
+	The bit numbers represent the values within the enumeration. For instance, the value
+	cunilogEvtSeverityNone is represented by bit 0, and so forth.
+
+	To enable processing of all severity levels, set the severity mask to MAX_SEVLVLMASK_T.
+	To disable all logging, set the severity mask to 0.
+*/
+void ConfigCUNILOG_TARGETeventSeverityMask (CUNILOG_TARGET *put, evtsevmask_t newsevmask);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETeventSeverityMask)
+	(CUNILOG_TARGET *put, evtsevmask_t newsevmask);
+
+/*!
+	ConfigCUNILOG_TARGETdisableEventSeverity
+	ConfigCUNILOG_TARGETenableEventSeverity
+
+	Disables/enables processing of an event severity.
+*/
+void ConfigCUNILOG_TARGETdisableEventSeverity (CUNILOG_TARGET *put, cueventseverity sev);
+void ConfigCUNILOG_TARGETenableEventSeverity (CUNILOG_TARGET *put, cueventseverity sev);
+
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableEventSeverity)
+	(CUNILOG_TARGET *put, cueventseverity sev);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableEventSeverity)
+	(CUNILOG_TARGET *put, cueventseverity sev);
+
+/*!
+	ConfigCUNILOG_TARGETdisableEventSeverities
+	ConfigCUNILOG_TARGETenableEventSeverities
+
+	Disables/enables processing of the event severity levels provided in the array
+	pointed to by sevs. The parameter n specifies the amount of elements sevs 
+	points to.
+*/
+void ConfigCUNILOG_TARGETdisableEventSeverities	(
+		CUNILOG_TARGET			*put,
+		unsigned int			n,
+		cueventseverity			*sevs
+												)
+;
+void ConfigCUNILOG_TARGETenableEventSeverities	(
+		CUNILOG_TARGET			*put,
+		unsigned int			n,
+		cueventseverity			*sevs
+												)
+;
+
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableEventSeverities)
+(
+		CUNILOG_TARGET			*put,
+		unsigned int			n,
+		cueventseverity			*sevs
+);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableEventSeverities)
+(
+		CUNILOG_TARGET			*put,
+		unsigned int			n,
+		cueventseverity			*sevs
+);
+
+/*!
 	EnterCUNILOG_TARGET
 	LockCUNILOG_TARGET
 
@@ -1503,7 +1576,21 @@ TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET
 	#define UnlockCUNILOG_TARGETstatic()
 #endif
 
-/*
+/*!
+	DoneCUNILOG_TARGETprocessors
+
+	Destroys the processors attached to the CUNILOG_TARGET put points to.
+	
+	After the function returns, the target has no processors.
+
+	The function only needs to be called if the processors of an existing and
+	initialised target require replacing. The DoneCUNILOG_TARGET... () functions
+	call this function implicitely.
+*/
+void DoneCUNILOG_TARGETprocessors (CUNILOG_TARGET *put);
+TYPEDEF_FNCT_PTR (void, DoneCUNILOG_TARGETprocessors) (CUNILOG_TARGET *put);
+
+/*!
 	DoneCUNILOG_TARGET
 
 	Deallocates all resources of the CUNILOG_TARGET put points to. After a structure has been
@@ -1518,8 +1605,9 @@ TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET
 CUNILOG_TARGET *DoneCUNILOG_TARGET (CUNILOG_TARGET *put);
 TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, DoneCUNILOG_TARGET) (CUNILOG_TARGET *put);
 
-/*
+/*!
 	DoneCUNILOG_TARGETstatic
+	DoneCUNILOG_TARGET_static
 	
 	Deallocates all resources of the internal static CUNILOG_TARGET structure by calling
 	DoneCUNILOG_TARGET () on it.
@@ -1528,8 +1616,10 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, DoneCUNILOG_TARGET) (CUNILOG_TARGET *put);
 */
 #define DoneCUNILOG_TARGETstatic()						\
 			DoneCUNILOG_TARGET (pCUNILOG_TARGETstatic)
+#define DoneCUNILOG_TARGET_static()						\
+			DoneCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 
-/*
+/*!
 	ShutdownCUNILOG_TARGET
 
 	Blocks further logging by forcing all logging functions to return false. It then waits
@@ -1555,7 +1645,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, DoneCUNILOG_TARGET) (CUNILOG_TARGET *put);
 bool ShutdownCUNILOG_TARGET (CUNILOG_TARGET *put);
 TYPEDEF_FNCT_PTR (bool, ShutdownCUNILOG_TARGET) (CUNILOG_TARGET *put);
 
-/*
+/*!
 	ShutdownCUNILOG_TARGETstatic
 
 	Calls ShutdownCUNILOG_TARGET () on the internal static CUNILOG_TARGET structure.
@@ -1569,7 +1659,7 @@ TYPEDEF_FNCT_PTR (bool, ShutdownCUNILOG_TARGET) (CUNILOG_TARGET *put);
 #define ShutdownCUNILOG_TARGETstatic()					\
 			ShutdownCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 
-/*
+/*!
 	CancelCUNILOG_TARGET
 
 	Empties the logging queue for the CUNILOG_TARGET put without processing its events.
@@ -1587,7 +1677,7 @@ TYPEDEF_FNCT_PTR (bool, ShutdownCUNILOG_TARGET) (CUNILOG_TARGET *put);
 bool CancelCUNILOG_TARGET (CUNILOG_TARGET *put);
 TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 
-/*
+/*!
 	CancelCUNILOG_TARGETstatic
 
 	Calls CancelCUNILOG_TARGET () on the internal static SUNILOGSTRUCT structure.
@@ -1600,7 +1690,7 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 #define CancelCUNILOG_TARGETstatic ()					\
 			CancelCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 
-/*
+/*!
 	PauseLogCUNILOG_TARGET
 
 	Pauses/suspends logging to the CUNILOG_TARGET structure put points to while still
@@ -1623,7 +1713,7 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	#define PauseLogCUNILOG_TARGET(put)
 #endif
 
-/*
+/*!
 	PauseLogCUNILOG_TARGETstatic
 
 	Pauses/suspends logging to the internal CUNILOG_TARGET structure while still
@@ -1646,7 +1736,7 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	#define PauseLogCUNILOG_TARGETstatic()
 #endif
 
-/*
+/*!
 	ResumeLogCUNILOG_TARGET
 
 	Resumes logging to the CUNILOG_TARGET structure put points to after a call to
@@ -1674,7 +1764,7 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	#define ResumeLogCUNILOG_TARGET(put)
 #endif
 
-/*
+/*!
 	ResumeLogCUNILOG_TARGETstatic
 
 	Resumes logging to the internal CUNILOG_TARGET structure after a call to
@@ -1702,7 +1792,7 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	#define ResumeLogCUNILOG_TARGETstatic()		(0)
 #endif
 
-/*
+/*!
 	CreateCUNILOG_EVENT_Data
 
 	Allocates a buffer that points to a new event structure CUNILOG_EVENT plus data,
@@ -1710,7 +1800,11 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	created and initialised structure and data buffer. The event is written out as binary
 	data, which results in a hex dump.
 
-	Note that you can NOT use USE_STRLEN as the parameter siz.
+	Note that you can NOT use USE_STRLEN as the parameter siz, but USE_STRLEN is a valid
+	option for the lenght of the caption (lenCapt).
+
+	If the severity mask of the target does not have severity sev enabled, the function
+	does not create an event and returns NULL.
 
 	The function returns false if it fails.
 */
@@ -1734,11 +1828,11 @@ TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_Data)
 											)
 ;
 
-/*
+/*!
 	CreateCUNILOG_EVENT_Text
 
 	This is the text version of CreateCUNILOG_EVENT_Data (). If the string ccText is
-	NUL-terminated len can be set to USE_STRLEN, and the function calls strlen () to
+	NUL-terminated, len can be set to USE_STRLEN, and the function calls strlen () to
 	obtain its length.
 */
 CUNILOG_EVENT *CreateCUNILOG_EVENT_Text		(
@@ -1757,7 +1851,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_Text)
 											)
 ;
 
-/*
+/*!
 	CreateCUNILOG_EVENT_TextTS
 
 	This function is identical to CreateCUNILOG_EVENT_Text () but expects the timestamp
@@ -1781,7 +1875,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_TextTS)
 											)
 ;
 
-/*
+/*!
 	DuplicateCUNILOG_EVENT
 
 	Creates a copy of the event pev on the heap. If the event has a size other than
@@ -1797,7 +1891,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_TextTS)
 CUNILOG_EVENT *DuplicateCUNILOG_EVENT (CUNILOG_EVENT *pev);
 TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, DuplicateCUNILOG_EVENT) (CUNILOG_EVENT *pev);
 
-/*
+/*!
 	DoneCUNILOG_EVENT
 
 	Destroys an SUNILOGEVENT structure including all its resources if the event belongs
@@ -1808,26 +1902,33 @@ TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, DuplicateCUNILOG_EVENT) (CUNILOG_EVENT *pev);
 CUNILOG_EVENT *DoneCUNILOG_EVENT (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, DoneCUNILOG_EVENT) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 
-/*
+/*!
 	Logging functions.
 	==================
 */
 
-/*
+/*!
 	logEv
 
 	Writes out the event pev points to to the logging target put points to. The function
-	only sets the pCUNILOG_TARGET member of the CUNILOG_EVENT structure and calls
+	sets the pCUNILOG_TARGET member of the CUNILOG_EVENT structure and calls
 	cunilogProcessOrQueueEvent () on it.
 
-	Returns true on success, false otherwise. The function fails after ShutdownCUNILOG_TARGET ()
-	or CancelCUNILOG_TARGET () have been called on the CUNILOG_TARGET structure put points to.
+	If the event severity mask of the CUNILOG_TARGET put points to does not have the event's
+	severerity enabled, the function returns true.
+
+	The function returns false ShutdownCUNILOG_TARGET () or CancelCUNILOG_TARGET () have been
+	called on the CUNILOG_TARGET structure put points to.
+
+	By calling this function, the caller relinquishes ownership of the event pev points to,
+	independent of its return value. This means the function is responsible for deallocating
+	the event with DoneCUNILOG_EVENT () in case the event is rejected by the target.
 */
 bool logEv (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 
 
-/*
+/*!
 	logEv_static
 
 	Macro wrapper for the static version of logEv () that uses the module's internal static
@@ -1836,7 +1937,7 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 */
 #define logEv_static(pev)	logEv (pCUNILOG_TARGETstatic, (pev))
 
-/*
+/*!
 	Logging functions
 
 	The functions expect a CUNILOG_TARGET structure as their first parameter.
@@ -1853,22 +1954,28 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 	logHexOrTextU8 () also accepts UTF-8 as text and creates a hex dump if the data to output
 	contains invalid UTF-8.
 
-	The functions without a severity use severity level/severity type cunilogEvtSeverityNone.
-	Functions containing sev in their names accept a severity type.
+	Function names with an l accept a length parameter for the text's length, in octets/bytes.
+	You can use USE_STRLEN for this parameter, in which case the text buffer's length is obtained
+	via a call to strlen (), and the string needs to be NUL-terminated. NUL-termination is not
+	required otherwise. Note that the length parameter denotes the length of the text, in octets,
+	not its size, and also not in characters. The text "abc" has a length of 3 but a size of 4
+	octets, which includes the NUL-terminator. UTF-8 characters can have up to 4 octets/bytes.
+	Cunilog writes out only UTF-8 but doesn't actually understand its encoding.
+
+	Functions containing sev in their names require an additional parameter for their severity.
+	Functions without a severity implicitely use severity level/event severity
+	cunilogEvtSeverityNone. All event severities apart from cunilogEvtSeverityDebug are
+	enabled by default. Severity cunilogEvtSeverityDebug requires explicit activation, which
+	can be achieved by changing the target's severity mask, for instance with
+	ConfigCUNILOG_TARGETenableSeverityLevel (). If the severity mask of the target does not
+	have the given severity enabled, the functions return true but silently ignore or discard
+	the event.
 
 	Functions that have U8 in their names are for UTF-8, the ones with a WU16 are intended for
 	Windows UTF-16 encoding. On POSIX systems the WU16 functions are not available.
 
 	Functions whose name contains a c only output to the console. Other processors are simply
 	ignored.
-
-	Function names with an l accept a length parameter for the text's length, in octets/bytes.
-	You can use USE_STRLEN for this parameter, in which case the text buffer's length is obtained
-	via a call to strlen () and the string needs to be NUL-terminated. NUL-termination is not
-	required otherwise. Note that the length parameter denotes the length of the text, in octets,
-	not its size, and also not in characters. The text "abc" has a length of 3 but a size of 4
-	octets, which includes the NUL-terminator. UTF-8 characters can have up to 4 octets/bytes.
-	Cunilog writes out only UTF-8 but doesn't actually understand its encoding.
 
 	Functions ending in ts expect the timestamp of the event in an additional UBF_TIMESTAMP
 	parameter.
@@ -1960,7 +2067,7 @@ bool logTextU8csmbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...)
 bool logTextU8csvfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, va_list ap);
 bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, ...);
 
-/*
+/*!
 	logEmptyLine
 	
 	Writes an empty line to the target. No rotation takes place.
@@ -2019,7 +2126,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 #define logTextU8csfmtsev_static(s, ...)				\
 										logTextU8csfmtsev	(pCUNILOG_TARGETstatic, (s), __VA_ARGS__);
 
-/*	ChangeCUNILOG_TARGETuseColourForCout
+/*!	ChangeCUNILOG_TARGETuseColourForCout
 	ChangeCUNILOG_TARGETuseColorForCout
 	ChangeCUNILOG_TARGETuseColourForCout
 	ChangeCUNILOG_TARGETuseColorForCout_static
@@ -2042,7 +2149,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 				ChangeCUNILOG_TARGETuseColourForCout (pCUNILOG_TARGETstatic, (bc))
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETcunilognewline
 	ChangeCUNILOG_TARGETcunilognewline_static
 
@@ -2056,7 +2163,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 				ChangeCUNILOG_TARGETcunilognewline (pCUNILOG_TARGETstatic, (nl))
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETdisableTaskProcessors
 	ChangeCUNILOG_TARGETenableTaskProcessors
 
@@ -2070,7 +2177,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETenableTaskProcessors) (CUNILOG_TARGET *put, enum cunilogprocesstask task);
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETdisableCoutProcessor
 	ChangeCUNILOG_TARGETenableCoutProcessor
 
@@ -2084,7 +2191,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET *put);
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETeventSeverityFormatType
 
 	Queues an event to set the format type of event severities for the target structure put.
@@ -2093,13 +2200,13 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-	bool ChangeCUNILOG_TARGETeventSeverityFormatType (CUNILOG_TARGET *put, cueventsevfmtpy sevTpy);
+	bool ChangeCUNILOG_TARGETeventSeverityFormatType (CUNILOG_TARGET *put, cueventsevprefix sevTpy);
 	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETeventSeverityFormatType)
-		(CUNILOG_TARGET *put, cueventsevfmtpy sevTpy);
+		(CUNILOG_TARGET *put, cueventsevprefix sevTpy);
 #endif
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETlogPriority
 
 	Queues an event to set the priority of the separate logging thread that belongs to the
@@ -2143,7 +2250,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 	#define ChangeCUNILOG_TARGETlogPriority(put, prio) (true)
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETlogPriority_static
 
 	Sets the priority of the separate logging thread that belongs to the internal static
@@ -2168,7 +2275,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 	#define ChangeCUNILOG_TARGETlogPriority_static(prio) (true)
 #endif
 
-/*
+/*!
 	CunilogChangeCurrentThreadPriority
 
 	Sets the priority of the current thread.
@@ -2180,17 +2287,17 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 bool CunilogChangeCurrentThreadPriority (cunilogprio prio);
 TYPEDEF_FNCT_PTR (bool, CunilogChangeCurrentThreadPriority) (cunilogprio prio);
 
-/*
+/*!
 	cunilogSetDefaultPrintEventSeverityFormatType
 
 	Sets the default event severity format type that is used by the cunilog_printf...
 	and cunilog_puts... type functions (see below).
 
 */
-void cunilogSetDefaultPrintEventSeverityFormatType (cueventsevfmtpy fmtpy);
-TYPEDEF_FNCT_PTR (void, cunilogSetDefaultPrintEventSeverityFormatType) (cueventsevfmtpy fmtpy);
+void cunilogSetDefaultPrintEventSeverityFormatType (cueventsevprefix fmtpy);
+TYPEDEF_FNCT_PTR (void, cunilogSetDefaultPrintEventSeverityFormatType) (cueventsevprefix fmtpy);
 
-/*
+/*!
 	cunilogUseColourForOutput
 
 	Coloured output for the cunilog_printf... and cunilog_puts... type funcitons (see
@@ -2203,7 +2310,7 @@ TYPEDEF_FNCT_PTR (void, cunilogSetDefaultPrintEventSeverityFormatType) (cuevents
 void cunilogUseColourForOutput (bool bUseColour);
 TYPEDEF_FNCT_PTR (void, cunilogUseColourForOutput) (bool bUseColour);
 
-/*
+/*!
 	cunilog_printf_sev_fmtpy_vl
 	cunilog_printf_sev_fmtpy
 	cunilog_printf_sev
@@ -2249,7 +2356,7 @@ TYPEDEF_FNCT_PTR (void, cunilogUseColourForOutput) (bool bUseColour);
 */
 int cunilog_printf_sev_fmtpy_vl	(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*format,
 		va_list				ap
 								)
@@ -2257,7 +2364,7 @@ int cunilog_printf_sev_fmtpy_vl	(
 TYPEDEF_FNCT_PTR (int, cunilog_printf_sev_fmtpy_vl)
 								(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*format,
 		va_list				ap
 								)
@@ -2266,7 +2373,7 @@ TYPEDEF_FNCT_PTR (int, cunilog_printf_sev_fmtpy_vl)
 
 int cunilog_printf_sev_fmtpy	(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*format,
 		...
 								)
@@ -2274,7 +2381,7 @@ int cunilog_printf_sev_fmtpy	(
 TYPEDEF_FNCT_PTR (int, cunilog_printf_sev_fmtpy)
 								(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*format,
 		...
 								)
@@ -2309,7 +2416,7 @@ TYPEDEF_FNCT_PTR (int, cunilog_printf)
 
 int cunilog_puts_sev_fmtpy_l	(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*strU8,
 		size_t				len
 								)
@@ -2317,7 +2424,7 @@ int cunilog_puts_sev_fmtpy_l	(
 TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_fmtpy_l)
 								(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*strU8,
 		size_t				len
 								)
@@ -2325,14 +2432,14 @@ TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_fmtpy_l)
 
 int cunilog_puts_sev_fmtpy		(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*strU8
 								)
 ;
 TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_fmtpy)
 								(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*strU8
 								)
 ;
@@ -2386,7 +2493,7 @@ TYPEDEF_FNCT_PTR (int, cunilog_puts)
 								)
 ;
 
-/*
+/*!
 	The version as text, its year, and as a 64 bit number.
 	Currently still unsupported.
 */
@@ -2394,7 +2501,7 @@ extern const char		ccCunilogVersionText [];
 extern const char		ccCunilogVersionYear [];
 extern const uint64_t	uiCunilogVersion;
 
-/*
+/*!
 	cunilogCheckVersion
 
 	Compares the version of cunilog.c with the version of cunilogversion.h and returns
@@ -2428,7 +2535,7 @@ extern const uint64_t	uiCunilogVersion;
 int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion);
 #define cunilogCheckVersion() cunilogCheckVersionIntChk (CUNILOG_VERSION_HDR)
 
-/*
+/*!
 	DoneCunilog
 
 	Releases all resources of global scope used by Cunilog.
@@ -2442,7 +2549,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion);
 void DoneCunilog ()
 ;
 
-/*
+/*!
 	Tests
 	=====
 */

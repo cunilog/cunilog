@@ -98,5 +98,16 @@ When		Who				What
 	#endif
 #endif
 
+/*
+	To get 64 bit file offset on POSIX.
+*/
+#ifdef PLATFORM_IS_POSIX
+	#ifndef _FILE_OFFSET_BITS
+	#define _FILE_OFFSET_BITS 64
+	#endif
+	#ifndef _LARGEFILE64_SOURCE
+	#define _LARGEFILE64_SOURCE
+	#endif
+#endif
 
 #endif														// Of #ifndef U_CUNILOGDEFS_H.

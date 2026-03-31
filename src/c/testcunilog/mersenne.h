@@ -22,7 +22,7 @@ When		Who				What
 */
 
 /*
-	This code is public domain.
+	This code is in the public domain.
 */
 
 #ifndef U_MERSENNE_TWISTER_H

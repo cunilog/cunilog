@@ -48,15 +48,15 @@ When		Who				What
 
 #endif
 
-const char		*szCunilogLogFileNameExtension	= ".log";
-const wchar_t	*wcCunilogLogFileNameExtension	= L".log";
-const size_t	lenCunilogLogFileNameExtension	= 4;			// ".log"
-const size_t	sizCunilogLogFileNameExtension	= 4 + 1;		// ".log" + NUL.
+const char		szCunilogLogFileNameExtension	[]	= ".log";
+const size_t	lenCunilogLogFileNameExtension		= sizeof (szCunilogLogFileNameExtension) - 1;
+const char		szCunilogGzpFileNameExtension	[]	= ".log.gz";
+const size_t	lenCunilogGzpFileNameExtension		= sizeof (szCunilogGzpFileNameExtension) - 1;
 
 /*
 	The default event severity type.
 */
-cueventsevfmtpy	cunilogEvtSeverityTypeDefault = cunilogEvtSeverityTypeChars3;
+cueventsevprefix	cunilogEvtSeverityPrfxDefault = cunilogEvtSeverityPrfxChars3;
 
 /*
 	Default ANSI escape colour output for the cunilog_puts... and cunilog_printf...

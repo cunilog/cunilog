@@ -165,18 +165,33 @@ When		Who				What
 
 #endif
 
+// The mode for opening the current logfile.
+#ifdef PLATFORM_IS_WINDOWS
+	#define CUNILOG_DEFAULT_OPEN_MODE	(FILE_APPEND_DATA)
+	/*
+		pl->hLogFile = CreateFileU8	(
+						szLogFileName, GENERIC_WRITE,
+						FILE_SHARE_DELETE | FILE_SHARE_READ,
+						NULL, OPEN_ALWAYS,
+						FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+						NULL
+									);
+	*/
+#else
+	#define CUNILOG_DEFAULT_OPEN_MODE	(O_WRONLY | O_APPEND | O_CREAT | O_LARGEFILE)
+#endif
 
 BEGIN_C_DECLS
 
 /*
-	The constants for the log file extension. We got this in UTF-8
-	(szCunilogLogFileNameExtension) and Windows UTF-16 (wcCunilogLogFileNameExtension).
-	The constant lenCunilogLogFileNameExtension is the length in characters (not octets!).
+	The constants for the log file extensions.
 */
-CUNILOG_DLL_IMPORT extern const char	*szCunilogLogFileNameExtension;	// ".log"
-CUNILOG_DLL_IMPORT extern const wchar_t	*wcCunilogLogFileNameExtension;	// ".log"
-CUNILOG_DLL_IMPORT extern const size_t	lenCunilogLogFileNameExtension;	// ".log"
-CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log" + NUL
+CUNILOG_DLL_IMPORT extern const char	szCunilogLogFileNameExtension	[];
+CUNILOG_DLL_IMPORT extern const size_t	lenCunilogLogFileNameExtension;
+#define sizCunilogLogFileNameExtension	(lenCunilogLogFileNameExtension + 1)
+CUNILOG_DLL_IMPORT extern const char	szCunilogGzpFileNameExtension	[];
+CUNILOG_DLL_IMPORT extern const size_t	lenCunilogGzpFileNameExtension;
+#define sizCunilogGzpFileNameExtension	(lenCunilogGzpFileNameExtension + 1)
 
 /*
 	enum cunilogtype
@@ -468,15 +483,15 @@ typedef struct cunilog_processor
 
 /*
 	A pData structure for a unilogProcessWriteToLogFile or a unilogProcessFlushLogFile processor.
-	This probably shouldn't be a structure but leaves room for possible extensions.
 */
 typedef struct cunilog_logfile
 {
 	#ifdef OS_IS_WINDOWS
-		HANDLE			hLogFile;
+		HANDLE		hLogFile;
 	#else
-		int				fd;
+		int			fd;
 	#endif
+	uint32_t		chunkSize;
 } CUNILOG_LOGFILE;
 
 /*
@@ -489,8 +504,7 @@ enum cunilogrotationtask
 {
 		cunilogrotationtask_None							// Ignored. No operation.
 	,	cunilogrotationtask_RenameLogfiles					// Rotates by renaming files.
-	,	cunilogrotationtask_FScompressLogfiles				// Compress logfiles with the help
-															//	of the file system.
+	,	cunilogrotationtask_CompressLogfiles				// Compress logfiles.
 	,	cunilogrotationtask_MoveToTrashLogfiles
 	,	cunilogrotationtask_MoveToRecycleBinLogfiles = cunilogrotationtask_MoveToTrashLogfiles
 	,	cunilogrotationtask_DeleteLogfiles
@@ -527,6 +541,12 @@ typedef struct cunilog_rotation_data
 															//	rotation. Should not point to the
 															//	processor's own target.
 
+	/*
+		For rotator cunilogrotationtask_CompressLogfiles, physical sector size.
+		Currently unused for other rotators.
+	*/
+	uint64_t					uiData;
+
 	uint64_t					uiFlgs;						// Option flags. See below.
 } CUNILOG_ROTATION_DATA;
 
@@ -547,6 +567,71 @@ typedef struct cunilog_rotation_data
 #define CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE		SINGLEBIT64 (2)
 
 /*
+	Bit 32 - 39 for rotator cunilogrotationtask_CompressLogfiles determine the compression
+	method. They're still available for other rotators.
+
+	Bit 32 - 39	(8 bits)		Compresson method.
+
+	Value (binary)	Value (dec)	Value (hex)
+	----------------------------------------------------------------------------------------
+	00000000		0			0h			Default compression method. On Windows and
+											NTFS, this is NTFS compression. The filename
+											extension does not change.
+
+											If the file system is not NTFS, Gzip compression
+											is used. Compressed (deflated) files have a .gz
+											filename extension.
+
+											On all other platforms, Gzip compression is used.
+											Compressed (deflated) files will have a filename
+											extension of .gz.
+
+	00000001		1			1h			NTFS compression method on Windows. No attempt
+											is made to pick an alternative compression
+											method.
+
+	00000010		2			2h			Gzip compression (.gz files), independent of
+											platform (operating system) and file system.
+
+	00000011		3			3h			Reserved compression method. Not supported yet.
+
+*/
+enum enClgCmprsMtd
+{
+	cunilogComprMethodDefault		= 0,
+	cunilogComprMethodNTFS			= 1,
+	cunilogComprMethodGzip			= 2
+};
+// Mask to clear the compression flags.
+#define CUNILOG_ROTATOR_COMPRESS_CLEAR			((uint64_t)(0xFFFFFF00FFFFFFFF))
+// Obtain the compression method.
+#define CUNILOG_ROTATOR_COMPRESS_OBTAIN			((uint64_t)(0x000000FF00000000))
+// The amounts of bits to shift.
+#define CUNILOG_ROTATOR_COMPRESS_SHIFT			(32)
+#define CUNILOG_ROTATOR_COMPRESS_DEFAULT		(0)
+#define CUNILOG_ROTATOR_COMPRESS_NTFSCOMP		SINGLEBIT64 (32)
+#define CUNILOG_ROTATOR_COMPRESS_GZIPCOMP		SINGLEBIT64 (33)
+// Macro to check if compression method is mthd.
+#define cunilogHasRotator_CompressionMethod(prd, mthd)	\
+	(													\
+			(mthd)										\
+		==	((uint64_t) ((prd)->uiFlgs & CUNILOG_ROTATOR_COMPRESS_OBTAIN)) >> CUNILOG_ROTATOR_COMPRESS_SHIFT	\
+	)
+// Macro to check if compression method is cunilogComprMethodGzip.
+#define cunilogHasRotator_COMPRESS_GZIPCOMP(prd)		\
+	cunilogHasRotator_CompressionMethod (prd, cunilogComprMethodGzip)
+// Macro to set compression method to mthd.
+#define cunilogSetRotator_CompressionMethod(prd, mthd)	\
+		(prd)->uiFlgs &= CUNILOG_ROTATOR_COMPRESS_CLEAR;							\
+		(prd)->uiFlgs |= (uint64_t) (mthd) << CUNILOG_ROTATOR_COMPRESS_SHIFT		\
+// Macro to set compression method to cunilogComprMethodNTFS.
+#define cunilogSetRotator_COMPRESS_NTFSCOMP(prd)		\
+	cunilogSetRotator_CompressionMethod (prd, cunilogComprMethodNTFS)
+// Macro to set compression method to cunilogComprMethodGzip.
+#define cunilogSetRotator_COMPRESS_GZIPCOMP(prd)		\
+	cunilogSetRotator_CompressionMethod (prd, cunilogComprMethodGzip)
+
+/*
 	Macros for checking, setting, and clearing some of the flags above.
 */
 #define cunilogHasRotatorFlag_USE_MBSRCMASK(prd)		\
@@ -562,7 +647,6 @@ typedef struct cunilog_rotation_data
 	((prd)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
 #define cunilogClrRotatorFlag_USE_MBDSTFILE(prd)		\
 	((prd)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
-
 
 // Value of member nMaxToRotate of a CUNILOG_ROTATION_DATA structure to be obtained
 //	during initialisation.
@@ -585,27 +669,27 @@ typedef struct cunilog_rotation_data
 	cunilogrotationtask_RenameLogfiles,					\
 	0, 0, CUNILOG_MAX_ROTATE_AUTO,						\
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
-	NULL,												\
+	NULL, 0,											\
 	CUNILOG_ROTATOR_FLAG_NONE							\
 }
 
 /*
 	Argument k is the amount of logfiles to keep/not touch.
 */
-#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS(k)\
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_COMPRESS(k)\
 {														\
-	cunilogrotationtask_FScompressLogfiles,				\
+	cunilogrotationtask_CompressLogfiles,				\
 	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
-	NULL,												\
-	CUNILOG_ROTATOR_FLAG_NONE							\
+	NULL, 0,											\
+	CUNILOG_ROTATOR_COMPRESS_DEFAULT					\
 }
 #define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_TRASH(k)\
 {														\
 	cunilogrotationtask_MoveToTrashLogfiles,			\
 	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
-	NULL,												\
+	NULL, 0,											\
 	CUNILOG_ROTATOR_FLAG_NONE							\
 }
 #define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_RECYCLE_BIN(k)\
@@ -613,7 +697,7 @@ typedef struct cunilog_rotation_data
 	cunilogrotationtask_MoveToRecycleBinLogfiles,		\
 	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
-	NULL,												\
+	NULL, 0,											\
 	CUNILOG_ROTATOR_FLAG_NONE							\
 }
 #define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_DELETE(k)\
@@ -621,7 +705,7 @@ typedef struct cunilog_rotation_data
 	cunilogrotationtask_DeleteLogfiles,					\
 	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
-	NULL,												\
+	NULL, 0,											\
 	CUNILOG_ROTATOR_FLAG_NONE							\
 }
 
@@ -677,7 +761,7 @@ typedef struct cunilog_rotation_data
 /*
 	Argument p is a pointer to a CUNILOG_ROTATION_DATA structure with member
 	tsk set to cunilogrotationtask_FScompressLogfiles. Such a structure can
-	be initialised with the CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS()
+	be initialised with the CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_COMPRESS()
 	macro.
 */
 #define CUNILOG_INIT_DEF_LOGFILESFSCOMPRESS_PROCESSOR(p)\
@@ -825,7 +909,7 @@ typedef struct cunilog_fls
 } CUNILOG_FLS;
 typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 
-/*
+/*!
 	Base folder for a relative path or path if no path at all is given.
 
 	These are the possible enumeration values of the parameter relLogPath of the
@@ -890,7 +974,7 @@ typedef struct scunilognpi
 } SCUNILOGNPI;
 
 #ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
-	/*
+	/*!
 		Possible return values of the error/fail callback function.
 
 		cunilogErrCB_ignore					Just carry on as if nothing happened.			
@@ -932,37 +1016,47 @@ typedef struct scunilognpi
 
 typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 
-/*
-	The type/format of an event severity level.
+/*!
+	The type/format/prefix of an event severity.
 */
-enum cunilogeventseveritytpy
+enum cunilogeventseverityprefix
 {
-		cunilogEvtSeverityTypeChars3							// "EMG", "DBG"... (default).
-	,	cunilogEvtSeverityTypeChars5							// "EMRGY", "DEBUG"...
-	,	cunilogEvtSeverityTypeChars9							// "EMERGENCY", "DEBUG    "...
-	,	cunilogEvtSeverityTypeChars3InBrackets					// "[EMG]", "[DBG]"...
-	,	cunilogEvtSeverityTypeChars5InBrackets					// "[EMRGY]", "[DEBUG]"...
-	,	cunilogEvtSeverityTypeChars9InBrackets					// "[EMERGENCY]", "[DEBUG    ]"...
-	,	cunilogEvtSeverityTypeChars5InTightBrackets				// "[FAIL] "...
-	,	cunilogEvtSeverityTypeChars9InTightBrackets				// "[DEBUG]    "...
+		cunilogEvtSeverityPrfxChars3							// "EMG", "DBG"... (default).
+	,	cunilogEvtSeverityPrfxChars5							// "EMRGY", "DEBUG"...
+	,	cunilogEvtSeverityPrfxChars9							// "EMERGENCY", "DEBUG    "...
+	,	cunilogEvtSeverityPrfxChars3InBrackets					// "[EMG]", "[DBG]"...
+	,	cunilogEvtSeverityPrfxChars5InBrackets					// "[EMRGY]", "[DEBUG]"...
+	,	cunilogEvtSeverityPrfxChars9InBrackets					// "[EMERGENCY]", "[DEBUG    ]"...
+	,	cunilogEvtSeverityPrfxChars5InTightBrackets				// "[FAIL] "...
+	,	cunilogEvtSeverityPrfxChars9InTightBrackets				// "[DEBUG]    "...
 	// Do not add anything below this line.
-	,	cunilogEvtSeverityTypeXAmountEnumValues					// Used for sanity checks.
+	,	cunilogEvtSeverityPrfxXAmountEnumValues					// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityTypeXAmountEnumValues.
 };
-typedef enum cunilogeventseveritytpy cueventsevfmtpy;
+typedef enum cunilogeventseverityprefix cueventsevprefix;
 
-/*
+/*!
 	The default event severity type.
 */
-extern cueventsevfmtpy cunilogEvtSeverityTypeDefault;
+extern cueventsevprefix cunilogEvtSeverityPrfxDefault;
 
-/*
+/*!
 	Default ANSI escape colour output for the cunilog_puts... and cunilog_printf...
 	type functions.
 */
 extern bool bUseCunilogDefaultOutputColour;
 
-/*
+/*!
+	The severity mask. Each bit denotes one of the cunilogEvtSeverity... values.
+	Bit 0 is cunilogEvtSeverityNone, etc.
+	Every event's severity level is checked against this mask. If a bit is 1, the
+	event is processed. If a bit is 0, the event creation is refused and logging
+	functions with this severity fail (return false).
+*/
+typedef uint32_t			evtsevmask_t;
+#define MAX_EVTSEVMASK		UINT32_MAX;						// To set all bits to 1.
+
+/*!
 	SUNILOGTARGET
 
 	The base config structure for using cunilog. Do not alter any of its members directly.
@@ -992,8 +1086,10 @@ typedef struct CUNILOG_TARGET
 	SMEMBUF							mbLogFileMask;			// The search mask for log files. It
 															//	does not include the path.
 	size_t							lnLogFileMask;			// Its length.
+	SMEMBUF							*pmbCurLogFileMask;		// Pointer to the current search mask.
+	SMEMBUF							lnCurLogFileMask;		// Its length.
 	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
-	size_t							stFilToRotate;			// Its length including the NUL terminator.
+	size_t							lnFilToRotate;			// Its length excluding the NUL terminator.
 	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.
 	size_t							lnLogEventLine;			// The current length of the event line.
 
@@ -1040,7 +1136,8 @@ typedef struct CUNILOG_TARGET
 	//SCUNILOGDUMP					*psdump;				// Holds the dump parameters.
 	ddumpWidth						dumpWidth;
 
-	cueventsevfmtpy					evSeverityType;			// Format of the event severity.
+	cueventsevprefix				severityPrefix;			// Format of the event severity.
+	volatile evtsevmask_t			severityEvtMask;
 
 	CUNILOG_ERROR					error;
 	#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
@@ -1083,7 +1180,7 @@ typedef struct CUNILOG_TARGET
 // The (complete) filename of the file to rotate.
 #define CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED	SINGLEBIT64 (7)
 
-// The array of pointers to processors.
+// The array of pointers to processors is allocated on the heap.
 #define CUNILOGTARGET_PROCESSORS_ALLOCATED		SINGLEBIT64 (8)
 
 // Run all processors on startup, independent of their individual flags.
@@ -1109,13 +1206,13 @@ typedef struct CUNILOG_TARGET
 // Debug versions ensure that one of the initialisation function has been called.
 #ifdef DEBUG
 	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (15)
-	#define cunilogSetTargetInitialised(pt)				\
-			((pt)->uiOpts |= CUNILOGTARGET_INITIALISED)
-	#define cunilogIsTargetInitialised(pt)				\
-			((pt)->uiOpts & CUNILOGTARGET_INITIALISED)
+	#define cunilogSetTargetInitialised(put)				\
+			((put)->uiOpts |= CUNILOGTARGET_INITIALISED)
+	#define cunilogIsTargetInitialised(put)				\
+			((put)->uiOpts & CUNILOGTARGET_INITIALISED)
 #else
-	#define cunilogSetTargetInitialised(pt)	(true)
-	#define cunilogIsTargetInitialised(pt)	(true)
+	#define cunilogSetTargetInitialised(put)	(true)
+	#define cunilogIsTargetInitialised(put)		(true)
 #endif
 
 // The callback function errorCB is called as often as possible,
@@ -1318,30 +1415,30 @@ typedef struct CUNILOG_TARGET
 */
 enum cunilogeventseverity
 {
-		cunilogEvtSeverityNone									//  0
-	,	cunilogEvtSeverityNonePass								//  1
-	,	cunilogEvtSeverityNoneFail								//  2
-	,	cunilogEvtSeverityNoneWarn								//  3
-	,	cunilogEvtSeverityBlanks								//  4
-	,	cunilogEvtSeverityEmergency								//	5
-	,	cunilogEvtSeverityNotice								//	6
-	,	cunilogEvtSeverityInfo									//  7
-	,	cunilogEvtSeverityOutput								//  8
-	,	cunilogEvtSeverityMessage								//  9
-	,	cunilogEvtSeverityWarning								// 10
-	,	cunilogEvtSeverityError									// 11
-	,	cunilogEvtSeverityPass									// 12
-	,	cunilogEvtSeverityFail									// 13
-	,	cunilogEvtSeverityCritical								// 14
-	,	cunilogEvtSeverityFatal									// 15
-	,	cunilogEvtSeverityDebug									// 16
-	,	cunilogEvtSeverityTrace									// 17
-	,	cunilogEvtSeverityDetail								// 18
-	,	cunilogEvtSeverityVerbose								// 19
-	,	cunilogEvtSeverityIllegal								// 20
-	,	cunilogEvtSeveritySyntax								// 21
+		cunilogEvtSeverityNone								//  0
+	,	cunilogEvtSeverityNonePass							//  1
+	,	cunilogEvtSeverityNoneFail							//  2
+	,	cunilogEvtSeverityNoneWarn							//  3
+	,	cunilogEvtSeverityBlanks							//  4
+	,	cunilogEvtSeverityEmergency							//	5
+	,	cunilogEvtSeverityNotice							//	6
+	,	cunilogEvtSeverityInfo								//  7
+	,	cunilogEvtSeverityOutput							//  8
+	,	cunilogEvtSeverityMessage							//  9
+	,	cunilogEvtSeverityWarning							// 10
+	,	cunilogEvtSeverityError								// 11
+	,	cunilogEvtSeverityPass								// 12
+	,	cunilogEvtSeverityFail								// 13
+	,	cunilogEvtSeverityCritical							// 14
+	,	cunilogEvtSeverityFatal								// 15
+	,	cunilogEvtSeverityDebug								// 16
+	,	cunilogEvtSeverityTrace								// 17
+	,	cunilogEvtSeverityDetail							// 18
+	,	cunilogEvtSeverityVerbose							// 19
+	,	cunilogEvtSeverityIllegal							// 20
+	,	cunilogEvtSeveritySyntax							// 21
 	// Do not add anything below this line.
-	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
+	,	cunilogEvtSeverityXAmountEnumValues					// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
 };
 typedef enum cunilogeventseverity cueventseverity;
@@ -1389,7 +1486,7 @@ typedef struct CUNILOG_EVENT
 	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 		struct CUNILOG_EVENT	*next;
 	#endif
-	cueventseverity				evSeverity;
+	cueventseverity				evSeverity;					// The event's severity level.
 	cueventtype					evType;						// The event's type of data.
 	size_t						sizEvent;					// The total allocated size of the
 															//	event. If 0, the size is the size

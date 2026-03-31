@@ -117,6 +117,7 @@ When		Who				What
 #define CUNILOG_ERROR_APPNAME						(8)
 #define CUNILOG_ERROR_SEPARATE_LOGGING_THREAD		(9)
 #define CUNILOG_ERROR_RENAMING_LOGFILE				(10)
+#define CUNILOG_ERROR_COMPRESS_LOGFILE				(11)
 
 #define CUNILOG_ERROR_FIRST_UNUSED_ERROR			(5000)
 
@@ -163,16 +164,15 @@ typedef uint64_t	CUNILOG_ERROR;
 
 	Macro to set a CUNILOG_ERROR variable.
 
-	errvar		The name of the CUNILOG_ERROR variable that receives the final
-				error code, consisting of a Cunilog error code and a system error code.
-	cerr		One of the CUNILOG_ERROR_ constants above.
-	serr		System error code. This is either a DWORD on Windows or an int32_t on
-				POSIX.
+	put		The CUNILOG_TARGET for which the error variable is set.
+	cerr	One of the CUNILOG_ERROR_ constants above.
+	serr	System error code. This is either a DWORD on Windows or an int32_t on
+			POSIX.
 */
-#define SetCunilogError(put, cerr, serr)					\
+#define SetCunilogError(put, cerr, serr)				\
 	do													\
 	{													\
-		((put)->error) = (CUNILOG_ERROR)(cerr) << 32;		\
+		((put)->error) = (CUNILOG_ERROR)(cerr) << 32;	\
 		((put)->error) += (unsigned)(serr);				\
 	} while (0)
 

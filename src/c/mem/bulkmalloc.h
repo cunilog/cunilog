@@ -19,7 +19,7 @@ When		Who				What
 	This file is maintained as part of Cunilog. See https://github.com/cunilog .
 */
 
-/*
+/*!
 	Simple module for providing dynamically allocated bulk memory (or memory pools;
 	also called arenas). See
 	https://en.wikipedia.org/wiki/Region-based_memory_management .
@@ -145,7 +145,7 @@ When		Who				What
 																//	in octets (bytes).
 #endif
 
-/*
+/*!
 	See
 	https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/malloc?view=msvc-150 .
 	Default alignment size on 32 bit Windows is 8 octets and 16 octets on 64 bit platforms.
@@ -174,7 +174,7 @@ enum en_sbulkmem_unit
 	,	EN_SBULKMEM_UNIT_GiB									// Size is in GiB.
 };
 
-/*
+/*!
 	CalculateSizeFromUnit
 
 	Helper function to calculate the size form a unit.
@@ -182,7 +182,7 @@ enum en_sbulkmem_unit
 size_t CalculateSizeFromUnit (size_t size, enum en_sbulkmem_unit unit)
 ;
 
-/*
+/*!
 	One bulk memory block.
 	
 	pMemBlockBase is a pointer to the allocated bulk memory. This structure is
@@ -200,7 +200,7 @@ typedef struct sbulkmemblock
 	uint64_t				uiFlags;
 } SBULKMEMBLOCK;
 
-/*
+/*!
 	The plinth of a bulk memory block list and the interface structure.
 */
 typedef struct sbulkmemplinth
@@ -215,7 +215,7 @@ typedef struct sbulkmemplinth
 #endif
 } SBULKMEM;
 
-/*
+/*!
 	Flags for the uiFlags member of the SBULKMEMBLOCK and SBULKMEM structures.
 */
 #define USBM_STRUCT_ALLOCATED		SINGLE_BIT_UINT64 (0)	// Structure itself on heap.
@@ -223,7 +223,7 @@ typedef struct sbulkmemplinth
 															//	allocated on heap.
 #define USBM_STRUCT_INITIALISED		SINGLE_BIT_UINT64 (2)	// Structure is initialised already.
 
-/*
+/*!
 	CalculateAlignedSize
 
 	Calculates the required size to ensure a given alignment is possible. For instance, if
@@ -234,7 +234,7 @@ typedef struct sbulkmemplinth
 size_t CalculateAlignedSize (size_t size, uint16_t alignment)
 ;
 
-/*
+/*!
 	AlignMemblock
 
 	Increments the pointer pBlock to alignment. The caller is responsible for ensuring that
@@ -253,7 +253,7 @@ size_t CalculateAlignedSize (size_t size, uint16_t alignment)
 void *AlignMemblock (void *pBlock, size_t size, uint16_t alignment)
 ;
 
-/*
+/*!
 	InitSBULKMEM
 
 	Initialises the SBULKMEM plinth pPlinth points to.
@@ -277,7 +277,7 @@ void *AlignMemblock (void *pBlock, size_t size, uint16_t alignment)
 	#endif
 #endif
 
-/*
+/*!
 	AllocInitSBULKMEM
 
 	Allocates memory for a new block of bulk memory.
@@ -304,7 +304,7 @@ SBULKMEM *AllocInitSBULKMEM	(
 							)
 ;
 
-/*
+/*!
 	SBULKMEM_INITIALISER
 
 	Static or automatic initialiser.
@@ -331,7 +331,7 @@ SBULKMEM *AllocInitSBULKMEM	(
 		}
 #endif
 
-/*
+/*!
 	EmptySBULKMEM
 
 	Empties the singly-linked SBULKMEM list pPlinth points to without deallocating
@@ -345,7 +345,7 @@ SBULKMEM *AllocInitSBULKMEM	(
 void EmptySBULKMEM (SBULKMEM *pPlinth)
 ;
 
-/*
+/*!
 	DoneSBULKMEM
 
 	Deallocates the singly-linked SBULKMEM list pPlinth points to, including maintenance
@@ -368,7 +368,7 @@ void EmptySBULKMEM (SBULKMEM *pPlinth)
 SBULKMEM *DoneSBULKMEM (SBULKMEM *pPlinth)
 ;
 
-/*
+/*!
 	The enum for the parameter grow of the function GetMemFromSBULKMEM ().
 */
 enum en_sbulkmem_allow_growth
@@ -379,7 +379,7 @@ enum en_sbulkmem_allow_growth
 	,	EN_SBULKMEM_PREVENT_GROWTH	= EN_SBULKMEM_CANNOT_GROW
 };
 
-/*
+/*!
 	GrowSBULKMEM
 	
 	Grows the SBULKMEM structure pbm points to by one element, i.e. extends the singly
@@ -405,7 +405,7 @@ SBULKMEMBLOCK *GrowSBULKMEM	(
 							)
 ;
 
-/*
+/*!
 	GetMemFromSBULKMEMBLOCKifAvailable
 
 	Returns a pointer to a memory block of size size from the SBULKMEMBLOCK structure
@@ -429,7 +429,7 @@ SBULKMEMBLOCK *GrowSBULKMEM	(
 void *GetMemFromSBULKMEMBLOCKifAvailable (SBULKMEMBLOCK *pbm, size_t size)
 ;
 
-/*
+/*!
 	GetMemFromSBULKMEM
 	
 	Returns a block of memory from the bulk memory block SBULKMEM pPlinth points to.
@@ -472,7 +472,7 @@ void *GetMemFromSBULKMEM	(
 							)
 ;
 
-/*
+/*!
 	GetAlignedMemFromSBULKMEMgrow
 
 	The function works as if it calls GetMemFromSBULKMEM () with the parameter alignment
@@ -490,7 +490,7 @@ void *GetAlignedMemFromSBULKMEMgrow	(
 									)
 ;
 
-/*
+/*!
 	GetAlignedMemFromSBULKMEMnogrow
 	
 	Calls GetMemFromSBULKMEM () with the parameter alignment set to 8 on 32 bit platforms
@@ -507,7 +507,7 @@ void *GetAlignedMemFromSBULKMEMnogrow	(
 										)
 ;
 
-/*
+/*!
 	GetUnalignedMemFromSBULKMEMgrow
 	
 	Calls GetMemFromSBULKMEM () with the parameter alignment set to 1 and parameter grow
@@ -522,7 +522,7 @@ void *GetUnalignedMemFromSBULKMEMgrow	(
 										)
 ;
 
-/*
+/*!
 	GetUnalignedMemFromSBULKMEMnogrow
 	
 	Calls GetMemFromSBULKMEM () with the parameter alignment set to 1 and parameter grow
@@ -537,7 +537,7 @@ void *GetUnalignedMemFromSBULKMEMnogrow	(
 										)
 ;
 
-/*
+/*!
 	popSBULKMEMBLOCK
 	
 	Pops the provided size (parameter size) of bytes from the SBULKMEMBLOCK structure's
@@ -555,7 +555,7 @@ void popSBULKMEMBLOCK					(
 										)
 ;
 
-/*
+/*!
 	popSBULKMEM
 	
 	Pops the provided size (parameter size) of bytes from the SBULKMEM bulk memory
@@ -581,7 +581,7 @@ void popSBULKMEMBLOCK					(
 	;
 #endif
 
-/*
+/*!
 	Result structur for getSBULKMEMstats ().
 */
 typedef struct sbulkmemstats
@@ -596,7 +596,7 @@ typedef struct sbulkmemstats
 	size_t				stFreeAverage;						// Average available size.
 } SBULKMEMSTATS;
 
-/*
+/*!
 	getSBULKMEMstats
 
 	Obtains some statistics of the SBULKMEM structure pPlinth points to and returns

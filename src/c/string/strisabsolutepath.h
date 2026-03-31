@@ -67,7 +67,7 @@ When		Who				What
 
 EXTERN_C_BEGIN
 
-/*
+/*!
 	is_absolute_path_unix
 	is_absolute_path_unx
 	
@@ -87,7 +87,7 @@ EXTERN_C_BEGIN
 #define is_absolute_path_unx(p)							\
 			is_absolute_path_unix (p)
 
-/*
+/*!
 	is_unc_path
 
 	Evaluates to true if the NUL-terminated string p is a UNC path
@@ -106,7 +106,7 @@ EXTERN_C_BEGIN
 					)									\
 			)
 
-/*
+/*!
 	is_absolute_drive_path
 
 	Evaluates to true if the NUL-terminated string p is a typical Windows drive path
@@ -122,7 +122,7 @@ EXTERN_C_BEGIN
 #define is_drive_path(p)								\
 	error "Macro obsolete. Use is_full_drive_path() instead"
 
-/*
+/*!
 	is_absolute_path_win
 	is_absolute_path_windows
 	
@@ -138,7 +138,7 @@ bool is_absolute_path_win (const char *chPath);
 #define is_absolute_path_windows(p)						\
 			is_absolute_path_win (p)
 
-/*
+/*!
 	is_absolute_path
 	
 	Returns true if the path is an absolute path on either Windows or Unix/Linux.
@@ -157,7 +157,7 @@ bool is_absolute_path_win (const char *chPath);
 
 #endif
 
-/*
+/*!
 	is_absolute_path_unix_l
 
 	Returns or evaluates to true if len is greater than 0 and the first character
@@ -172,7 +172,7 @@ bool is_absolute_path_win (const char *chPath);
 		(l && '/' == (p)[0])
 #endif
 
-/*
+/*!
 	is_absolute_path_win_l
 
 	Returns or evaluates to true if chPath either points to a Windows UNC path or
@@ -193,7 +193,7 @@ bool is_absolute_path_win (const char *chPath);
 		)
 #endif
 
-/*
+/*!
 	is_absolute_path_l
 
 	Returns true if the path is an absolute path on either Windows or Unix/Linux.

@@ -227,6 +227,29 @@ When		Who				What
 			UNREFERENCED_PARAMETER (bs);
 		#endif
 
+		ubf_expect_bool_AND (b, CreateAllFoldersU8 ("C:\\Temp\\cunilog\\sub1\\sub2", USE_STRLEN, NULL));
+
+		WCHAR wc2 [WINAPI_U8_HEAP_THRESHOLD];
+		WCHAR *pc;
+		const char	*szFold	= "C:\\Folder";
+		WCHAR		*wcFold	= L"C:\\Folder";
+		size_t len;
+		pc = AllocWinU16fromU8orUseThresholdLongFileNamel (&len, wc2, szFold, USE_STRLEN);
+		ubf_assert_bool_AND (b, 9 + LENOFLONGFILENAMEPREFIX == len);
+		b &= 0 == memcmp (pc, wcLongFileNamePrefix, LENOFLONGFILENAMEPREFIX * sizeof (WCHAR));
+		ubf_assert_true (b);
+		ubf_expect_bool_AND (b, !memcmp (pc + LENOFLONGFILENAMEPREFIX, wcFold, wcslen (wcFold) + sizeof (WCHAR)));
+		DoneWinU16fromU8orUseThreshold (pc, wc2);
+
+		const char	*sz50 =	 "12345678901234567890123456789012345678901234567890x";
+		WCHAR		*wc50 = L"12345678901234567890123456789012345678901234567890x";
+		pc = AllocWinU16fromU8orUseThresholdLongFileNamel (&len, wc2, sz50, 50);
+		ubf_assert_bool_AND (b, 54 == len);
+		ubf_expect_bool_AND (b, !memcmp (pc, wcLongFileNamePrefix, LENOFLONGFILENAMEPREFIX));
+		ubf_expect_bool_AND (b, 0 == memcmp (pc + LENOFLONGFILENAMEPREFIX, wc50, 50 * sizeof (WCHAR)));
+		ubf_expect_bool_AND (b, L'\0' == pc [LENOFLONGFILENAMEPREFIX + 50]);
+		DoneWinU16fromU8orUseThreshold (pc, wc2);
+
 		return b;
 	}
 #endif

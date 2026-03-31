@@ -67,6 +67,7 @@ When		Who				What
 		#include "./ProcessHelpers.h"
 		#include "./testProcesHelper.h"
 		#include "./FileMembuf.h"
+		#include "./ExtCompressors.h"
 
 		// Required for the tests.
 		#include "./ubfdebug.h"
@@ -98,6 +99,7 @@ When		Who				What
 		#include "./../OS/ProcessHelpers.h"
 		#include "./../testcunilog/testProcesHelper.h"
 		#include "./../OS/FileMembuf.h"
+		#include "./../extern/ExtCompressors.h"
 
 		// Required for the tests.
 		#include "./../dbg/ubfdebug.h"
@@ -515,6 +517,17 @@ bool CunilogTestFunction	(
 		CunilogTestFnctDisabledToConsole (b);
 	#endif
 
+	CunilogTestFnctStartTestToConsole ("Internal test of module ExtCompressors...");
+	#ifdef EXTCOMPRESSORS_BUILD_TEST_FNCT
+		b &= testExtCompressors ();
+		CunilogTestFnctResultToConsole (b);
+	#else
+		b &= testExtCompressors ();
+		CunilogTestFnctResultToConsole (b);
+		CunilogTestFnctStartTestToConsole ("Only macro tested. Self-test module ExtCompressors...");
+		CunilogTestFnctDisabledToConsole (b);
+	#endif
+
 	CunilogTestFnctStartTestToConsole ("Internal test of module WinAPI_U8...");
 	#ifdef _WIN32
 		#ifdef BUILD_TEST_WINAPI_U8_FNCT
@@ -921,6 +934,53 @@ bool CunilogTestFunction	(
 		#endif
 	#endif
 
+	/*
+		Gzip compression (deflation).
+	*/
+	CunilogTestFnctStartTestToConsole ("Creating default processors for compression (deflation) test...");
+	unsigned int nProcessors;
+	CUNILOG_PROCESSOR **pprocessors = CreateNewDefaultProcessors (&nProcessors);
+	CunilogTestFnctResultToConsole (NULL != pprocessors);
+
+	CunilogTestFnctStartTestToConsole ("Obtaining compression (deflation) rotator...");
+	CUNILOG_ROTATION_DATA *cmprRotData = GetCUNILOG_ROTATION_DATAfromProcessor (pprocessors, nProcessors, cunilogrotationtask_CompressLogfiles, 0);
+	CunilogTestFnctResultToConsole (NULL != cmprRotData);
+
+	CunilogTestFnctStartTestToConsole ("Configuring compression (deflation) rotator for Gzip...");
+	cmprRotData->uiFlgs = CUNILOG_ROTATOR_COMPRESS_GZIPCOMP;
+	CunilogTestFnctResultToConsole (cunilogHasRotator_COMPRESS_GZIPCOMP (cmprRotData));
+	cmprRotData->uiFlgs = 1;
+	CunilogTestFnctStartTestToConsole ("Checking Gzip query macro (1)...");
+	cunilogSetRotator_CompressionMethod (cmprRotData, cunilogComprMethodGzip);
+	CunilogTestFnctResultToConsole (cunilogHasRotator_COMPRESS_GZIPCOMP (cmprRotData));
+	CunilogTestFnctStartTestToConsole ("Checking Gzip query macro (2)...");
+	CunilogTestFnctResultToConsole (1 == (cmprRotData->uiFlgs & 0x01));
+	CunilogTestFnctStartTestToConsole ("Checking Gzip query macro (3)...");
+	cmprRotData->uiFlgs = 0;
+	cunilogSetRotator_COMPRESS_GZIPCOMP (cmprRotData);
+	CunilogTestFnctResultToConsole (cunilogHasRotator_CompressionMethod (cmprRotData, cunilogComprMethodGzip));
+	CunilogTestFnctStartTestToConsole ("Checking Gzip query macro (4)...");
+	CunilogTestFnctResultToConsole (cunilogHasRotator_CompressionMethod (cmprRotData, cunilogComprMethodGzip));
+
+	CunilogTestFnctStartTestToConsole ("Creating target for compression (deflation)...");
+	put = InitCUNILOG_TARGETstaticEx	(
+				ccLogsFolder, lnLogsFolder,
+				NULL, 0,
+				cunilogPath_relativeToExecutable,
+				cunilogSingleThreaded,
+				cunilogPostfixMinute,
+				pprocessors, nProcessors,
+				cunilogEvtTS_Default,
+				cunilogNewLineDefault,
+				cunilogRunProcessorsOnStartup
+										);
+	CunilogTestFnctResultToConsole (NULL != put);
+	// Attach our processors to the target.
+	cunilogTargetSetProcessorsAllocatedFlag (put);
+
+	ShutdownCUNILOG_TARGETstatic ();
+	DoneCUNILOG_TARGETstatic ();
+
 	//ASSERT (false);
 
 	put = InitCUNILOG_TARGETstaticEx	(
@@ -989,21 +1049,21 @@ bool CunilogTestFunction	(
 	logTextU8sev_static (cunilogEvtSeverityNoneFail, "This is a bad one");
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityTypeChars3InBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars3InBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityTypeChars5InBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars5InBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityTypeChars9InBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars9InBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityTypeChars5InTightBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars5InTightBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
 	logTextU8sev_static (cunilogEvtSeverityNone, "None");
 	logTextU8sev_static (cunilogEvtSeverityBlanks, "Blanks");
-	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityTypeChars9InTightBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars9InTightBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
 	logTextU8sev_static (cunilogEvtSeverityNone, "None");
@@ -1016,6 +1076,19 @@ bool CunilogTestFunction	(
 	
 	SMEMBUF smb = SMEMBUF_INITIALISER;
 	logTextU8smbfmt_static (&smb, "Another string is \"%s\"", "String");
+
+	// Some examples for the markdown.
+	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars3);
+	logTextU8sev_static (cunilogEvtSeverityNone,		"cunilogEvtSeverityNone");
+	logTextU8sev_static (cunilogEvtSeverityNonePass,	"cunilogEvtSeverityNonePass");
+	logTextU8sev_static (cunilogEvtSeverityNoneFail,	"cunilogEvtSeverityNoneFail");
+	logTextU8sev_static (cunilogEvtSeverityNotice,		"cunilogEvtSeverityNotice");
+	logTextU8sev_static (cunilogEvtSeverityInfo,		"cunilogEvtSeverityInfo");
+	logTextU8sev_static (cunilogEvtSeverityWarning,		"cunilogEvtSeverityWarning");
+	logTextU8sev_static (cunilogEvtSeverityError,		"cunilogEvtSeverityError");
+	logTextU8sev_static (cunilogEvtSeverityCritical,	"cunilogEvtSeverityCritical");
+	logTextU8sev_static (cunilogEvtSeveritySyntax,		"cunilogEvtSeveritySyntax");
+
 	doneSMEMBUF (&smb);
 
 	/*

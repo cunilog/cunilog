@@ -19,7 +19,7 @@ When		Who				What
 	This file is maintained as part of Cunilog. See https://github.com/cunilog .
 */
 
-/*
+/*!
 	This module supports the following build options:
 
 
@@ -156,7 +156,7 @@ When		Who				What
 #define USE_STRLEN						((size_t) -1)
 #endif
 
-/*
+/*!
 	The maximum length of a line ending in this module, and its size including NUL.
 */
 #ifndef MAX_LEN_LINE_ENDING
@@ -168,7 +168,7 @@ When		Who				What
 
 EXTERN_C_BEGIN
 
-/*
+/*!
 	newline_t
 
 	Represents a new line.
@@ -181,12 +181,11 @@ EXTERN_C_BEGIN
 
 	The value cunilogNewLineDefault used to be cunilogNewLineSystem to ensure logfiles
 	could be opened with Notepad on Windows systems, but since newer versions of Notepad
-	(Windows 10 and newer) can display files that have POSIX line endings perfectly, the
-	default is now cunilogNewLinePOSIX to save one octet per event line. Use
-	cunilogNewLineWindows or cunilogNewLineSystem if textual logfiles need to be opened/
-	viewed with Notepad for Windows versions before Windows 10, or if they are opened/
-	viewed/processed later with any other application that can't cope with POSIX line
-	endings.
+	(Windows 10 and newer) can display files that have POSIX line endings, the 	default
+	is now cunilogNewLinePOSIX to save one octet per event line. Use cunilogNewLineWindows
+	or cunilogNewLineSystem if textual logfiles need to be opened/viewed with Notepad for
+	Windows versions before Windows 10, or if they are opened/viewed/processed later with
+	any other application that can't cope with POSIX line endings.
 */
 #if defined (CUNILOG_NEWLINE_POSIX_ONLY)
 	enum enLineEndings
@@ -241,13 +240,13 @@ EXTERN_C_BEGIN
 #endif
 typedef enum enLineEndings	newline_t;
 
-/*
+/*!
 	The array with the line endings and the array with their lengths.
 */
 const char	*aszLineEndings	[];
 size_t		lenLineEndings	[];
 
-/*
+/*!
 	ccLineEnding
 
 	Returns the line ending for nl. Note that szLineEnding () also returns
@@ -259,7 +258,7 @@ size_t		lenLineEndings	[];
 	#define ccLineEnding(nl)	aszLineEndings [nl]
 #endif
 
-/*
+/*!
 	lnLineEnding
 
 	Returns the length of the line ending nl. The value does not include the NUL
@@ -271,7 +270,7 @@ size_t		lenLineEndings	[];
 	#define lnLineEnding(nl)	lenLineEndings [nl]
 #endif
 
-/*
+/*!
 	szLineEnding
 
 	Returns the line ending and its length. The length does not include the NUL
@@ -332,7 +331,7 @@ const char *szLineEnding (newline_t nl, size_t *pln);
 		(unsigned int) strIsLineEndings (sz, ln, pj)
 #endif
 
-/*
+/*!
 	strIsLineEndings
 
 	Checks if ch points to one or more newline markers/line endings. The function returns
@@ -370,7 +369,7 @@ const char *szLineEnding (newline_t nl, size_t *pln);
 size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 ;
 
-/*
+/*!
 	strFirstLineEnding
 
 	Finds and returns a pointer to the first line ending in the buffer ch points to,
@@ -381,7 +380,7 @@ size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 */
 char *strFirstLineEnding (const char *ch, size_t len);
 
-/*
+/*!
 	strFirstLineEnding_l
 
 	The function is identical to strFirstLineEnding () but additionally returns the length
@@ -396,7 +395,7 @@ char *strFirstLineEnding (const char *ch, size_t len);
 */
 char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE);
 
-/*
+/*!
 	strPrevLineEnding_l
 
 	The function is identical to strFirstLineEnding_l () but searches for the first line
@@ -415,7 +414,7 @@ char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE);
 */
 char *strPrevLineEnding_l (const char *ch, size_t len, size_t strtIdx, size_t *plLE);
 
-/*
+/*!
 	strRemoveLineEndingsFromEnd
 
 	Removes line endings from the right side of sz.

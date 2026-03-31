@@ -26,17 +26,28 @@ When		Who				What
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+#ifndef HAVE_ADVAPI32
+#define HAVE_ADVAPI32
+#endif
 #ifndef HAVE_STRWILDCARDS
 #define HAVE_STRWILDCARDS
 #endif
 #ifndef HAVE_SHELLAPI
 #define HAVE_SHELLAPI
 #endif
+#ifndef HAVE_USER32
+#define HAVE_USER32
+#endif
 #ifndef HAVE_USERENV
 #define HAVE_USERENV
 #endif
 #ifndef HAVE_MEMBUF
 #define HAVE_MEMBUF
+#endif
+
+// miniz
+#ifndef MINIZ_NO_INFLATE_APIS
+#define MINIZ_NO_INFLATE_APIS
 #endif
 
 /*
@@ -123,7 +134,7 @@ When		Who				What
 #define CUNILOG_VERSION_MINOR	8							// Minor version.
 #define CUNILOG_VERSION_SUB		0							// Subversion for maintenance.
 #define CUNILOG_VERSION_BUILD	1							// Build number.
-#define CUNILOG_VERSION_YEAR	"2025"						// Copyright year.
+#define CUNILOG_VERSION_YEAR	"2026"						// Version year.
 
 #define VERSION_URL		"https://github.com/cunilog"
 
@@ -258,6 +269,17 @@ When		Who				What
 	#endif
 #endif
 
+/*
+	To get 64 bit file offset on POSIX.
+*/
+#ifdef PLATFORM_IS_POSIX
+	#ifndef _FILE_OFFSET_BITS
+	#define _FILE_OFFSET_BITS 64
+	#endif
+	#ifndef _LARGEFILE64_SOURCE
+	#define _LARGEFILE64_SOURCE
+	#endif
+#endif
 
 #endif														// Of #ifndef U_CUNILOGDEFS_H.
 /****************************************************************************************
@@ -2029,6 +2051,9 @@ When		Who				What
 	#include <shlwapi.h>
 	#pragma comment (lib, "Shlwapi.lib")
 #endif
+#ifdef HAVE_USER32
+	 #pragma comment (lib, "User32.lib")
+#endif
 #ifdef HAVE_USERENV
 	#include <UserEnv.h>
 	 #pragma comment (lib, "Userenv.lib")
@@ -2304,6 +2329,23 @@ extern const char	ccLongFileNamePrefix [];					// The ASCII/UTF-8 version.
 #else
 	#define WinU16_from_UTF8(wcU16, sizeU16, chU8)		\
 		MultiByteToWideChar (CP_UTF8, 0, chU8, -1, wcU16, sizeU16)
+#endif
+
+/*
+	WinU16_from_UTF8l
+
+	Simplified invocation of MultiByteToWideChar () that converts from UTF-8 to
+	Windows UTF-16. Expects the length of chU8 in lenU8. Cannot be called with
+	USE_STRLEN.
+
+	This is a function in debug versions and a macro in release builds.
+*/
+#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
+	int WinU16_from_UTF8l (WCHAR *wcU16, int sizeU16, const char *chU8, int lenU8);
+	TYPEDEF_FNCT_PTR (int, WinU16_from_UTF8l) (WCHAR *wcU16, int sizeU16, const char *chU8, int lenU8);
+#else
+	#define WinU16_from_UTF8l(wcU16, sizeU16, chU8, lenU8)\
+		MultiByteToWideChar (CP_UTF8, 0, chU8, lenU8, wcU16, sizeU16)
 #endif
 
 /*
@@ -2598,6 +2640,29 @@ WCHAR *AllocWinU16fromU8orUseThresholdLongFileName (WCHAR *pwcStackVar, const ch
 TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16fromU8orUseThresholdLongFileName) (WCHAR *pwcStackVar, const char *pchU8);
 
 /*
+	AllocWinU16fromU8orUseThresholdLongFileNamel
+	
+	The function is identical to AllocWinU16fromU8orUseThresholdLongFileName () but
+	additionally expects the length, in characters (not octets/bytes) of pchU8 in
+	lnchU8. If lnchU8 is USE_STRLEN, the function calls
+	AllocWinU16fromU8orUseThresholdLongFileName ().
+
+	The function returns NULL if it fails. Otherwise a newly allocated buffer with
+	the UTF-8 string pchU8 with a length of lnchU8 is returned. The returned buffer
+	is NUL-terminated.
+
+	The length, in WCHARs, is returned in pLen.
+
+	Call DoneWinU16fromU8orUseThreshold () with the returned pointer and the same
+	pwcStackVar variable to conditionally deallocate the buffer again.
+*/
+WCHAR *AllocWinU16fromU8orUseThresholdLongFileNamel	(
+			size_t *pLen, WCHAR *pwcStackVar, const char *pchU8, size_t lnchU8
+													);
+TYPEDEF_FNCT_PTR (WCHAR *, AllocWinU16fromU8orUseThresholdLongFileNamel)
+	(size_t *pLen, WCHAR *pwcStackVar, const char *pchU8, size_t lnchU8);
+
+/*
 	DoneWinU16fromU8orUseThreshold
 	
 	Conditionally deallocates the memory allocated by
@@ -2754,17 +2819,26 @@ TYPEDEF_FNCT_PTR (BOOL, CopyFileU8long)
 	Creates all folders in wcPath and returns TRUE on success, FALSE otherwise.
 	Success means that the path either has been created by the function or that
 	it existed already prior to invoking the function.
+
+	The parameter lnPath is the length of wcPath, in characters (not bytes/octets).
+	If lnPath is USE_STRLEN, the function calls wcslen () to obtain it. Otherwise,
+	wcPath does not need to be NUL-terminated.
+
+	If len is 0, the function returns TRUE, assuming that a path with a length of
+	0 already exists.
 */
-BOOL CreateAllFoldersW (WCHAR *wcPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
-TYPEDEF_FNCT_PTR (BOOL, CreateAllFoldersW) (WCHAR *wcPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+BOOL CreateAllFoldersW (WCHAR *wcPath, size_t lnPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+TYPEDEF_FNCT_PTR (BOOL, CreateAllFoldersW)
+	(WCHAR *wcPath, size_t lnPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
 /*
 	CreateAllFoldersU8
 	
 	UTF-8 version of CreateAllFoldersW (). See above.
 */
-BOOL CreateAllFoldersU8 (const char *szPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
-TYPEDEF_FNCT_PTR (BOOL, CreateAllFoldersU8) (const char *szPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+BOOL CreateAllFoldersU8 (const char *szPath, size_t lnPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
+TYPEDEF_FNCT_PTR (BOOL, CreateAllFoldersU8)
+	(const char *szPath, size_t lnPath, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
 
 /*
 	CreateDirectoryIfNotExistsW
@@ -3915,6 +3989,16 @@ enum en_wapi_fs_type GetFileSystemType (const char *chDriveRoot);
 TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemType) (const char *chDriveRoot);
 
 /*
+	GetFileSystemTypeFromFileName
+
+	More or less identical to GetFileSystemType () but accepts an absolute filename
+	as parameter.
+*/
+enum en_wapi_fs_type GetFileSystemTypeFromFileName (const char *chFileName)
+;
+TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemTypeFromFileName) (const char *chFileName);
+
+/*
 	IsFileSystemFAT
 
 	Returns or evaluates to TRUE if the file system of chDriveRoot is FAT.
@@ -3962,6 +4046,20 @@ TYPEDEF_FNCT_PTR (enum en_wapi_fs_type, GetFileSystemType) (const char *chDriveR
 	#define IsFileSystemNTFS(drv)						\
 		(FS_TYPE_NTFS == GetFileSystemType (drv))
 #endif
+
+/*
+	IsFileSystemNTFSfromFileName
+
+	Returns of evaluates to TRUE/true if the file system of the given filename
+	szFileName is NTFS, false/FALSE otherwise.
+*/
+#ifdef DEBUG
+	BOOL IsFileSystemNTFSfromFileName (const char *szFileName);
+#else
+	#define IsFileSystemNTFSfromFileName(filename)		\
+		(FS_TYPE_NTFS == GetFileSystemTypeFromFileName (filename))
+#endif
+
 
 /*
 	GetFileVersionInfoSizeU8
@@ -4128,6 +4226,20 @@ TYPEDEF_FNCT_PTR (HMODULE, GetModuleHandleU8)
 (
   LPCSTR lpModuleName
 );
+
+/*
+	GetPhysicalSectorSizeFromHandle
+
+	Obtains the physical sector size of the volume the file of the open file handle
+	hFile resides.
+
+	The physical sector size is returned at the address pSectorSize points to. This
+	address cannot be NULL. Debug versions abort if pSectorSize is NULL, release versions
+	may or may not crash with an access violation.
+
+	The function returns true upon success, false when it fails.
+*/
+bool GetPhysicalSectorSizeFromHandle (HANDLE hFile, DWORD *pSectorSize);
 
 /*
 	GetPrivateProfileStringU8
@@ -4384,6 +4496,27 @@ TYPEDEF_FNCT_PTR (BOOL, GetVolumeInformationU8)
   LPDWORD lpFileSystemFlags,
   LPSTR   lpFileSystemNameBuffer,
   DWORD   nFileSystemNameSize
+)
+;
+
+/*
+	GetVolumePathNameU8
+
+	UTF-8 version of the Windows API GetVolumePathNameW () See
+	https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getvolumepathnamew
+	for details.
+*/
+BOOL GetVolumePathNameU8(
+  _In_  LPCSTR lpszFileNameU8,
+  _Out_ LPSTR  lpszVolumePathNameU8,
+  _In_  DWORD  cchBufferLength
+)
+;
+TYPEDEF_FNCT_PTR (BOOL, GetVolumePathNameU8)
+(
+  _In_  LPCSTR lpszFileNameU8,
+  _Out_ LPSTR  lpszVolumePathNameU8,
+  _In_  DWORD  cchBufferLength
 )
 ;
 
@@ -7815,12 +7948,14 @@ typedef enum enfilecompressresult enfilecompressresult_t;
 #ifdef DEBUG
 	enfilecompressresult_t IsFileCompressedByName (const char *szFilename);
 #else
-	#if defined (OS_IS_WINDOWS)
+	#if defined (PLATFORM_IS_WINDOWS)
 		#define IsFileCompressedByName(fn)				\
 			(enfilecompressresult_t) IsFileNTFSCompressedByName (fn)
-	#elif defined (OS_IS_LINUX)
+	#elif defined (PLATFORM_IS_POSIX)
 		#define IsFileCompressedByName(fn)				\
 			(fscompress_error)
+	#elif
+		#error "Not supported"
 	#endif
 #endif
 
@@ -7835,6 +7970,118 @@ bool FScompressFileByName (const char *szFilename)
 EXTERN_C_END
 
 #endif														// Of #ifndef U_COMPRESS_FILE_H.
+/****************************************************************************************
+
+	File:		CreateAllFolders.h
+	Why:		Module to create an entire path with all subfolders.
+	OS:			POSIX, Windows.
+	Author:		Thomas
+	Created:	2026-03-25
+
+History
+-------
+
+When		Who				What
+-----------------------------------------------------------------------------------------
+2026-03-25	Thomas			Created.
+
+****************************************************************************************/
+
+/*
+	This file is maintained as part of Cunilog. See https://github.com/cunilog .
+*/
+
+/*
+	This code is covered by the MIT License. See https://opensource.org/license/mit .
+
+	Copyright (c) 2024-2026 Thomas
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this
+	software and associated documentation files (the "Software"), to deal in the Software
+	without restriction, including without limitation the rights to use, copy, modify,
+	merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+	permit persons to whom the Software is furnished to do so, subject to the following
+	conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies
+	or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+	INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+	PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+	HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+	CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+	OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#ifndef U_CREATEALLFOLDERS_H
+#define U_CREATEALLFOLDERS_H
+
+#include <stdbool.h>
+
+#ifndef CUNILOG_USE_COMBINED_MODULE
+
+	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
+
+		#include "./platform.h"
+		#include "./externC.h"
+
+		#if defined (PLATFORM_IS_WINDOWS)
+
+		#elif defined (PLATFORM_IS_POSIX)
+		
+		#endif
+
+	#else
+
+		#include "./../pre/platform.h"
+		#include "./../pre/externC.h"
+
+		#if defined (PLATFORM_IS_WINDOWS)
+
+		#elif defined (PLATFORM_IS_POSIX)
+		
+		#endif
+
+	#endif
+
+#endif
+
+EXTERN_C_BEGIN
+
+/*!
+	CunilogCreateAllFolders
+
+	Creates all folders in szPath and returns true on success, false otherwise.
+	Success means that the path either has been created by the function or that
+	it existed already prior to invoking the function.
+
+	The parameter lnPath is the length of szPath. If it is USE_STRLEN, the function
+	retrieves its length via a call to strlen (), in which case szPath must be
+	NUL-terminated.
+
+	The parameter szPath must be an absolute path.
+*/
+bool CunilogCreateAllFolders (const char *szPath, size_t lnPath);
+
+/*!
+	CunilogCreateAllFoldersRelative
+
+	Creates all folders in szPath and returns true on success, false otherwise.
+	Success means that the path either has been created by the function or that
+	it existed already prior to invoking the function.
+
+	The parameter lnPath is the length of szPath. If it is USE_STRLEN, the function
+	retrieves its length via a call to strlen (), in which case szPath must be
+	NUL-terminated.
+
+	The parameter szPath can be a relative path that is relative to szAbsolute.
+*/
+bool CunilogCreateAllFoldersRelative (const char *szPath, size_t lnPath, const char *szAbsolute);
+
+EXTERN_C_END
+
+#endif														// Of #ifndef U_CREATEALLFOLDERS_H.
 /****************************************************************************************
 
 	File:		ExeFileName.h
@@ -8686,7 +8933,7 @@ EXTERN_C_BEGIN
 
 // Initialize a new shared mutex with given `name`. If a mutex
 // with such name exists in the system, it will be loaded.
-// Otherwise a new mutes will by created.
+// Otherwise a new mutex will by created.
 //
 // In case of any error, it will be printed into the standard output
 // and the returned structure will have `ptr` equal `NULL`.
@@ -8725,6 +8972,11 @@ shared_mutex_t InitSharedMutex (const char *name);
 // For complete desctruction use `shared_mutex_destroy` instead.
 //
 // **NOTE:** It will not unlock locked mutex.
+/*
+	2026-03-09, Thomas
+
+	The function does not send anything to standard output.
+*/
 int CloseSharedMutex (shared_mutex_t mutex);
 
 // Close and destroy shared mutex.
@@ -8732,6 +8984,11 @@ int CloseSharedMutex (shared_mutex_t mutex);
 //
 //
 // **NOTE:** It will not unlock locked mutex.
+/*
+	2026-03-09, Thomas
+
+	The function does not send anything to standard output.
+*/
 void DestroySharedMutex(shared_mutex_t mutex);
 
 /*
@@ -8744,7 +9001,7 @@ bool EnterSharedMutex (shared_mutex_t mutex);
 bool LeaveSharedMutex (shared_mutex_t mutex);
 
 /*
-	WeCreatedSharedMutex
+	HaveWeCreatedSharedMutex
 
 	Returns true if this instance/process created the shared mutex.
 */
@@ -8836,6 +9093,1516 @@ size_t ObtainUserHomeDirectoy (SMEMBUF *mb);
 EXTERN_C_END
 
 #endif														// Of #ifndef U_USERHOME_H.
+#ifndef MINIZ_EXPORT
+#define MINIZ_EXPORT
+#endif
+/* miniz.c 3.1.0 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
+   See "unlicense" statement at the end of this file.
+   Rich Geldreich <richgel99@gmail.com>, last updated Oct. 13, 2013
+   Implements RFC 1950: http://www.ietf.org/rfc/rfc1950.txt and RFC 1951: http://www.ietf.org/rfc/rfc1951.txt
+
+   Most API's defined in miniz.c are optional. For example, to disable the archive related functions just define
+   MINIZ_NO_ARCHIVE_APIS, or to get rid of all stdio usage define MINIZ_NO_STDIO (see the list below for more macros).
+
+   * Low-level Deflate/Inflate implementation notes:
+
+     Compression: Use the "tdefl" API's. The compressor supports raw, static, and dynamic blocks, lazy or
+     greedy parsing, match length filtering, RLE-only, and Huffman-only streams. It performs and compresses
+     approximately as well as zlib.
+
+     Decompression: Use the "tinfl" API's. The entire decompressor is implemented as a single function
+     coroutine: see tinfl_decompress(). It supports decompression into a 32KB (or larger power of 2) wrapping buffer, or into a memory
+     block large enough to hold the entire file.
+
+     The low-level tdefl/tinfl API's do not make any use of dynamic memory allocation.
+
+   * zlib-style API notes:
+
+     miniz.c implements a fairly large subset of zlib. There's enough functionality present for it to be a drop-in
+     zlib replacement in many apps:
+        The z_stream struct, optional memory allocation callbacks
+        deflateInit/deflateInit2/deflate/deflateReset/deflateEnd/deflateBound
+        inflateInit/inflateInit2/inflate/inflateReset/inflateEnd
+        compress, compress2, compressBound, uncompress
+        CRC-32, Adler-32 - Using modern, minimal code size, CPU cache friendly routines.
+        Supports raw deflate streams or standard zlib streams with adler-32 checking.
+
+     Limitations:
+      The callback API's are not implemented yet. No support for gzip headers or zlib static dictionaries.
+      I've tried to closely emulate zlib's various flavors of stream flushing and return status codes, but
+      there are no guarantees that miniz.c pulls this off perfectly.
+
+   * PNG writing: See the tdefl_write_image_to_png_file_in_memory() function, originally written by
+     Alex Evans. Supports 1-4 bytes/pixel images.
+
+   * ZIP archive API notes:
+
+     The ZIP archive API's where designed with simplicity and efficiency in mind, with just enough abstraction to
+     get the job done with minimal fuss. There are simple API's to retrieve file information, read files from
+     existing archives, create new archives, append new files to existing archives, or clone archive data from
+     one archive to another. It supports archives located in memory or the heap, on disk (using stdio.h),
+     or you can specify custom file read/write callbacks.
+
+     - Archive reading: Just call this function to read a single file from a disk archive:
+
+      void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char *pArchive_name,
+        size_t *pSize, mz_uint zip_flags);
+
+     For more complex cases, use the "mz_zip_reader" functions. Upon opening an archive, the entire central
+     directory is located and read as-is into memory, and subsequent file access only occurs when reading individual files.
+
+     - Archives file scanning: The simple way is to use this function to scan a loaded archive for a specific file:
+
+     int mz_zip_reader_locate_file(mz_zip_archive *pZip, const char *pName, const char *pComment, mz_uint flags);
+
+     The locate operation can optionally check file comments too, which (as one example) can be used to identify
+     multiple versions of the same file in an archive. This function uses a simple linear search through the central
+     directory, so it's not very fast.
+
+     Alternately, you can iterate through all the files in an archive (using mz_zip_reader_get_num_files()) and
+     retrieve detailed info on each file by calling mz_zip_reader_file_stat().
+
+     - Archive creation: Use the "mz_zip_writer" functions. The ZIP writer immediately writes compressed file data
+     to disk and builds an exact image of the central directory in memory. The central directory image is written
+     all at once at the end of the archive file when the archive is finalized.
+
+     The archive writer can optionally align each file's local header and file data to any power of 2 alignment,
+     which can be useful when the archive will be read from optical media. Also, the writer supports placing
+     arbitrary data blobs at the very beginning of ZIP archives. Archives written using either feature are still
+     readable by any ZIP tool.
+
+     - Archive appending: The simple way to add a single file to an archive is to call this function:
+
+      mz_bool mz_zip_add_mem_to_archive_file_in_place(const char *pZip_filename, const char *pArchive_name,
+        const void *pBuf, size_t buf_size, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags);
+
+     The archive will be created if it doesn't already exist, otherwise it'll be appended to.
+     Note the appending is done in-place and is not an atomic operation, so if something goes wrong
+     during the operation it's possible the archive could be left without a central directory (although the local
+     file headers and file data will be fine, so the archive will be recoverable).
+
+     For more complex archive modification scenarios:
+     1. The safest way is to use a mz_zip_reader to read the existing archive, cloning only those bits you want to
+     preserve into a new archive using using the mz_zip_writer_add_from_zip_reader() function (which compiles the
+     compressed file data as-is). When you're done, delete the old archive and rename the newly written archive, and
+     you're done. This is safe but requires a bunch of temporary disk space or heap memory.
+
+     2. Or, you can convert an mz_zip_reader in-place to an mz_zip_writer using mz_zip_writer_init_from_reader(),
+     append new files as needed, then finalize the archive which will write an updated central directory to the
+     original archive. (This is basically what mz_zip_add_mem_to_archive_file_in_place() does.) There's a
+     possibility that the archive's central directory could be lost with this method if anything goes wrong, though.
+
+     - ZIP archive support limitations:
+     No spanning support. Extraction functions can only handle unencrypted, stored or deflated files.
+     Requires streams capable of seeking.
+
+   * This is a header file library, like stb_image.c. To get only a header file, either cut and paste the
+     below header, or create miniz.h, #define MINIZ_HEADER_FILE_ONLY, and then include miniz.c from it.
+
+   * Important: For best perf. be sure to customize the below macros for your target platform:
+     #define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 1
+     #define MINIZ_LITTLE_ENDIAN 1
+     #define MINIZ_HAS_64BIT_REGISTERS 1
+
+   * On platforms using glibc, Be sure to "#define _LARGEFILE64_SOURCE 1" before including miniz.c to ensure miniz
+     uses the 64-bit variants: fopen64(), stat64(), etc. Otherwise you won't be able to process large files
+     (i.e. 32-bit stat() fails for me on files > 0x7FFFFFFF bytes).
+*/
+#pragma once
+
+
+
+#if defined(__STRICT_ANSI__)
+#define MZ_FORCEINLINE
+#elif defined(_MSC_VER)
+#define MZ_FORCEINLINE __forceinline
+#elif defined(__GNUC__)
+#define MZ_FORCEINLINE __inline__ __attribute__((__always_inline__))
+#else
+#define MZ_FORCEINLINE inline
+#endif
+
+/* Defines to completely disable specific portions of miniz.c:
+   If all macros here are defined the only functionality remaining will be CRC-32 and adler-32. */
+
+/* Define MINIZ_NO_STDIO to disable all usage and any functions which rely on stdio for file I/O. */
+/*#define MINIZ_NO_STDIO */
+
+/* If MINIZ_NO_TIME is specified then the ZIP archive functions will not be able to get the current time, or */
+/* get/set file times, and the C run-time funcs that get/set times won't be called. */
+/* The current downside is the times written to your archives will be from 1979. */
+/*#define MINIZ_NO_TIME */
+
+/* Define MINIZ_NO_DEFLATE_APIS to disable all compression API's. */
+/*#define MINIZ_NO_DEFLATE_APIS */
+
+/* Define MINIZ_NO_INFLATE_APIS to disable all decompression API's. */
+/*#define MINIZ_NO_INFLATE_APIS */
+
+/* Define MINIZ_NO_ARCHIVE_APIS to disable all ZIP archive API's. */
+/*#define MINIZ_NO_ARCHIVE_APIS */
+
+/* Define MINIZ_NO_ARCHIVE_WRITING_APIS to disable all writing related ZIP archive API's. */
+/*#define MINIZ_NO_ARCHIVE_WRITING_APIS */
+
+/* Define MINIZ_NO_ZLIB_APIS to remove all ZLIB-style compression/decompression API's. */
+/*#define MINIZ_NO_ZLIB_APIS */
+
+/* Define MINIZ_NO_ZLIB_COMPATIBLE_NAME to disable zlib names, to prevent conflicts against stock zlib. */
+/*#define MINIZ_NO_ZLIB_COMPATIBLE_NAMES */
+
+/* Define MINIZ_NO_MALLOC to disable all calls to malloc, free, and realloc.
+   Note if MINIZ_NO_MALLOC is defined then the user must always provide custom user alloc/free/realloc
+   callbacks to the zlib and archive API's, and a few stand-alone helper API's which don't provide custom user
+   functions (such as tdefl_compress_mem_to_heap() and tinfl_decompress_mem_to_heap()) won't work. */
+/*#define MINIZ_NO_MALLOC */
+
+#ifdef MINIZ_NO_INFLATE_APIS
+#define MINIZ_NO_ARCHIVE_APIS
+#endif
+
+#ifdef MINIZ_NO_DEFLATE_APIS
+#define MINIZ_NO_ARCHIVE_WRITING_APIS
+#endif
+
+#if defined(__TINYC__) && (defined(__linux) || defined(__linux__))
+/* TODO: Work around "error: include file 'sys\utime.h' when compiling with tcc on Linux */
+#define MINIZ_NO_TIME
+#endif
+
+#include <stddef.h>
+
+#if !defined(MINIZ_NO_TIME) && !defined(MINIZ_NO_ARCHIVE_APIS)
+#include <time.h>
+#endif
+
+#if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__i386) || defined(__i486__) || defined(__i486) || defined(i386) || defined(__ia64__) || defined(__x86_64__)
+/* MINIZ_X86_OR_X64_CPU is only used to help set the below macros. */
+#define MINIZ_X86_OR_X64_CPU 1
+#else
+#define MINIZ_X86_OR_X64_CPU 0
+#endif
+
+/* Set MINIZ_LITTLE_ENDIAN only if not set */
+#if !defined(MINIZ_LITTLE_ENDIAN)
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
+
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+/* Set MINIZ_LITTLE_ENDIAN to 1 if the processor is little endian. */
+#define MINIZ_LITTLE_ENDIAN 1
+#else
+#define MINIZ_LITTLE_ENDIAN 0
+#endif
+
+#else
+
+#if MINIZ_X86_OR_X64_CPU
+#define MINIZ_LITTLE_ENDIAN 1
+#else
+#define MINIZ_LITTLE_ENDIAN 0
+#endif
+
+#endif
+#endif
+
+/* Using unaligned loads and stores causes errors when using UBSan */
+#if defined(__has_feature)
+#if __has_feature(undefined_behavior_sanitizer)
+#define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 0
+#endif
+#endif
+
+/* Set MINIZ_USE_UNALIGNED_LOADS_AND_STORES only if not set */
+#if !defined(MINIZ_USE_UNALIGNED_LOADS_AND_STORES)
+#if MINIZ_X86_OR_X64_CPU
+/* Set MINIZ_USE_UNALIGNED_LOADS_AND_STORES to 1 on CPU's that permit efficient integer loads and stores from unaligned addresses. */
+#define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 0
+#define MINIZ_UNALIGNED_USE_MEMCPY
+#else
+#define MINIZ_USE_UNALIGNED_LOADS_AND_STORES 0
+#endif
+#endif
+
+#if defined(_M_X64) || defined(_WIN64) || defined(__MINGW64__) || defined(_LP64) || defined(__LP64__) || defined(__ia64__) || defined(__x86_64__)
+/* Set MINIZ_HAS_64BIT_REGISTERS to 1 if operations on 64-bit integers are reasonably fast (and don't involve compiler generated calls to helper functions). */
+#define MINIZ_HAS_64BIT_REGISTERS 1
+#else
+#define MINIZ_HAS_64BIT_REGISTERS 0
+#endif
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    /* ------------------- zlib-style API Definitions. */
+
+    /* For more compatibility with zlib, miniz.c uses unsigned long for some parameters/struct members. Beware: mz_ulong can be either 32 or 64-bits! */
+    typedef unsigned long mz_ulong;
+
+    /* mz_free() internally uses the MZ_FREE() macro (which by default calls free() unless you've modified the MZ_MALLOC macro) to release a block allocated from the heap. */
+    MINIZ_EXPORT void mz_free(void *p);
+
+#define MZ_ADLER32_INIT (1)
+    /* mz_adler32() returns the initial adler-32 value to use when called with ptr==NULL. */
+    MINIZ_EXPORT mz_ulong mz_adler32(mz_ulong adler, const unsigned char *ptr, size_t buf_len);
+
+#define MZ_CRC32_INIT (0)
+    /* mz_crc32() returns the initial CRC-32 value to use when called with ptr==NULL. */
+    MINIZ_EXPORT mz_ulong mz_crc32(mz_ulong crc, const unsigned char *ptr, size_t buf_len);
+
+    /* Compression strategies. */
+    enum
+    {
+        MZ_DEFAULT_STRATEGY = 0,
+        MZ_FILTERED = 1,
+        MZ_HUFFMAN_ONLY = 2,
+        MZ_RLE = 3,
+        MZ_FIXED = 4
+    };
+
+/* Method */
+#define MZ_DEFLATED 8
+
+    /* Heap allocation callbacks.
+    Note that mz_alloc_func parameter types purposely differ from zlib's: items/size is size_t, not unsigned long. */
+    typedef void *(*mz_alloc_func)(void *opaque, size_t items, size_t size);
+    typedef void (*mz_free_func)(void *opaque, void *address);
+    typedef void *(*mz_realloc_func)(void *opaque, void *address, size_t items, size_t size);
+
+    /* Compression levels: 0-9 are the standard zlib-style levels, 10 is best possible compression (not zlib compatible, and may be very slow), MZ_DEFAULT_COMPRESSION=MZ_DEFAULT_LEVEL. */
+    enum
+    {
+        MZ_NO_COMPRESSION = 0,
+        MZ_BEST_SPEED = 1,
+        MZ_BEST_COMPRESSION = 9,
+        MZ_UBER_COMPRESSION = 10,
+        MZ_DEFAULT_LEVEL = 6,
+        MZ_DEFAULT_COMPRESSION = -1
+    };
+
+#define MZ_VERSION "11.3.1"
+#define MZ_VERNUM 0xB301
+#define MZ_VER_MAJOR 11
+#define MZ_VER_MINOR 3
+#define MZ_VER_REVISION 1
+#define MZ_VER_SUBREVISION 0
+
+#ifndef MINIZ_NO_ZLIB_APIS
+
+    /* Flush values. For typical usage you only need MZ_NO_FLUSH and MZ_FINISH. The other values are for advanced use (refer to the zlib docs). */
+    enum
+    {
+        MZ_NO_FLUSH = 0,
+        MZ_PARTIAL_FLUSH = 1,
+        MZ_SYNC_FLUSH = 2,
+        MZ_FULL_FLUSH = 3,
+        MZ_FINISH = 4,
+        MZ_BLOCK = 5
+    };
+
+    /* Return status codes. MZ_PARAM_ERROR is non-standard. */
+    enum
+    {
+        MZ_OK = 0,
+        MZ_STREAM_END = 1,
+        MZ_NEED_DICT = 2,
+        MZ_ERRNO = -1,
+        MZ_STREAM_ERROR = -2,
+        MZ_DATA_ERROR = -3,
+        MZ_MEM_ERROR = -4,
+        MZ_BUF_ERROR = -5,
+        MZ_VERSION_ERROR = -6,
+        MZ_PARAM_ERROR = -10000
+    };
+
+/* Window bits */
+#define MZ_DEFAULT_WINDOW_BITS 15
+
+    struct mz_internal_state;
+
+    /* Compression/decompression stream struct. */
+    typedef struct mz_stream_s
+    {
+        const unsigned char *next_in; /* pointer to next byte to read */
+        unsigned int avail_in;        /* number of bytes available at next_in */
+        mz_ulong total_in;            /* total number of bytes consumed so far */
+
+        unsigned char *next_out; /* pointer to next byte to write */
+        unsigned int avail_out;  /* number of bytes that can be written to next_out */
+        mz_ulong total_out;      /* total number of bytes produced so far */
+
+        char *msg;                       /* error msg (unused) */
+        struct mz_internal_state *state; /* internal state, allocated by zalloc/zfree */
+
+        mz_alloc_func zalloc; /* optional heap allocation function (defaults to malloc) */
+        mz_free_func zfree;   /* optional heap free function (defaults to free) */
+        void *opaque;         /* heap alloc function user pointer */
+
+        int data_type;     /* data_type (unused) */
+        mz_ulong adler;    /* adler32 of the source or uncompressed data */
+        mz_ulong reserved; /* not used */
+    } mz_stream;
+
+    typedef mz_stream *mz_streamp;
+
+    /* Returns the version string of miniz.c. */
+    MINIZ_EXPORT const char *mz_version(void);
+
+#ifndef MINIZ_NO_DEFLATE_APIS
+
+    /* mz_deflateInit() initializes a compressor with default options: */
+    /* Parameters: */
+    /*  pStream must point to an initialized mz_stream struct. */
+    /*  level must be between [MZ_NO_COMPRESSION, MZ_BEST_COMPRESSION]. */
+    /*  level 1 enables a specially optimized compression function that's been optimized purely for performance, not ratio. */
+    /*  (This special func. is currently only enabled when MINIZ_USE_UNALIGNED_LOADS_AND_STORES and MINIZ_LITTLE_ENDIAN are defined.) */
+    /* Return values: */
+    /*  MZ_OK on success. */
+    /*  MZ_STREAM_ERROR if the stream is bogus. */
+    /*  MZ_PARAM_ERROR if the input parameters are bogus. */
+    /*  MZ_MEM_ERROR on out of memory. */
+    MINIZ_EXPORT int mz_deflateInit(mz_streamp pStream, int level);
+
+    /* mz_deflateInit2() is like mz_deflate(), except with more control: */
+    /* Additional parameters: */
+    /*   method must be MZ_DEFLATED */
+    /*   window_bits must be MZ_DEFAULT_WINDOW_BITS (to wrap the deflate stream with zlib header/adler-32 footer) or -MZ_DEFAULT_WINDOW_BITS (raw deflate/no header or footer) */
+    /*   mem_level must be between [1, 9] (it's checked but ignored by miniz.c) */
+    MINIZ_EXPORT int mz_deflateInit2(mz_streamp pStream, int level, int method, int window_bits, int mem_level, int strategy);
+
+    /* Quickly resets a compressor without having to reallocate anything. Same as calling mz_deflateEnd() followed by mz_deflateInit()/mz_deflateInit2(). */
+    MINIZ_EXPORT int mz_deflateReset(mz_streamp pStream);
+
+    /* mz_deflate() compresses the input to output, consuming as much of the input and producing as much output as possible. */
+    /* Parameters: */
+    /*   pStream is the stream to read from and write to. You must initialize/update the next_in, avail_in, next_out, and avail_out members. */
+    /*   flush may be MZ_NO_FLUSH, MZ_PARTIAL_FLUSH/MZ_SYNC_FLUSH, MZ_FULL_FLUSH, or MZ_FINISH. */
+    /* Return values: */
+    /*   MZ_OK on success (when flushing, or if more input is needed but not available, and/or there's more output to be written but the output buffer is full). */
+    /*   MZ_STREAM_END if all input has been consumed and all output bytes have been written. Don't call mz_deflate() on the stream anymore. */
+    /*   MZ_STREAM_ERROR if the stream is bogus. */
+    /*   MZ_PARAM_ERROR if one of the parameters is invalid. */
+    /*   MZ_BUF_ERROR if no forward progress is possible because the input and/or output buffers are empty. (Fill up the input buffer or free up some output space and try again.) */
+    MINIZ_EXPORT int mz_deflate(mz_streamp pStream, int flush);
+
+    /* mz_deflateEnd() deinitializes a compressor: */
+    /* Return values: */
+    /*  MZ_OK on success. */
+    /*  MZ_STREAM_ERROR if the stream is bogus. */
+    MINIZ_EXPORT int mz_deflateEnd(mz_streamp pStream);
+
+    /* mz_deflateBound() returns a (very) conservative upper bound on the amount of data that could be generated by deflate(), assuming flush is set to only MZ_NO_FLUSH or MZ_FINISH. */
+    MINIZ_EXPORT mz_ulong mz_deflateBound(mz_streamp pStream, mz_ulong source_len);
+
+    /* Single-call compression functions mz_compress() and mz_compress2(): */
+    /* Returns MZ_OK on success, or one of the error codes from mz_deflate() on failure. */
+    MINIZ_EXPORT int mz_compress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len);
+    MINIZ_EXPORT int mz_compress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len, int level);
+
+    /* mz_compressBound() returns a (very) conservative upper bound on the amount of data that could be generated by calling mz_compress(). */
+    MINIZ_EXPORT mz_ulong mz_compressBound(mz_ulong source_len);
+
+#endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/
+
+#ifndef MINIZ_NO_INFLATE_APIS
+
+    /* Initializes a decompressor. */
+    MINIZ_EXPORT int mz_inflateInit(mz_streamp pStream);
+
+    /* mz_inflateInit2() is like mz_inflateInit() with an additional option that controls the window size and whether or not the stream has been wrapped with a zlib header/footer: */
+    /* window_bits must be MZ_DEFAULT_WINDOW_BITS (to parse zlib header/footer) or -MZ_DEFAULT_WINDOW_BITS (raw deflate). */
+    MINIZ_EXPORT int mz_inflateInit2(mz_streamp pStream, int window_bits);
+
+    /* Quickly resets a compressor without having to reallocate anything. Same as calling mz_inflateEnd() followed by mz_inflateInit()/mz_inflateInit2(). */
+    MINIZ_EXPORT int mz_inflateReset(mz_streamp pStream);
+
+    /* Decompresses the input stream to the output, consuming only as much of the input as needed, and writing as much to the output as possible. */
+    /* Parameters: */
+    /*   pStream is the stream to read from and write to. You must initialize/update the next_in, avail_in, next_out, and avail_out members. */
+    /*   flush may be MZ_NO_FLUSH, MZ_SYNC_FLUSH, or MZ_FINISH. */
+    /*   On the first call, if flush is MZ_FINISH it's assumed the input and output buffers are both sized large enough to decompress the entire stream in a single call (this is slightly faster). */
+    /*   MZ_FINISH implies that there are no more source bytes available beside what's already in the input buffer, and that the output buffer is large enough to hold the rest of the decompressed data. */
+    /* Return values: */
+    /*   MZ_OK on success. Either more input is needed but not available, and/or there's more output to be written but the output buffer is full. */
+    /*   MZ_STREAM_END if all needed input has been consumed and all output bytes have been written. For zlib streams, the adler-32 of the decompressed data has also been verified. */
+    /*   MZ_STREAM_ERROR if the stream is bogus. */
+    /*   MZ_DATA_ERROR if the deflate stream is invalid. */
+    /*   MZ_PARAM_ERROR if one of the parameters is invalid. */
+    /*   MZ_BUF_ERROR if no forward progress is possible because the input buffer is empty but the inflater needs more input to continue, or if the output buffer is not large enough. Call mz_inflate() again */
+    /*   with more input data, or with more room in the output buffer (except when using single call decompression, described above). */
+    MINIZ_EXPORT int mz_inflate(mz_streamp pStream, int flush);
+
+    /* Deinitializes a decompressor. */
+    MINIZ_EXPORT int mz_inflateEnd(mz_streamp pStream);
+
+    /* Single-call decompression. */
+    /* Returns MZ_OK on success, or one of the error codes from mz_inflate() on failure. */
+    MINIZ_EXPORT int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len);
+    MINIZ_EXPORT int mz_uncompress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong *pSource_len);
+#endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
+
+    /* Returns a string description of the specified error code, or NULL if the error code is invalid. */
+    MINIZ_EXPORT const char *mz_error(int err);
+
+/* Redefine zlib-compatible names to miniz equivalents, so miniz.c can be used as a drop-in replacement for the subset of zlib that miniz.c supports. */
+/* Define MINIZ_NO_ZLIB_COMPATIBLE_NAMES to disable zlib-compatibility if you use zlib in the same project. */
+#ifndef MINIZ_NO_ZLIB_COMPATIBLE_NAMES
+    typedef unsigned char Byte;
+    typedef unsigned int uInt;
+    typedef mz_ulong uLong;
+    typedef Byte Bytef;
+    typedef uInt uIntf;
+    typedef char charf;
+    typedef int intf;
+    typedef void *voidpf;
+    typedef uLong uLongf;
+    typedef void *voidp;
+    typedef void *const voidpc;
+#define Z_NULL 0
+#define Z_NO_FLUSH MZ_NO_FLUSH
+#define Z_PARTIAL_FLUSH MZ_PARTIAL_FLUSH
+#define Z_SYNC_FLUSH MZ_SYNC_FLUSH
+#define Z_FULL_FLUSH MZ_FULL_FLUSH
+#define Z_FINISH MZ_FINISH
+#define Z_BLOCK MZ_BLOCK
+#define Z_OK MZ_OK
+#define Z_STREAM_END MZ_STREAM_END
+#define Z_NEED_DICT MZ_NEED_DICT
+#define Z_ERRNO MZ_ERRNO
+#define Z_STREAM_ERROR MZ_STREAM_ERROR
+#define Z_DATA_ERROR MZ_DATA_ERROR
+#define Z_MEM_ERROR MZ_MEM_ERROR
+#define Z_BUF_ERROR MZ_BUF_ERROR
+#define Z_VERSION_ERROR MZ_VERSION_ERROR
+#define Z_PARAM_ERROR MZ_PARAM_ERROR
+#define Z_NO_COMPRESSION MZ_NO_COMPRESSION
+#define Z_BEST_SPEED MZ_BEST_SPEED
+#define Z_BEST_COMPRESSION MZ_BEST_COMPRESSION
+#define Z_DEFAULT_COMPRESSION MZ_DEFAULT_COMPRESSION
+#define Z_DEFAULT_STRATEGY MZ_DEFAULT_STRATEGY
+#define Z_FILTERED MZ_FILTERED
+#define Z_HUFFMAN_ONLY MZ_HUFFMAN_ONLY
+#define Z_RLE MZ_RLE
+#define Z_FIXED MZ_FIXED
+#define Z_DEFLATED MZ_DEFLATED
+#define Z_DEFAULT_WINDOW_BITS MZ_DEFAULT_WINDOW_BITS
+    /* See mz_alloc_func */
+    typedef void *(*alloc_func)(void *opaque, size_t items, size_t size);
+    /* See mz_free_func */
+    typedef void (*free_func)(void *opaque, void *address);
+
+#define internal_state mz_internal_state
+#define z_stream mz_stream
+
+#ifndef MINIZ_NO_DEFLATE_APIS
+    /* Compatiblity with zlib API. See called functions for documentation */
+    static MZ_FORCEINLINE int deflateInit(mz_streamp pStream, int level)
+    {
+        return mz_deflateInit(pStream, level);
+    }
+    static MZ_FORCEINLINE int deflateInit2(mz_streamp pStream, int level, int method, int window_bits, int mem_level, int strategy)
+    {
+        return mz_deflateInit2(pStream, level, method, window_bits, mem_level, strategy);
+    }
+    static MZ_FORCEINLINE int deflateReset(mz_streamp pStream)
+    {
+        return mz_deflateReset(pStream);
+    }
+    static MZ_FORCEINLINE int deflate(mz_streamp pStream, int flush)
+    {
+        return mz_deflate(pStream, flush);
+    }
+    static MZ_FORCEINLINE int deflateEnd(mz_streamp pStream)
+    {
+        return mz_deflateEnd(pStream);
+    }
+    static MZ_FORCEINLINE mz_ulong deflateBound(mz_streamp pStream, mz_ulong source_len)
+    {
+        return mz_deflateBound(pStream, source_len);
+    }
+    static MZ_FORCEINLINE int compress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len)
+    {
+        return mz_compress(pDest, pDest_len, pSource, source_len);
+    }
+    static MZ_FORCEINLINE int compress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong source_len, int level)
+    {
+        return mz_compress2(pDest, pDest_len, pSource, source_len, level);
+    }
+    static MZ_FORCEINLINE mz_ulong compressBound(mz_ulong source_len)
+    {
+        return mz_compressBound(source_len);
+    }
+#endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/
+
+#ifndef MINIZ_NO_INFLATE_APIS
+    /* Compatiblity with zlib API. See called functions for documentation */
+    static MZ_FORCEINLINE int inflateInit(mz_streamp pStream)
+    {
+        return mz_inflateInit(pStream);
+    }
+
+    static MZ_FORCEINLINE int inflateInit2(mz_streamp pStream, int window_bits)
+    {
+        return mz_inflateInit2(pStream, window_bits);
+    }
+
+    static MZ_FORCEINLINE int inflateReset(mz_streamp pStream)
+    {
+        return mz_inflateReset(pStream);
+    }
+
+    static MZ_FORCEINLINE int inflate(mz_streamp pStream, int flush)
+    {
+        return mz_inflate(pStream, flush);
+    }
+
+    static MZ_FORCEINLINE int inflateEnd(mz_streamp pStream)
+    {
+        return mz_inflateEnd(pStream);
+    }
+
+    static MZ_FORCEINLINE int uncompress(unsigned char* pDest, mz_ulong* pDest_len, const unsigned char* pSource, mz_ulong source_len)
+    {
+        return mz_uncompress(pDest, pDest_len, pSource, source_len);
+    }
+
+    static MZ_FORCEINLINE int uncompress2(unsigned char* pDest, mz_ulong* pDest_len, const unsigned char* pSource, mz_ulong* pSource_len)
+    {
+        return mz_uncompress2(pDest, pDest_len, pSource, pSource_len);
+    }
+#endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
+
+    static MZ_FORCEINLINE mz_ulong crc32(mz_ulong crc, const unsigned char *ptr, size_t buf_len)
+    {
+        return mz_crc32(crc, ptr, buf_len);
+    }
+
+    static MZ_FORCEINLINE mz_ulong adler32(mz_ulong adler, const unsigned char *ptr, size_t buf_len)
+    {
+        return mz_adler32(adler, ptr, buf_len);
+    }
+    
+#define MAX_WBITS 15
+#define MAX_MEM_LEVEL 9
+
+    static MZ_FORCEINLINE const char* zError(int err)
+    {
+        return mz_error(err);
+    }
+#define ZLIB_VERSION MZ_VERSION
+#define ZLIB_VERNUM MZ_VERNUM
+#define ZLIB_VER_MAJOR MZ_VER_MAJOR
+#define ZLIB_VER_MINOR MZ_VER_MINOR
+#define ZLIB_VER_REVISION MZ_VER_REVISION
+#define ZLIB_VER_SUBREVISION MZ_VER_SUBREVISION
+
+#define zlibVersion mz_version
+#define zlib_version mz_version()
+#endif /* #ifndef MINIZ_NO_ZLIB_COMPATIBLE_NAMES */
+
+#endif /* MINIZ_NO_ZLIB_APIS */
+
+#ifdef __cplusplus
+}
+#endif
+
+
+
+
+
+#pragma once
+#include <assert.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+
+/* ------------------- Types and macros */
+typedef unsigned char mz_uint8;
+typedef int16_t mz_int16;
+typedef uint16_t mz_uint16;
+typedef uint32_t mz_uint32;
+typedef uint32_t mz_uint;
+typedef int64_t mz_int64;
+typedef uint64_t mz_uint64;
+typedef int mz_bool;
+
+#define MZ_FALSE (0)
+#define MZ_TRUE (1)
+
+/* Works around MSVC's spammy "warning C4127: conditional expression is constant" message. */
+#ifdef _MSC_VER
+#define MZ_MACRO_END while (0, 0)
+#else
+#define MZ_MACRO_END while (0)
+#endif
+
+#ifdef MINIZ_NO_STDIO
+#define MZ_FILE void *
+#else
+#include <stdio.h>
+#define MZ_FILE FILE
+#endif /* #ifdef MINIZ_NO_STDIO */
+
+#ifdef MINIZ_NO_TIME
+typedef struct mz_dummy_time_t_tag
+{
+    mz_uint32 m_dummy1;
+    mz_uint32 m_dummy2;
+} mz_dummy_time_t;
+#define MZ_TIME_T mz_dummy_time_t
+#else
+#define MZ_TIME_T time_t
+#endif
+
+#define MZ_ASSERT(x) assert(x)
+
+#ifdef MINIZ_NO_MALLOC
+#define MZ_MALLOC(x) NULL
+#define MZ_FREE(x) (void)x, ((void)0)
+#define MZ_REALLOC(p, x) NULL
+#else
+#define MZ_MALLOC(x) malloc(x)
+#define MZ_FREE(x) free(x)
+#define MZ_REALLOC(p, x) realloc(p, x)
+#endif
+
+#define MZ_MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MZ_MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MZ_CLEAR_OBJ(obj) memset(&(obj), 0, sizeof(obj))
+#define MZ_CLEAR_ARR(obj) memset((obj), 0, sizeof(obj))
+#define MZ_CLEAR_PTR(obj) memset((obj), 0, sizeof(*obj))
+
+#if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN
+#define MZ_READ_LE16(p) *((const mz_uint16 *)(p))
+#define MZ_READ_LE32(p) *((const mz_uint32 *)(p))
+#else
+#define MZ_READ_LE16(p) ((mz_uint32)(((const mz_uint8 *)(p))[0]) | ((mz_uint32)(((const mz_uint8 *)(p))[1]) << 8U))
+#define MZ_READ_LE32(p) ((mz_uint32)(((const mz_uint8 *)(p))[0]) | ((mz_uint32)(((const mz_uint8 *)(p))[1]) << 8U) | ((mz_uint32)(((const mz_uint8 *)(p))[2]) << 16U) | ((mz_uint32)(((const mz_uint8 *)(p))[3]) << 24U))
+#endif
+
+#define MZ_READ_LE64(p) (((mz_uint64)MZ_READ_LE32(p)) | (((mz_uint64)MZ_READ_LE32((const mz_uint8 *)(p) + sizeof(mz_uint32))) << 32U))
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    extern MINIZ_EXPORT void *miniz_def_alloc_func(void *opaque, size_t items, size_t size);
+    extern MINIZ_EXPORT void miniz_def_free_func(void *opaque, void *address);
+    extern MINIZ_EXPORT void *miniz_def_realloc_func(void *opaque, void *address, size_t items, size_t size);
+
+#define MZ_UINT16_MAX (0xFFFFU)
+#define MZ_UINT32_MAX (0xFFFFFFFFU)
+
+#ifdef __cplusplus
+}
+#endif
+ #pragma once
+
+
+#ifndef MINIZ_NO_DEFLATE_APIS
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+/* ------------------- Low-level Compression API Definitions */
+
+/* Set TDEFL_LESS_MEMORY to 1 to use less memory (compression will be slightly slower, and raw/dynamic blocks will be output more frequently). */
+#ifndef TDEFL_LESS_MEMORY
+#define TDEFL_LESS_MEMORY 0
+#endif
+
+    /* tdefl_init() compression flags logically OR'd together (low 12 bits contain the max. number of probes per dictionary search): */
+    /* TDEFL_DEFAULT_MAX_PROBES: The compressor defaults to 128 dictionary probes per dictionary search. 0=Huffman only, 1=Huffman+LZ (fastest/crap compression), 4095=Huffman+LZ (slowest/best compression). */
+    enum
+    {
+        TDEFL_HUFFMAN_ONLY = 0,
+        TDEFL_DEFAULT_MAX_PROBES = 128,
+        TDEFL_MAX_PROBES_MASK = 0xFFF
+    };
+
+    /* TDEFL_WRITE_ZLIB_HEADER: If set, the compressor outputs a zlib header before the deflate data, and the Adler-32 of the source data at the end. Otherwise, you'll get raw deflate data. */
+    /* TDEFL_COMPUTE_ADLER32: Always compute the adler-32 of the input data (even when not writing zlib headers). */
+    /* TDEFL_GREEDY_PARSING_FLAG: Set to use faster greedy parsing, instead of more efficient lazy parsing. */
+    /* TDEFL_NONDETERMINISTIC_PARSING_FLAG: Enable to decrease the compressor's initialization time to the minimum, but the output may vary from run to run given the same input (depending on the contents of memory). */
+    /* TDEFL_RLE_MATCHES: Only look for RLE matches (matches with a distance of 1) */
+    /* TDEFL_FILTER_MATCHES: Discards matches <= 5 chars if enabled. */
+    /* TDEFL_FORCE_ALL_STATIC_BLOCKS: Disable usage of optimized Huffman tables. */
+    /* TDEFL_FORCE_ALL_RAW_BLOCKS: Only use raw (uncompressed) deflate blocks. */
+    /* The low 12 bits are reserved to control the max # of hash probes per dictionary lookup (see TDEFL_MAX_PROBES_MASK). */
+    enum
+    {
+        TDEFL_WRITE_ZLIB_HEADER = 0x01000,
+        TDEFL_COMPUTE_ADLER32 = 0x02000,
+        TDEFL_GREEDY_PARSING_FLAG = 0x04000,
+        TDEFL_NONDETERMINISTIC_PARSING_FLAG = 0x08000,
+        TDEFL_RLE_MATCHES = 0x10000,
+        TDEFL_FILTER_MATCHES = 0x20000,
+        TDEFL_FORCE_ALL_STATIC_BLOCKS = 0x40000,
+        TDEFL_FORCE_ALL_RAW_BLOCKS = 0x80000
+    };
+
+    /* High level compression functions: */
+    /* tdefl_compress_mem_to_heap() compresses a block in memory to a heap block allocated via malloc(). */
+    /* On entry: */
+    /*  pSrc_buf, src_buf_len: Pointer and size of source block to compress. */
+    /*  flags: The max match finder probes (default is 128) logically OR'd against the above flags. Higher probes are slower but improve compression. */
+    /* On return: */
+    /*  Function returns a pointer to the compressed data, or NULL on failure. */
+    /*  *pOut_len will be set to the compressed data's size, which could be larger than src_buf_len on uncompressible data. */
+    /*  The caller must free() the returned block when it's no longer needed. */
+    MINIZ_EXPORT void *tdefl_compress_mem_to_heap(const void *pSrc_buf, size_t src_buf_len, size_t *pOut_len, int flags);
+
+    /* tdefl_compress_mem_to_mem() compresses a block in memory to another block in memory. */
+    /* Returns 0 on failure. */
+    MINIZ_EXPORT size_t tdefl_compress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void *pSrc_buf, size_t src_buf_len, int flags);
+
+    /* Compresses an image to a compressed PNG file in memory. */
+    /* On entry: */
+    /*  pImage, w, h, and num_chans describe the image to compress. num_chans may be 1, 2, 3, or 4. */
+    /*  The image pitch in bytes per scanline will be w*num_chans. The leftmost pixel on the top scanline is stored first in memory. */
+    /*  level may range from [0,10], use MZ_NO_COMPRESSION, MZ_BEST_SPEED, MZ_BEST_COMPRESSION, etc. or a decent default is MZ_DEFAULT_LEVEL */
+    /*  If flip is true, the image will be flipped on the Y axis (useful for OpenGL apps). */
+    /* On return: */
+    /*  Function returns a pointer to the compressed data, or NULL on failure. */
+    /*  *pLen_out will be set to the size of the PNG image file. */
+    /*  The caller must mz_free() the returned heap block (which will typically be larger than *pLen_out) when it's no longer needed. */
+    MINIZ_EXPORT void *tdefl_write_image_to_png_file_in_memory_ex(const void *pImage, int w, int h, int num_chans, size_t *pLen_out, mz_uint level, mz_bool flip);
+    MINIZ_EXPORT void *tdefl_write_image_to_png_file_in_memory(const void *pImage, int w, int h, int num_chans, size_t *pLen_out);
+
+    /* Output stream interface. The compressor uses this interface to write compressed data. It'll typically be called TDEFL_OUT_BUF_SIZE at a time. */
+    typedef mz_bool (*tdefl_put_buf_func_ptr)(const void *pBuf, int len, void *pUser);
+
+    /* tdefl_compress_mem_to_output() compresses a block to an output stream. The above helpers use this function internally. */
+    MINIZ_EXPORT mz_bool tdefl_compress_mem_to_output(const void *pBuf, size_t buf_len, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags);
+
+    enum
+    {
+        TDEFL_MAX_HUFF_TABLES = 3,
+        TDEFL_MAX_HUFF_SYMBOLS_0 = 288,
+        TDEFL_MAX_HUFF_SYMBOLS_1 = 32,
+        TDEFL_MAX_HUFF_SYMBOLS_2 = 19,
+        TDEFL_LZ_DICT_SIZE = 32768,
+        TDEFL_LZ_DICT_SIZE_MASK = TDEFL_LZ_DICT_SIZE - 1,
+        TDEFL_MIN_MATCH_LEN = 3,
+        TDEFL_MAX_MATCH_LEN = 258
+    };
+
+/* TDEFL_OUT_BUF_SIZE MUST be large enough to hold a single entire compressed output block (using static/fixed Huffman codes). */
+#if TDEFL_LESS_MEMORY
+    enum
+    {
+        TDEFL_LZ_CODE_BUF_SIZE = 24 * 1024,
+        TDEFL_OUT_BUF_SIZE = (TDEFL_LZ_CODE_BUF_SIZE * 13) / 10,
+        TDEFL_MAX_HUFF_SYMBOLS = 288,
+        TDEFL_LZ_HASH_BITS = 12,
+        TDEFL_LEVEL1_HASH_SIZE_MASK = 4095,
+        TDEFL_LZ_HASH_SHIFT = (TDEFL_LZ_HASH_BITS + 2) / 3,
+        TDEFL_LZ_HASH_SIZE = 1 << TDEFL_LZ_HASH_BITS
+    };
+#else
+enum
+{
+    TDEFL_LZ_CODE_BUF_SIZE = 64 * 1024,
+    TDEFL_OUT_BUF_SIZE = (mz_uint)((TDEFL_LZ_CODE_BUF_SIZE * 13) / 10),
+    TDEFL_MAX_HUFF_SYMBOLS = 288,
+    TDEFL_LZ_HASH_BITS = 15,
+    TDEFL_LEVEL1_HASH_SIZE_MASK = 4095,
+    TDEFL_LZ_HASH_SHIFT = (TDEFL_LZ_HASH_BITS + 2) / 3,
+    TDEFL_LZ_HASH_SIZE = 1 << TDEFL_LZ_HASH_BITS
+};
+#endif
+
+    /* The low-level tdefl functions below may be used directly if the above helper functions aren't flexible enough. The low-level functions don't make any heap allocations, unlike the above helper functions. */
+    typedef enum
+    {
+        TDEFL_STATUS_BAD_PARAM = -2,
+        TDEFL_STATUS_PUT_BUF_FAILED = -1,
+        TDEFL_STATUS_OKAY = 0,
+        TDEFL_STATUS_DONE = 1
+    } tdefl_status;
+
+    /* Must map to MZ_NO_FLUSH, MZ_SYNC_FLUSH, etc. enums */
+    typedef enum
+    {
+        TDEFL_NO_FLUSH = 0,
+        TDEFL_SYNC_FLUSH = 2,
+        TDEFL_FULL_FLUSH = 3,
+        TDEFL_FINISH = 4
+    } tdefl_flush;
+
+    /* tdefl's compression state structure. */
+    typedef struct
+    {
+        tdefl_put_buf_func_ptr m_pPut_buf_func;
+        void *m_pPut_buf_user;
+        mz_uint m_flags, m_max_probes[2];
+        int m_greedy_parsing;
+        mz_uint m_adler32, m_lookahead_pos, m_lookahead_size, m_dict_size;
+        mz_uint8 *m_pLZ_code_buf, *m_pLZ_flags, *m_pOutput_buf, *m_pOutput_buf_end;
+        mz_uint m_num_flags_left, m_total_lz_bytes, m_lz_code_buf_dict_pos, m_bits_in, m_bit_buffer;
+        mz_uint m_saved_match_dist, m_saved_match_len, m_saved_lit, m_output_flush_ofs, m_output_flush_remaining, m_finished, m_block_index, m_wants_to_finish;
+        tdefl_status m_prev_return_status;
+        const void *m_pIn_buf;
+        void *m_pOut_buf;
+        size_t *m_pIn_buf_size, *m_pOut_buf_size;
+        tdefl_flush m_flush;
+        const mz_uint8 *m_pSrc;
+        size_t m_src_buf_left, m_out_buf_ofs;
+        mz_uint8 m_dict[TDEFL_LZ_DICT_SIZE + TDEFL_MAX_MATCH_LEN - 1];
+        mz_uint16 m_huff_count[TDEFL_MAX_HUFF_TABLES][TDEFL_MAX_HUFF_SYMBOLS];
+        mz_uint16 m_huff_codes[TDEFL_MAX_HUFF_TABLES][TDEFL_MAX_HUFF_SYMBOLS];
+        mz_uint8 m_huff_code_sizes[TDEFL_MAX_HUFF_TABLES][TDEFL_MAX_HUFF_SYMBOLS];
+        mz_uint8 m_lz_code_buf[TDEFL_LZ_CODE_BUF_SIZE];
+        mz_uint16 m_next[TDEFL_LZ_DICT_SIZE];
+        mz_uint16 m_hash[TDEFL_LZ_HASH_SIZE];
+        mz_uint8 m_output_buf[TDEFL_OUT_BUF_SIZE];
+    } tdefl_compressor;
+
+    /* Initializes the compressor. */
+    /* There is no corresponding deinit() function because the tdefl API's do not dynamically allocate memory. */
+    /* pBut_buf_func: If NULL, output data will be supplied to the specified callback. In this case, the user should call the tdefl_compress_buffer() API for compression. */
+    /* If pBut_buf_func is NULL the user should always call the tdefl_compress() API. */
+    /* flags: See the above enums (TDEFL_HUFFMAN_ONLY, TDEFL_WRITE_ZLIB_HEADER, etc.) */
+    MINIZ_EXPORT tdefl_status tdefl_init(tdefl_compressor *d, tdefl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags);
+
+    /* Compresses a block of data, consuming as much of the specified input buffer as possible, and writing as much compressed data to the specified output buffer as possible. */
+    MINIZ_EXPORT tdefl_status tdefl_compress(tdefl_compressor *d, const void *pIn_buf, size_t *pIn_buf_size, void *pOut_buf, size_t *pOut_buf_size, tdefl_flush flush);
+
+    /* tdefl_compress_buffer() is only usable when the tdefl_init() is called with a non-NULL tdefl_put_buf_func_ptr. */
+    /* tdefl_compress_buffer() always consumes the entire input buffer. */
+    MINIZ_EXPORT tdefl_status tdefl_compress_buffer(tdefl_compressor *d, const void *pIn_buf, size_t in_buf_size, tdefl_flush flush);
+
+    MINIZ_EXPORT tdefl_status tdefl_get_prev_return_status(tdefl_compressor *d);
+    MINIZ_EXPORT mz_uint32 tdefl_get_adler32(tdefl_compressor *d);
+
+    /* Create tdefl_compress() flags given zlib-style compression parameters. */
+    /* level may range from [0,10] (where 10 is absolute max compression, but may be much slower on some files) */
+    /* window_bits may be -15 (raw deflate) or 15 (zlib) */
+    /* strategy may be either MZ_DEFAULT_STRATEGY, MZ_FILTERED, MZ_HUFFMAN_ONLY, MZ_RLE, or MZ_FIXED */
+    MINIZ_EXPORT mz_uint tdefl_create_comp_flags_from_zip_params(int level, int window_bits, int strategy);
+
+#ifndef MINIZ_NO_MALLOC
+    /* Allocate the tdefl_compressor structure in C so that */
+    /* non-C language bindings to tdefl_ API don't need to worry about */
+    /* structure size and allocation mechanism. */
+    MINIZ_EXPORT tdefl_compressor *tdefl_compressor_alloc(void);
+    MINIZ_EXPORT void tdefl_compressor_free(tdefl_compressor *pComp);
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /*#ifndef MINIZ_NO_DEFLATE_APIS*/
+ #pragma once
+
+/* ------------------- Low-level Decompression API Definitions */
+
+#ifndef MINIZ_NO_INFLATE_APIS
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    /* Decompression flags used by tinfl_decompress(). */
+    /* TINFL_FLAG_PARSE_ZLIB_HEADER: If set, the input has a valid zlib header and ends with an adler32 checksum (it's a valid zlib stream). Otherwise, the input is a raw deflate stream. */
+    /* TINFL_FLAG_HAS_MORE_INPUT: If set, there are more input bytes available beyond the end of the supplied input buffer. If clear, the input buffer contains all remaining input. */
+    /* TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF: If set, the output buffer is large enough to hold the entire decompressed stream. If clear, the output buffer is at least the size of the dictionary (typically 32KB). */
+    /* TINFL_FLAG_COMPUTE_ADLER32: Force adler-32 checksum computation of the decompressed bytes. */
+    enum
+    {
+        TINFL_FLAG_PARSE_ZLIB_HEADER = 1,
+        TINFL_FLAG_HAS_MORE_INPUT = 2,
+        TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF = 4,
+        TINFL_FLAG_COMPUTE_ADLER32 = 8
+    };
+
+    /* High level decompression functions: */
+    /* tinfl_decompress_mem_to_heap() decompresses a block in memory to a heap block allocated via malloc(). */
+    /* On entry: */
+    /*  pSrc_buf, src_buf_len: Pointer and size of the Deflate or zlib source data to decompress. */
+    /* On return: */
+    /*  Function returns a pointer to the decompressed data, or NULL on failure. */
+    /*  *pOut_len will be set to the decompressed data's size, which could be larger than src_buf_len on uncompressible data. */
+    /*  The caller must call mz_free() on the returned block when it's no longer needed. */
+    MINIZ_EXPORT void *tinfl_decompress_mem_to_heap(const void *pSrc_buf, size_t src_buf_len, size_t *pOut_len, int flags);
+
+/* tinfl_decompress_mem_to_mem() decompresses a block in memory to another block in memory. */
+/* Returns TINFL_DECOMPRESS_MEM_TO_MEM_FAILED on failure, or the number of bytes written on success. */
+#define TINFL_DECOMPRESS_MEM_TO_MEM_FAILED ((size_t)(-1))
+    MINIZ_EXPORT size_t tinfl_decompress_mem_to_mem(void *pOut_buf, size_t out_buf_len, const void *pSrc_buf, size_t src_buf_len, int flags);
+
+    /* tinfl_decompress_mem_to_callback() decompresses a block in memory to an internal 32KB buffer, and a user provided callback function will be called to flush the buffer. */
+    /* Returns 1 on success or 0 on failure. */
+    typedef int (*tinfl_put_buf_func_ptr)(const void *pBuf, int len, void *pUser);
+    MINIZ_EXPORT int tinfl_decompress_mem_to_callback(const void *pIn_buf, size_t *pIn_buf_size, tinfl_put_buf_func_ptr pPut_buf_func, void *pPut_buf_user, int flags);
+
+    struct tinfl_decompressor_tag;
+    typedef struct tinfl_decompressor_tag tinfl_decompressor;
+
+#ifndef MINIZ_NO_MALLOC
+    /* Allocate the tinfl_decompressor structure in C so that */
+    /* non-C language bindings to tinfl_ API don't need to worry about */
+    /* structure size and allocation mechanism. */
+    MINIZ_EXPORT tinfl_decompressor *tinfl_decompressor_alloc(void);
+    MINIZ_EXPORT void tinfl_decompressor_free(tinfl_decompressor *pDecomp);
+#endif
+
+/* Max size of LZ dictionary. */
+#define TINFL_LZ_DICT_SIZE 32768
+
+    /* Return status. */
+    typedef enum
+    {
+        /* This flags indicates the inflator needs 1 or more input bytes to make forward progress, but the caller is indicating that no more are available. The compressed data */
+        /* is probably corrupted. If you call the inflator again with more bytes it'll try to continue processing the input but this is a BAD sign (either the data is corrupted or you called it incorrectly). */
+        /* If you call it again with no input you'll just get TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS again. */
+        TINFL_STATUS_FAILED_CANNOT_MAKE_PROGRESS = -4,
+
+        /* This flag indicates that one or more of the input parameters was obviously bogus. (You can try calling it again, but if you get this error the calling code is wrong.) */
+        TINFL_STATUS_BAD_PARAM = -3,
+
+        /* This flags indicate the inflator is finished but the adler32 check of the uncompressed data didn't match. If you call it again it'll return TINFL_STATUS_DONE. */
+        TINFL_STATUS_ADLER32_MISMATCH = -2,
+
+        /* This flags indicate the inflator has somehow failed (bad code, corrupted input, etc.). If you call it again without resetting via tinfl_init() it it'll just keep on returning the same status failure code. */
+        TINFL_STATUS_FAILED = -1,
+
+        /* Any status code less than TINFL_STATUS_DONE must indicate a failure. */
+
+        /* This flag indicates the inflator has returned every byte of uncompressed data that it can, has consumed every byte that it needed, has successfully reached the end of the deflate stream, and */
+        /* if zlib headers and adler32 checking enabled that it has successfully checked the uncompressed data's adler32. If you call it again you'll just get TINFL_STATUS_DONE over and over again. */
+        TINFL_STATUS_DONE = 0,
+
+        /* This flag indicates the inflator MUST have more input data (even 1 byte) before it can make any more forward progress, or you need to clear the TINFL_FLAG_HAS_MORE_INPUT */
+        /* flag on the next call if you don't have any more source data. If the source data was somehow corrupted it's also possible (but unlikely) for the inflator to keep on demanding input to */
+        /* proceed, so be sure to properly set the TINFL_FLAG_HAS_MORE_INPUT flag. */
+        TINFL_STATUS_NEEDS_MORE_INPUT = 1,
+
+        /* This flag indicates the inflator definitely has 1 or more bytes of uncompressed data available, but it cannot write this data into the output buffer. */
+        /* Note if the source compressed data was corrupted it's possible for the inflator to return a lot of uncompressed data to the caller. I've been assuming you know how much uncompressed data to expect */
+        /* (either exact or worst case) and will stop calling the inflator and fail after receiving too much. In pure streaming scenarios where you have no idea how many bytes to expect this may not be possible */
+        /* so I may need to add some code to address this. */
+        TINFL_STATUS_HAS_MORE_OUTPUT = 2
+    } tinfl_status;
+
+/* Initializes the decompressor to its initial state. */
+#define tinfl_init(r)     \
+    do                    \
+    {                     \
+        (r)->m_state = 0; \
+    }                     \
+    MZ_MACRO_END
+#define tinfl_get_adler32(r) (r)->m_check_adler32
+
+    /* Main low-level decompressor coroutine function. This is the only function actually needed for decompression. All the other functions are just high-level helpers for improved usability. */
+    /* This is a universal API, i.e. it can be used as a building block to build any desired higher level decompression API. In the limit case, it can be called once per every byte input or output. */
+    MINIZ_EXPORT tinfl_status tinfl_decompress(tinfl_decompressor *r, const mz_uint8 *pIn_buf_next, size_t *pIn_buf_size, mz_uint8 *pOut_buf_start, mz_uint8 *pOut_buf_next, size_t *pOut_buf_size, const mz_uint32 decomp_flags);
+
+    /* Internal/private bits follow. */
+    enum
+    {
+        TINFL_MAX_HUFF_TABLES = 3,
+        TINFL_MAX_HUFF_SYMBOLS_0 = 288,
+        TINFL_MAX_HUFF_SYMBOLS_1 = 32,
+        TINFL_MAX_HUFF_SYMBOLS_2 = 19,
+        TINFL_FAST_LOOKUP_BITS = 10,
+        TINFL_FAST_LOOKUP_SIZE = 1 << TINFL_FAST_LOOKUP_BITS
+    };
+
+#if MINIZ_HAS_64BIT_REGISTERS
+#define TINFL_USE_64BIT_BITBUF 1
+#else
+#define TINFL_USE_64BIT_BITBUF 0
+#endif
+
+#if TINFL_USE_64BIT_BITBUF
+    typedef mz_uint64 tinfl_bit_buf_t;
+#define TINFL_BITBUF_SIZE (64)
+#else
+typedef mz_uint32 tinfl_bit_buf_t;
+#define TINFL_BITBUF_SIZE (32)
+#endif
+
+    struct tinfl_decompressor_tag
+    {
+        mz_uint32 m_state, m_num_bits, m_zhdr0, m_zhdr1, m_z_adler32, m_final, m_type, m_check_adler32, m_dist, m_counter, m_num_extra, m_table_sizes[TINFL_MAX_HUFF_TABLES];
+        tinfl_bit_buf_t m_bit_buf;
+        size_t m_dist_from_out_buf_start;
+        mz_int16 m_look_up[TINFL_MAX_HUFF_TABLES][TINFL_FAST_LOOKUP_SIZE];
+        mz_int16 m_tree_0[TINFL_MAX_HUFF_SYMBOLS_0 * 2];
+        mz_int16 m_tree_1[TINFL_MAX_HUFF_SYMBOLS_1 * 2];
+        mz_int16 m_tree_2[TINFL_MAX_HUFF_SYMBOLS_2 * 2];
+        mz_uint8 m_code_size_0[TINFL_MAX_HUFF_SYMBOLS_0];
+        mz_uint8 m_code_size_1[TINFL_MAX_HUFF_SYMBOLS_1];
+        mz_uint8 m_code_size_2[TINFL_MAX_HUFF_SYMBOLS_2];
+        mz_uint8 m_raw_header[4], m_len_codes[TINFL_MAX_HUFF_SYMBOLS_0 + TINFL_MAX_HUFF_SYMBOLS_1 + 137];
+    };
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
+ 
+#pragma once
+
+
+/* ------------------- ZIP archive reading/writing */
+
+#ifndef MINIZ_NO_ARCHIVE_APIS
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    enum
+    {
+        /* Note: These enums can be reduced as needed to save memory or stack space - they are pretty conservative. */
+        MZ_ZIP_MAX_IO_BUF_SIZE = 64 * 1024,
+        MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE = 512,
+        MZ_ZIP_MAX_ARCHIVE_FILE_COMMENT_SIZE = 512
+    };
+
+    typedef struct
+    {
+        /* Central directory file index. */
+        mz_uint32 m_file_index;
+
+        /* Byte offset of this entry in the archive's central directory. Note we currently only support up to UINT_MAX or less bytes in the central dir. */
+        mz_uint64 m_central_dir_ofs;
+
+        /* These fields are copied directly from the zip's central dir. */
+        mz_uint16 m_version_made_by;
+        mz_uint16 m_version_needed;
+        mz_uint16 m_bit_flag;
+        mz_uint16 m_method;
+
+        /* CRC-32 of uncompressed data. */
+        mz_uint32 m_crc32;
+
+        /* File's compressed size. */
+        mz_uint64 m_comp_size;
+
+        /* File's uncompressed size. Note, I've seen some old archives where directory entries had 512 bytes for their uncompressed sizes, but when you try to unpack them you actually get 0 bytes. */
+        mz_uint64 m_uncomp_size;
+
+        /* Zip internal and external file attributes. */
+        mz_uint16 m_internal_attr;
+        mz_uint32 m_external_attr;
+
+        /* Entry's local header file offset in bytes. */
+        mz_uint64 m_local_header_ofs;
+
+        /* Size of comment in bytes. */
+        mz_uint32 m_comment_size;
+
+        /* MZ_TRUE if the entry appears to be a directory. */
+        mz_bool m_is_directory;
+
+        /* MZ_TRUE if the entry uses encryption/strong encryption (which miniz_zip doesn't support) */
+        mz_bool m_is_encrypted;
+
+        /* MZ_TRUE if the file is not encrypted, a patch file, and if it uses a compression method we support. */
+        mz_bool m_is_supported;
+
+        /* Filename. If string ends in '/' it's a subdirectory entry. */
+        /* Guaranteed to be zero terminated, may be truncated to fit. */
+        char m_filename[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE];
+
+        /* Comment field. */
+        /* Guaranteed to be zero terminated, may be truncated to fit. */
+        char m_comment[MZ_ZIP_MAX_ARCHIVE_FILE_COMMENT_SIZE];
+
+#ifdef MINIZ_NO_TIME
+        MZ_TIME_T m_padding;
+#else
+    MZ_TIME_T m_time;
+#endif
+    } mz_zip_archive_file_stat;
+
+    typedef size_t (*mz_file_read_func)(void *pOpaque, mz_uint64 file_ofs, void *pBuf, size_t n);
+    typedef size_t (*mz_file_write_func)(void *pOpaque, mz_uint64 file_ofs, const void *pBuf, size_t n);
+    typedef mz_bool (*mz_file_needs_keepalive)(void *pOpaque);
+
+    struct mz_zip_internal_state_tag;
+    typedef struct mz_zip_internal_state_tag mz_zip_internal_state;
+
+    typedef enum
+    {
+        MZ_ZIP_MODE_INVALID = 0,
+        MZ_ZIP_MODE_READING = 1,
+        MZ_ZIP_MODE_WRITING = 2,
+        MZ_ZIP_MODE_WRITING_HAS_BEEN_FINALIZED = 3
+    } mz_zip_mode;
+
+    typedef enum
+    {
+        MZ_ZIP_FLAG_CASE_SENSITIVE = 0x0100,
+        MZ_ZIP_FLAG_IGNORE_PATH = 0x0200,
+        MZ_ZIP_FLAG_COMPRESSED_DATA = 0x0400,
+        MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY = 0x0800,
+        MZ_ZIP_FLAG_VALIDATE_LOCATE_FILE_FLAG = 0x1000, /* if enabled, mz_zip_reader_locate_file() will be called on each file as its validated to ensure the func finds the file in the central dir (intended for testing) */
+        MZ_ZIP_FLAG_VALIDATE_HEADERS_ONLY = 0x2000,     /* validate the local headers, but don't decompress the entire file and check the crc32 */
+        MZ_ZIP_FLAG_WRITE_ZIP64 = 0x4000,               /* always use the zip64 file format, instead of the original zip file format with automatic switch to zip64. Use as flags parameter with mz_zip_writer_init*_v2 */
+        MZ_ZIP_FLAG_WRITE_ALLOW_READING = 0x8000,
+        MZ_ZIP_FLAG_ASCII_FILENAME = 0x10000,
+        /*After adding a compressed file, seek back
+        to local file header and set the correct sizes*/
+        MZ_ZIP_FLAG_WRITE_HEADER_SET_SIZE = 0x20000,
+        MZ_ZIP_FLAG_READ_ALLOW_WRITING = 0x40000
+    } mz_zip_flags;
+
+    typedef enum
+    {
+        MZ_ZIP_TYPE_INVALID = 0,
+        MZ_ZIP_TYPE_USER,
+        MZ_ZIP_TYPE_MEMORY,
+        MZ_ZIP_TYPE_HEAP,
+        MZ_ZIP_TYPE_FILE,
+        MZ_ZIP_TYPE_CFILE,
+        MZ_ZIP_TOTAL_TYPES
+    } mz_zip_type;
+
+    /* miniz error codes. Be sure to update mz_zip_get_error_string() if you add or modify this enum. */
+    typedef enum
+    {
+        MZ_ZIP_NO_ERROR = 0,
+        MZ_ZIP_UNDEFINED_ERROR,
+        MZ_ZIP_TOO_MANY_FILES,
+        MZ_ZIP_FILE_TOO_LARGE,
+        MZ_ZIP_UNSUPPORTED_METHOD,
+        MZ_ZIP_UNSUPPORTED_ENCRYPTION,
+        MZ_ZIP_UNSUPPORTED_FEATURE,
+        MZ_ZIP_FAILED_FINDING_CENTRAL_DIR,
+        MZ_ZIP_NOT_AN_ARCHIVE,
+        MZ_ZIP_INVALID_HEADER_OR_CORRUPTED,
+        MZ_ZIP_UNSUPPORTED_MULTIDISK,
+        MZ_ZIP_DECOMPRESSION_FAILED,
+        MZ_ZIP_COMPRESSION_FAILED,
+        MZ_ZIP_UNEXPECTED_DECOMPRESSED_SIZE,
+        MZ_ZIP_CRC_CHECK_FAILED,
+        MZ_ZIP_UNSUPPORTED_CDIR_SIZE,
+        MZ_ZIP_ALLOC_FAILED,
+        MZ_ZIP_FILE_OPEN_FAILED,
+        MZ_ZIP_FILE_CREATE_FAILED,
+        MZ_ZIP_FILE_WRITE_FAILED,
+        MZ_ZIP_FILE_READ_FAILED,
+        MZ_ZIP_FILE_CLOSE_FAILED,
+        MZ_ZIP_FILE_SEEK_FAILED,
+        MZ_ZIP_FILE_STAT_FAILED,
+        MZ_ZIP_INVALID_PARAMETER,
+        MZ_ZIP_INVALID_FILENAME,
+        MZ_ZIP_BUF_TOO_SMALL,
+        MZ_ZIP_INTERNAL_ERROR,
+        MZ_ZIP_FILE_NOT_FOUND,
+        MZ_ZIP_ARCHIVE_TOO_LARGE,
+        MZ_ZIP_VALIDATION_FAILED,
+        MZ_ZIP_WRITE_CALLBACK_FAILED,
+        MZ_ZIP_TOTAL_ERRORS
+    } mz_zip_error;
+
+    typedef struct
+    {
+        mz_uint64 m_archive_size;
+        mz_uint64 m_central_directory_file_ofs;
+
+        /* We only support up to UINT32_MAX files in zip64 mode. */
+        mz_uint32 m_total_files;
+        mz_zip_mode m_zip_mode;
+        mz_zip_type m_zip_type;
+        mz_zip_error m_last_error;
+
+        mz_uint64 m_file_offset_alignment;
+
+        mz_alloc_func m_pAlloc;
+        mz_free_func m_pFree;
+        mz_realloc_func m_pRealloc;
+        void *m_pAlloc_opaque;
+
+        mz_file_read_func m_pRead;
+        mz_file_write_func m_pWrite;
+        mz_file_needs_keepalive m_pNeeds_keepalive;
+        void *m_pIO_opaque;
+
+        mz_zip_internal_state *m_pState;
+
+    } mz_zip_archive;
+
+    typedef struct
+    {
+        mz_zip_archive *pZip;
+        mz_uint flags;
+
+        int status;
+
+        mz_uint64 read_buf_size, read_buf_ofs, read_buf_avail, comp_remaining, out_buf_ofs, cur_file_ofs;
+        mz_zip_archive_file_stat file_stat;
+        void *pRead_buf;
+        void *pWrite_buf;
+
+        size_t out_blk_remain;
+
+        tinfl_decompressor inflator;
+
+#ifdef MINIZ_DISABLE_ZIP_READER_CRC32_CHECKS
+        mz_uint padding;
+#else
+    mz_uint file_crc32;
+#endif
+
+    } mz_zip_reader_extract_iter_state;
+
+    /* -------- ZIP reading */
+
+    /* Inits a ZIP archive reader. */
+    /* These functions read and validate the archive's central directory. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_init(mz_zip_archive *pZip, mz_uint64 size, mz_uint flags);
+
+    MINIZ_EXPORT mz_bool mz_zip_reader_init_mem(mz_zip_archive *pZip, const void *pMem, size_t size, mz_uint flags);
+
+#ifndef MINIZ_NO_STDIO
+    /* Read a archive from a disk file. */
+    /* file_start_ofs is the file offset where the archive actually begins, or 0. */
+    /* actual_archive_size is the true total size of the archive, which may be smaller than the file's actual size on disk. If zero the entire file is treated as the archive. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_init_file(mz_zip_archive *pZip, const char *pFilename, mz_uint32 flags);
+    MINIZ_EXPORT mz_bool mz_zip_reader_init_file_v2(mz_zip_archive *pZip, const char *pFilename, mz_uint flags, mz_uint64 file_start_ofs, mz_uint64 archive_size);
+
+    /* Read an archive from an already opened FILE, beginning at the current file position. */
+    /* The archive is assumed to be archive_size bytes long. If archive_size is 0, then the entire rest of the file is assumed to contain the archive. */
+    /* The FILE will NOT be closed when mz_zip_reader_end() is called. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_init_cfile(mz_zip_archive *pZip, MZ_FILE *pFile, mz_uint64 archive_size, mz_uint flags);
+#endif
+
+    /* Ends archive reading, freeing all allocations, and closing the input archive file if mz_zip_reader_init_file() was used. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_end(mz_zip_archive *pZip);
+
+    /* -------- ZIP reading or writing */
+
+    /* Clears a mz_zip_archive struct to all zeros. */
+    /* Important: This must be done before passing the struct to any mz_zip functions. */
+    MINIZ_EXPORT void mz_zip_zero_struct(mz_zip_archive *pZip);
+
+    MINIZ_EXPORT mz_zip_mode mz_zip_get_mode(mz_zip_archive *pZip);
+    MINIZ_EXPORT mz_zip_type mz_zip_get_type(mz_zip_archive *pZip);
+
+    /* Returns the total number of files in the archive. */
+    MINIZ_EXPORT mz_uint mz_zip_reader_get_num_files(mz_zip_archive *pZip);
+
+    MINIZ_EXPORT mz_uint64 mz_zip_get_archive_size(mz_zip_archive *pZip);
+    MINIZ_EXPORT mz_uint64 mz_zip_get_archive_file_start_offset(mz_zip_archive *pZip);
+    MINIZ_EXPORT MZ_FILE *mz_zip_get_cfile(mz_zip_archive *pZip);
+
+    /* Reads n bytes of raw archive data, starting at file offset file_ofs, to pBuf. */
+    MINIZ_EXPORT size_t mz_zip_read_archive_data(mz_zip_archive *pZip, mz_uint64 file_ofs, void *pBuf, size_t n);
+
+    /* All mz_zip funcs set the m_last_error field in the mz_zip_archive struct. These functions retrieve/manipulate this field. */
+    /* Note that the m_last_error functionality is not thread safe. */
+    MINIZ_EXPORT mz_zip_error mz_zip_set_last_error(mz_zip_archive *pZip, mz_zip_error err_num);
+    MINIZ_EXPORT mz_zip_error mz_zip_peek_last_error(mz_zip_archive *pZip);
+    MINIZ_EXPORT mz_zip_error mz_zip_clear_last_error(mz_zip_archive *pZip);
+    MINIZ_EXPORT mz_zip_error mz_zip_get_last_error(mz_zip_archive *pZip);
+    MINIZ_EXPORT const char *mz_zip_get_error_string(mz_zip_error mz_err);
+
+    /* MZ_TRUE if the archive file entry is a directory entry. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_is_file_a_directory(mz_zip_archive *pZip, mz_uint file_index);
+
+    /* MZ_TRUE if the file is encrypted/strong encrypted. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_is_file_encrypted(mz_zip_archive *pZip, mz_uint file_index);
+
+    /* MZ_TRUE if the compression method is supported, and the file is not encrypted, and the file is not a compressed patch file. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_is_file_supported(mz_zip_archive *pZip, mz_uint file_index);
+
+    /* Retrieves the filename of an archive file entry. */
+    /* Returns the number of bytes written to pFilename, or if filename_buf_size is 0 this function returns the number of bytes needed to fully store the filename. */
+    MINIZ_EXPORT mz_uint mz_zip_reader_get_filename(mz_zip_archive *pZip, mz_uint file_index, char *pFilename, mz_uint filename_buf_size);
+
+    /* Attempts to locates a file in the archive's central directory. */
+    /* Valid flags: MZ_ZIP_FLAG_CASE_SENSITIVE, MZ_ZIP_FLAG_IGNORE_PATH */
+    /* Returns -1 if the file cannot be found. */
+    MINIZ_EXPORT int mz_zip_reader_locate_file(mz_zip_archive *pZip, const char *pName, const char *pComment, mz_uint flags);
+    MINIZ_EXPORT mz_bool mz_zip_reader_locate_file_v2(mz_zip_archive *pZip, const char *pName, const char *pComment, mz_uint flags, mz_uint32 *file_index);
+
+    /* Returns detailed information about an archive file entry. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_file_stat(mz_zip_archive *pZip, mz_uint file_index, mz_zip_archive_file_stat *pStat);
+
+    /* MZ_TRUE if the file is in zip64 format. */
+    /* A file is considered zip64 if it contained a zip64 end of central directory marker, or if it contained any zip64 extended file information fields in the central directory. */
+    MINIZ_EXPORT mz_bool mz_zip_is_zip64(mz_zip_archive *pZip);
+
+    /* Returns the total central directory size in bytes. */
+    /* The current max supported size is <= MZ_UINT32_MAX. */
+    MINIZ_EXPORT size_t mz_zip_get_central_dir_size(mz_zip_archive *pZip);
+
+    /* Extracts a archive file to a memory buffer using no memory allocation. */
+    /* There must be at least enough room on the stack to store the inflator's state (~34KB or so). */
+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip, mz_uint file_index, void *pBuf, size_t buf_size, mz_uint flags, void *pUser_read_buf, size_t user_read_buf_size);
+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_file_to_mem_no_alloc(mz_zip_archive *pZip, const char *pFilename, void *pBuf, size_t buf_size, mz_uint flags, void *pUser_read_buf, size_t user_read_buf_size);
+
+    /* Extracts a archive file to a memory buffer. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_to_mem(mz_zip_archive *pZip, mz_uint file_index, void *pBuf, size_t buf_size, mz_uint flags);
+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_file_to_mem(mz_zip_archive *pZip, const char *pFilename, void *pBuf, size_t buf_size, mz_uint flags);
+
+    /* Extracts a archive file to a dynamically allocated heap buffer. */
+    /* The memory will be allocated via the mz_zip_archive's alloc/realloc functions. */
+    /* Returns NULL and sets the last error on failure. */
+    MINIZ_EXPORT void *mz_zip_reader_extract_to_heap(mz_zip_archive *pZip, mz_uint file_index, size_t *pSize, mz_uint flags);
+    MINIZ_EXPORT void *mz_zip_reader_extract_file_to_heap(mz_zip_archive *pZip, const char *pFilename, size_t *pSize, mz_uint flags);
+
+    /* Extracts a archive file using a callback function to output the file's data. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_to_callback(mz_zip_archive *pZip, mz_uint file_index, mz_file_write_func pCallback, void *pOpaque, mz_uint flags);
+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_file_to_callback(mz_zip_archive *pZip, const char *pFilename, mz_file_write_func pCallback, void *pOpaque, mz_uint flags);
+
+    /* Extract a file iteratively */
+    MINIZ_EXPORT mz_zip_reader_extract_iter_state *mz_zip_reader_extract_iter_new(mz_zip_archive *pZip, mz_uint file_index, mz_uint flags);
+    MINIZ_EXPORT mz_zip_reader_extract_iter_state *mz_zip_reader_extract_file_iter_new(mz_zip_archive *pZip, const char *pFilename, mz_uint flags);
+    MINIZ_EXPORT size_t mz_zip_reader_extract_iter_read(mz_zip_reader_extract_iter_state *pState, void *pvBuf, size_t buf_size);
+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_iter_free(mz_zip_reader_extract_iter_state *pState);
+
+#ifndef MINIZ_NO_STDIO
+    /* Extracts a archive file to a disk file and sets its last accessed and modified times. */
+    /* This function only extracts files, not archive directory records. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint file_index, const char *pDst_filename, mz_uint flags);
+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_file_to_file(mz_zip_archive *pZip, const char *pArchive_filename, const char *pDst_filename, mz_uint flags);
+
+    /* Extracts a archive file starting at the current position in the destination FILE stream. */
+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_to_cfile(mz_zip_archive *pZip, mz_uint file_index, MZ_FILE *File, mz_uint flags);
+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_file_to_cfile(mz_zip_archive *pZip, const char *pArchive_filename, MZ_FILE *pFile, mz_uint flags);
+#endif
+
+#if 0
+/* TODO */
+	typedef void *mz_zip_streaming_extract_state_ptr;
+	mz_zip_streaming_extract_state_ptr mz_zip_streaming_extract_begin(mz_zip_archive *pZip, mz_uint file_index, mz_uint flags);
+	mz_uint64 mz_zip_streaming_extract_get_size(mz_zip_archive *pZip, mz_zip_streaming_extract_state_ptr pState);
+	mz_uint64 mz_zip_streaming_extract_get_cur_ofs(mz_zip_archive *pZip, mz_zip_streaming_extract_state_ptr pState);
+	mz_bool mz_zip_streaming_extract_seek(mz_zip_archive *pZip, mz_zip_streaming_extract_state_ptr pState, mz_uint64 new_ofs);
+	size_t mz_zip_streaming_extract_read(mz_zip_archive *pZip, mz_zip_streaming_extract_state_ptr pState, void *pBuf, size_t buf_size);
+	mz_bool mz_zip_streaming_extract_end(mz_zip_archive *pZip, mz_zip_streaming_extract_state_ptr pState);
+#endif
+
+    /* This function compares the archive's local headers, the optional local zip64 extended information block, and the optional descriptor following the compressed data vs. the data in the central directory. */
+    /* It also validates that each file can be successfully uncompressed unless the MZ_ZIP_FLAG_VALIDATE_HEADERS_ONLY is specified. */
+    MINIZ_EXPORT mz_bool mz_zip_validate_file(mz_zip_archive *pZip, mz_uint file_index, mz_uint flags);
+
+    /* Validates an entire archive by calling mz_zip_validate_file() on each file. */
+    MINIZ_EXPORT mz_bool mz_zip_validate_archive(mz_zip_archive *pZip, mz_uint flags);
+
+    /* Misc utils/helpers, valid for ZIP reading or writing */
+    MINIZ_EXPORT mz_bool mz_zip_validate_mem_archive(const void *pMem, size_t size, mz_uint flags, mz_zip_error *pErr);
+#ifndef MINIZ_NO_STDIO
+    MINIZ_EXPORT mz_bool mz_zip_validate_file_archive(const char *pFilename, mz_uint flags, mz_zip_error *pErr);
+#endif
+
+    /* Universal end function - calls either mz_zip_reader_end() or mz_zip_writer_end(). */
+    MINIZ_EXPORT mz_bool mz_zip_end(mz_zip_archive *pZip);
+
+    /* -------- ZIP writing */
+
+#ifndef MINIZ_NO_ARCHIVE_WRITING_APIS
+
+    /* Inits a ZIP archive writer. */
+    /*Set pZip->m_pWrite (and pZip->m_pIO_opaque) before calling mz_zip_writer_init or mz_zip_writer_init_v2*/
+    /*The output is streamable, i.e. file_ofs in mz_file_write_func always increases only by n*/
+    MINIZ_EXPORT mz_bool mz_zip_writer_init(mz_zip_archive *pZip, mz_uint64 existing_size);
+    MINIZ_EXPORT mz_bool mz_zip_writer_init_v2(mz_zip_archive *pZip, mz_uint64 existing_size, mz_uint flags);
+
+    MINIZ_EXPORT mz_bool mz_zip_writer_init_heap(mz_zip_archive *pZip, size_t size_to_reserve_at_beginning, size_t initial_allocation_size);
+    MINIZ_EXPORT mz_bool mz_zip_writer_init_heap_v2(mz_zip_archive *pZip, size_t size_to_reserve_at_beginning, size_t initial_allocation_size, mz_uint flags);
+
+#ifndef MINIZ_NO_STDIO
+    MINIZ_EXPORT mz_bool mz_zip_writer_init_file(mz_zip_archive *pZip, const char *pFilename, mz_uint64 size_to_reserve_at_beginning);
+    MINIZ_EXPORT mz_bool mz_zip_writer_init_file_v2(mz_zip_archive *pZip, const char *pFilename, mz_uint64 size_to_reserve_at_beginning, mz_uint flags);
+    MINIZ_EXPORT mz_bool mz_zip_writer_init_cfile(mz_zip_archive *pZip, MZ_FILE *pFile, mz_uint flags);
+#endif
+
+    /* Converts a ZIP archive reader object into a writer object, to allow efficient in-place file appends to occur on an existing archive. */
+    /* For archives opened using mz_zip_reader_init_file, pFilename must be the archive's filename so it can be reopened for writing. If the file can't be reopened, mz_zip_reader_end() will be called. */
+    /* For archives opened using mz_zip_reader_init_mem, the memory block must be growable using the realloc callback (which defaults to realloc unless you've overridden it). */
+    /* Finally, for archives opened using mz_zip_reader_init, the mz_zip_archive's user provided m_pWrite function cannot be NULL. */
+    /* Note: In-place archive modification is not recommended unless you know what you're doing, because if execution stops or something goes wrong before */
+    /* the archive is finalized the file's central directory will be hosed. */
+    MINIZ_EXPORT mz_bool mz_zip_writer_init_from_reader(mz_zip_archive *pZip, const char *pFilename);
+    MINIZ_EXPORT mz_bool mz_zip_writer_init_from_reader_v2(mz_zip_archive *pZip, const char *pFilename, mz_uint flags);
+
+    /* Adds the contents of a memory buffer to an archive. These functions record the current local time into the archive. */
+    /* To add a directory entry, call this method with an archive name ending in a forwardslash with an empty buffer. */
+    /* level_and_flags - compression level (0-10, see MZ_BEST_SPEED, MZ_BEST_COMPRESSION, etc.) logically OR'd with zero or more mz_zip_flags, or just set to MZ_DEFAULT_COMPRESSION. */
+    MINIZ_EXPORT mz_bool mz_zip_writer_add_mem(mz_zip_archive *pZip, const char *pArchive_name, const void *pBuf, size_t buf_size, mz_uint level_and_flags);
+
+    /* Like mz_zip_writer_add_mem(), except you can specify a file comment field, and optionally supply the function with already compressed data. */
+    /* uncomp_size/uncomp_crc32 are only used if the MZ_ZIP_FLAG_COMPRESSED_DATA flag is specified. */
+    MINIZ_EXPORT mz_bool mz_zip_writer_add_mem_ex(mz_zip_archive *pZip, const char *pArchive_name, const void *pBuf, size_t buf_size, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags,
+                                                  mz_uint64 uncomp_size, mz_uint32 uncomp_crc32);
+
+    MINIZ_EXPORT mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_name, const void *pBuf, size_t buf_size, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags,
+                                                     mz_uint64 uncomp_size, mz_uint32 uncomp_crc32, MZ_TIME_T *last_modified, const char *user_extra_data_local, mz_uint user_extra_data_local_len,
+                                                     const char *user_extra_data_central, mz_uint user_extra_data_central_len);
+
+    /* Adds the contents of a file to an archive. This function also records the disk file's modified time into the archive. */
+    /* File data is supplied via a read callback function. User mz_zip_writer_add_(c)file to add a file directly.*/
+    MINIZ_EXPORT mz_bool mz_zip_writer_add_read_buf_callback(mz_zip_archive *pZip, const char *pArchive_name, mz_file_read_func read_callback, void *callback_opaque, mz_uint64 max_size,
+                                                             const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags, const char *user_extra_data_local, mz_uint user_extra_data_local_len,
+                                                             const char *user_extra_data_central, mz_uint user_extra_data_central_len);
+
+#ifndef MINIZ_NO_STDIO
+    /* Adds the contents of a disk file to an archive. This function also records the disk file's modified time into the archive. */
+    /* level_and_flags - compression level (0-10, see MZ_BEST_SPEED, MZ_BEST_COMPRESSION, etc.) logically OR'd with zero or more mz_zip_flags, or just set to MZ_DEFAULT_COMPRESSION. */
+    MINIZ_EXPORT mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name, const char *pSrc_filename, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags);
+
+    /* Like mz_zip_writer_add_file(), except the file data is read from the specified FILE stream. */
+    MINIZ_EXPORT mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name, MZ_FILE *pSrc_file, mz_uint64 max_size,
+                                                 const MZ_TIME_T *pFile_time, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags, const char *user_extra_data_local, mz_uint user_extra_data_local_len,
+                                                 const char *user_extra_data_central, mz_uint user_extra_data_central_len);
+#endif
+
+    /* Adds a file to an archive by fully cloning the data from another archive. */
+    /* This function fully clones the source file's compressed data (no recompression), along with its full filename, extra data (it may add or modify the zip64 local header extra data field), and the optional descriptor following the compressed data. */
+    MINIZ_EXPORT mz_bool mz_zip_writer_add_from_zip_reader(mz_zip_archive *pZip, mz_zip_archive *pSource_zip, mz_uint src_file_index);
+
+    /* Finalizes the archive by writing the central directory records followed by the end of central directory record. */
+    /* After an archive is finalized, the only valid call on the mz_zip_archive struct is mz_zip_writer_end(). */
+    /* An archive must be manually finalized by calling this function for it to be valid. */
+    MINIZ_EXPORT mz_bool mz_zip_writer_finalize_archive(mz_zip_archive *pZip);
+
+    /* Finalizes a heap archive, returning a pointer to the heap block and its size. */
+    /* The heap block will be allocated using the mz_zip_archive's alloc/realloc callbacks. */
+    MINIZ_EXPORT mz_bool mz_zip_writer_finalize_heap_archive(mz_zip_archive *pZip, void **ppBuf, size_t *pSize);
+
+    /* Ends archive writing, freeing all allocations, and closing the output file if mz_zip_writer_init_file() was used. */
+    /* Note for the archive to be valid, it *must* have been finalized before ending (this function will not do it for you). */
+    MINIZ_EXPORT mz_bool mz_zip_writer_end(mz_zip_archive *pZip);
+
+    /* -------- Misc. high-level helper functions: */
+
+    /* mz_zip_add_mem_to_archive_file_in_place() efficiently (but not atomically) appends a memory blob to a ZIP archive. */
+    /* Note this is NOT a fully safe operation. If it crashes or dies in some way your archive can be left in a screwed up state (without a central directory). */
+    /* level_and_flags - compression level (0-10, see MZ_BEST_SPEED, MZ_BEST_COMPRESSION, etc.) logically OR'd with zero or more mz_zip_flags, or just set to MZ_DEFAULT_COMPRESSION. */
+    /* TODO: Perhaps add an option to leave the existing central dir in place in case the add dies? We could then truncate the file (so the old central dir would be at the end) if something goes wrong. */
+    MINIZ_EXPORT mz_bool mz_zip_add_mem_to_archive_file_in_place(const char *pZip_filename, const char *pArchive_name, const void *pBuf, size_t buf_size, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags);
+    MINIZ_EXPORT mz_bool mz_zip_add_mem_to_archive_file_in_place_v2(const char *pZip_filename, const char *pArchive_name, const void *pBuf, size_t buf_size, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags, mz_zip_error *pErr);
+
+#ifndef MINIZ_NO_STDIO
+    /* Reads a single file from an archive into a heap block. */
+    /* If pComment is not NULL, only the file with the specified comment will be extracted. */
+    /* Returns NULL on failure. */
+    MINIZ_EXPORT void *mz_zip_extract_archive_file_to_heap(const char *pZip_filename, const char *pArchive_name, size_t *pSize, mz_uint flags);
+    MINIZ_EXPORT void *mz_zip_extract_archive_file_to_heap_v2(const char *pZip_filename, const char *pArchive_name, const char *pComment, size_t *pSize, mz_uint flags, mz_zip_error *pErr);
+#endif
+
+#endif /* #ifndef MINIZ_NO_ARCHIVE_WRITING_APIS */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* MINIZ_NO_ARCHIVE_APIS */
 /****************************************************************************************
 
 	File:		ExtCompressors.h
@@ -8859,7 +10626,7 @@ When		Who				What
 
 /*
 	This module is an interface for external compressors/external compression libraries.
-	This implies that when this module is used, the application requires to be linked to
+	This implies that when this module is used, the application may need to be linked to
 	additional external libraries.
 */
 
@@ -8889,34 +10656,118 @@ When		Who				What
 #ifndef U_EXTCOMPRESSORS_H
 #define U_EXTCOMPRESSORS_H
 
+// Quick test.
+#ifndef EXTCOMPRESSORS_BUILD_TEST_FNCT
+//#define EXTCOMPRESSORS_BUILD_TEST_FNCT
+#endif
+
 #include <stdbool.h>
 
 #ifndef CUNILOG_USE_COMBINED_MODULE
 
 	#ifdef UBF_USE_FLAT_FOLDER_STRUCTURE
 
-	#include "./platform.h"
-
-		#if defined (OS_IS_WINDOWS)
-			//#include "./CompressNTFS_U8.h"
-		#elif defined (OS_IS_LINUX)
-
-	#endif
+		#include "./externC.h"
+		#include "./platform.h"
 
 	#else
 
+		#include "./../pre/externC.h"
 		#include "./../pre/platform.h"
-
-		#if defined (OS_IS_WINDOWS)
-			//#include "./Windows/CompressNTFS_U8.h"
-		#elif defined (OS_IS_LINUX)
-
-		#endif
 
 	#endif
 
 #endif
 
+// Buffer sizes are physical sector sizes multiplied by this constant.
+#ifndef EXTCOMPRESSORS_DEF_SECT_FACTOR
+#define EXTCOMPRESSORS_DEF_SECT_FACTOR		(2048)
+#endif
+
+// The default sector size if no other value could be retrieved.
+#ifndef EXTCOMPRESSORS_DEF_SECT_SIZE
+#define EXTCOMPRESSORS_DEF_SECT_SIZE		(512)
+#endif
+
+/*
+	Memory alignments. Use 16 octets/bytes for 64 bit platforms.
+	Use CUNILOG_DEFAULT_ALIGNMENT for structures and CUNILOG_POINTER_ALIGNMENT
+	for pointers.
+	Also, see https://learn.microsoft.com/en-us/cpp/build/reference/zp-struct-member-alignment?view=msvc-170 .
+*/
+#if defined (_M_X64)
+	#ifndef CUNILOG_DEFAULT_ALIGNMENT
+	#define CUNILOG_DEFAULT_ALIGNMENT	(16)
+	#endif
+#else
+	#ifndef CUNILOG_DEFAULT_ALIGNMENT
+	#define CUNILOG_DEFAULT_ALIGNMENT	(8)
+	#endif
+#endif
+#if defined (_M_X64)
+	#ifndef CUNILOG_POINTER_ALIGNMENT
+	#define CUNILOG_POINTER_ALIGNMENT	(8)
+	#endif
+#else
+	#ifndef CUNILOG_POINTER_ALIGNMENT
+	#define CUNILOG_POINTER_ALIGNMENT	(8)
+	#endif
+#endif
+
+EXTERN_C_BEGIN
+
+enum encprrmve
+{
+	encompress_dont_delete_source,							// Don't touche the source file.
+	encompress_delete_source_file							// Delete the source file after
+															//	compressing/deflating.
+};
+
+/*
+	extCompressFile
+
+	Compresses (deflates) the uncompressed file szInflatedFile. For details on the
+	algorithm, see https://deepwiki.com/madler/zlib/4.1-deflate-algorithm .
+
+	The parameter lnInflatedFile specifies the length of szInflatedFile.
+	If lnInflatedFile is USE_STRLEN, the function obtrains the length of
+	the file name via a call to strlen (szInflatedFile).
+
+	The parameter pphysicalSectorSize is a pointer to a uint32_t that is set to the
+	physical sector size of the volume the log file as well as the deflated/compressed
+	gzip file reside. If this pointer is NULL, or if it points to a value of 0, the
+	function obtains the physical sector size implicitely. If pphysicalSectorSize is not
+	NULL but points to a value of 0, the function obtains the physical sector size and
+	stores it at the address pphysicalSectorSize points to. The caller can then re-use
+	the pointer pphysicalSectorSize for consecutive calls so that the function does not
+	have to obtain the physical sector size via expensive Windows API calls.
+
+	The parameter compressOrDelete specifies whether the source file should be removed
+	after it has been deflated/compressed or not. Removing the file offers a "move-into-
+	the-gzip" semantic.
+
+	The function returns true on success, false otherwise.
+*/
+bool extCompressFile	(
+		const char		*szInflatedFile,
+		size_t			lnInflatedFile,
+		uint32_t		*pphysicalSectorSize,
+		enum encprrmve	compressOrDelete
+						)
+;
+
+/*
+	testExtCompressors
+
+	Test function.
+*/
+#ifdef EXTCOMPRESSORS_BUILD_TEST_FNCT
+	bool testExtCompressors (void);
+#else
+	#define testExtCompressors()	(true)
+#endif
+
+EXTERN_C_END
 
 #endif														// Of #ifndef U_EXTCOMPRESSORS_H.
 /****************************************************************************************
@@ -10273,7 +12124,7 @@ When		Who				What
 	This file is maintained as part of Cunilog. See https://github.com/cunilog .
 */
 
-/*
+/*!
 	Simple module for providing dynamically allocated bulk memory (or memory pools;
 	also called arenas). See
 	https://en.wikipedia.org/wiki/Region-based_memory_management .
@@ -10399,7 +12250,7 @@ When		Who				What
 																//	in octets (bytes).
 #endif
 
-/*
+/*!
 	See
 	https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/malloc?view=msvc-150 .
 	Default alignment size on 32 bit Windows is 8 octets and 16 octets on 64 bit platforms.
@@ -10428,7 +12279,7 @@ enum en_sbulkmem_unit
 	,	EN_SBULKMEM_UNIT_GiB									// Size is in GiB.
 };
 
-/*
+/*!
 	CalculateSizeFromUnit
 
 	Helper function to calculate the size form a unit.
@@ -10436,7 +12287,7 @@ enum en_sbulkmem_unit
 size_t CalculateSizeFromUnit (size_t size, enum en_sbulkmem_unit unit)
 ;
 
-/*
+/*!
 	One bulk memory block.
 	
 	pMemBlockBase is a pointer to the allocated bulk memory. This structure is
@@ -10454,7 +12305,7 @@ typedef struct sbulkmemblock
 	uint64_t				uiFlags;
 } SBULKMEMBLOCK;
 
-/*
+/*!
 	The plinth of a bulk memory block list and the interface structure.
 */
 typedef struct sbulkmemplinth
@@ -10469,7 +12320,7 @@ typedef struct sbulkmemplinth
 #endif
 } SBULKMEM;
 
-/*
+/*!
 	Flags for the uiFlags member of the SBULKMEMBLOCK and SBULKMEM structures.
 */
 #define USBM_STRUCT_ALLOCATED		SINGLE_BIT_UINT64 (0)	// Structure itself on heap.
@@ -10477,7 +12328,7 @@ typedef struct sbulkmemplinth
 															//	allocated on heap.
 #define USBM_STRUCT_INITIALISED		SINGLE_BIT_UINT64 (2)	// Structure is initialised already.
 
-/*
+/*!
 	CalculateAlignedSize
 
 	Calculates the required size to ensure a given alignment is possible. For instance, if
@@ -10488,7 +12339,7 @@ typedef struct sbulkmemplinth
 size_t CalculateAlignedSize (size_t size, uint16_t alignment)
 ;
 
-/*
+/*!
 	AlignMemblock
 
 	Increments the pointer pBlock to alignment. The caller is responsible for ensuring that
@@ -10507,7 +12358,7 @@ size_t CalculateAlignedSize (size_t size, uint16_t alignment)
 void *AlignMemblock (void *pBlock, size_t size, uint16_t alignment)
 ;
 
-/*
+/*!
 	InitSBULKMEM
 
 	Initialises the SBULKMEM plinth pPlinth points to.
@@ -10531,7 +12382,7 @@ void *AlignMemblock (void *pBlock, size_t size, uint16_t alignment)
 	#endif
 #endif
 
-/*
+/*!
 	AllocInitSBULKMEM
 
 	Allocates memory for a new block of bulk memory.
@@ -10558,7 +12409,7 @@ SBULKMEM *AllocInitSBULKMEM	(
 							)
 ;
 
-/*
+/*!
 	SBULKMEM_INITIALISER
 
 	Static or automatic initialiser.
@@ -10585,7 +12436,7 @@ SBULKMEM *AllocInitSBULKMEM	(
 		}
 #endif
 
-/*
+/*!
 	EmptySBULKMEM
 
 	Empties the singly-linked SBULKMEM list pPlinth points to without deallocating
@@ -10599,7 +12450,7 @@ SBULKMEM *AllocInitSBULKMEM	(
 void EmptySBULKMEM (SBULKMEM *pPlinth)
 ;
 
-/*
+/*!
 	DoneSBULKMEM
 
 	Deallocates the singly-linked SBULKMEM list pPlinth points to, including maintenance
@@ -10622,7 +12473,7 @@ void EmptySBULKMEM (SBULKMEM *pPlinth)
 SBULKMEM *DoneSBULKMEM (SBULKMEM *pPlinth)
 ;
 
-/*
+/*!
 	The enum for the parameter grow of the function GetMemFromSBULKMEM ().
 */
 enum en_sbulkmem_allow_growth
@@ -10633,7 +12484,7 @@ enum en_sbulkmem_allow_growth
 	,	EN_SBULKMEM_PREVENT_GROWTH	= EN_SBULKMEM_CANNOT_GROW
 };
 
-/*
+/*!
 	GrowSBULKMEM
 	
 	Grows the SBULKMEM structure pbm points to by one element, i.e. extends the singly
@@ -10659,7 +12510,7 @@ SBULKMEMBLOCK *GrowSBULKMEM	(
 							)
 ;
 
-/*
+/*!
 	GetMemFromSBULKMEMBLOCKifAvailable
 
 	Returns a pointer to a memory block of size size from the SBULKMEMBLOCK structure
@@ -10683,7 +12534,7 @@ SBULKMEMBLOCK *GrowSBULKMEM	(
 void *GetMemFromSBULKMEMBLOCKifAvailable (SBULKMEMBLOCK *pbm, size_t size)
 ;
 
-/*
+/*!
 	GetMemFromSBULKMEM
 	
 	Returns a block of memory from the bulk memory block SBULKMEM pPlinth points to.
@@ -10726,7 +12577,7 @@ void *GetMemFromSBULKMEM	(
 							)
 ;
 
-/*
+/*!
 	GetAlignedMemFromSBULKMEMgrow
 
 	The function works as if it calls GetMemFromSBULKMEM () with the parameter alignment
@@ -10744,7 +12595,7 @@ void *GetAlignedMemFromSBULKMEMgrow	(
 									)
 ;
 
-/*
+/*!
 	GetAlignedMemFromSBULKMEMnogrow
 	
 	Calls GetMemFromSBULKMEM () with the parameter alignment set to 8 on 32 bit platforms
@@ -10761,7 +12612,7 @@ void *GetAlignedMemFromSBULKMEMnogrow	(
 										)
 ;
 
-/*
+/*!
 	GetUnalignedMemFromSBULKMEMgrow
 	
 	Calls GetMemFromSBULKMEM () with the parameter alignment set to 1 and parameter grow
@@ -10776,7 +12627,7 @@ void *GetUnalignedMemFromSBULKMEMgrow	(
 										)
 ;
 
-/*
+/*!
 	GetUnalignedMemFromSBULKMEMnogrow
 	
 	Calls GetMemFromSBULKMEM () with the parameter alignment set to 1 and parameter grow
@@ -10791,7 +12642,7 @@ void *GetUnalignedMemFromSBULKMEMnogrow	(
 										)
 ;
 
-/*
+/*!
 	popSBULKMEMBLOCK
 	
 	Pops the provided size (parameter size) of bytes from the SBULKMEMBLOCK structure's
@@ -10809,7 +12660,7 @@ void popSBULKMEMBLOCK					(
 										)
 ;
 
-/*
+/*!
 	popSBULKMEM
 	
 	Pops the provided size (parameter size) of bytes from the SBULKMEM bulk memory
@@ -10835,7 +12686,7 @@ void popSBULKMEMBLOCK					(
 	;
 #endif
 
-/*
+/*!
 	Result structur for getSBULKMEMstats ().
 */
 typedef struct sbulkmemstats
@@ -10850,7 +12701,7 @@ typedef struct sbulkmemstats
 	size_t				stFreeAverage;						// Average available size.
 } SBULKMEMSTATS;
 
-/*
+/*!
 	getSBULKMEMstats
 
 	Obtains some statistics of the SBULKMEM structure pPlinth points to and returns
@@ -12437,9 +14288,9 @@ When		Who				What
 	ULONGLONGtoFILETIME (ftResult, ui64);
 */
 #ifndef FILETIMEfromULONGLONG
-#define FILETIMEfromULONGLONG(f,u)											\
-			(f).dwHighDateTime	= (uint32_t) (u >> 32 & 0x00000000FFFFFFFF);	\
-			(f).dwLowDateTime	= (uint32_t) (u & 0x00000000FFFFFFFF)
+#define FILETIMEfromULONGLONG(f,u)										\
+	(f).dwHighDateTime	= (uint32_t) (u >> 32 & 0x00000000FFFFFFFF);	\
+	(f).dwLowDateTime	= (uint32_t) (u & 0x00000000FFFFFFFF)
 #endif
 #ifndef ULONGLONGtoFILETIME
 #define ULONGLONGtoFILETIME FILETIMEfromULONGLONG
@@ -17347,7 +19198,7 @@ When		Who				What
 	This file is maintained as part of Cunilog. See https://github.com/cunilog .
 */
 
-/*
+/*!
 	This module supports the following build options:
 
 
@@ -17484,7 +19335,7 @@ When		Who				What
 #define USE_STRLEN						((size_t) -1)
 #endif
 
-/*
+/*!
 	The maximum length of a line ending in this module, and its size including NUL.
 */
 #ifndef MAX_LEN_LINE_ENDING
@@ -17496,7 +19347,7 @@ When		Who				What
 
 EXTERN_C_BEGIN
 
-/*
+/*!
 	newline_t
 
 	Represents a new line.
@@ -17509,12 +19360,11 @@ EXTERN_C_BEGIN
 
 	The value cunilogNewLineDefault used to be cunilogNewLineSystem to ensure logfiles
 	could be opened with Notepad on Windows systems, but since newer versions of Notepad
-	(Windows 10 and newer) can display files that have POSIX line endings perfectly, the
-	default is now cunilogNewLinePOSIX to save one octet per event line. Use
-	cunilogNewLineWindows or cunilogNewLineSystem if textual logfiles need to be opened/
-	viewed with Notepad for Windows versions before Windows 10, or if they are opened/
-	viewed/processed later with any other application that can't cope with POSIX line
-	endings.
+	(Windows 10 and newer) can display files that have POSIX line endings, the 	default
+	is now cunilogNewLinePOSIX to save one octet per event line. Use cunilogNewLineWindows
+	or cunilogNewLineSystem if textual logfiles need to be opened/viewed with Notepad for
+	Windows versions before Windows 10, or if they are opened/viewed/processed later with
+	any other application that can't cope with POSIX line endings.
 */
 #if defined (CUNILOG_NEWLINE_POSIX_ONLY)
 	enum enLineEndings
@@ -17569,13 +19419,13 @@ EXTERN_C_BEGIN
 #endif
 typedef enum enLineEndings	newline_t;
 
-/*
+/*!
 	The array with the line endings and the array with their lengths.
 */
 const char	*aszLineEndings	[];
 size_t		lenLineEndings	[];
 
-/*
+/*!
 	ccLineEnding
 
 	Returns the line ending for nl. Note that szLineEnding () also returns
@@ -17587,7 +19437,7 @@ size_t		lenLineEndings	[];
 	#define ccLineEnding(nl)	aszLineEndings [nl]
 #endif
 
-/*
+/*!
 	lnLineEnding
 
 	Returns the length of the line ending nl. The value does not include the NUL
@@ -17599,7 +19449,7 @@ size_t		lenLineEndings	[];
 	#define lnLineEnding(nl)	lenLineEndings [nl]
 #endif
 
-/*
+/*!
 	szLineEnding
 
 	Returns the line ending and its length. The length does not include the NUL
@@ -17660,7 +19510,7 @@ const char *szLineEnding (newline_t nl, size_t *pln);
 		(unsigned int) strIsLineEndings (sz, ln, pj)
 #endif
 
-/*
+/*!
 	strIsLineEndings
 
 	Checks if ch points to one or more newline markers/line endings. The function returns
@@ -17698,7 +19548,7 @@ const char *szLineEnding (newline_t nl, size_t *pln);
 size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 ;
 
-/*
+/*!
 	strFirstLineEnding
 
 	Finds and returns a pointer to the first line ending in the buffer ch points to,
@@ -17709,7 +19559,7 @@ size_t strIsLineEndings (const char *ch, size_t stLen, size_t *stJump)
 */
 char *strFirstLineEnding (const char *ch, size_t len);
 
-/*
+/*!
 	strFirstLineEnding_l
 
 	The function is identical to strFirstLineEnding () but additionally returns the length
@@ -17724,7 +19574,7 @@ char *strFirstLineEnding (const char *ch, size_t len);
 */
 char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE);
 
-/*
+/*!
 	strPrevLineEnding_l
 
 	The function is identical to strFirstLineEnding_l () but searches for the first line
@@ -17743,7 +19593,7 @@ char *strFirstLineEnding_l (const char *ch, size_t len, size_t *plLE);
 */
 char *strPrevLineEnding_l (const char *ch, size_t len, size_t strtIdx, size_t *plLE);
 
-/*
+/*!
 	strRemoveLineEndingsFromEnd
 
 	Removes line endings from the right side of sz.
@@ -18954,7 +20804,7 @@ When		Who				What
 
 EXTERN_C_BEGIN
 
-/*
+/*!
 	is_absolute_path_unix
 	is_absolute_path_unx
 	
@@ -18974,7 +20824,7 @@ EXTERN_C_BEGIN
 #define is_absolute_path_unx(p)							\
 			is_absolute_path_unix (p)
 
-/*
+/*!
 	is_unc_path
 
 	Evaluates to true if the NUL-terminated string p is a UNC path
@@ -18993,7 +20843,7 @@ EXTERN_C_BEGIN
 					)									\
 			)
 
-/*
+/*!
 	is_absolute_drive_path
 
 	Evaluates to true if the NUL-terminated string p is a typical Windows drive path
@@ -19009,7 +20859,7 @@ EXTERN_C_BEGIN
 #define is_drive_path(p)								\
 	error "Macro obsolete. Use is_full_drive_path() instead"
 
-/*
+/*!
 	is_absolute_path_win
 	is_absolute_path_windows
 	
@@ -19025,7 +20875,7 @@ bool is_absolute_path_win (const char *chPath);
 #define is_absolute_path_windows(p)						\
 			is_absolute_path_win (p)
 
-/*
+/*!
 	is_absolute_path
 	
 	Returns true if the path is an absolute path on either Windows or Unix/Linux.
@@ -19044,7 +20894,7 @@ bool is_absolute_path_win (const char *chPath);
 
 #endif
 
-/*
+/*!
 	is_absolute_path_unix_l
 
 	Returns or evaluates to true if len is greater than 0 and the first character
@@ -19059,7 +20909,7 @@ bool is_absolute_path_win (const char *chPath);
 		(l && '/' == (p)[0])
 #endif
 
-/*
+/*!
 	is_absolute_path_win_l
 
 	Returns or evaluates to true if chPath either points to a Windows UNC path or
@@ -19080,7 +20930,7 @@ bool is_absolute_path_win (const char *chPath);
 		)
 #endif
 
-/*
+/*!
 	is_absolute_path_l
 
 	Returns true if the path is an absolute path on either Windows or Unix/Linux.
@@ -19784,7 +21634,7 @@ When		Who				What
 
 EXTERN_C_BEGIN
 
-/*
+/*!
 	wildCardFileName
 	
 	Obtains the last part of a path if it contains wildcard characters.
@@ -19803,7 +21653,7 @@ EXTERN_C_BEGIN
 const char *wildCardFileName (size_t *plen, const char *ccPath)
 ;
 
-/*
+/*!
 	lenPathWithoutWildcardFileName
 	
 	Returns the length of the path that ends with a wildcard filename, including the
@@ -19818,7 +21668,7 @@ const char *wildCardFileName (size_t *plen, const char *ccPath)
 size_t lenPathWithoutWildcardFileName (const char *ccPath)
 ;
 
-/*
+/*!
 	matchWildcardPattern
 	matchWildcardPatternW
 
@@ -20211,7 +22061,7 @@ When		Who				What
 */
 
 /*
-	This code is public domain.
+	This code is in the public domain.
 */
 
 #ifndef U_MERSENNE_TWISTER_H
@@ -20968,6 +22818,7 @@ When		Who				What
 #define CUNILOG_ERROR_APPNAME						(8)
 #define CUNILOG_ERROR_SEPARATE_LOGGING_THREAD		(9)
 #define CUNILOG_ERROR_RENAMING_LOGFILE				(10)
+#define CUNILOG_ERROR_COMPRESS_LOGFILE				(11)
 
 #define CUNILOG_ERROR_FIRST_UNUSED_ERROR			(5000)
 
@@ -21014,16 +22865,15 @@ typedef uint64_t	CUNILOG_ERROR;
 
 	Macro to set a CUNILOG_ERROR variable.
 
-	errvar		The name of the CUNILOG_ERROR variable that receives the final
-				error code, consisting of a Cunilog error code and a system error code.
-	cerr		One of the CUNILOG_ERROR_ constants above.
-	serr		System error code. This is either a DWORD on Windows or an int32_t on
-				POSIX.
+	put		The CUNILOG_TARGET for which the error variable is set.
+	cerr	One of the CUNILOG_ERROR_ constants above.
+	serr	System error code. This is either a DWORD on Windows or an int32_t on
+			POSIX.
 */
-#define SetCunilogError(put, cerr, serr)					\
+#define SetCunilogError(put, cerr, serr)				\
 	do													\
 	{													\
-		((put)->error) = (CUNILOG_ERROR)(cerr) << 32;		\
+		((put)->error) = (CUNILOG_ERROR)(cerr) << 32;	\
 		((put)->error) += (unsigned)(serr);				\
 	} while (0)
 
@@ -21229,18 +23079,33 @@ When		Who				What
 
 #endif
 
+// The mode for opening the current logfile.
+#ifdef PLATFORM_IS_WINDOWS
+	#define CUNILOG_DEFAULT_OPEN_MODE	(FILE_APPEND_DATA)
+	/*
+		pl->hLogFile = CreateFileU8	(
+						szLogFileName, GENERIC_WRITE,
+						FILE_SHARE_DELETE | FILE_SHARE_READ,
+						NULL, OPEN_ALWAYS,
+						FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+						NULL
+									);
+	*/
+#else
+	#define CUNILOG_DEFAULT_OPEN_MODE	(O_WRONLY | O_APPEND | O_CREAT | O_LARGEFILE)
+#endif
 
 BEGIN_C_DECLS
 
 /*
-	The constants for the log file extension. We got this in UTF-8
-	(szCunilogLogFileNameExtension) and Windows UTF-16 (wcCunilogLogFileNameExtension).
-	The constant lenCunilogLogFileNameExtension is the length in characters (not octets!).
+	The constants for the log file extensions.
 */
-CUNILOG_DLL_IMPORT extern const char	*szCunilogLogFileNameExtension;	// ".log"
-CUNILOG_DLL_IMPORT extern const wchar_t	*wcCunilogLogFileNameExtension;	// ".log"
-CUNILOG_DLL_IMPORT extern const size_t	lenCunilogLogFileNameExtension;	// ".log"
-CUNILOG_DLL_IMPORT extern const size_t	sizCunilogLogFileNameExtension;	// ".log" + NUL
+CUNILOG_DLL_IMPORT extern const char	szCunilogLogFileNameExtension	[];
+CUNILOG_DLL_IMPORT extern const size_t	lenCunilogLogFileNameExtension;
+#define sizCunilogLogFileNameExtension	(lenCunilogLogFileNameExtension + 1)
+CUNILOG_DLL_IMPORT extern const char	szCunilogGzpFileNameExtension	[];
+CUNILOG_DLL_IMPORT extern const size_t	lenCunilogGzpFileNameExtension;
+#define sizCunilogGzpFileNameExtension	(lenCunilogGzpFileNameExtension + 1)
 
 /*
 	enum cunilogtype
@@ -21532,15 +23397,15 @@ typedef struct cunilog_processor
 
 /*
 	A pData structure for a unilogProcessWriteToLogFile or a unilogProcessFlushLogFile processor.
-	This probably shouldn't be a structure but leaves room for possible extensions.
 */
 typedef struct cunilog_logfile
 {
 	#ifdef OS_IS_WINDOWS
-		HANDLE			hLogFile;
+		HANDLE		hLogFile;
 	#else
-		int				fd;
+		int			fd;
 	#endif
+	uint32_t		chunkSize;
 } CUNILOG_LOGFILE;
 
 /*
@@ -21553,8 +23418,7 @@ enum cunilogrotationtask
 {
 		cunilogrotationtask_None							// Ignored. No operation.
 	,	cunilogrotationtask_RenameLogfiles					// Rotates by renaming files.
-	,	cunilogrotationtask_FScompressLogfiles				// Compress logfiles with the help
-															//	of the file system.
+	,	cunilogrotationtask_CompressLogfiles				// Compress logfiles.
 	,	cunilogrotationtask_MoveToTrashLogfiles
 	,	cunilogrotationtask_MoveToRecycleBinLogfiles = cunilogrotationtask_MoveToTrashLogfiles
 	,	cunilogrotationtask_DeleteLogfiles
@@ -21591,6 +23455,12 @@ typedef struct cunilog_rotation_data
 															//	rotation. Should not point to the
 															//	processor's own target.
 
+	/*
+		For rotator cunilogrotationtask_CompressLogfiles, physical sector size.
+		Currently unused for other rotators.
+	*/
+	uint64_t					uiData;
+
 	uint64_t					uiFlgs;						// Option flags. See below.
 } CUNILOG_ROTATION_DATA;
 
@@ -21611,6 +23481,71 @@ typedef struct cunilog_rotation_data
 #define CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE		SINGLEBIT64 (2)
 
 /*
+	Bit 32 - 39 for rotator cunilogrotationtask_CompressLogfiles determine the compression
+	method. They're still available for other rotators.
+
+	Bit 32 - 39	(8 bits)		Compresson method.
+
+	Value (binary)	Value (dec)	Value (hex)
+	----------------------------------------------------------------------------------------
+	00000000		0			0h			Default compression method. On Windows and
+											NTFS, this is NTFS compression. The filename
+											extension does not change.
+
+											If the file system is not NTFS, Gzip compression
+											is used. Compressed (deflated) files have a .gz
+											filename extension.
+
+											On all other platforms, Gzip compression is used.
+											Compressed (deflated) files will have a filename
+											extension of .gz.
+
+	00000001		1			1h			NTFS compression method on Windows. No attempt
+											is made to pick an alternative compression
+											method.
+
+	00000010		2			2h			Gzip compression (.gz files), independent of
+											platform (operating system) and file system.
+
+	00000011		3			3h			Reserved compression method. Not supported yet.
+
+*/
+enum enClgCmprsMtd
+{
+	cunilogComprMethodDefault		= 0,
+	cunilogComprMethodNTFS			= 1,
+	cunilogComprMethodGzip			= 2
+};
+// Mask to clear the compression flags.
+#define CUNILOG_ROTATOR_COMPRESS_CLEAR			((uint64_t)(0xFFFFFF00FFFFFFFF))
+// Obtain the compression method.
+#define CUNILOG_ROTATOR_COMPRESS_OBTAIN			((uint64_t)(0x000000FF00000000))
+// The amounts of bits to shift.
+#define CUNILOG_ROTATOR_COMPRESS_SHIFT			(32)
+#define CUNILOG_ROTATOR_COMPRESS_DEFAULT		(0)
+#define CUNILOG_ROTATOR_COMPRESS_NTFSCOMP		SINGLEBIT64 (32)
+#define CUNILOG_ROTATOR_COMPRESS_GZIPCOMP		SINGLEBIT64 (33)
+// Macro to check if compression method is mthd.
+#define cunilogHasRotator_CompressionMethod(prd, mthd)	\
+	(													\
+			(mthd)										\
+		==	((uint64_t) ((prd)->uiFlgs & CUNILOG_ROTATOR_COMPRESS_OBTAIN)) >> CUNILOG_ROTATOR_COMPRESS_SHIFT	\
+	)
+// Macro to check if compression method is cunilogComprMethodGzip.
+#define cunilogHasRotator_COMPRESS_GZIPCOMP(prd)		\
+	cunilogHasRotator_CompressionMethod (prd, cunilogComprMethodGzip)
+// Macro to set compression method to mthd.
+#define cunilogSetRotator_CompressionMethod(prd, mthd)	\
+		(prd)->uiFlgs &= CUNILOG_ROTATOR_COMPRESS_CLEAR;							\
+		(prd)->uiFlgs |= (uint64_t) (mthd) << CUNILOG_ROTATOR_COMPRESS_SHIFT		\
+// Macro to set compression method to cunilogComprMethodNTFS.
+#define cunilogSetRotator_COMPRESS_NTFSCOMP(prd)		\
+	cunilogSetRotator_CompressionMethod (prd, cunilogComprMethodNTFS)
+// Macro to set compression method to cunilogComprMethodGzip.
+#define cunilogSetRotator_COMPRESS_GZIPCOMP(prd)		\
+	cunilogSetRotator_CompressionMethod (prd, cunilogComprMethodGzip)
+
+/*
 	Macros for checking, setting, and clearing some of the flags above.
 */
 #define cunilogHasRotatorFlag_USE_MBSRCMASK(prd)		\
@@ -21626,7 +23561,6 @@ typedef struct cunilog_rotation_data
 	((prd)->uiFlgs |= CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
 #define cunilogClrRotatorFlag_USE_MBDSTFILE(prd)		\
 	((prd)->uiFlgs &= ~ CUNILOG_ROTATOR_FLAG_USE_MBDSTFILE)
-
 
 // Value of member nMaxToRotate of a CUNILOG_ROTATION_DATA structure to be obtained
 //	during initialisation.
@@ -21649,27 +23583,27 @@ typedef struct cunilog_rotation_data
 	cunilogrotationtask_RenameLogfiles,					\
 	0, 0, CUNILOG_MAX_ROTATE_AUTO,						\
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
-	NULL,												\
+	NULL, 0,											\
 	CUNILOG_ROTATOR_FLAG_NONE							\
 }
 
 /*
 	Argument k is the amount of logfiles to keep/not touch.
 */
-#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS(k)\
+#define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_COMPRESS(k)\
 {														\
-	cunilogrotationtask_FScompressLogfiles,				\
+	cunilogrotationtask_CompressLogfiles,				\
 	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
-	NULL,												\
-	CUNILOG_ROTATOR_FLAG_NONE							\
+	NULL, 0,											\
+	CUNILOG_ROTATOR_COMPRESS_DEFAULT					\
 }
 #define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_TRASH(k)\
 {														\
 	cunilogrotationtask_MoveToTrashLogfiles,			\
 	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
-	NULL,												\
+	NULL, 0,											\
 	CUNILOG_ROTATOR_FLAG_NONE							\
 }
 #define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_MOVE_TO_RECYCLE_BIN(k)\
@@ -21677,7 +23611,7 @@ typedef struct cunilog_rotation_data
 	cunilogrotationtask_MoveToRecycleBinLogfiles,		\
 	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
-	NULL,												\
+	NULL, 0,											\
 	CUNILOG_ROTATOR_FLAG_NONE							\
 }
 #define CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_DELETE(k)\
@@ -21685,7 +23619,7 @@ typedef struct cunilog_rotation_data
 	cunilogrotationtask_DeleteLogfiles,					\
 	(k), 0, CUNILOG_MAX_ROTATE_AUTO,					\
 	SMEMBUF_INITIALISER, SMEMBUF_INITIALISER,			\
-	NULL,												\
+	NULL, 0,											\
 	CUNILOG_ROTATOR_FLAG_NONE							\
 }
 
@@ -21741,7 +23675,7 @@ typedef struct cunilog_rotation_data
 /*
 	Argument p is a pointer to a CUNILOG_ROTATION_DATA structure with member
 	tsk set to cunilogrotationtask_FScompressLogfiles. Such a structure can
-	be initialised with the CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_FS_COMPRESS()
+	be initialised with the CUNILOG_INIT_DEF_CUNILOG_ROTATION_DATA_COMPRESS()
 	macro.
 */
 #define CUNILOG_INIT_DEF_LOGFILESFSCOMPRESS_PROCESSOR(p)\
@@ -21889,7 +23823,7 @@ typedef struct cunilog_fls
 } CUNILOG_FLS;
 typedef vec_t(CUNILOG_FLS) vec_cunilog_fls;
 
-/*
+/*!
 	Base folder for a relative path or path if no path at all is given.
 
 	These are the possible enumeration values of the parameter relLogPath of the
@@ -21954,7 +23888,7 @@ typedef struct scunilognpi
 } SCUNILOGNPI;
 
 #ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
-	/*
+	/*!
 		Possible return values of the error/fail callback function.
 
 		cunilogErrCB_ignore					Just carry on as if nothing happened.			
@@ -21996,37 +23930,47 @@ typedef struct scunilognpi
 
 typedef struct cunilog_rotator_args CUNILOG_ROTATOR_ARGS;
 
-/*
-	The type/format of an event severity level.
+/*!
+	The type/format/prefix of an event severity.
 */
-enum cunilogeventseveritytpy
+enum cunilogeventseverityprefix
 {
-		cunilogEvtSeverityTypeChars3							// "EMG", "DBG"... (default).
-	,	cunilogEvtSeverityTypeChars5							// "EMRGY", "DEBUG"...
-	,	cunilogEvtSeverityTypeChars9							// "EMERGENCY", "DEBUG    "...
-	,	cunilogEvtSeverityTypeChars3InBrackets					// "[EMG]", "[DBG]"...
-	,	cunilogEvtSeverityTypeChars5InBrackets					// "[EMRGY]", "[DEBUG]"...
-	,	cunilogEvtSeverityTypeChars9InBrackets					// "[EMERGENCY]", "[DEBUG    ]"...
-	,	cunilogEvtSeverityTypeChars5InTightBrackets				// "[FAIL] "...
-	,	cunilogEvtSeverityTypeChars9InTightBrackets				// "[DEBUG]    "...
+		cunilogEvtSeverityPrfxChars3							// "EMG", "DBG"... (default).
+	,	cunilogEvtSeverityPrfxChars5							// "EMRGY", "DEBUG"...
+	,	cunilogEvtSeverityPrfxChars9							// "EMERGENCY", "DEBUG    "...
+	,	cunilogEvtSeverityPrfxChars3InBrackets					// "[EMG]", "[DBG]"...
+	,	cunilogEvtSeverityPrfxChars5InBrackets					// "[EMRGY]", "[DEBUG]"...
+	,	cunilogEvtSeverityPrfxChars9InBrackets					// "[EMERGENCY]", "[DEBUG    ]"...
+	,	cunilogEvtSeverityPrfxChars5InTightBrackets				// "[FAIL] "...
+	,	cunilogEvtSeverityPrfxChars9InTightBrackets				// "[DEBUG]    "...
 	// Do not add anything below this line.
-	,	cunilogEvtSeverityTypeXAmountEnumValues					// Used for sanity checks.
+	,	cunilogEvtSeverityPrfxXAmountEnumValues					// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityTypeXAmountEnumValues.
 };
-typedef enum cunilogeventseveritytpy cueventsevfmtpy;
+typedef enum cunilogeventseverityprefix cueventsevprefix;
 
-/*
+/*!
 	The default event severity type.
 */
-extern cueventsevfmtpy cunilogEvtSeverityTypeDefault;
+extern cueventsevprefix cunilogEvtSeverityPrfxDefault;
 
-/*
+/*!
 	Default ANSI escape colour output for the cunilog_puts... and cunilog_printf...
 	type functions.
 */
 extern bool bUseCunilogDefaultOutputColour;
 
-/*
+/*!
+	The severity mask. Each bit denotes one of the cunilogEvtSeverity... values.
+	Bit 0 is cunilogEvtSeverityNone, etc.
+	Every event's severity level is checked against this mask. If a bit is 1, the
+	event is processed. If a bit is 0, the event creation is refused and logging
+	functions with this severity fail (return false).
+*/
+typedef uint32_t			evtsevmask_t;
+#define MAX_EVTSEVMASK		UINT32_MAX;						// To set all bits to 1.
+
+/*!
 	SUNILOGTARGET
 
 	The base config structure for using cunilog. Do not alter any of its members directly.
@@ -22056,8 +24000,10 @@ typedef struct CUNILOG_TARGET
 	SMEMBUF							mbLogFileMask;			// The search mask for log files. It
 															//	does not include the path.
 	size_t							lnLogFileMask;			// Its length.
+	SMEMBUF							*pmbCurLogFileMask;		// Pointer to the current search mask.
+	SMEMBUF							lnCurLogFileMask;		// Its length.
 	SMEMBUF							mbFilToRotate;			// The file obtained by the cb function.
-	size_t							stFilToRotate;			// Its length including the NUL terminator.
+	size_t							lnFilToRotate;			// Its length excluding the NUL terminator.
 	SMEMBUF							mbLogEventLine;			// Buffer that holds the event line.
 	size_t							lnLogEventLine;			// The current length of the event line.
 
@@ -22104,7 +24050,8 @@ typedef struct CUNILOG_TARGET
 	//SCUNILOGDUMP					*psdump;				// Holds the dump parameters.
 	ddumpWidth						dumpWidth;
 
-	cueventsevfmtpy					evSeverityType;			// Format of the event severity.
+	cueventsevprefix				severityPrefix;			// Format of the event severity.
+	volatile evtsevmask_t			severityEvtMask;
 
 	CUNILOG_ERROR					error;
 	#ifndef CUNILOG_BUILD_WITHOUT_ERROR_CALLBACK
@@ -22147,7 +24094,7 @@ typedef struct CUNILOG_TARGET
 // The (complete) filename of the file to rotate.
 #define CUNILOGTARGET_FILE_TO_ROTATE_ALLOCATED	SINGLEBIT64 (7)
 
-// The array of pointers to processors.
+// The array of pointers to processors is allocated on the heap.
 #define CUNILOGTARGET_PROCESSORS_ALLOCATED		SINGLEBIT64 (8)
 
 // Run all processors on startup, independent of their individual flags.
@@ -22173,13 +24120,13 @@ typedef struct CUNILOG_TARGET
 // Debug versions ensure that one of the initialisation function has been called.
 #ifdef DEBUG
 	#define CUNILOGTARGET_INITIALISED			SINGLEBIT64 (15)
-	#define cunilogSetTargetInitialised(pt)				\
-			((pt)->uiOpts |= CUNILOGTARGET_INITIALISED)
-	#define cunilogIsTargetInitialised(pt)				\
-			((pt)->uiOpts & CUNILOGTARGET_INITIALISED)
+	#define cunilogSetTargetInitialised(put)				\
+			((put)->uiOpts |= CUNILOGTARGET_INITIALISED)
+	#define cunilogIsTargetInitialised(put)				\
+			((put)->uiOpts & CUNILOGTARGET_INITIALISED)
 #else
-	#define cunilogSetTargetInitialised(pt)	(true)
-	#define cunilogIsTargetInitialised(pt)	(true)
+	#define cunilogSetTargetInitialised(put)	(true)
+	#define cunilogIsTargetInitialised(put)		(true)
 #endif
 
 // The callback function errorCB is called as often as possible,
@@ -22382,30 +24329,30 @@ typedef struct CUNILOG_TARGET
 */
 enum cunilogeventseverity
 {
-		cunilogEvtSeverityNone									//  0
-	,	cunilogEvtSeverityNonePass								//  1
-	,	cunilogEvtSeverityNoneFail								//  2
-	,	cunilogEvtSeverityNoneWarn								//  3
-	,	cunilogEvtSeverityBlanks								//  4
-	,	cunilogEvtSeverityEmergency								//	5
-	,	cunilogEvtSeverityNotice								//	6
-	,	cunilogEvtSeverityInfo									//  7
-	,	cunilogEvtSeverityOutput								//  8
-	,	cunilogEvtSeverityMessage								//  9
-	,	cunilogEvtSeverityWarning								// 10
-	,	cunilogEvtSeverityError									// 11
-	,	cunilogEvtSeverityPass									// 12
-	,	cunilogEvtSeverityFail									// 13
-	,	cunilogEvtSeverityCritical								// 14
-	,	cunilogEvtSeverityFatal									// 15
-	,	cunilogEvtSeverityDebug									// 16
-	,	cunilogEvtSeverityTrace									// 17
-	,	cunilogEvtSeverityDetail								// 18
-	,	cunilogEvtSeverityVerbose								// 19
-	,	cunilogEvtSeverityIllegal								// 20
-	,	cunilogEvtSeveritySyntax								// 21
+		cunilogEvtSeverityNone								//  0
+	,	cunilogEvtSeverityNonePass							//  1
+	,	cunilogEvtSeverityNoneFail							//  2
+	,	cunilogEvtSeverityNoneWarn							//  3
+	,	cunilogEvtSeverityBlanks							//  4
+	,	cunilogEvtSeverityEmergency							//	5
+	,	cunilogEvtSeverityNotice							//	6
+	,	cunilogEvtSeverityInfo								//  7
+	,	cunilogEvtSeverityOutput							//  8
+	,	cunilogEvtSeverityMessage							//  9
+	,	cunilogEvtSeverityWarning							// 10
+	,	cunilogEvtSeverityError								// 11
+	,	cunilogEvtSeverityPass								// 12
+	,	cunilogEvtSeverityFail								// 13
+	,	cunilogEvtSeverityCritical							// 14
+	,	cunilogEvtSeverityFatal								// 15
+	,	cunilogEvtSeverityDebug								// 16
+	,	cunilogEvtSeverityTrace								// 17
+	,	cunilogEvtSeverityDetail							// 18
+	,	cunilogEvtSeverityVerbose							// 19
+	,	cunilogEvtSeverityIllegal							// 20
+	,	cunilogEvtSeveritySyntax							// 21
 	// Do not add anything below this line.
-	,	cunilogEvtSeverityXAmountEnumValues						// Used for sanity checks.
+	,	cunilogEvtSeverityXAmountEnumValues					// Used for sanity checks.
 	// Do not add anything below cunilogEvtSeverityXAmountEnumValues.
 };
 typedef enum cunilogeventseverity cueventseverity;
@@ -22453,7 +24400,7 @@ typedef struct CUNILOG_EVENT
 	#ifndef CUNILOG_BUILD_SINGLE_THREADED_ONLY
 		struct CUNILOG_EVENT	*next;
 	#endif
-	cueventseverity				evSeverity;
+	cueventseverity				evSeverity;					// The event's severity level.
 	cueventtype					evType;						// The event's type of data.
 	size_t						sizEvent;					// The total allocated size of the
 															//	event. If 0, the size is the size
@@ -22897,7 +24844,7 @@ void culCmdStoreCmdConfigCunilognewline (unsigned char *szOut, newline_t nl)
 	buffer szOut points to.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevfmtpy sevTpy)
+	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevprefix sevTpy)
 	;
 #endif
 
@@ -23079,7 +25026,7 @@ DoneCUNILOG_TARGETstatic ();
 #endif
 
 
-/*
+/*!
 	Memory alignments. Use 16 octets/bytes for 64 bit platforms.
 	Use CUNILOG_DEFAULT_ALIGNMENT for structures and CUNILOG_POINTER_ALIGNMENT
 	for pointers.
@@ -23125,7 +25072,7 @@ DoneCUNILOG_TARGETstatic ();
 #define CUNILOG_DEFAULT_SFMT_SIZE		(256)
 #endif
 
-/*
+/*!
 	The default initial size of an event line. Note that this is not the space for the text
 	but rather the entire line, including timestamp etc. If you know in advance that your
 	texts (including stamp etc) are going to be longer you may override this with a higher
@@ -23141,7 +25088,7 @@ DoneCUNILOG_TARGETstatic ();
 	#error CUNILOG_INITIAL_EVENTLINE_SIZE must be greater than zero
 #endif
 
-/*
+/*!
 	The default initial size of an event line that contains ANSI colour codes for severity
 	levels plus the event line itself.
 	If you know in advance that your texts (including stamp etc) are going to be longer you
@@ -23184,11 +25131,8 @@ DoneCUNILOG_TARGETstatic ();
 	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED
 	#define CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED	(2)
 	#endif
-	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED
-	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED		(3)
-	#endif
-	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED
-	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED		(4)
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_COMPRESSED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_COMPRESSED		(3)
 	#endif
 
 #else
@@ -23196,34 +25140,15 @@ DoneCUNILOG_TARGETstatic ();
 	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED
 	#define CUNILOG_DEFAULT_ROTATOR_KEEP_UNCOMPRESSED	(10)
 	#endif
-	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED
-	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONTRASHED		(100)
-	#endif
-	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED
-	#define CUNILOG_DEFAULT_ROTATOR_KEEP_NONDELETED		(100)
+	#ifndef CUNILOG_DEFAULT_ROTATOR_KEEP_COMPRESSED
+	#define CUNILOG_DEFAULT_ROTATOR_KEEP_COMPRESSED		(100)
 	#endif
 
-#endif
-
-// The mode for opening the current logfile.
-#ifdef PLATFORM_IS_WINDOWS
-	#define CUNILOG_DEFAULT_OPEN_MODE	(FILE_APPEND_DATA)
-	/*
-		pl->hLogFile = CreateFileU8	(
-						szLogFileName, GENERIC_WRITE,
-						FILE_SHARE_DELETE | FILE_SHARE_READ,
-						NULL, OPEN_ALWAYS,
-						FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
-						NULL
-									);
-	*/
-#else
-	#define CUNILOG_DEFAULT_OPEN_MODE	(O_WRONLY | O_APPEND | O_CREAT)
 #endif
 
 EXTERN_C_BEGIN
 
-/*
+/*!
 	The pointer to the module's internal static CUNILOG_TARGET structure.
 	The _static versions of the logging functions operate on this structure.
 */
@@ -23233,7 +25158,7 @@ CUNILOG_DLL_IMPORT extern CUNILOG_TARGET *pCUNILOG_TARGETstatic;
 	Functions
 */
 
-/*
+/*!
 	CreateCopyCUNILOG_PROCESSORs
 
 	Creates a copy of the array of pointers to CUNILOG_PROCESSOR structures with n processors.
@@ -23253,7 +25178,7 @@ CUNILOG_PROCESSOR **CreateCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps [], uns
 TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR **, CreateCopyCUNILOG_PROCESSORs)
 	(CUNILOG_PROCESSOR *cps [], unsigned int n);
 
-/*
+/*!
 	DoneCopyCUNILOG_PROCESSORs
 
 	Destroys a copy of CUNILOG_PROCESSORs created with CreateCopyCUNILOG_PROCESSORs ().
@@ -23264,24 +25189,29 @@ TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR **, CreateCopyCUNILOG_PROCESSORs)
 void *DoneCopyCUNILOG_PROCESSORs (CUNILOG_PROCESSOR *cps []);
 TYPEDEF_FNCT_PTR (void *, DoneCopyCUNILOG_PROCESSORs) (CUNILOG_PROCESSOR *cps []);
 
-/*
+/*!
 	CreateNewDefaultProcessors
 
-	Allocates new default processors on the heap and returns a pointer to the a
+	Allocates new default processors on the heap and returns a pointer to the newly
+	allocated processor array.
+
+	The parameter pn points to an unsigned int that receives the amount of processors
+	the array contains. Since a pointer to an array would be of no much use without
+	knowing the number of elements it contains, pn cannot be NULL.
 
 	Call DoneCopyCUNILOG_PROCESSORs () when the processors are not needed anymore.
 */
 CUNILOG_PROCESSOR **CreateNewDefaultProcessors (unsigned int *pn);
 TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR **, CreateNewDefaultProcessors) (unsigned int *pn);
 
-/*
+/*!
 	GetCUNILOG_PROCESSOR
 
 	Returns a pointer to the nth processor that performs processing task task.
 	If n is 0, the function finds the first processor of task task, if it is
-	1, it returns the second processor of task task.
+	1, it returns the second processor of task task, etc.
 
-	Returns NULL if a processor for task task does not exist or if n is higher
+	Returns NULL if a processor for task task does not exist or if n is greater
 	than the number of task processors - 1. For instance, if a processor list
 	only contains one console output processor, the function is asked to return
 	cunilogProcessOutputToConsole as task, and if n = 1, the function returns
@@ -23295,14 +25225,14 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSOR	(
 										)
 ;
 
-/*
+/*!
 	GetCUNILOG_PROCESSORrotationTask
 
 	Returns a pointer to the nth rotation processor that performs rotation task rot.
 	If n is 0, the function finds the first rotation processor of task rot, if it is
-	1, it returns the second rotation procossor of task rot.
+	1, it returns the second rotation procossor of task rot, and so on.
 
-	Returns NULL if a processor for task task does not exist or if n is higher
+	Returns NULL if a processor for task task does not exist or if n is greater
 	than the number of task processors - 1. For instance, if a processor list
 	only contains one console output processor, the function is asked to return
 	cunilogProcessOutputToConsole as task, and if n = 1, the function returns
@@ -23316,7 +25246,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 													)
 ;
 
-/*
+/*!
 	GetCUNILOG_ROTATION_DATAfromProcessor
 
 	Returns a pointer to CUNILOG_ROTATION_DATA of the nth rotation processor that
@@ -23324,9 +25254,9 @@ CUNILOG_PROCESSOR *GetCUNILOG_PROCESSORrotationTask	(
 	a rotation processor.
 
 	If n is 0, the function finds the first rotation processor of task rot, if it is
-	1, it returns the second rotation procossor of task rot.
+	1, it returns the second rotation procossor of task rot, and so on.
 
-	Returns NULL if a rotation processor for task rot does not exist or if n is higher
+	Returns NULL if a rotation processor for task rot does not exist or if n is greater
 	than the number of this type of ratation processors - 1. For instance, if a processor
 	list only contains one cunilogrotationtask_MoveToTrashLogfiles rotation processor,
 	rot is set to cunilogrotationtask_MoveToTrashLogfiles, and if n = 1, the function
@@ -23340,12 +25270,12 @@ CUNILOG_ROTATION_DATA *GetCUNILOG_ROTATION_DATAfromProcessor	(
 																)
 ;
 
-/*
+/*!
 	Table with the length of the rotational date/timestamp.
 */
 extern size_t arrLengthTimeStampFromPostfix [cunilogPostfixAmountEnumValues];
 
-/*
+/*!
 	lenDateTimeStampFromRotation
 	
 	Returns the length of the timestamp of the current rotation.
@@ -23357,12 +25287,12 @@ extern size_t arrLengthTimeStampFromPostfix [cunilogPostfixAmountEnumValues];
 		(arrLengthTimeStampFromPostfix [(pfx)])
 #endif
 
-/*
+/*!
 	Table with the rotation wildcard masks.
 */
 extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 
-/*
+/*!
 	postfixMaskFromLogPostfix
 	
 	Returns a string representing a file name wildcard mask for rotation that can be used
@@ -23376,7 +25306,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 		(arrPostfixWildcardMask [pfx])
 #endif
 
-/*
+/*!
 	CunilogSetConsoleTo
 
 	Sets the console to UTF-8 or UTF-16 on Windows.
@@ -23395,7 +25325,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	TYPEDEF_FNCT_PTR (void, CunilogSetConsoleTo) (culogconcp cp);
 #endif
 
-/*
+/*!
 	CunilogSetConsoleToUTF8
 	CunilogSetConsoleToUTF16
 	CunilogSetConsoleToNone
@@ -23429,7 +25359,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	#define CunilogSetConsoleToNone()
 #endif
 
-/*
+/*!
 	CunilogEnableANSI
 	CunilogDisableANSI
 	CunilogIsANSIenabled
@@ -23459,7 +25389,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 	#define CunilogIsANSIenabled() (true)
 #endif
 
-/*
+/*!
 	CunilogGetEnv
 
 	Wrapper function for getenv () on Windows and secure_getenv () on POSIX.
@@ -23467,7 +25397,7 @@ extern const char *arrPostfixWildcardMask [cunilogPostfixAmountEnumValues];
 char *CunilogGetEnv (const char *szName);
 TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
 
-/*
+/*!
 	Cunilog_Have_NO_COLOR
 
 	Returns true if the environment variable NO_COLOR exists and has a value (is not empty).
@@ -23480,7 +25410,7 @@ TYPEDEF_FNCT_PTR (char *, CunilogGetEnv) (const char *szName);
 bool Cunilog_Have_NO_COLOR (void);
 TYPEDEF_FNCT_PTR (bool, Cunilog_Have_NO_COLOR) (void);
 
-/*
+/*!
 	CunilogGetAbsPathFromAbsOrRelPath
 
 	Obtains an absolute path from a relative path. The parameter absOrRelPath specifies
@@ -23530,7 +25460,7 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 	||	cunilogMultiThreadedSeparateLoggingThread	== (p)->culogType\
 )
 
-/*
+/*!
 	CunilogAutoNewLine
 
 	On POSIX, this function always returns cunilogNewLinePOSIX.
@@ -23540,7 +25470,7 @@ TYPEDEF_FNCT_PTR (bool, CunilogGetAbsPathFromAbsOrRelPath)
 */
 enum enLineEndings CunilogAutoNewLine (void);
 
-/*
+/*!
 	InitCUNILOG_TARGETex
 
 	Initialises an existing CUNILOG_TARGET structure.
@@ -23662,7 +25592,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 )
 ;
 
-/*
+/*!
 	InitCUNILOG_TARGET
 
 	Simplified version of InitCUNILOG_TARGETex ().
@@ -23710,7 +25640,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETex)
 										)
 #endif
 
-/*
+/*!
 	CreateNewCUNILOG_TARGET
 
 	Creates a new CUNILOG_TARGET structure on the heap and initialises it.
@@ -23828,7 +25758,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, CreateNewCUNILOG_TARGET)
 )
 ;
 
-/*
+/*!
 	InitOrCreateCUNILOG_TARGET
 
 	Initialises an existing CUNILOG_TARGET structure or creates a new one on the heap.
@@ -23889,7 +25819,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitOrCreateCUNILOG_TARGET)
 )
 ;
 
-/*
+/*!
 	InitCUNILOG_TARGETstaticEx
 	
 	Initialises the internal CUNILOG_TARGET structure. If the _static versions of the logging
@@ -24003,7 +25933,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstaticEx)
 )
 ;
 
-/*
+/*!
 	InitCUNILOG_TARGETstatic
 
 	Simplified version of InitCUNILOG_TARGETstaticEx ().
@@ -24046,6 +25976,13 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstaticEx)
 
 	type				The type of the SUNILOGTARGET. See cunilogstructs.h for more details.
 
+	The function calls InitCUNILOG_TARGETstaticEx () with the missing parameters set to
+	default values. The parameter postfix is set to cunilogPostfixDefault, which in turn is
+	cunilogPostfixDay. This means the target creates a new logfile on a daily basis.
+	A default set of processors is used. The first call to a logging function triggers that
+	all processors are run. This is done by setting the parameter rp to
+	cunilogRunProcessorsOnStartup.
+
 	The function returns a pointer to the internal CUNILOG_TARGET cunilognewlinestructure
 	upon success, NULL otherwise.
 
@@ -24072,7 +26009,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 )
 ;
 
-/*
+/*!
 	MoveCUNILOG_TARGETqueueToFrom
 
 	Moves the queue of the target putSrc to target putDst.
@@ -24097,7 +26034,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 	);
 #endif
 
-/*
+/*!
 	HAS_CUNILOG_TARGET_A_QUEUE
 
 	Macro to check if a CUNILOG_TARGET structure has an event quueue.
@@ -24114,7 +26051,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, InitCUNILOG_TARGETstatic)
 	#define HAS_CUNILOG_TARGET_A_QUEUE(put)	(false)
 #endif
 
-/*
+/*!
 	GetAbsoluteLogPathCUNILOG_TARGET
 
 	Returns the absolute path to the folder logfiles are written to, including a directory
@@ -24131,7 +26068,7 @@ const char *GetAbsoluteLogPathCUNILOG_TARGET (CUNILOG_TARGET *put, size_t *plen)
 TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET)
 	(CUNILOG_TARGET *put, size_t *plen);
 
-/*
+/*!
 	GetAbsoluteLogPathCUNILOG_TARGET_static
 
 	Calls GetAbsoluteLogPathCUNILOG_TARGET () to obtain the absolute path to the folder
@@ -24141,7 +26078,7 @@ const char *GetAbsoluteLogPathCUNILOG_TARGET_static (size_t *plen);
 TYPEDEF_FNCT_PTR (const char *, GetAbsoluteLogPathCUNILOG_TARGET_static)
 	(size_t *plen);
 
-/*
+/*!
 	GetCUNILOG_TARGETprocessor
 
 	Returns a pointer to the nth processor of CUNILOG_TARGET put that
@@ -24173,7 +26110,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_PROCESSOR *, GetCUNILOG_TARGETprocessor)
 										)
 ;
 
-/*
+/*!
 	GetCUNILOG_TARGETprocessorRotationTask
 
 	Returns a pointer to the nth rotation processor of CUNILOG_TARGET put that
@@ -24198,7 +26135,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 															)
 ;
 
-/*
+/*!
 	ConfigCUNILOG_TARGETerrorCallbackFunction
 
 	Sets the error callback function of the specified Cunilog target put points to.
@@ -24211,7 +26148,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 	#define ConfigCUNILOG_TARGETerrorCallbackFunction(put, errorCB)
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETeventStampFormat
 
 	Sets the member unilogEvtTSformat of the CUNILOG_TARGET structure put points to to the
@@ -24227,7 +26164,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 				(put)->unilogEvtTSformat = (f)
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETrunProcessorsOnStartup
 
 	Sets the flag CUNILOGTARGET_RUN_PROCESSORS_ON_STARTUP of the uiOpts member of the
@@ -24255,7 +26192,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 		}
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETcunilognewline
 
 	Sets the member unilogNewLine of the CUNILOG_TARGET structure put points to to the
@@ -24274,23 +26211,23 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 		(put)->unilogNewLine = (nl)
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETeventSeverityFormatType
 
 	Sets the format type of event severities for the target structure put. It
-	sets the member evSeverityType of the CUNILOG_TARGET structure put to the
+	sets the member severityFmType of the CUNILOG_TARGET structure put to the
 	value of eventSeverityFormatType.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
 	void ConfigCUNILOG_TARGETeventSeverityFormatType	(
 			CUNILOG_TARGET				*put,
-			cueventsevfmtpy				eventSeverityFormatType
+			cueventsevprefix			eventSeverityFormatType
 														)
 	;
 	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETeventSeverityFormatType)
 														(
 			CUNILOG_TARGET				*put,
-			cueventsevfmtpy				eventSeverityFormatType
+			cueventsevprefix			eventSeverityFormatType
 														)
 	;
 #else
@@ -24298,7 +26235,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 		(put)->evSeverityType = (evstpy)
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETuseColourForCout
 
 	Switches on/off using colours for console output depending on event severity level.
@@ -24322,7 +26259,7 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 	#endif
 #endif
 
-/*
+/*!
 	ConfigCUNILOG_TARGETprocessorList
 
 	Sets the processors for a CUNILOG_TARGET struture.
@@ -24337,34 +26274,51 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 						If this parameter is not NULL, the function does not create a
 						copy of the provided processor list, which means the list must be
 						available/accessible until ShutdownCUNILOG_TARGET () or
-						CancelCUNILOG_TARGET (), and then DoneSCUNILOGTAREGE () are called
+						CancelCUNILOG_TARGET (), and then DoneCUNILOG_TARGET () are called
 						on it. In other words the list is required to either reside on the
 						heap, is static, or is created as automatic in main ().
 
 	nProcessors			The amount of processors cuProcessorList points to.
 
 */
-#if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigCUNILOG_TARGETprocessorList	(
-					CUNILOG_TARGET			*put
-				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
-				,	unsigned int			nProcessors			// Number of processors.
-											)
-	;
-	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETprocessorList)
-											(
-					CUNILOG_TARGET			*put
-				,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more post-processors.
-				,	unsigned int			nProcessors			// Number of processors.
-											)
-	;
-#else
-	#define ConfigCUNILOG_TARGETprocessorList(put,		\
-				cup, n)									\
-				prepareProcessors (put, cuProcessorList, nProcessors)
-#endif
+void ConfigCUNILOG_TARGETprocessorList	(
+				CUNILOG_TARGET			*put
+			,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more processors.
+			,	unsigned int			nProcessors			// Number of processors.
+										)
+;
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETprocessorList)
+										(
+				CUNILOG_TARGET			*put
+			,	CUNILOG_PROCESSOR		**cuProcessorList	// One or more processors.
+			,	unsigned int			nProcessors			// Number of processors.
+										)
+;
 
 /*
+	ConfigCUNILOG_PROCESSORnLogFiles
+
+	Sets the amount of logfiles to keep uncompressed as well as the amount of logfiles
+	to keep compressed for the target put. Excess logfiles are either moved to the recycle
+	bin or deleted.
+*/
+void ConfigCUNILOG_PROCESSORnLogFiles	(
+		CUNILOG_PROCESSOR	**cuProcessorList,					// One or more processors.
+		unsigned int		nProcessors,						// Number of processors.
+		uint64_t			nLogsToKeepUncompressed,
+		uint64_t			nLogsToKeepCompressed
+										)
+;
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_PROCESSORnLogFiles)
+(
+		CUNILOG_PROCESSOR	**cuProcessorList,					// One or more processors.
+		unsigned int		nProcessors,						// Number of processors.
+		uint64_t			nLogsToKeepUncompressed,
+		uint64_t			nLogsToKeepCompressed
+)
+;
+
+/*!
 	ConfigCUNILOG_TARGETdisableTaskProcessors
 	ConfigCUNILOG_TARGETenableTaskProcessors
 
@@ -24378,7 +26332,7 @@ TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableTaskProcessors)
 TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableTaskProcessors)
 	(CUNILOG_TARGET *put, enum cunilogprocesstask task);
 
-/*
+/*!
 	ConfigCUNILOG_TARGETdisableCoutProcessor
 	ConfigCUNILOG_TARGETenableCoutProcessor
 
@@ -24391,7 +26345,73 @@ void ConfigCUNILOG_TARGETenableCoutProcessor	(CUNILOG_TARGET *put);
 TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableCoutProcessor)	(CUNILOG_TARGET *put);
 TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET *put);
 
-/*
+/*!
+	ConfigCUNILOG_TARGETeventSeverityMask
+
+	Sets a new severity mask for the target. The severity mask determines which severities
+	are enabled. Each bit of the severity mask represents a value of the cueventseverity
+	enumeration. If a bit is set, the severity level is enabled. If a bit is 0, the severity
+	level is disabled.
+	
+	The bit numbers represent the values within the enumeration. For instance, the value
+	cunilogEvtSeverityNone is represented by bit 0, and so forth.
+
+	To enable processing of all severity levels, set the severity mask to MAX_SEVLVLMASK_T.
+	To disable all logging, set the severity mask to 0.
+*/
+void ConfigCUNILOG_TARGETeventSeverityMask (CUNILOG_TARGET *put, evtsevmask_t newsevmask);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETeventSeverityMask)
+	(CUNILOG_TARGET *put, evtsevmask_t newsevmask);
+
+/*!
+	ConfigCUNILOG_TARGETdisableEventSeverity
+	ConfigCUNILOG_TARGETenableEventSeverity
+
+	Disables/enables processing of an event severity.
+*/
+void ConfigCUNILOG_TARGETdisableEventSeverity (CUNILOG_TARGET *put, cueventseverity sev);
+void ConfigCUNILOG_TARGETenableEventSeverity (CUNILOG_TARGET *put, cueventseverity sev);
+
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableEventSeverity)
+	(CUNILOG_TARGET *put, cueventseverity sev);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableEventSeverity)
+	(CUNILOG_TARGET *put, cueventseverity sev);
+
+/*!
+	ConfigCUNILOG_TARGETdisableEventSeverities
+	ConfigCUNILOG_TARGETenableEventSeverities
+
+	Disables/enables processing of the event severity levels provided in the array
+	pointed to by sevs. The parameter n specifies the amount of elements sevs 
+	points to.
+*/
+void ConfigCUNILOG_TARGETdisableEventSeverities	(
+		CUNILOG_TARGET			*put,
+		unsigned int			n,
+		cueventseverity			*sevs
+												)
+;
+void ConfigCUNILOG_TARGETenableEventSeverities	(
+		CUNILOG_TARGET			*put,
+		unsigned int			n,
+		cueventseverity			*sevs
+												)
+;
+
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETdisableEventSeverities)
+(
+		CUNILOG_TARGET			*put,
+		unsigned int			n,
+		cueventseverity			*sevs
+);
+TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableEventSeverities)
+(
+		CUNILOG_TARGET			*put,
+		unsigned int			n,
+		cueventseverity			*sevs
+);
+
+/*!
 	EnterCUNILOG_TARGET
 	LockCUNILOG_TARGET
 
@@ -24447,7 +26467,21 @@ TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET
 	#define UnlockCUNILOG_TARGETstatic()
 #endif
 
-/*
+/*!
+	DoneCUNILOG_TARGETprocessors
+
+	Destroys the processors attached to the CUNILOG_TARGET put points to.
+	
+	After the function returns, the target has no processors.
+
+	The function only needs to be called if the processors of an existing and
+	initialised target require replacing. The DoneCUNILOG_TARGET... () functions
+	call this function implicitely.
+*/
+void DoneCUNILOG_TARGETprocessors (CUNILOG_TARGET *put);
+TYPEDEF_FNCT_PTR (void, DoneCUNILOG_TARGETprocessors) (CUNILOG_TARGET *put);
+
+/*!
 	DoneCUNILOG_TARGET
 
 	Deallocates all resources of the CUNILOG_TARGET put points to. After a structure has been
@@ -24462,8 +26496,9 @@ TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET
 CUNILOG_TARGET *DoneCUNILOG_TARGET (CUNILOG_TARGET *put);
 TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, DoneCUNILOG_TARGET) (CUNILOG_TARGET *put);
 
-/*
+/*!
 	DoneCUNILOG_TARGETstatic
+	DoneCUNILOG_TARGET_static
 	
 	Deallocates all resources of the internal static CUNILOG_TARGET structure by calling
 	DoneCUNILOG_TARGET () on it.
@@ -24472,8 +26507,10 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, DoneCUNILOG_TARGET) (CUNILOG_TARGET *put);
 */
 #define DoneCUNILOG_TARGETstatic()						\
 			DoneCUNILOG_TARGET (pCUNILOG_TARGETstatic)
+#define DoneCUNILOG_TARGET_static()						\
+			DoneCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 
-/*
+/*!
 	ShutdownCUNILOG_TARGET
 
 	Blocks further logging by forcing all logging functions to return false. It then waits
@@ -24499,7 +26536,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_TARGET *, DoneCUNILOG_TARGET) (CUNILOG_TARGET *put);
 bool ShutdownCUNILOG_TARGET (CUNILOG_TARGET *put);
 TYPEDEF_FNCT_PTR (bool, ShutdownCUNILOG_TARGET) (CUNILOG_TARGET *put);
 
-/*
+/*!
 	ShutdownCUNILOG_TARGETstatic
 
 	Calls ShutdownCUNILOG_TARGET () on the internal static CUNILOG_TARGET structure.
@@ -24513,7 +26550,7 @@ TYPEDEF_FNCT_PTR (bool, ShutdownCUNILOG_TARGET) (CUNILOG_TARGET *put);
 #define ShutdownCUNILOG_TARGETstatic()					\
 			ShutdownCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 
-/*
+/*!
 	CancelCUNILOG_TARGET
 
 	Empties the logging queue for the CUNILOG_TARGET put without processing its events.
@@ -24531,7 +26568,7 @@ TYPEDEF_FNCT_PTR (bool, ShutdownCUNILOG_TARGET) (CUNILOG_TARGET *put);
 bool CancelCUNILOG_TARGET (CUNILOG_TARGET *put);
 TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 
-/*
+/*!
 	CancelCUNILOG_TARGETstatic
 
 	Calls CancelCUNILOG_TARGET () on the internal static SUNILOGSTRUCT structure.
@@ -24544,7 +26581,7 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 #define CancelCUNILOG_TARGETstatic ()					\
 			CancelCUNILOG_TARGET (pCUNILOG_TARGETstatic)
 
-/*
+/*!
 	PauseLogCUNILOG_TARGET
 
 	Pauses/suspends logging to the CUNILOG_TARGET structure put points to while still
@@ -24567,7 +26604,7 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	#define PauseLogCUNILOG_TARGET(put)
 #endif
 
-/*
+/*!
 	PauseLogCUNILOG_TARGETstatic
 
 	Pauses/suspends logging to the internal CUNILOG_TARGET structure while still
@@ -24590,7 +26627,7 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	#define PauseLogCUNILOG_TARGETstatic()
 #endif
 
-/*
+/*!
 	ResumeLogCUNILOG_TARGET
 
 	Resumes logging to the CUNILOG_TARGET structure put points to after a call to
@@ -24618,7 +26655,7 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	#define ResumeLogCUNILOG_TARGET(put)
 #endif
 
-/*
+/*!
 	ResumeLogCUNILOG_TARGETstatic
 
 	Resumes logging to the internal CUNILOG_TARGET structure after a call to
@@ -24646,7 +26683,7 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	#define ResumeLogCUNILOG_TARGETstatic()		(0)
 #endif
 
-/*
+/*!
 	CreateCUNILOG_EVENT_Data
 
 	Allocates a buffer that points to a new event structure CUNILOG_EVENT plus data,
@@ -24654,7 +26691,11 @@ TYPEDEF_FNCT_PTR (bool, CancelCUNILOG_TARGET) (CUNILOG_TARGET *put);
 	created and initialised structure and data buffer. The event is written out as binary
 	data, which results in a hex dump.
 
-	Note that you can NOT use USE_STRLEN as the parameter siz.
+	Note that you can NOT use USE_STRLEN as the parameter siz, but USE_STRLEN is a valid
+	option for the lenght of the caption (lenCapt).
+
+	If the severity mask of the target does not have severity sev enabled, the function
+	does not create an event and returns NULL.
 
 	The function returns false if it fails.
 */
@@ -24678,11 +26719,11 @@ TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_Data)
 											)
 ;
 
-/*
+/*!
 	CreateCUNILOG_EVENT_Text
 
 	This is the text version of CreateCUNILOG_EVENT_Data (). If the string ccText is
-	NUL-terminated len can be set to USE_STRLEN, and the function calls strlen () to
+	NUL-terminated, len can be set to USE_STRLEN, and the function calls strlen () to
 	obtain its length.
 */
 CUNILOG_EVENT *CreateCUNILOG_EVENT_Text		(
@@ -24701,7 +26742,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_Text)
 											)
 ;
 
-/*
+/*!
 	CreateCUNILOG_EVENT_TextTS
 
 	This function is identical to CreateCUNILOG_EVENT_Text () but expects the timestamp
@@ -24725,7 +26766,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_TextTS)
 											)
 ;
 
-/*
+/*!
 	DuplicateCUNILOG_EVENT
 
 	Creates a copy of the event pev on the heap. If the event has a size other than
@@ -24741,7 +26782,7 @@ TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, CreateCUNILOG_EVENT_TextTS)
 CUNILOG_EVENT *DuplicateCUNILOG_EVENT (CUNILOG_EVENT *pev);
 TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, DuplicateCUNILOG_EVENT) (CUNILOG_EVENT *pev);
 
-/*
+/*!
 	DoneCUNILOG_EVENT
 
 	Destroys an SUNILOGEVENT structure including all its resources if the event belongs
@@ -24752,26 +26793,33 @@ TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, DuplicateCUNILOG_EVENT) (CUNILOG_EVENT *pev);
 CUNILOG_EVENT *DoneCUNILOG_EVENT (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 TYPEDEF_FNCT_PTR (CUNILOG_EVENT *, DoneCUNILOG_EVENT) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 
-/*
+/*!
 	Logging functions.
 	==================
 */
 
-/*
+/*!
 	logEv
 
 	Writes out the event pev points to to the logging target put points to. The function
-	only sets the pCUNILOG_TARGET member of the CUNILOG_EVENT structure and calls
+	sets the pCUNILOG_TARGET member of the CUNILOG_EVENT structure and calls
 	cunilogProcessOrQueueEvent () on it.
 
-	Returns true on success, false otherwise. The function fails after ShutdownCUNILOG_TARGET ()
-	or CancelCUNILOG_TARGET () have been called on the CUNILOG_TARGET structure put points to.
+	If the event severity mask of the CUNILOG_TARGET put points to does not have the event's
+	severerity enabled, the function returns true.
+
+	The function returns false ShutdownCUNILOG_TARGET () or CancelCUNILOG_TARGET () have been
+	called on the CUNILOG_TARGET structure put points to.
+
+	By calling this function, the caller relinquishes ownership of the event pev points to,
+	independent of its return value. This means the function is responsible for deallocating
+	the event with DoneCUNILOG_EVENT () in case the event is rejected by the target.
 */
 bool logEv (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 
 
-/*
+/*!
 	logEv_static
 
 	Macro wrapper for the static version of logEv () that uses the module's internal static
@@ -24780,7 +26828,7 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 */
 #define logEv_static(pev)	logEv (pCUNILOG_TARGETstatic, (pev))
 
-/*
+/*!
 	Logging functions
 
 	The functions expect a CUNILOG_TARGET structure as their first parameter.
@@ -24797,22 +26845,28 @@ TYPEDEF_FNCT_PTR (bool, logEv) (CUNILOG_TARGET *put, CUNILOG_EVENT *pev);
 	logHexOrTextU8 () also accepts UTF-8 as text and creates a hex dump if the data to output
 	contains invalid UTF-8.
 
-	The functions without a severity use severity level/severity type cunilogEvtSeverityNone.
-	Functions containing sev in their names accept a severity type.
+	Function names with an l accept a length parameter for the text's length, in octets/bytes.
+	You can use USE_STRLEN for this parameter, in which case the text buffer's length is obtained
+	via a call to strlen (), and the string needs to be NUL-terminated. NUL-termination is not
+	required otherwise. Note that the length parameter denotes the length of the text, in octets,
+	not its size, and also not in characters. The text "abc" has a length of 3 but a size of 4
+	octets, which includes the NUL-terminator. UTF-8 characters can have up to 4 octets/bytes.
+	Cunilog writes out only UTF-8 but doesn't actually understand its encoding.
+
+	Functions containing sev in their names require an additional parameter for their severity.
+	Functions without a severity implicitely use severity level/event severity
+	cunilogEvtSeverityNone. All event severities apart from cunilogEvtSeverityDebug are
+	enabled by default. Severity cunilogEvtSeverityDebug requires explicit activation, which
+	can be achieved by changing the target's severity mask, for instance with
+	ConfigCUNILOG_TARGETenableSeverityLevel (). If the severity mask of the target does not
+	have the given severity enabled, the functions return true but silently ignore or discard
+	the event.
 
 	Functions that have U8 in their names are for UTF-8, the ones with a WU16 are intended for
 	Windows UTF-16 encoding. On POSIX systems the WU16 functions are not available.
 
 	Functions whose name contains a c only output to the console. Other processors are simply
 	ignored.
-
-	Function names with an l accept a length parameter for the text's length, in octets/bytes.
-	You can use USE_STRLEN for this parameter, in which case the text buffer's length is obtained
-	via a call to strlen () and the string needs to be NUL-terminated. NUL-termination is not
-	required otherwise. Note that the length parameter denotes the length of the text, in octets,
-	not its size, and also not in characters. The text "abc" has a length of 3 but a size of 4
-	octets, which includes the NUL-terminator. UTF-8 characters can have up to 4 octets/bytes.
-	Cunilog writes out only UTF-8 but doesn't actually understand its encoding.
 
 	Functions ending in ts expect the timestamp of the event in an additional UBF_TIMESTAMP
 	parameter.
@@ -24904,7 +26958,7 @@ bool logTextU8csmbfmt		(CUNILOG_TARGET *put, SMEMBUF *smb, const char *fmt, ...)
 bool logTextU8csvfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, va_list ap);
 bool logTextU8csfmtsev		(CUNILOG_TARGET *put, cueventseverity sev, const char *fmt, ...);
 
-/*
+/*!
 	logEmptyLine
 	
 	Writes an empty line to the target. No rotation takes place.
@@ -24963,7 +27017,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 #define logTextU8csfmtsev_static(s, ...)				\
 										logTextU8csfmtsev	(pCUNILOG_TARGETstatic, (s), __VA_ARGS__);
 
-/*	ChangeCUNILOG_TARGETuseColourForCout
+/*!	ChangeCUNILOG_TARGETuseColourForCout
 	ChangeCUNILOG_TARGETuseColorForCout
 	ChangeCUNILOG_TARGETuseColourForCout
 	ChangeCUNILOG_TARGETuseColorForCout_static
@@ -24986,7 +27040,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 				ChangeCUNILOG_TARGETuseColourForCout (pCUNILOG_TARGETstatic, (bc))
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETcunilognewline
 	ChangeCUNILOG_TARGETcunilognewline_static
 
@@ -25000,7 +27054,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 				ChangeCUNILOG_TARGETcunilognewline (pCUNILOG_TARGETstatic, (nl))
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETdisableTaskProcessors
 	ChangeCUNILOG_TARGETenableTaskProcessors
 
@@ -25014,7 +27068,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETenableTaskProcessors) (CUNILOG_TARGET *put, enum cunilogprocesstask task);
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETdisableCoutProcessor
 	ChangeCUNILOG_TARGETenableCoutProcessor
 
@@ -25028,7 +27082,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETenableCoutProcessor)	(CUNILOG_TARGET *put);
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETeventSeverityFormatType
 
 	Queues an event to set the format type of event severities for the target structure put.
@@ -25037,13 +27091,13 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-	bool ChangeCUNILOG_TARGETeventSeverityFormatType (CUNILOG_TARGET *put, cueventsevfmtpy sevTpy);
+	bool ChangeCUNILOG_TARGETeventSeverityFormatType (CUNILOG_TARGET *put, cueventsevprefix sevTpy);
 	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETeventSeverityFormatType)
-		(CUNILOG_TARGET *put, cueventsevfmtpy sevTpy);
+		(CUNILOG_TARGET *put, cueventsevprefix sevTpy);
 #endif
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETlogPriority
 
 	Queues an event to set the priority of the separate logging thread that belongs to the
@@ -25087,7 +27141,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 	#define ChangeCUNILOG_TARGETlogPriority(put, prio) (true)
 #endif
 
-/*
+/*!
 	ChangeCUNILOG_TARGETlogPriority_static
 
 	Sets the priority of the separate logging thread that belongs to the internal static
@@ -25112,7 +27166,7 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 	#define ChangeCUNILOG_TARGETlogPriority_static(prio) (true)
 #endif
 
-/*
+/*!
 	CunilogChangeCurrentThreadPriority
 
 	Sets the priority of the current thread.
@@ -25124,17 +27178,17 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 bool CunilogChangeCurrentThreadPriority (cunilogprio prio);
 TYPEDEF_FNCT_PTR (bool, CunilogChangeCurrentThreadPriority) (cunilogprio prio);
 
-/*
+/*!
 	cunilogSetDefaultPrintEventSeverityFormatType
 
 	Sets the default event severity format type that is used by the cunilog_printf...
 	and cunilog_puts... type functions (see below).
 
 */
-void cunilogSetDefaultPrintEventSeverityFormatType (cueventsevfmtpy fmtpy);
-TYPEDEF_FNCT_PTR (void, cunilogSetDefaultPrintEventSeverityFormatType) (cueventsevfmtpy fmtpy);
+void cunilogSetDefaultPrintEventSeverityFormatType (cueventsevprefix fmtpy);
+TYPEDEF_FNCT_PTR (void, cunilogSetDefaultPrintEventSeverityFormatType) (cueventsevprefix fmtpy);
 
-/*
+/*!
 	cunilogUseColourForOutput
 
 	Coloured output for the cunilog_printf... and cunilog_puts... type funcitons (see
@@ -25147,7 +27201,7 @@ TYPEDEF_FNCT_PTR (void, cunilogSetDefaultPrintEventSeverityFormatType) (cuevents
 void cunilogUseColourForOutput (bool bUseColour);
 TYPEDEF_FNCT_PTR (void, cunilogUseColourForOutput) (bool bUseColour);
 
-/*
+/*!
 	cunilog_printf_sev_fmtpy_vl
 	cunilog_printf_sev_fmtpy
 	cunilog_printf_sev
@@ -25193,7 +27247,7 @@ TYPEDEF_FNCT_PTR (void, cunilogUseColourForOutput) (bool bUseColour);
 */
 int cunilog_printf_sev_fmtpy_vl	(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*format,
 		va_list				ap
 								)
@@ -25201,7 +27255,7 @@ int cunilog_printf_sev_fmtpy_vl	(
 TYPEDEF_FNCT_PTR (int, cunilog_printf_sev_fmtpy_vl)
 								(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*format,
 		va_list				ap
 								)
@@ -25210,7 +27264,7 @@ TYPEDEF_FNCT_PTR (int, cunilog_printf_sev_fmtpy_vl)
 
 int cunilog_printf_sev_fmtpy	(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*format,
 		...
 								)
@@ -25218,7 +27272,7 @@ int cunilog_printf_sev_fmtpy	(
 TYPEDEF_FNCT_PTR (int, cunilog_printf_sev_fmtpy)
 								(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*format,
 		...
 								)
@@ -25253,7 +27307,7 @@ TYPEDEF_FNCT_PTR (int, cunilog_printf)
 
 int cunilog_puts_sev_fmtpy_l	(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*strU8,
 		size_t				len
 								)
@@ -25261,7 +27315,7 @@ int cunilog_puts_sev_fmtpy_l	(
 TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_fmtpy_l)
 								(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*strU8,
 		size_t				len
 								)
@@ -25269,14 +27323,14 @@ TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_fmtpy_l)
 
 int cunilog_puts_sev_fmtpy		(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*strU8
 								)
 ;
 TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_fmtpy)
 								(
 		cueventseverity		sev,
-		cueventsevfmtpy		sftpy,
+		cueventsevprefix	sevfmt,
 		const char			*strU8
 								)
 ;
@@ -25330,7 +27384,7 @@ TYPEDEF_FNCT_PTR (int, cunilog_puts)
 								)
 ;
 
-/*
+/*!
 	The version as text, its year, and as a 64 bit number.
 	Currently still unsupported.
 */
@@ -25338,7 +27392,7 @@ extern const char		ccCunilogVersionText [];
 extern const char		ccCunilogVersionYear [];
 extern const uint64_t	uiCunilogVersion;
 
-/*
+/*!
 	cunilogCheckVersion
 
 	Compares the version of cunilog.c with the version of cunilogversion.h and returns
@@ -25372,7 +27426,7 @@ extern const uint64_t	uiCunilogVersion;
 int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion);
 #define cunilogCheckVersion() cunilogCheckVersionIntChk (CUNILOG_VERSION_HDR)
 
-/*
+/*!
 	DoneCunilog
 
 	Releases all resources of global scope used by Cunilog.
@@ -25386,7 +27440,7 @@ int cunilogCheckVersionIntChk (uint64_t cunilogHdrVersion);
 void DoneCunilog ()
 ;
 
-/*
+/*!
 	Tests
 	=====
 */

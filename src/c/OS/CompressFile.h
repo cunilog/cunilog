@@ -98,12 +98,14 @@ typedef enum enfilecompressresult enfilecompressresult_t;
 #ifdef DEBUG
 	enfilecompressresult_t IsFileCompressedByName (const char *szFilename);
 #else
-	#if defined (OS_IS_WINDOWS)
+	#if defined (PLATFORM_IS_WINDOWS)
 		#define IsFileCompressedByName(fn)				\
 			(enfilecompressresult_t) IsFileNTFSCompressedByName (fn)
-	#elif defined (OS_IS_LINUX)
+	#elif defined (PLATFORM_IS_POSIX)
 		#define IsFileCompressedByName(fn)				\
 			(fscompress_error)
+	#elif
+		#error "Not supported"
 	#endif
 #endif
 

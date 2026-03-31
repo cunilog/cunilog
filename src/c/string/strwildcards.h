@@ -77,7 +77,7 @@ When		Who				What
 
 EXTERN_C_BEGIN
 
-/*
+/*!
 	wildCardFileName
 	
 	Obtains the last part of a path if it contains wildcard characters.
@@ -96,7 +96,7 @@ EXTERN_C_BEGIN
 const char *wildCardFileName (size_t *plen, const char *ccPath)
 ;
 
-/*
+/*!
 	lenPathWithoutWildcardFileName
 	
 	Returns the length of the path that ends with a wildcard filename, including the
@@ -111,7 +111,7 @@ const char *wildCardFileName (size_t *plen, const char *ccPath)
 size_t lenPathWithoutWildcardFileName (const char *ccPath)
 ;
 
-/*
+/*!
 	matchWildcardPattern
 	matchWildcardPatternW
 

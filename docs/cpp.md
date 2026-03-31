@@ -51,7 +51,7 @@ typedef struct smembuf
 The union serves as an implicit type converter. This is valid in C but not in
 C++ due to C++'s *active member* rule. See the C/C++ paragraph at https://en.wikipedia.org/wiki/Union_type.
 
-## Copy & Paste
+## Copy & paste
 
 For the above reasons, copying any of the C code from any of the Cunilog modules,
 and pasting it into a C++ unit is discouraged, unless you know what you're doing and

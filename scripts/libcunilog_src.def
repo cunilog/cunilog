@@ -7,9 +7,9 @@ LIBRARY libcunilog
 EXPORTS
 	; cunilogstructs
 	szCunilogLogFileNameExtension					@nnn	DATA
-	wcCunilogLogFileNameExtension					@nnn	DATA
 	lenCunilogLogFileNameExtension					@nnn	DATA
-	sizCunilogLogFileNameExtension					@nnn	DATA
+	szCunilogGzpFileNameExtension					@nnn	DATA
+	lenCunilogGzpFileNameExtension					@nnn	DATA
 
 	; cunilog
 	pCUNILOG_TARGETstatic							@nnn	DATA
@@ -37,12 +37,17 @@ EXPORTS
 	ConfigCUNILOG_TARGETrunProcessorsOnStartup		@nnn
 	ConfigCUNILOG_TARGETcunilognewline				@nnn
 	ConfigCUNILOG_TARGETeventSeverityFormatType		@nnn
-	ConfigCUNILOG_TARGETuseColourForEcho			@nnn
+	ConfigCUNILOG_TARGETuseColourForCout			@nnn
 	ConfigCUNILOG_TARGETprocessorList				@nnn
 	ConfigCUNILOG_TARGETdisableTaskProcessors		@nnn
 	ConfigCUNILOG_TARGETenableTaskProcessors		@nnn
-	ConfigCUNILOG_TARGETdisableEchoProcessor		@nnn
-	ConfigCUNILOG_TARGETenableEchoProcessor			@nnn
+	ConfigCUNILOG_TARGETdisableCoutProcessor		@nnn
+	ConfigCUNILOG_TARGETenableCoutProcessor			@nnn
+	ConfigCUNILOG_TARGETeventSeverityMask			@nnn
+	ConfigCUNILOG_TARGETdisableEventSeverity		@nnn
+	ConfigCUNILOG_TARGETenableEventSeverity			@nnn
+	ConfigCUNILOG_TARGETdisableEventSeverities		@nnn
+	ConfigCUNILOG_TARGETenableEventSeverities		@nnn
 ;	EnterCUNILOG_TARGET								@nnn	Should not be used.
 ;	LeaveCUNILOG_TARGET								@nnn	Should not be used.
 	DoneCUNILOG_TARGET								@nnn
@@ -95,12 +100,13 @@ EXPORTS
 	logTextWU16l									@nnn
 	logTextWU16										@nnn
 
-	ChangeCUNILOG_TARGETuseColourForEcho			@nnn
+	ChangeCUNILOG_TARGETuseColourForCout			@nnn
 	ChangeCUNILOG_TARGETcunilognewline				@nnn
 	ChangeCUNILOG_TARGETdisableTaskProcessors		@nnn
 	ChangeCUNILOG_TARGETenableTaskProcessors		@nnn
-	ChangeCUNILOG_TARGETdisableEchoProcessor		@nnn
-	ChangeCUNILOG_TARGETenableEchoProcessor			@nnn
+	ChangeCUNILOG_TARGETdisableCoutProcessor		@nnn
+	ChangeCUNILOG_TARGETenableCoutProcessor			@nnn
+
 	ChangeCUNILOG_TARGETeventSeverityFormatType		@nnn
 	ChangeCUNILOG_TARGETlogPriority					@nnn
 	CunilogChangeCurrentThreadPriority				@nnn

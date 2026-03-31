@@ -26,17 +26,28 @@ When		Who				What
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+#ifndef HAVE_ADVAPI32
+#define HAVE_ADVAPI32
+#endif
 #ifndef HAVE_STRWILDCARDS
 #define HAVE_STRWILDCARDS
 #endif
 #ifndef HAVE_SHELLAPI
 #define HAVE_SHELLAPI
 #endif
+#ifndef HAVE_USER32
+#define HAVE_USER32
+#endif
 #ifndef HAVE_USERENV
 #define HAVE_USERENV
 #endif
 #ifndef HAVE_MEMBUF
 #define HAVE_MEMBUF
+#endif
+
+// miniz
+#ifndef MINIZ_NO_INFLATE_APIS
+#define MINIZ_NO_INFLATE_APIS
 #endif
 
 /*

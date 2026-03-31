@@ -758,6 +758,10 @@ bool strlineextractIsCloseString	(
 	return cmpBufStartsWith (szLine, lnLine, pszCloseStrings [idxCloseString1based]);
 }
 
+#ifdef _MSC_VER
+#pragma warning (disable: 4706)								// Assignment within condition.
+#endif
+
 bool strlineextractKeyOrValue	(
 		const char		**cunilog_restrict pszKeyOrVal,	size_t	*plnKeyOrVal,	// Out.
 		const char		**cunilog_restrict pszEqual,	size_t	*plnEqual,		// Out.
@@ -898,6 +902,10 @@ bool strlineextractKeyOrValue	(
 	*pszKeyOrVal = szRet;
 	return true;
 }
+
+#ifdef _MSC_VER
+#pragma warning (default: 4706)								// Assignment within condition.
+#endif
 
 unsigned int strlineextractKeyAndValues	(
 		const char		**cunilog_restrict	pszKey,		size_t	*plnKey,	// Out.

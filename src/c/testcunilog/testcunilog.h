@@ -20,7 +20,7 @@ When		Who				What
 */
 
 /*
-	This code is public domain.
+	This code is in the public domain.
 */
 
 #define LOGS_FOLDER_NAME				"logs"
