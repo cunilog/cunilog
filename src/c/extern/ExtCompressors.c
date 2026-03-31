@@ -202,7 +202,11 @@ static inline bool readFromFile (uint32_t *pRead, unsigned char *ucBuf, uint32_t
 		ubf_assert (toRead >= 0);
 		if (-1 !=clf.fd)
 		{
-			ssize_t rd = read (clf.fd, ucBuf, toRead);
+			ssize_t rd;
+			do
+			{
+				rd = read (clf.fd, ucBuf, toRead);
+			} while (rd < 0 && errno == EINTR);
 			ubf_assert (rd <= UINT32_MAX);
 			if (rd >= 0)
 			{
@@ -237,12 +241,16 @@ static inline bool writeToFile	(
 		}
 	#else
 		ubf_assert (toWrite <= SSIZE_MAX);
-		ubf_assert (toWrite >= 0);
+		ubf_assert (toWrite > 0);
 		if (-1 !=clf.fd)
 		{
-			ssize_t written = write (clf.fd, ucBuf, toWrite);
+			ssize_t written;
+			do
+			{
+				written = write (clf.fd, ucBuf, toWrite);
+			} while (written < 0 && errno == EINTR);
 			ubf_assert (written <= UINT32_MAX);
-			if (written >= 0)
+			if (written == toWrite)
 			{
 				*pWritten = (uint32_t) written;
 				return true;
