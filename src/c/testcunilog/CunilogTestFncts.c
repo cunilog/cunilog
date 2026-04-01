@@ -1049,21 +1049,21 @@ bool CunilogTestFunction	(
 	logTextU8sev_static (cunilogEvtSeverityNoneFail, "This is a bad one");
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars3InBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormat (pCUNILOG_TARGETstatic, cunilogEvtSeverityFormatChars3InBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars5InBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormat (pCUNILOG_TARGETstatic, cunilogEvtSeverityFormatChars5InBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars9InBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormat (pCUNILOG_TARGETstatic, cunilogEvtSeverityFormatChars9InBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
-	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars5InTightBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormat (pCUNILOG_TARGETstatic, cunilogEvtSeverityFormatChars5InTightBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
 	logTextU8sev_static (cunilogEvtSeverityNone, "None");
 	logTextU8sev_static (cunilogEvtSeverityBlanks, "Blanks");
-	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars9InTightBrackets);
+	ChangeCUNILOG_TARGETeventSeverityFormat (pCUNILOG_TARGETstatic, cunilogEvtSeverityFormatChars9InTightBrackets);
 	logTextU8sev_static (cunilogEvtSeverityPass, "This is a good one");
 	logTextU8sev_static (cunilogEvtSeverityFail, "This is a bad one");
 	logTextU8sev_static (cunilogEvtSeverityNone, "None");
@@ -1078,7 +1078,7 @@ bool CunilogTestFunction	(
 	logTextU8smbfmt_static (&smb, "Another string is \"%s\"", "String");
 
 	// Some examples for the markdown.
-	ChangeCUNILOG_TARGETeventSeverityFormatType (pCUNILOG_TARGETstatic, cunilogEvtSeverityPrfxChars3);
+	ChangeCUNILOG_TARGETeventSeverityFormat (pCUNILOG_TARGETstatic, cunilogEvtSeverityFormatChars3);
 	logTextU8sev_static (cunilogEvtSeverityNone,		"cunilogEvtSeverityNone");
 	logTextU8sev_static (cunilogEvtSeverityNonePass,	"cunilogEvtSeverityNonePass");
 	logTextU8sev_static (cunilogEvtSeverityNoneFail,	"cunilogEvtSeverityNoneFail");

@@ -36,7 +36,7 @@ EXPORTS
 	ConfigCUNILOG_TARGETeventStampFormat			@nnn
 	ConfigCUNILOG_TARGETrunProcessorsOnStartup		@nnn
 	ConfigCUNILOG_TARGETcunilognewline				@nnn
-	ConfigCUNILOG_TARGETeventSeverityFormatType		@nnn
+	ConfigCUNILOG_TARGETeventSeverityFormat			@nnn
 	ConfigCUNILOG_TARGETuseColourForCout			@nnn
 	ConfigCUNILOG_TARGETprocessorList				@nnn
 	ConfigCUNILOG_TARGETdisableTaskProcessors		@nnn
@@ -107,11 +107,11 @@ EXPORTS
 	ChangeCUNILOG_TARGETdisableCoutProcessor		@nnn
 	ChangeCUNILOG_TARGETenableCoutProcessor			@nnn
 
-	ChangeCUNILOG_TARGETeventSeverityFormatType		@nnn
+	ChangeCUNILOG_TARGETeventSeverityFormat			@nnn
 	ChangeCUNILOG_TARGETlogPriority					@nnn
 	CunilogChangeCurrentThreadPriority				@nnn
 
-	cunilogSetDefaultPrintEventSeverityFormatType	@nnn
+	cunilogSetDefaultPrintEventSeverityFormat		@nnn
 	cunilogUseColourForOutput						@nnn
 	cunilog_printf_sev_fmtpy_vl						@nnn
 	cunilog_printf_sev_fmtpy						@nnn

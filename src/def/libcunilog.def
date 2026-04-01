@@ -9,7 +9,7 @@
 ;
 ;	Purpose:	Provides ordinals for functions and variables for Windows DLL.
 ;	OS:			Windows
-;	Created:	2026-03-31 13:06:04 (by script CreateWindowsDLLDef)
+;	Created:	2026-04-01 15:44:03 (by script CreateWindowsDLLDef)
 ;
 ;	License:	Public domain.
 ;
@@ -52,7 +52,7 @@ EXPORTS
 	ConfigCUNILOG_TARGETeventStampFormat			@122
 	ConfigCUNILOG_TARGETrunProcessorsOnStartup		@123
 	ConfigCUNILOG_TARGETcunilognewline				@124
-	ConfigCUNILOG_TARGETeventSeverityFormatType		@125
+	ConfigCUNILOG_TARGETeventSeverityFormat			@125
 	ConfigCUNILOG_TARGETuseColourForCout			@126
 	ConfigCUNILOG_TARGETprocessorList				@127
 	ConfigCUNILOG_TARGETdisableTaskProcessors		@128
@@ -123,11 +123,11 @@ EXPORTS
 	ChangeCUNILOG_TARGETdisableCoutProcessor		@187
 	ChangeCUNILOG_TARGETenableCoutProcessor			@188
 
-	ChangeCUNILOG_TARGETeventSeverityFormatType		@189
+	ChangeCUNILOG_TARGETeventSeverityFormat			@189
 	ChangeCUNILOG_TARGETlogPriority					@190
 	CunilogChangeCurrentThreadPriority				@191
 
-	cunilogSetDefaultPrintEventSeverityFormatType	@192
+	cunilogSetDefaultPrintEventSeverityFormat		@192
 	cunilogUseColourForOutput						@193
 	cunilog_printf_sev_fmtpy_vl						@194
 	cunilog_printf_sev_fmtpy						@195

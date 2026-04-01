@@ -1321,26 +1321,26 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 #endif
 
 /*!
-	ConfigCUNILOG_TARGETeventSeverityFormatType
+	ConfigCUNILOG_TARGETeventSeverityFormat
 
 	Sets the format type of event severities for the target structure put. It
 	sets the member severityFmType of the CUNILOG_TARGET structure put to the
 	value of eventSeverityFormatType.
 */
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigCUNILOG_TARGETeventSeverityFormatType	(
+	void ConfigCUNILOG_TARGETeventSeverityFormat	(
 			CUNILOG_TARGET				*put,
-			cueventsevprefix			eventSeverityFormatType
-														)
+			cueventseverityformat			eventSeverityFormatType
+													)
 	;
-	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETeventSeverityFormatType)
-														(
+	TYPEDEF_FNCT_PTR (void, ConfigCUNILOG_TARGETeventSeverityFormat)
+													(
 			CUNILOG_TARGET				*put,
-			cueventsevprefix			eventSeverityFormatType
-														)
+			cueventseverityformat			eventSeverityFormatType
+													)
 	;
 #else
-	#define ConfigCUNILOG_TARGETeventSeverityFormatType(put, evstpy)	\
+	#define ConfigCUNILOG_TARGETeventSeverityFormat(put, evstpy)	\
 		(put)->evSeverityType = (evstpy)
 #endif
 
@@ -2192,17 +2192,17 @@ bool logEmptyLine			(CUNILOG_TARGET *put);
 #endif
 
 /*!
-	ChangeCUNILOG_TARGETeventSeverityFormatType
+	ChangeCUNILOG_TARGETeventSeverityFormat
 
 	Queues an event to set the format type of event severities for the target structure put.
 	It sets the member evSeverityType of the CUNILOG_TARGET structure put to the
 	value of eventSeverityFormatType.
 */
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
-#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-	bool ChangeCUNILOG_TARGETeventSeverityFormatType (CUNILOG_TARGET *put, cueventsevprefix sevTpy);
-	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETeventSeverityFormatType)
-		(CUNILOG_TARGET *put, cueventsevprefix sevTpy);
+#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_FORMAT
+	bool ChangeCUNILOG_TARGETeventSeverityFormat (CUNILOG_TARGET *put, cueventseverityformat sevTpy);
+	TYPEDEF_FNCT_PTR (bool, ChangeCUNILOG_TARGETeventSeverityFormat)
+		(CUNILOG_TARGET *put, cueventseverityformat sevTpy);
 #endif
 #endif
 
@@ -2288,14 +2288,14 @@ bool CunilogChangeCurrentThreadPriority (cunilogprio prio);
 TYPEDEF_FNCT_PTR (bool, CunilogChangeCurrentThreadPriority) (cunilogprio prio);
 
 /*!
-	cunilogSetDefaultPrintEventSeverityFormatType
+	cunilogSetDefaultPrintEventSeverityFormat
 
 	Sets the default event severity format type that is used by the cunilog_printf...
 	and cunilog_puts... type functions (see below).
 
 */
-void cunilogSetDefaultPrintEventSeverityFormatType (cueventsevprefix fmtpy);
-TYPEDEF_FNCT_PTR (void, cunilogSetDefaultPrintEventSeverityFormatType) (cueventsevprefix fmtpy);
+void cunilogSetDefaultPrintEventSeverityFormat (cueventseverityformat fmtpy);
+TYPEDEF_FNCT_PTR (void, cunilogSetDefaultPrintEventSeverityFormat) (cueventseverityformat fmtpy);
 
 /*!
 	cunilogUseColourForOutput
@@ -2356,7 +2356,7 @@ TYPEDEF_FNCT_PTR (void, cunilogUseColourForOutput) (bool bUseColour);
 */
 int cunilog_printf_sev_fmtpy_vl	(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*format,
 		va_list				ap
 								)
@@ -2364,7 +2364,7 @@ int cunilog_printf_sev_fmtpy_vl	(
 TYPEDEF_FNCT_PTR (int, cunilog_printf_sev_fmtpy_vl)
 								(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*format,
 		va_list				ap
 								)
@@ -2373,7 +2373,7 @@ TYPEDEF_FNCT_PTR (int, cunilog_printf_sev_fmtpy_vl)
 
 int cunilog_printf_sev_fmtpy	(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*format,
 		...
 								)
@@ -2381,7 +2381,7 @@ int cunilog_printf_sev_fmtpy	(
 TYPEDEF_FNCT_PTR (int, cunilog_printf_sev_fmtpy)
 								(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*format,
 		...
 								)
@@ -2416,7 +2416,7 @@ TYPEDEF_FNCT_PTR (int, cunilog_printf)
 
 int cunilog_puts_sev_fmtpy_l	(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*strU8,
 		size_t				len
 								)
@@ -2424,7 +2424,7 @@ int cunilog_puts_sev_fmtpy_l	(
 TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_fmtpy_l)
 								(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*strU8,
 		size_t				len
 								)
@@ -2432,14 +2432,14 @@ TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_fmtpy_l)
 
 int cunilog_puts_sev_fmtpy		(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*strU8
 								)
 ;
 TYPEDEF_FNCT_PTR (int, cunilog_puts_sev_fmtpy)
 								(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*strU8
 								)
 ;

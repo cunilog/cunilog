@@ -56,7 +56,7 @@ const size_t	lenCunilogGzpFileNameExtension		= sizeof (szCunilogGzpFileNameExten
 /*
 	The default event severity type.
 */
-cueventsevprefix	cunilogEvtSeverityPrfxDefault = cunilogEvtSeverityPrfxChars3;
+cueventseverityformat	cunilogEvtSeverityFormatDefault = cunilogEvtSeverityFormatChars3;
 
 /*
 	Default ANSI escape colour output for the cunilog_puts... and cunilog_printf...

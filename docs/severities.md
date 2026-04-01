@@ -33,7 +33,7 @@ To enable all severities for a target, call __ConfigCUNILOG_TARGETeventSeverityM
 
 # Severity prefixes
 
-The prefix of a severity ("severity prefix") is a text tag in front of a logging event. Here's a few examples for severity __cunilogEvtSeverityWarning__:
+The severity of an event is a text tag at the start of a logging event. This event tag (also: severity prefix) is in a particular format ("severity format") . Here's a few examples for event severity __cunilogEvtSeverityWarning__ in different severity formats:
 ```
 "WRN"
 "[WRN]"
@@ -43,6 +43,6 @@ The prefix of a severity ("severity prefix") is a text tag in front of a logging
 "[WARNING]  "
 "[WARNING  ]"
 ```
-The possible prefixes are listed in the enum __cunilogeventseverityprefix__, which has a typedef of __cueventsevprefix__.
+While the texts (the actual severity prefixes) are fixed, the possible prefix formats are listed in the enum __cunilogeventseverityformat__, which has a typedef of __cueventseverityformat__.
 
-Use the function __ConfigCUNILOG_TARGETeventSeverityFormatType ()__ to change the severity prefix of a target for which no logging function has been called yet (i.e. directly after the target has been created and/or initialised), or call __ChangeCUNILOG_TARGETeventSeverityFormatType ()__ to change the severity prefix later on. The latter function guarrantees that no race condition occurs for multi-threaded targets by queuing an event that changes the severity prefix safely on-the-fly.
+Use the function __ConfigCUNILOG_TARGETeventSeverityFormat ()__ to change the severity prefix format of a target for which no logging function has been called yet (i.e. directly after the target has been created and/or initialised), or call __ChangeCUNILOG_TARGETeventSeverityFormat ()__ to change it later on. The latter function guarrantees that no race condition occurs for multi-threaded targets by queuing an event that changes the format of the severity text tag safely on-the-fly.

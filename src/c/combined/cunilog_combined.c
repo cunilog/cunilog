@@ -35864,7 +35864,7 @@ const size_t	lenCunilogGzpFileNameExtension		= sizeof (szCunilogGzpFileNameExten
 /*
 	The default event severity type.
 */
-cueventsevprefix	cunilogEvtSeverityPrfxDefault = cunilogEvtSeverityPrfxChars3;
+cueventseverityformat	cunilogEvtSeverityFormatDefault = cunilogEvtSeverityFormatChars3;
 
 /*
 	Default ANSI escape colour output for the cunilog_puts... and cunilog_printf...
@@ -36009,7 +36009,7 @@ typedef struct sculCmdArr
 SCULCMDARR culCmdSizes [] =
 {
 		SIZCMDENUM + sizeof (bool)							// cunilogCmdConfigUseColourForEcho
-	,	SIZCMDENUM + sizeof (cueventsevprefix)				// cunilogCmdConfigEventSeverityFormatType
+	,	SIZCMDENUM + sizeof (cueventseverityformat)				// cunilogCmdConfigEventSeverityFormatType
 	,	SIZCMDENUM + sizeof (newline_t)						// cunilogCmdConfigCunilognewline
 	,	SIZCMDENUM + sizeof (enum cunilogprocesstask)		// cunilogCmdConfigDisableTaskProcessors
 	,	SIZCMDENUM + sizeof (enum cunilogprocesstask)		// cunilogCmdConfigEnableTaskProcessors
@@ -36058,10 +36058,10 @@ void culCmdStoreCmdConfigUseColourForCout (unsigned char *szOut, bool bUseColour
 }
 
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventsevprefix sevTpy)
+	void culCmdStoreConfigEventSeverityFormatType (unsigned char *szOut, cueventseverityformat sevTpy)
 	{
 		ubf_assert_non_NULL (szOut);
-		ubf_assert (sizeof (cueventsevprefix) == sizeof (sevTpy));
+		ubf_assert (sizeof (cueventseverityformat) == sizeof (sevTpy));
 
 		culCmdStoreEventCommand (szOut, cunilogCmdConfigEventSeverityFormatType);
 		memcpy (szOut + sizeof (enum cunilogEvtCmd), &sevTpy, sizeof (sevTpy));
@@ -36234,7 +36234,7 @@ void culCmdChangeCmdConfigFromCommand (CUNILOG_EVENT *pev)
 			break;
 		case cunilogCmdConfigEventSeverityFormatType:
 			#ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-				memcpy (&put->severityPrefix, szData, sizeof (cueventsevprefix));
+				memcpy (&put->severityPrefix, szData, sizeof (cueventseverityformat));
 			#endif
 			break;
 		case cunilogCmdConfigCunilognewline:
@@ -38086,7 +38086,7 @@ static inline bool initCommonMembersAndPrepareCUNILOG_TARGET (CUNILOG_TARGET *pu
 		put->nPausedEvents					= 0;
 	#endif
 	put->dumpWidth							= enDataDumpWidth16;
-	put->severityPrefix						= cunilogEvtSeverityPrfxDefault;
+	put->severityPrefix						= cunilogEvtSeverityFormatDefault;
 	initPrevTimestamp						(put);
 	InitCUNILOG_TARGETmbLogFold				(put);
 	InitCUNILOG_TARGETdumpstructs			(put);
@@ -38645,14 +38645,14 @@ CUNILOG_PROCESSOR *GetCUNILOG_TARGETprocessorRotationTask	(
 #endif
 
 #if defined (DEBUG) || defined (CUNILOG_BUILD_SHARED_LIBRARY)
-	void ConfigCUNILOG_TARGETeventSeverityFormatType	(
+	void ConfigCUNILOG_TARGETeventSeverityFormat	(
 			CUNILOG_TARGET				*put,
-			cueventsevprefix			eventSeverityFormatType
+			cueventseverityformat			eventSeverityFormatType
 														)
 	{
 		ubf_assert_non_NULL (put);
 		ubf_assert (eventSeverityFormatType > 0);
-		ubf_assert (eventSeverityFormatType <= cunilogEvtSeverityPrfxChars9InBrackets);
+		ubf_assert (eventSeverityFormatType <= cunilogEvtSeverityFormatChars9InBrackets);
 
 		put->severityPrefix = eventSeverityFormatType;
 	}
@@ -39175,27 +39175,27 @@ STRANSICOLOURSEQUENCE evtSeverityColours [cunilogEvtSeverityXAmountEnumValues] =
 	#define cpyRstEvtSeverityColour(s)
 #endif
 
-static inline size_t requiredEventSeverityChars (cueventseverity sev, cueventsevprefix sevfmt)
+static inline size_t requiredEventSeverityChars (cueventseverity sev, cueventseverityformat sevfmt)
 {
 	// "" or "INF" + " ".
 	if (cunilogEvtSeverityBlanks > sev)
 			return 0;
 	switch (sevfmt)
 	{														// The + 1 is for a space character.
-		case cunilogEvtSeverityPrfxChars3:					return 3 + 1;
-		case cunilogEvtSeverityPrfxChars5:					return 5 + 1;
-		case cunilogEvtSeverityPrfxChars9:					return 9 + 1;
-		case cunilogEvtSeverityPrfxChars3InBrackets:		return 2 + 3 + 1;
-		case cunilogEvtSeverityPrfxChars5InBrackets:		return 2 + 5 + 1;
-		case cunilogEvtSeverityPrfxChars9InBrackets:		return 2 + 9 + 1;
-		case cunilogEvtSeverityPrfxChars5InTightBrackets:	return 2 + 5 + 1;
-		case cunilogEvtSeverityPrfxChars9InTightBrackets:	return 2 + 9 + 1;
+		case cunilogEvtSeverityFormatChars3:					return 3 + 1;
+		case cunilogEvtSeverityFormatChars5:					return 5 + 1;
+		case cunilogEvtSeverityFormatChars9:					return 9 + 1;
+		case cunilogEvtSeverityFormatChars3InBrackets:			return 2 + 3 + 1;
+		case cunilogEvtSeverityFormatChars5InBrackets:			return 2 + 5 + 1;
+		case cunilogEvtSeverityFormatChars9InBrackets:			return 2 + 9 + 1;
+		case cunilogEvtSeverityFormatChars5InTightBrackets:	return 2 + 5 + 1;
+		case cunilogEvtSeverityFormatChars9InTightBrackets:	return 2 + 9 + 1;
 	}
 	ubf_assert_msg (false, "Internal error! We should never get here!");
 	return 0;
 }
 
-static inline size_t writeEventSeverity (char *szOut, cueventseverity sev, cueventsevprefix sevfmt)
+static inline size_t writeEventSeverity (char *szOut, cueventseverity sev, cueventseverityformat sevfmt)
 {
 	ubf_assert_non_NULL (szOut);
 	ubf_assert (0 <= sev);
@@ -39208,34 +39208,34 @@ static inline size_t writeEventSeverity (char *szOut, cueventseverity sev, cueve
 
 	switch (sevfmt)
 	{
-		case cunilogEvtSeverityPrfxChars3:					// "EMG"
+		case cunilogEvtSeverityFormatChars3:				// "EMG"
 			memcpy (szOut, EvtSevTexts [sev].texts3, 3);
 			szOut [3] = ' ';
 			return 3 + 1;
-		case cunilogEvtSeverityPrfxChars5:					// "EMRGY"
+		case cunilogEvtSeverityFormatChars5:				// "EMRGY"
 			memcpy (szOut, EvtSevTexts [sev].texts5, 5);
 			szOut [5] = ' ';
 			return 5 + 1;
-		case cunilogEvtSeverityPrfxChars9:					// "EMERGENCY"
+		case cunilogEvtSeverityFormatChars9:				// "EMERGENCY"
 			memcpy (szOut, EvtSevTexts [sev].texts9, 9);
 			szOut [9] = ' ';
 			return 9 + 1;
-		case cunilogEvtSeverityPrfxChars3InBrackets:		// "[EMG]"
+		case cunilogEvtSeverityFormatChars3InBrackets:		// "[EMG]"
 			*szOut ++ = '[';
 			memcpy (szOut, EvtSevTexts [sev].texts3, 3);
 			memcpy (szOut + 3, "] ", 2);
 			return 2 + 3 + 1;
-		case cunilogEvtSeverityPrfxChars5InBrackets:		// "[FAIL ]"
+		case cunilogEvtSeverityFormatChars5InBrackets:		// "[FAIL ]"
 			*szOut ++ = '[';
 			memcpy (szOut, EvtSevTexts [sev].texts5, 5);
 			memcpy (szOut + 5, "] ", 2);
 			return 2 + 5 + 1;
-		case cunilogEvtSeverityPrfxChars9InBrackets:		// "[FAIL     ]"
+		case cunilogEvtSeverityFormatChars9InBrackets:		// "[FAIL     ]"
 			*szOut ++ = '[';
 			memcpy (szOut, EvtSevTexts [sev].texts9, 9);
 			memcpy (szOut + 9, "] ", 2);
 			return 2 + 9 + 1;
-		case cunilogEvtSeverityPrfxChars5InTightBrackets:
+		case cunilogEvtSeverityFormatChars5InTightBrackets:	// "[FAIL] "
 			len = strlen (EvtSevTexts [sev].texts5tgt);
 			ubf_assert (len <= 5);
 			*szOut ++ = '[';
@@ -39243,7 +39243,7 @@ static inline size_t writeEventSeverity (char *szOut, cueventseverity sev, cueve
 			memcpy (szOut + len, "] ", 2);
 			memset (szOut + len + 2, ' ', 5 - len);
 			return 2 + 5 + 1;
-		case cunilogEvtSeverityPrfxChars9InTightBrackets:
+		case cunilogEvtSeverityFormatChars9InTightBrackets:	// "[FAIL]     "
 			len = strlen (EvtSevTexts [sev].texts9tgt);
 			ubf_assert (len <= 9);
 			*szOut ++ = '[';
@@ -43967,11 +43967,11 @@ bool logEmptyLine			(CUNILOG_TARGET *put)
 
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_COMMANDS
 #ifndef CUNILOG_BUILD_WITHOUT_EVENT_SEVERITY_TYPE
-	bool ChangeCUNILOG_TARGETeventSeverityFormatType (CUNILOG_TARGET *put, cueventsevprefix sevfmt)
+	bool ChangeCUNILOG_TARGETeventSeverityFormat (CUNILOG_TARGET *put, cueventseverityformat sevfmt)
 	{
 		ubf_assert_non_NULL	(put);
 		ubf_assert			(0 <= sevfmt);
-		ubf_assert			(cunilogEvtSeverityPrfxXAmountEnumValues > sevfmt);
+		ubf_assert			(cunilogEvtSeverityFormatXAmountEnumValues > sevfmt);
 
 		CUNILOG_EVENT *pev = CreateCUNILOG_EVENTforCommand	(
 								put, cunilogCmdConfigEventSeverityFormatType
@@ -44019,12 +44019,12 @@ bool CunilogChangeCurrentThreadPriority (cunilogprio prio)
 	return false;
 }
 
-void cunilogSetDefaultPrintEventSeverityFormatType (cueventsevprefix sevfmt)
+void cunilogSetDefaultPrintEventSeverityFormat (cueventseverityformat sevfmt)
 {
 	ubf_assert			(0 <= sevfmt);
-	ubf_assert			(cunilogEvtSeverityPrfxXAmountEnumValues > sevfmt);
+	ubf_assert			(cunilogEvtSeverityFormatXAmountEnumValues > sevfmt);
 
-	cunilogEvtSeverityPrfxDefault = sevfmt;
+	cunilogEvtSeverityFormatDefault = sevfmt;
 }
 
 void cunilogUseColourForOutput (bool bUseColour)
@@ -44034,7 +44034,7 @@ void cunilogUseColourForOutput (bool bUseColour)
 
 int cunilog_printf_sev_fmtpy_vl	(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*format,
 		va_list				ap
 )
@@ -44111,7 +44111,7 @@ int cunilog_printf_sev_fmtpy_vl	(
 
 int cunilog_printf_sev_fmtpy	(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*format,
 		...
 								)
@@ -44140,7 +44140,7 @@ int cunilog_printf_sev			(
 	va_list		args;
 
 	va_start	(args, format);
-	iRet = cunilog_printf_sev_fmtpy_vl (sev, cunilogEvtSeverityPrfxDefault, format, args);
+	iRet = cunilog_printf_sev_fmtpy_vl (sev, cunilogEvtSeverityFormatDefault, format, args);
 	va_end		(args);
 
 	return iRet;
@@ -44157,7 +44157,7 @@ int cunilog_printf				(
 	va_list		args;
 
 	va_start	(args, format);
-	iRet = cunilog_printf_sev_fmtpy_vl (cunilogEvtSeverityNone, cunilogEvtSeverityPrfxDefault, format, args);
+	iRet = cunilog_printf_sev_fmtpy_vl (cunilogEvtSeverityNone, cunilogEvtSeverityFormatDefault, format, args);
 	va_end		(args);
 
 	return iRet;
@@ -44165,7 +44165,7 @@ int cunilog_printf				(
 
 int cunilog_puts_sev_fmtpy_l	(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*strU8,
 		size_t				len
 								)
@@ -44257,7 +44257,7 @@ int cunilog_puts_sev_fmtpy_l	(
 
 int cunilog_puts_sev_fmtpy		(
 		cueventseverity		sev,
-		cueventsevprefix	sevfmt,
+		cueventseverityformat	sevfmt,
 		const char			*strU8
 								)
 {
@@ -44274,7 +44274,7 @@ int cunilog_puts_sev_l			(
 {
 	ubf_assert_non_NULL (strU8);
 
-	return cunilog_puts_sev_fmtpy_l (sev, cunilogEvtSeverityPrfxDefault, strU8, len);
+	return cunilog_puts_sev_fmtpy_l (sev, cunilogEvtSeverityFormatDefault, strU8, len);
 }
 
 int cunilog_puts_sev			(
@@ -44284,7 +44284,7 @@ int cunilog_puts_sev			(
 {
 	ubf_assert_non_NULL (strU8);
 
-	return cunilog_puts_sev_fmtpy_l (sev, cunilogEvtSeverityPrfxDefault, strU8, USE_STRLEN);
+	return cunilog_puts_sev_fmtpy_l (sev, cunilogEvtSeverityFormatDefault, strU8, USE_STRLEN);
 }
 
 int cunilog_puts_l				(
@@ -44295,7 +44295,7 @@ int cunilog_puts_l				(
 	ubf_assert_non_NULL (strU8);
 
 	return cunilog_puts_sev_fmtpy_l	(
-				cunilogEvtSeverityNone, cunilogEvtSeverityPrfxDefault, strU8, len
+				cunilogEvtSeverityNone, cunilogEvtSeverityFormatDefault, strU8, len
 									);
 }
 
@@ -44306,7 +44306,7 @@ int cunilog_puts				(
 	ubf_assert_non_NULL (strU8);
 
 	return cunilog_puts_sev_fmtpy_l	(
-				cunilogEvtSeverityNone, cunilogEvtSeverityPrfxDefault, strU8, USE_STRLEN
+				cunilogEvtSeverityNone, cunilogEvtSeverityFormatDefault, strU8, USE_STRLEN
 									);
 }
 
@@ -44533,180 +44533,180 @@ void DoneCunilog ()
 		ubf_expect_bool_AND (bRet, 9 >= strlen (EvtSevTexts [cunilogEvtSeveritySyntax]		.texts9tgt));
 
 		size_t	stEvtSev;
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNone,		cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNone,		cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNonePass,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNonePass,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneFail,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneFail,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneWarn,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneWarn,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityBlanks,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityBlanks,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityEmergency,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityEmergency,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNotice,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNotice,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityWarning,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityWarning,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityError,		cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityError,		cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityPass,		cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityPass,		cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFail,		cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFail,		cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityCritical,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityCritical,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFatal,		cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFatal,		cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDebug,		cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDebug,		cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityTrace,		cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityTrace,		cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDetail,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDetail,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityVerbose,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityVerbose,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityIllegal,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityIllegal,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeveritySyntax,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeveritySyntax,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 3 + 1 == stEvtSev);
 
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNone,		cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNone,		cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNonePass,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNonePass,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneFail,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneFail,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneWarn,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneWarn,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityBlanks,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityBlanks,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityEmergency,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityEmergency,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNotice,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNotice,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityWarning,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityWarning,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityError,		cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityError,		cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityPass,		cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityPass,		cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFail,		cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFail,		cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityCritical,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityCritical,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFatal,		cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFatal,		cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDebug,		cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDebug,		cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityTrace,		cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityTrace,		cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDetail,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDetail,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityVerbose,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityVerbose,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityIllegal,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityIllegal,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeveritySyntax,	cunilogEvtSeverityPrfxChars5);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeveritySyntax,	cunilogEvtSeverityFormatChars5);
 		ubf_expect_bool_AND (bRet, 5 + 1 == stEvtSev);
 
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNone,		cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNone,		cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNonePass,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNonePass,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneFail,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneFail,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneWarn,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNoneWarn,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityBlanks,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityBlanks,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityEmergency,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityEmergency,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNotice,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityNotice,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityInfo,		cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityOutput,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityMessage,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityWarning,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityWarning,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityError,		cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityError,		cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityPass,		cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityPass,		cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFail,		cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFail,		cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityCritical,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityCritical,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFatal,		cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityFatal,		cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDebug,		cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDebug,		cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityTrace,		cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityTrace,		cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDetail,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityDetail,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityVerbose,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityVerbose,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityIllegal,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeverityIllegal,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
-		stEvtSev = requiredEventSeverityChars (cunilogEvtSeveritySyntax,	cunilogEvtSeverityPrfxChars9);
+		stEvtSev = requiredEventSeverityChars (cunilogEvtSeveritySyntax,	cunilogEvtSeverityFormatChars9);
 		ubf_expect_bool_AND (bRet, 9 + 1 == stEvtSev);
 
 		char szEvtSev [32];									// Max. "[123456789]" + NUL.
 		memset (szEvtSev, 0, 32);
-		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityNone,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityNone,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 0 == stEvtSev);
 		memset (szEvtSev, 0, 32);
-		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityInfo,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityInfo,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 4 == stEvtSev);			// Includes a terminating space (" ") but no NUL.
 		ubf_expect_bool_AND (bRet, !memcmp ("INF ", szEvtSev, 4 + 1));
 		memset (szEvtSev, 0, 32);
-		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityOutput,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityOutput,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 4 == stEvtSev);			// Includes a terminating space (" ") but no NUL.
 		ubf_expect_bool_AND (bRet, !memcmp ("OUT ", szEvtSev, 4 + 1));
 		memset (szEvtSev, 0, 32);
-		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityMessage,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityMessage,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 4 == stEvtSev);			// Includes a terminating space (" ") but no NUL.
 		ubf_expect_bool_AND (bRet, !memcmp ("MSG ", szEvtSev, 4 + 1));
 		memset (szEvtSev, 0, 32);
-		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityPrfxChars3);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityFormatChars3);
 		ubf_expect_bool_AND (bRet, 4 == stEvtSev);
 		ubf_expect_bool_AND (bRet, !memcmp ("WRN ", szEvtSev, 4 + 1));
 
 		memset (szEvtSev, 0, 32);
-		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityPrfxChars3InBrackets);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityFormatChars3InBrackets);
 		ubf_expect_bool_AND (bRet, 6 == stEvtSev);
 		ubf_expect_bool_AND (bRet, !memcmp ("[WRN] ", szEvtSev, 6 + 1));
 		memset (szEvtSev, 0, 32);
-		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityPrfxChars5InBrackets);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityFormatChars5InBrackets);
 		ubf_expect_bool_AND (bRet, 8 == stEvtSev);
 		ubf_expect_bool_AND (bRet, !memcmp ("[WARN ] ", szEvtSev, 8 + 1));
 		memset (szEvtSev, 0, 32);
-		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityPrfxChars9InBrackets);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityFormatChars9InBrackets);
 		ubf_expect_bool_AND (bRet, 12 == stEvtSev);
 		ubf_expect_bool_AND (bRet, !memcmp ("[WARNING  ] ", szEvtSev, 12 + 1));
 		memset (szEvtSev, 0, 32);
-		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityPrfxChars5InTightBrackets);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityFormatChars5InTightBrackets);
 		ubf_expect_bool_AND (bRet, 8 == stEvtSev);
 		ubf_expect_bool_AND (bRet, !memcmp ("[WARN]  ", szEvtSev, 8 + 1));
 		memset (szEvtSev, 0, 32);
-		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityPrfxChars9InTightBrackets);
+		stEvtSev = writeEventSeverity (szEvtSev, cunilogEvtSeverityWarning,	cunilogEvtSeverityFormatChars9InTightBrackets);
 		ubf_expect_bool_AND (bRet, 12 == stEvtSev);
 		ubf_expect_bool_AND (bRet, !memcmp ("[WARNING]   ", szEvtSev, 12 + 1));
 
