@@ -164,7 +164,8 @@ void *growToSizeRetainSMEMBUF (SMEMBUF *pb, size_t siz)
 			{
 				memcpy (n, pb->buf.pvoid, pb->size);
 				ubf_free (pb->buf.pvoid);
-				pb->size = siz;
+				pb->buf.pvoid	= n;
+				pb->size		= siz;
 			} else
 			{
 				doneSMEMBUF (pb);

@@ -121,7 +121,7 @@ TYPEDEF_FNCT_PTR (size_t, initSMEMBUFfromStrReserve) (SMEMBUF *pmb, const char *
 	A NUL terminator is written at the end of the buffer.
 
 	If str is NULL, len must be 0. If len is 0, the function writes out a NUL-terminator
-	only
+	only.
 
 	The SMEMBUF structure pmb points to must have been initialised before the function
 	is called. To initialise the structure implicitely, use initSMEMBUFfromStr () instead.

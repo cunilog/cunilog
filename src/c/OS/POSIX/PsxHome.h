@@ -114,6 +114,9 @@ const char *UserHomeDirectoryPOSIX (size_t *plen)
 	UserTrashFolder
 	
 	Returns a user's trash folder.
+	
+	The function is only re-entrant after its first invocation.
+
 */
 const char *UserTrashFolder (size_t *plen)
 ;

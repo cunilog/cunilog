@@ -103,7 +103,8 @@ static inline void setTxtUserID (uid_t uid)
 	if (uid != uidUserID)
 	{
 		lenUserID = SMEMBUFstrFromUINT64 (&smbUserID, uid);
-		if (lenUserID) -- lenUserID;
+		if (lenUserID)
+			-- lenUserID;
 	}
 }
 
@@ -112,8 +113,8 @@ static inline uid_t getOurUserID (void)
 	uid_t	uid;
 	
 	// Not sure what should be used here. The real or the effective user id?
-	uid = geteuid ();
-	//uid = getuid ();
+	//uid = geteuid ();
+	uid = getuid ();
 	uidUserID = uid;
 	
 	setTxtUserID (uid);

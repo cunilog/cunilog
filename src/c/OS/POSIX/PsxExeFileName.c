@@ -53,12 +53,14 @@ When		Who				What
 		#include "./memstrstr.h"
 		#include "./ubfdebug.h"
 		#include "./strintuint.h"
+		#include "./strmembuf.h"
 		#include "./unref.h"
 	#else
 		#include "./../../mem/membuf.h"
 		#include "./../../mem/memstrstr.h"
 		#include "./../../dbg/ubfdebug.h"
 		#include "./../../string/strintuint.h"
+		#include "./../../string/strmembuf.h"
 		#include "./../../pre/unref.h"
 	#endif
 
@@ -69,22 +71,22 @@ When		Who				What
 #include <unistd.h>
 
 SMEMBUF	mbOurExecutablePath		= SMEMBUF_INITIALISER;
-size_t	lenOurExectuablePath;
+size_t	lnOurExecutablePath;
 
 /*
 	Stores our executable's module name and its length in the variables above.
 */
 static void StoreExecutableModuleName (SMEMBUF *mb, size_t ln)
 {
-	ubf_assert_non_NULL (mb);
-	ubf_assert (isInitialisedSMEMBUF (mb));
-	ubf_assert_non_0 (ln);
-	ubf_assert (USE_STRLEN != ln);
+	ubf_assert_non_NULL	(mb);
+	ubf_assert			(isInitialisedSMEMBUF (mb));
+	ubf_assert_non_0	(ln);
+	ubf_assert			(USE_STRLEN != ln);
 
 	if (!isUsableSMEMBUF (&mbOurExecutablePath))
 	{
 		copySMEMBUF (&mbOurExecutablePath, mb);
-		lenOurExectuablePath = ln;
+		lnOurExecutablePath = ln;
 
 		// Ensure we have a NUL terminator.
 		ubf_assert (0 == mbOurExecutablePath.buf.pch [ln]);
@@ -110,7 +112,7 @@ static size_t WeHaveExecutableModuleNameAlready (SMEMBUF *mb)
 		copySMEMBUF (mb, &mbOurExecutablePath);
 		// Note that we do not check here if the copy operation was successful.
 		//	We leave this within the caller's responsibility.
-		return lenOurExectuablePath;
+		return lnOurExecutablePath;
 	}
 	return 0;
 }
@@ -128,14 +130,15 @@ static unsigned int		uiDetExeMethod;						// The strategy used to
 
 	size_t PsxObtainExecutableModuleName (SMEMBUF *mb)
 	{
-		ubf_assert_non_NULL (mb);
+		ubf_assert_non_NULL	(mb);
+		ubf_assert			(isInitialisedSMEMBUF (mb));
 
 		size_t len;											// The return value.
 		if (len = WeHaveExecutableModuleNameAlready (mb))
 			return len;
 
 		size_t exe_size = 1024;
-		chPath = ubf_malloc (exe_size);
+		char *chPath = ubf_malloc (exe_size);
 		while (chPath && -1 == _NSGetExecutablePath (chPath, &exe_size))
 		{
 			ubf_free (chPath);
@@ -143,7 +146,7 @@ static unsigned int		uiDetExeMethod;						// The strategy used to
 			#ifdef DEBUG
 			if (8192 <= exe_size)
 			{	// Emergency brake in debug version. In the release version we got no
-				//	choice but to use however long the path is.
+				//	choice but to accept however long the path is.
 				ubf_assert (FALSE);
 			}
 			#endif
@@ -152,9 +155,11 @@ static unsigned int		uiDetExeMethod;						// The strategy used to
 		}
 		if (chPath)
 		{
-			ch_ubf_Executable_Path = chPath;
-			ln_ubf_Executable_Path = (size_t) exe_size - 1;
-			return ch_ubf_Executable_Path;
+			//ch_ubf_Executable_Path = chPath;
+			size_t ln_ubf_Executable_Path = (size_t) exe_size - 1;
+			SMEMBUFfromStr (mb, chPath, ln_ubf_Executable_Path);
+			StoreExecutableModuleName (mb, ln_ubf_Executable_Path);
+			return ln_ubf_Executable_Path;
 		}
 		return NULL;
 	}
@@ -184,7 +189,8 @@ static unsigned int		uiDetExeMethod;						// The strategy used to
 
 	size_t PsxObtainExecutableModuleName (SMEMBUF *mb)
 	{
-		ubf_assert_non_NULL (mb);
+		ubf_assert_non_NULL	(mb);
+		ubf_assert			(isInitialisedSMEMBUF (mb));
 
 		size_t len;
 		if ((len = WeHaveExecutableModuleNameAlready (mb)))
@@ -264,7 +270,7 @@ static unsigned int		uiDetExeMethod;						// The strategy used to
 			doneSMEMBUF (&smb);
 		}
 		if (isUsableSMEMBUF (&mbOurExecutablePath))
-			return lnOurExectuablePath;
+			return lnOurExecutablePath;
 		return 0;
 	}
 
@@ -315,7 +321,7 @@ size_t PsxObtainPathFromExecutableModule (SMEMBUF *mb)
 
 void DonePsxExecutableModule (void)
 {
-	lnOurExectuablePath = 0;
+	lnOurExecutablePath = 0;
 	doneSMEMBUF (&mbOurExecutablePath);
 }
 
