@@ -4,7 +4,7 @@ This folder contains examples on how to use Cunilog from C.
 
 ## Building with MSVC
 
-### On the command-line
+### On the command-line directly
 
 To build the examples with MSVC, open an MSVC command-line and then __cd__ into this folder.
 
