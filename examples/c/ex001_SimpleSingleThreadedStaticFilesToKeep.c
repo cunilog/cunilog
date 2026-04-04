@@ -49,7 +49,7 @@ int main (int argc, char *argv[])
 	if (NULL == ct)
 	{
 		cunilog_puts_sev_fmtpy	(
-			cunilogEvtSeverityError, cunilogEvtSeverityPrfxChars9InTightBrackets,
+			cunilogEvtSeverityError, cunilogEvtSeverityFormatChars9InTightBrackets,
 			"InitCUNILOG_TARGETstatic ()."
 								);
 		return EXIT_FAILURE;
@@ -70,7 +70,7 @@ int main (int argc, char *argv[])
 	if (NULL == processors)
 	{
 		cunilog_puts_sev_fmtpy	(
-			cunilogEvtSeverityError, cunilogEvtSeverityPrfxChars9InTightBrackets,
+			cunilogEvtSeverityError, cunilogEvtSeverityFormatChars9InTightBrackets,
 			"CreateNewDefaultProcessors ()."
 								);
 								

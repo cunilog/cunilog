@@ -4,7 +4,7 @@ This folder contains examples on how to use Cunilog from C.
 
 ## Building with MSVC
 
-### On the command-line
+### On the command-line directly
 
 To build the examples with MSVC, open an MSVC command-line and then __cd__ into this folder.
 
@@ -41,6 +41,15 @@ The examples themselves include Cunilog's header file with:
 #include "../../src/c/combined/cunilog_combined.h"
 ```
 If you copied or moved the files from the repo to a different folder structure, you'll have to adjust these paths as well.
+
+### On the command-line with batch scripts
+
+To build the examples on a Windows command-line via batch scripts, you also need an MSVC command-line. How to get there is described in more details in the previous chapter above. Summarised, open an MSVC command-line and then cd into this folder. For instance, for Microsoft Visual Studio 2022, the start menu entry is called __x64 Native Tools Command Prompt for VS 2022__.
+
+Scripts are provided to simplify the build and clean process. Each example's source code file is accompanied by a Windows command-line batch script (.cmd) to build it. For example, to build __ex000_SimpleSingleThreadedStatic.c__,
+run __ex000_SimpleSingleThreadedStatic_build.cmd__.
+
+The script __BuildAll.cmd__ builds all C examples from a single script, and the script __CleanAll.cmd__ deletes all files generated during the build process, nameley the resulting object (.obj) and executable files (.exe).
 
 ### With the MSVC IDE
 
