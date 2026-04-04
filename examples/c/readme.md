@@ -42,6 +42,13 @@ The examples themselves include Cunilog's header file with:
 ```
 If you copied or moved the files from the repo to a different folder structure, you'll have to adjust these paths as well.
 
+### On the command-line with batch scripts
+
+Scripts are provided to simplify the build and clean process. Each example's source code file is accompanied by a Windows command-line batch script (.cmd) to build it. For example, to build __ex000_SimpleSingleThreadedStatic.c__,
+run __ex000_SimpleSingleThreadedStatic_build.cmd__.
+
+The script __BuildAll.cmd__ builds all C examples from a single script, and the script __CleanAll.cmd__ deletes all files generated during the build process, nameley the resulting object (.obj) and executable files (.exe).
+
 ### With the MSVC IDE
 
 Create a new project/solution, then add the files __cunilog_combined.c__ and __cunilog_combined.h__ from the folder __src/c__. After that, add the example file in question to the project/solution.
