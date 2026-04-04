@@ -44,7 +44,7 @@ If you copied or moved the files from the repo to a different folder structure, 
 
 ### On the command-line with batch scripts
 
-To build the examples on a Windows command-line via batch scripts, you also need an MSVC command-line. How to get there is described in more details in the previous chapter above. Summarised, open an MSVC command-line and then cd into this folder. For instance, for Microsoft Visual Studio 2022, the start menu entry is called __x64 Native Tools Command Prompt for VS 2022__.
+To build the examples on a Windows command-line via batch scripts, you also need an MSVC command-line. How to get there is described in more details above. Summarised, open an MSVC command-line and then cd into this folder. For instance, for Microsoft Visual Studio 2022, the start menu entry is called __x64 Native Tools Command Prompt for VS 2022__.
 
 Scripts are provided to simplify the build and clean process. Each example's source code file is accompanied by a Windows command-line batch script (.cmd) to build it. For example, to build __ex000_SimpleSingleThreadedStatic.c__,
 run __ex000_SimpleSingleThreadedStatic_build.cmd__.
